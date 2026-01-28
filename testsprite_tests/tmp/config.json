@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:8081",
+  "loginUser": "testclient@gmail.com",
+  "loginPassword": "123123",
+  "executionArgs": {
+    "projectName": "meraki_app",
+    "projectPath": "c:\\Users\\denis\\Desktop\\meraki_app",
+    "testIds": [],
+    "additionalInstruction": "",
+    "envs": {
+      "API_KEY": "sk-user-IzO5wRiLXLslw6rK85VuOEksewZoh7QtXQSHZX4Ke6et5vhW3B7QAGcQ6YSwomH1QpzPbaUh7jrp_EB-K2BBEqKeVtLzRPRUzUOiEpXi3MP8WD9T21qKklhX6qWMcQMYejU"
+    }
+  },
+  "proxy": "http://d0216e24-c0d6-4352-af6d-1bedfc981803:yUQ4M0VW0cld1l1Be3ZInaPlgsaT98P9@tun.testsprite.com:8080"
+}

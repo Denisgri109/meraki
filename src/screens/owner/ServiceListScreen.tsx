@@ -1,0 +1,219 @@
+import React, { useState, useCallback } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    FlatList,
+    RefreshControl,
+    ActivityIndicator,
+    TouchableOpacity,
+    Switch,
+    Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { supabase } from '../../lib/supabase';
+import { Card, ScreenBackground } from '../../components/ui';
+import { colors, spacing } from '../../theme';
+import { Service } from '../../types/database';
+
+export function ServiceListScreen() {
+    const navigation = useNavigation<any>();
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [services, setServices] = useState<Service[]>([]);
+    const [groupedServices, setGroupedServices] = useState<Record<string, Service[]>>({});
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchServices();
+        }, [])
+    );
+
+    const fetchServices = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('services')
+                .select('*')
+                .order('category')
+                .order('name');
+
+            if (error) throw error;
+            setServices(data || []);
+
+            // Group by category
+            const grouped: Record<string, Service[]> = {};
+            (data || []).forEach(service => {
+                const category = service.category || 'Uncategorized';
+                if (!grouped[category]) grouped[category] = [];
+                grouped[category].push(service);
+            });
+            setGroupedServices(grouped);
+        } catch (error) {
+            console.error('Error fetching services:', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    const toggleActive = async (service: Service) => {
+        try {
+            const { error } = await supabase
+                .from('services')
+                .update({ is_active: !service.is_active })
+                .eq('id', service.id);
+
+            if (error) throw error;
+
+            // Update local state
+            setServices(prev => prev.map(s =>
+                s.id === service.id ? { ...s, is_active: !s.is_active } : s
+            ));
+            setGroupedServices(prev => {
+                const newGrouped = { ...prev };
+                const category = service.category || 'Uncategorized';
+                if (newGrouped[category]) {
+                    newGrouped[category] = newGrouped[category].map(s =>
+                        s.id === service.id ? { ...s, is_active: !s.is_active } : s
+                    );
+                }
+                return newGrouped;
+            });
+        } catch (error) {
+            console.error('Error toggling service:', error);
+            Alert.alert('Error', 'Failed to update service status');
+        }
+    };
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchServices();
+    };
+
+    const renderServiceCard = (service: Service) => (
+        <TouchableOpacity
+            key={service.id}
+            onPress={() => navigation.navigate('ServiceForm', { service })}
+        >
+            <Card style={styles.serviceCard}>
+                <View style={styles.serviceInfo}>
+                    <Text style={styles.serviceName}>{service.name}</Text>
+                    <Text style={styles.serviceDetails}>
+                        €{Number(service.base_price).toFixed(2)} • {service.duration_minutes} min
+                    </Text>
+                </View>
+                <Switch
+                    value={service.is_active ?? true}
+                    onValueChange={() => toggleActive(service)}
+                    trackColor={{ false: colors.border, true: '#8B5CF6' }}
+                    thumbColor={service.is_active ? '#fff' : '#f4f3f4'}
+                />
+            </Card>
+        </TouchableOpacity>
+    );
+
+    if (loading) {
+        return (
+            <ScreenBackground>
+                <SafeAreaView style={styles.container}>
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={colors.text} />
+                    </View>
+                </SafeAreaView>
+            </ScreenBackground>
+        );
+    }
+
+    const categories = Object.keys(groupedServices).sort();
+
+    return (
+        <ScreenBackground>
+            <SafeAreaView style={styles.container} edges={['top']}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                        <Text style={styles.backButton}>← Back</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Services</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate('ServiceForm')}>
+                        <Text style={styles.addButton}>+ Add</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <FlatList
+                    data={categories}
+                    keyExtractor={(item) => item}
+                    contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
+                    }
+                    renderItem={({ item: category }) => (
+                        <View style={styles.categorySection}>
+                            <Text style={styles.categoryTitle}>{category}</Text>
+                            {groupedServices[category].map(renderServiceCard)}
+                        </View>
+                    )}
+                    ListEmptyComponent={
+                        <Card variant="glass" style={styles.emptyCard}>
+                            <Text style={styles.emptyIcon}>✨</Text>
+                            <Text style={styles.emptyText}>No services yet</Text>
+                            <TouchableOpacity
+                                style={styles.emptyButton}
+                                onPress={() => navigation.navigate('ServiceForm')}
+                            >
+                                <Text style={styles.emptyButtonText}>Add First Service</Text>
+                            </TouchableOpacity>
+                        </Card>
+                    }
+                />
+            </SafeAreaView>
+        </ScreenBackground>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: { flex: 1 },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: spacing.lg,
+        paddingBottom: spacing.md,
+    },
+    backButton: { fontSize: 16, color: colors.text },
+    title: { fontSize: 20, fontWeight: '600', color: colors.text },
+    addButton: { fontSize: 16, color: '#8B5CF6', fontWeight: '600' },
+    listContent: { padding: spacing.lg, paddingTop: 0 },
+    categorySection: { marginBottom: spacing.lg },
+    categoryTitle: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: colors.textSecondary,
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
+        marginBottom: spacing.sm,
+    },
+    serviceCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: spacing.md,
+        marginBottom: spacing.sm,
+    },
+    serviceInfo: { flex: 1 },
+    serviceName: { fontSize: 16, fontWeight: '600', color: colors.text },
+    serviceDetails: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+    emptyCard: { alignItems: 'center', padding: spacing.xl, marginTop: spacing.xl },
+    emptyIcon: { fontSize: 48, marginBottom: spacing.md, opacity: 0.5 },
+    emptyText: { fontSize: 14, color: colors.textSecondary, marginBottom: spacing.lg },
+    emptyButton: {
+        backgroundColor: '#8B5CF6',
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.lg,
+        borderRadius: 8,
+    },
+    emptyButtonText: { color: '#fff', fontWeight: '600' },
+});
+
+export default ServiceListScreen;

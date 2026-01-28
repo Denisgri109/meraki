@@ -25,5 +25,5 @@ yarn-error.log*
 # credentials
 credentials.json
 google-services-key.json
-google-services.json
+# google-services.json (Allowed for EAS Build)
 credentials/

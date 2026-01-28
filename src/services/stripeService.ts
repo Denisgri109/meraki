@@ -1,0 +1,313 @@
+// Stripe Payment Service
+// Handles all Stripe-related operations for the Merakí app
+
+import { supabase } from '../lib/supabase';
+
+// ============================================
+// TYPES
+// ============================================
+
+export interface PaymentMethod {
+    id: string;
+    brand: string;
+    last4: string;
+    expMonth: number;
+    expYear: number;
+    isDefault?: boolean;
+}
+
+export interface PaymentIntentResult {
+    clientSecret: string;
+    paymentIntentId: string;
+}
+
+export interface SetupIntentResult {
+    clientSecret: string;
+    setupIntentId: string;
+    customerId: string;
+}
+
+interface CreatePaymentIntentParams {
+    amount: number; // In cents
+    currency?: string;
+    customerId?: string;
+    appointmentId?: string;
+    orderId?: string;
+    paymentMethodId?: string;
+    description?: string;
+    captureMethod?: 'manual' | 'automatic';
+}
+
+const SIMULATION_MODE = __DEV__; // Automatically enable simulation in development
+
+// Helper to simulate delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// ... existing code ...
+
+// ============================================
+// SETUP INTENT (For saving payment methods)
+// ============================================
+
+/**
+ * Create a SetupIntent for securely saving a card
+ */
+export async function createSetupIntent(userId: string, userEmail?: string, customerId?: string): Promise<SetupIntentResult> {
+    if (SIMULATION_MODE) {
+        console.log('[Stripe Service] Simulation Mode: Creating Mock SetupIntent');
+        await delay(500);
+        return {
+            clientSecret: 'seti_mock_secret_' + Math.random().toString(36).substr(2, 9),
+            setupIntentId: 'seti_mock_' + Math.random().toString(36).substr(2, 9),
+            customerId: customerId || 'cus_mock_' + Math.random().toString(36).substr(2, 9),
+        };
+    }
+
+    const { data, error } = await supabase.functions.invoke('setup-intent', {
+        body: {
+            user_id: userId,
+            user_email: userEmail,
+            customer_id: customerId,
+        },
+    });
+
+    if (error) throw error;
+    return data;
+}
+
+// ============================================
+// PAYMENT METHODS
+// ============================================
+
+/**
+ * List saved payment methods for a customer
+ */
+export async function listPaymentMethods(customerId: string): Promise<PaymentMethod[]> {
+    if (SIMULATION_MODE) {
+        // Return a mock card if in simulation mode
+        await delay(500);
+        return [{
+            id: 'pm_mock_visa',
+            brand: 'visa',
+            last4: '4242',
+            expMonth: 12,
+            expYear: 2025,
+            isDefault: true,
+        }];
+    }
+
+    const { data, error } = await supabase.functions.invoke('list-payment-methods', {
+        body: {
+            customer_id: customerId,
+        },
+    });
+
+    if (error) throw error;
+    return data.paymentMethods;
+}
+
+/**
+ * Delete a saved payment method
+ */
+export async function deletePaymentMethod(paymentMethodId: string): Promise<boolean> {
+    if (SIMULATION_MODE) return true;
+
+    const { data, error } = await supabase.functions.invoke('delete-payment-method', {
+        body: {
+            payment_method_id: paymentMethodId,
+        },
+    });
+
+    if (error) throw error;
+    return data.success;
+}
+
+// ============================================
+// PAYMENT INTENTS
+// ============================================
+
+/**
+ * Create a PaymentIntent for charging a customer
+ * Use captureMethod: 'manual' for pre-authorization (holds)
+ * Use captureMethod: 'automatic' for immediate charge
+ */
+export async function createPaymentIntent(params: CreatePaymentIntentParams): Promise<PaymentIntentResult> {
+    if (SIMULATION_MODE) {
+        console.log('[Stripe Service] Simulation Mode: Creating Mock PaymentIntent', params);
+        await delay(1000);
+        return {
+            clientSecret: 'pi_mock_secret_' + Math.random().toString(36).substr(2, 9),
+            paymentIntentId: 'pi_mock_' + Math.random().toString(36).substr(2, 9),
+        };
+    }
+
+    const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+        body: {
+            amount: params.amount,
+            currency: params.currency || 'eur',
+            customer_id: params.customerId,
+            appointment_id: params.appointmentId,
+            order_id: params.orderId,
+            payment_method_id: params.paymentMethodId,
+            description: params.description || 'Merakí Payment',
+            capture_method: params.captureMethod || 'automatic',
+        },
+    });
+
+    if (error) throw error;
+    return data;
+}
+
+/**
+ * Capture a previously held payment (after service completion)
+ */
+export async function capturePayment(paymentIntentId: string, amount?: number): Promise<boolean> {
+    const { data, error } = await supabase.functions.invoke('capture-payment', {
+        body: {
+            payment_intent_id: paymentIntentId,
+            amount_to_capture: amount,
+        },
+    });
+
+    if (error) throw error;
+    return data.success;
+}
+
+/**
+ * Cancel a payment hold (release funds back to customer)
+ */
+export async function cancelPaymentIntent(paymentIntentId: string): Promise<boolean> {
+    const { data, error } = await supabase.functions.invoke('cancel-payment', {
+        body: {
+            payment_intent_id: paymentIntentId,
+        },
+    });
+
+    if (error) throw error;
+    return data.success;
+}
+
+// ============================================
+// NO-SHOW HANDLING
+// ============================================
+
+/**
+ * Handle no-show: capture the pre-auth as a no-show fee
+ * @param appointmentId - The appointment ID
+ * @param paymentIntentId - The payment intent ID to capture
+ * @param feePercentage - Percentage of the hold to capture (default: 100%)
+ */
+export async function handleNoShow(
+    appointmentId: string,
+    paymentIntentId: string,
+    feePercentage: number = 100
+): Promise<{ success: boolean; amountCaptured: number }> {
+    const { data, error } = await supabase.functions.invoke('handle-no-show', {
+        body: {
+            appointment_id: appointmentId,
+            payment_intent_id: paymentIntentId,
+            no_show_fee_percentage: feePercentage,
+        },
+    });
+
+    if (error) throw error;
+    return {
+        success: data.success,
+        amountCaptured: data.amount_captured,
+    };
+}
+
+// ============================================
+// REFUNDS
+// ============================================
+
+/**
+ * Process a refund for a payment
+ * @param paymentIntentId - The payment intent to refund
+ * @param amount - Optional: amount to refund in cents (partial refund)
+ * @param reason - Optional: reason for the refund
+ */
+export async function processRefund(
+    paymentIntentId: string,
+    amount?: number,
+    reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer'
+): Promise<{ success: boolean; refundId: string; amount: number }> {
+    const { data, error } = await supabase.functions.invoke('process-refund', {
+        body: {
+            payment_intent_id: paymentIntentId,
+            amount,
+            reason,
+        },
+    });
+
+    if (error) throw error;
+    return {
+        success: data.success,
+        refundId: data.refund_id,
+        amount: data.amount,
+    };
+}
+
+// ============================================
+// HELPERS
+// ============================================
+
+/**
+ * Calculate amount in cents from euros
+ */
+export function eurosToCents(euros: number): number {
+    return Math.round(euros * 100);
+}
+
+/**
+ * Calculate euros from cents
+ */
+export function centsToEuros(cents: number): number {
+    return cents / 100;
+}
+
+/**
+ * Get the pre-auth amount for a service (configurable percentage)
+ * Default: 100% of service price for full protection
+ */
+export function calculatePreAuthAmount(servicePrice: number, percentage: number = 100): number {
+    const holdAmount = Math.round(servicePrice * 100 * (percentage / 100));
+    return Math.max(50, holdAmount); // Minimum €0.50 for Stripe
+}
+
+/**
+ * Format card brand for display
+ */
+export function formatCardBrand(brand: string): string {
+    const brands: Record<string, string> = {
+        visa: 'Visa',
+        mastercard: 'Mastercard',
+        amex: 'American Express',
+        discover: 'Discover',
+        diners: 'Diners Club',
+        jcb: 'JCB',
+        unionpay: 'UnionPay',
+    };
+    return brands[brand.toLowerCase()] || brand;
+}
+
+export default {
+    // Setup Intent
+    createSetupIntent,
+    // Payment Methods
+    listPaymentMethods,
+    deletePaymentMethod,
+    // Payment Intents
+    createPaymentIntent,
+    capturePayment,
+    cancelPaymentIntent,
+    // No-Show
+    handleNoShow,
+    // Refunds
+    processRefund,
+    // Helpers
+    eurosToCents,
+    centsToEuros,
+    calculatePreAuthAmount,
+    formatCardBrand,
+};

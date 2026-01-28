@@ -1,0 +1,77 @@
+{
+    "tech_stack": [
+        "TypeScript",
+        "React Native",
+        "Expo",
+        "Supabase",
+        "Stripe",
+        "React Navigation"
+    ],
+    "features": [
+        {
+            "name": "Authentication",
+            "description": "User authentication context and screens",
+            "files": [
+                "src/contexts/AuthContext.tsx",
+                "src/screens/auth"
+            ]
+        },
+        {
+            "name": "Notification Service",
+            "description": "Service for handling push notifications",
+            "files": [
+                "src/services/notificationService.ts"
+            ]
+        },
+        {
+            "name": "Stripe Service",
+            "description": "Service for Stripe payments",
+            "files": [
+                "src/services/stripeService.ts"
+            ]
+        },
+        {
+            "name": "Shopping Cart",
+            "description": "Cart context and shop screens",
+            "files": [
+                "src/contexts/CartContext.tsx",
+                "src/screens/shop"
+            ]
+        },
+        {
+            "name": "Academy",
+            "description": "Academy management screens",
+            "files": [
+                "src/screens/academy"
+            ]
+        },
+        {
+            "name": "Chat",
+            "description": "Chat functionality",
+            "files": [
+                "src/screens/chat"
+            ]
+        },
+        {
+            "name": "Client Screens",
+            "description": "Screens specific to client role",
+            "files": [
+                "src/screens/client"
+            ]
+        },
+        {
+            "name": "Master Screens",
+            "description": "Screens specific to master role",
+            "files": [
+                "src/screens/master"
+            ]
+        },
+        {
+            "name": "Owner Screens",
+            "description": "Screens specific to owner role",
+            "files": [
+                "src/screens/owner"
+            ]
+        }
+    ]
+}

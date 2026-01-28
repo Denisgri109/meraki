@@ -1,0 +1,555 @@
+[
+  {
+    "id": "TC001",
+    "title": "Client Booking Flow Success",
+    "description": "Verify that a client can successfully browse services, select a Master, choose date and time from available slots, add optional notes, and complete booking.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as a valid Client user."
+      },
+      {
+        "type": "action",
+        "description": "Browse services by category."
+      },
+      {
+        "type": "action",
+        "description": "Select a service and choose a Master from the list."
+      },
+      {
+        "type": "action",
+        "description": "Choose a date and time slot that is available."
+      },
+      {
+        "type": "action",
+        "description": "Add optional notes for the appointment."
+      },
+      {
+        "type": "action",
+        "description": "Submit booking and confirm the appointment."
+      },
+      {
+        "type": "assertion",
+        "description": "Booking is persisted with correct data and confirmed successfully."
+      },
+      {
+        "type": "assertion",
+        "description": "Client receives booking confirmation within the app."
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Booking Flow with Unavailable Time Slot",
+    "description": "Ensure booking cannot be completed if the selected Master is not available at the chosen time slot.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Client."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to book an appointment with a Master at a time slot marked unavailable."
+      },
+      {
+        "type": "assertion",
+        "description": "System prevents booking and displays an appropriate error message."
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Master Accepts Appointment Request",
+    "description": "Verify that a Master receives a new appointment request and can confirm the appointment, updating the status and notifying the Client.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Master."
+      },
+      {
+        "type": "action",
+        "description": "View new appointment request in the dashboard."
+      },
+      {
+        "type": "action",
+        "description": "Confirm the appointment request."
+      },
+      {
+        "type": "assertion",
+        "description": "Appointment status changes to confirmed."
+      },
+      {
+        "type": "assertion",
+        "description": "Client receives notification of appointment confirmation."
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Master Declines Appointment Request",
+    "description": "Verify that a Master can decline an appointment and the Client is notified accordingly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Master."
+      },
+      {
+        "type": "action",
+        "description": "View an incoming appointment request."
+      },
+      {
+        "type": "action",
+        "description": "Decline the appointment request."
+      },
+      {
+        "type": "assertion",
+        "description": "Appointment status updates to declined."
+      },
+      {
+        "type": "assertion",
+        "description": "Client receives notification about the declined appointment."
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Master Marks Appointment as Completed",
+    "description": "Verify that a Master can mark an appointment as completed and relevant data updates accordingly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Master."
+      },
+      {
+        "type": "action",
+        "description": "Select an active confirmed appointment."
+      },
+      {
+        "type": "action",
+        "description": "Mark the appointment as completed."
+      },
+      {
+        "type": "assertion",
+        "description": "Appointment status updates to completed."
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Master Marks Appointment as No-Show",
+    "description": "Verify that a Master can mark an appointment as no-show and that Clients are notified.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Master."
+      },
+      {
+        "type": "action",
+        "description": "Select an upcoming appointment."
+      },
+      {
+        "type": "action",
+        "description": "Mark the appointment as no-show."
+      },
+      {
+        "type": "assertion",
+        "description": "Appointment status updates to no-show."
+      },
+      {
+        "type": "assertion",
+        "description": "Client receives no-show notification."
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Master Reschedules Appointment with Client Approval",
+    "description": "Verify that a Master can initiate appointment rescheduling which requires client approval before finalizing.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Master."
+      },
+      {
+        "type": "action",
+        "description": "Initiate reschedule request for an existing appointment."
+      },
+      {
+        "type": "action",
+        "description": "Select a new available date and time."
+      },
+      {
+        "type": "assertion",
+        "description": "Appointment status changes to 'Reschedule Pending'."
+      },
+      {
+        "type": "action",
+        "description": "Notify the Client of the reschedule request."
+      },
+      {
+        "type": "assertion",
+        "description": "Client can accept or decline the reschedule request."
+      },
+      {
+        "type": "action",
+        "description": "Client approves the new appointment time."
+      },
+      {
+        "type": "assertion",
+        "description": "Appointment updates to new scheduled time and status is confirmed."
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Automated Appointment Reminder Notifications",
+    "description": "Ensure system sends push notifications to clients 24h and 1h prior to confirmed appointments.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create a confirmed appointment scheduled for the future."
+      },
+      {
+        "type": "action",
+        "description": "Trigger the appointment reminder system function."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify 24h reminder push notification sent to client."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify 1h reminder push notification sent to client."
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Automated Aftercare Reminder Notifications",
+    "description": "Verify aftercare reminder notifications are sent 24h after a completed appointment with appropriate category-specific tips.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Complete an appointment successfully."
+      },
+      {
+        "type": "action",
+        "description": "Trigger the aftercare reminder function 24h later."
+      },
+      {
+        "type": "assertion",
+        "description": "Aftercare reminder push notification sent with correct content relevant to service category."
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "In-App Messaging Functional Test",
+    "description": "Verify real-time text and image message sending between client and master with correct delivery notifications.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open chat between a client and a master."
+      },
+      {
+        "type": "action",
+        "description": "Send a text message from client to master."
+      },
+      {
+        "type": "assertion",
+        "description": "Master receives message instantly."
+      },
+      {
+        "type": "action",
+        "description": "Send an image message from master to client."
+      },
+      {
+        "type": "assertion",
+        "description": "Client receives image message correctly."
+      },
+      {
+        "type": "assertion",
+        "description": "Push notification is sent to recipient on new message."
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "In-App Messaging Media Upload Error Handling",
+    "description": "Verify that uploading unsupported or corrupt media files results in appropriate error messages and does not crash the app.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to send unsupported media format in chat."
+      },
+      {
+        "type": "assertion",
+        "description": "App displays a clear error message about unsupported file type."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to send corrupt media file."
+      },
+      {
+        "type": "assertion",
+        "description": "App handles error gracefully without crashing."
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Stripe PaymentIntent Creation Success",
+    "description": "Verify creating a Stripe PaymentIntent for booking pre-authorization with valid inputs returns client secret and payment intent ID.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send API request to create-payment-intent with valid amount, currency, customer ID, and appointment ID."
+      },
+      {
+        "type": "assertion",
+        "description": "Response returns 200 status with clientSecret and paymentIntentId."
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Stripe PaymentIntent Creation Invalid Input",
+    "description": "Verify the create-payment-intent endpoint returns 400 error when required fields are missing or invalid.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send create-payment-intent API request missing required 'amount' field."
+      },
+      {
+        "type": "assertion",
+        "description": "API returns 400 error with appropriate validation message."
+      },
+      {
+        "type": "action",
+        "description": "Send create-payment-intent with invalid currency code."
+      },
+      {
+        "type": "assertion",
+        "description": "API returns 400 error with error details."
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Capture Held Payment Successfully",
+    "description": "Verify that the capture-payment API successfully captures a previously authorized PaymentIntent with valid payment_intent_id.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send capture-payment API request with valid payment_intent_id and optional amount_to_capture."
+      },
+      {
+        "type": "assertion",
+        "description": "Response status 200 with success true and status indicating captured."
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Capture Held Payment Missing Payment Intent ID",
+    "description": "Verify capture-payment API returns 400 if payment_intent_id is missing.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send capture-payment request without payment_intent_id."
+      },
+      {
+        "type": "assertion",
+        "description": "API returns 400 error."
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Cancel Payment Hold Successfully",
+    "description": "Verify cancel-payment API cancels a PaymentIntent and releases held funds correctly with valid payment_intent_id.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send cancel-payment API request with valid payment_intent_id."
+      },
+      {
+        "type": "assertion",
+        "description": "API returns 200 success response and status indicating cancelled."
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Low Stock Alert Triggers Correctly",
+    "description": "Verify that when product stock levels fall below thresholds, low-stock-alert functions detect and notify the admins/owners.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Simulate product stock lowering below threshold."
+      },
+      {
+        "type": "action",
+        "description": "Trigger low-stock-alert API function."
+      },
+      {
+        "type": "assertion",
+        "description": "Admins and owners receive push notification about low stock."
+      },
+      {
+        "type": "assertion",
+        "description": "API returns 200 response with list of products flagged low stock."
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Role-Based Access Control Enforcement",
+    "description": "Ensure that user roles Client, Master, and Owner are enforced across platform features and unauthorized access is prevented.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Client and attempt to access Master-only management features."
+      },
+      {
+        "type": "assertion",
+        "description": "Access is denied with appropriate error or redirection."
+      },
+      {
+        "type": "action",
+        "description": "Login as Master and attempt to access Owner-only user management."
+      },
+      {
+        "type": "assertion",
+        "description": "Access is denied."
+      },
+      {
+        "type": "action",
+        "description": "Login as Owner and verify access to all management and analytics features."
+      },
+      {
+        "type": "assertion",
+        "description": "Access granted appropriately."
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "UI Theme and Responsiveness Verification",
+    "description": "Verify that all primary UI components render with the 'Midnight Glass' theme, including dark mode, gradients, glassmorphic effects, and animations across supported devices and screen sizes.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Launch app on multiple devices with varied screen sizes."
+      },
+      {
+        "type": "assertion",
+        "description": "UI components render correctly with dark themes and glassmorphic styles."
+      },
+      {
+        "type": "assertion",
+        "description": "All animations run smoothly with no performance degradation."
+      },
+      {
+        "type": "action",
+        "description": "Resize or rotate device screens."
+      },
+      {
+        "type": "assertion",
+        "description": "UI adapts responsively and remains usable."
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Academy System Course Progress Tracking",
+    "description": "Verify that students' course progress, lesson completion, and homework submissions are tracked accurately and visible to both students and owners.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as student and access Academy courses."
+      },
+      {
+        "type": "action",
+        "description": "Complete lessons in a course and submit homework."
+      },
+      {
+        "type": "assertion",
+        "description": "Progress updates correctly in student dashboard."
+      },
+      {
+        "type": "action",
+        "description": "Login as Owner and review student course analytics."
+      },
+      {
+        "type": "assertion",
+        "description": "Owner views accurate progress and submission data."
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "API Error Responses on Validation Failures",
+    "description": "Verify critical API routes return appropriate HTTP status codes and error messages on invalid input or server errors as per OpenAPI specs.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send API requests with missing required fields to critical endpoints (booking, payment, messaging)."
+      },
+      {
+        "type": "assertion",
+        "description": "APIs return 400 with descriptive messages."
+      },
+      {
+        "type": "action",
+        "description": "Simulate server errors and send API requests."
+      },
+      {
+        "type": "assertion",
+        "description": "APIs return 500 status and informative error payloads."
+      }
+    ]
+  }
+]

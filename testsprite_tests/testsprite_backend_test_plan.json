@@ -1,0 +1,42 @@
+[
+  {
+    "id": "TC001",
+    "title": "send aftercare reminder notifications",
+    "description": "Test the /aftercare-reminder POST endpoint to verify that it correctly finds completed appointments from 24 hours ago and sends category-specific aftercare push notifications to clients. Validate the response includes a success message and the list of appointment IDs processed."
+  },
+  {
+    "id": "TC002",
+    "title": "send appointment reminder notifications",
+    "description": "Test the /appointment-reminders POST endpoint to ensure it finds confirmed appointments and sends push notifications at 24 hours and 1 hour before the appointment. Verify the response indicates success and includes the reminders sent."
+  },
+  {
+    "id": "TC003",
+    "title": "create stripe payment intent",
+    "description": "Test the /create-payment-intent POST endpoint to create a Stripe PaymentIntent for pre-authorization during booking. Validate required fields such as amount and appointment_id are enforced and the response returns clientSecret and paymentIntentId on success."
+  },
+  {
+    "id": "TC004",
+    "title": "capture stripe payment",
+    "description": "Test the /capture-payment POST endpoint to capture a previously authorized Stripe PaymentIntent. Verify that providing a valid payment_intent_id captures the payment and returns success status."
+  },
+  {
+    "id": "TC005",
+    "title": "cancel stripe payment hold",
+    "description": "Test the /cancel-payment POST endpoint to cancel a Stripe PaymentIntent hold and release funds. Confirm that the endpoint requires payment_intent_id and returns success status upon cancellation."
+  },
+  {
+    "id": "TC006",
+    "title": "send low stock alert notifications",
+    "description": "Test the /low-stock-alert POST endpoint to check for products with stock below threshold and send push notifications to admin and owner users. Validate the response includes a message and list of low stock products."
+  },
+  {
+    "id": "TC007",
+    "title": "send marketing push notifications",
+    "description": "Test the /send-marketing-notification POST endpoint to send promotional push notifications to users with optional role filtering. Verify that only owners/admins can access this endpoint and that missing required fields return appropriate errors."
+  },
+  {
+    "id": "TC008",
+    "title": "send message notification on new chat message",
+    "description": "Test the /send-message-notification POST endpoint to send push notifications when a new chat message is received. Validate support for both message_id and record payloads, and verify error handling for missing or invalid data."
+  }
+]
