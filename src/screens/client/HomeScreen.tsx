@@ -8,6 +8,7 @@ import {
     RefreshControl,
     Dimensions,
     ActivityIndicator,
+    Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -48,6 +49,13 @@ interface RecentOrder {
     created_at: string;
 }
 
+interface FeaturedMaster {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+    bio: string | null;
+}
+
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 
 // ... imports remain the same
@@ -64,6 +72,7 @@ export function ClientHomeScreen() {
     const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
     const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
     const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+    const [featuredMasters, setFeaturedMasters] = useState<FeaturedMaster[]>([]);
     const [totalVisits, setTotalVisits] = useState(0);
     const [totalOrders, setTotalOrders] = useState(0);
 
@@ -142,6 +151,16 @@ export function ClientHomeScreen() {
             const { data: orders } = await safeSupabaseFetch(ordersPromise, { timeout: 5000 });
 
             setRecentOrders((orders as any) || []);
+
+            // Fetch featured masters (users who are masters or owners)
+            const mastersPromise = (supabase as any)
+                .from('profiles')
+                .select('id, full_name, avatar_url, bio')
+                .or('is_master.eq.true,role.eq.master,role.eq.owner')
+                .limit(10);
+
+            const { data: masters } = await safeSupabaseFetch(mastersPromise, { timeout: 5000 });
+            setFeaturedMasters((masters as FeaturedMaster[]) || []);
 
         } catch (error) {
             console.error('Error fetching home data:', error);
@@ -360,6 +379,55 @@ export function ClientHomeScreen() {
                             ))}
                         </View>
                     </View>
+
+                    {/* Featured Masters */}
+                    {featuredMasters.length > 0 && (
+                        <View style={styles.featuredMastersSection}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionTitle}>Featured Masters</Text>
+                                <TouchableOpacity onPress={() => navigation.navigate('Book')}>
+                                    <Text style={styles.seeAll}>See All</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.mastersScroll}
+                            >
+                                {featuredMasters.map((master) => (
+                                    <TouchableOpacity
+                                        key={master.id}
+                                        style={styles.masterCard}
+                                        onPress={() => navigation.navigate('MasterDetail', { masterId: master.id })}
+                                    >
+                                        {master.avatar_url ? (
+                                            <View style={styles.masterImageContainer}>
+                                                <Image
+                                                    source={{ uri: master.avatar_url }}
+                                                    style={styles.masterImagePlaceholder}
+                                                    resizeMode="cover"
+                                                />
+                                            </View>
+                                        ) : (
+                                            <View style={styles.masterAvatarFallback}>
+                                                <Text style={styles.masterAvatarText}>
+                                                    {master.full_name?.[0] || '?'}
+                                                </Text>
+                                            </View>
+                                        )}
+                                        <Text style={styles.masterCardName} numberOfLines={1}>
+                                            {master.full_name || 'Master'}
+                                        </Text>
+                                        {master.bio && (
+                                            <Text style={styles.masterCardBio} numberOfLines={2}>
+                                                {master.bio}
+                                            </Text>
+                                        )}
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
 
                     {/* My Stats Card */}
                     <View style={styles.myStatsSection}>
@@ -620,6 +688,59 @@ const styles = StyleSheet.create({
     featuredTag: { fontSize: 10, fontWeight: '700', color: colors.accent, marginBottom: 4, letterSpacing: 1 },
     featuredTitle: { fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: spacing.md },
     featuredBtn: { alignSelf: 'flex-start' },
+    featuredMastersSection: { marginBottom: spacing.xl },
+    mastersScroll: { paddingRight: spacing.lg },
+    masterCard: {
+        width: 140,
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        padding: spacing.md,
+        marginRight: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        alignItems: 'center',
+    },
+    masterImageContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        overflow: 'hidden',
+        marginBottom: spacing.sm,
+    },
+    masterImagePlaceholder: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+    },
+    masterAvatarFallback: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: colors.surfaceLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing.sm,
+        borderWidth: 2,
+        borderColor: colors.primary,
+    },
+    masterAvatarText: {
+        fontSize: 32,
+        fontWeight: '600',
+        color: colors.primary,
+    },
+    masterCardName: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.text,
+        textAlign: 'center',
+        marginBottom: 4,
+    },
+    masterCardBio: {
+        fontSize: 11,
+        color: colors.textMuted,
+        textAlign: 'center',
+        lineHeight: 14,
+    },
 });
 
 export default ClientHomeScreen;

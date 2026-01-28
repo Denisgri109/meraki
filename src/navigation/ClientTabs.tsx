@@ -22,6 +22,7 @@ import {
     BookingConfirmScreen,
     MenuScreen,
     QRScannerScreen,
+    MasterDetailScreen,
 } from '../screens/client';
 import { ShopScreen, ProductDetailScreen, CartScreen, CheckoutScreen } from '../screens/shop';
 import { ChatListScreen, ChatScreen } from '../screens/chat';
@@ -48,6 +49,7 @@ export type HomeStackParamList = {
     PaymentHistory: undefined;
     Notifications: undefined;
     QRScanner: undefined;
+    MasterDetail: { masterId: string };
 };
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -68,6 +70,7 @@ function HomeStackNavigator() {
             <HomeStack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
             <HomeStack.Screen name="Notifications" component={NotificationsScreen} />
             <HomeStack.Screen name="QRScanner" component={QRScannerScreen} />
+            <HomeStack.Screen name="MasterDetail" component={MasterDetailScreen} />
         </HomeStack.Navigator>
     );
 }

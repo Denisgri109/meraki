@@ -76,7 +76,7 @@
 **Expected Result:**
 - Error message: "Password should be at least 6 characters".
 
-**Status:** [❌ ]
+**Status:** [ ✅]
 
 ---
 
@@ -190,7 +190,7 @@
 - Cards scroll smoothly horizontally.
 - Tapping opens the **Master Detail Screen** with bio and services.
 
-**Status:** [❌ ]
+**Status:** [ ✅]
 
 ---
 
@@ -704,45 +704,6 @@
 
 ---
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### ADM-01: Invite a New Master
 **Objective:** Verify Master invitation flow.
 
@@ -790,7 +751,7 @@
 - Master and Owner receive push notification.
 - Notification shows service name and time.
 
-**Status:** [ ]
+**Status:** [ ⚠️]
 
 ---
 
@@ -803,7 +764,7 @@
 **Expected Result:**
 - Client receives push notification with proposed new time.
 
-**Status:** [ ]
+**Status:** [ ⚠️]
 
 ---
 
@@ -818,7 +779,7 @@
 - System notification banner appears on the device.
 - Tapping opens the app to the relevant screen.
 
-**Status:** [ ]
+**Status:** [ ✅]
 
 ---
 
@@ -837,7 +798,7 @@
 - Background is consistent deep matte black (`#050505`).
 - Text is readable with proper contrast.
 
-**Status:** [ ]
+**Status:** [✅ ]
 
 ---
 
@@ -852,7 +813,7 @@
 - App does not freeze or crash.
 - Error states are shown gracefully if network fails.
 
-**Status:** [ ]
+**Status:** [✅ ]
 
 ---
 
@@ -867,7 +828,7 @@
 - Content is not obscured by notch or home indicator.
 - Header content is visible and properly padded.
 
-**Status:** [ ]
+**Status:** [❌ ]
 
 ---
 
@@ -886,7 +847,7 @@
 - Shows transaction history (earned/redeemed).
 - Shows available rewards.
 
-**Status:** [ ]
+**Status:** [✅ ]
 
 ---
 
@@ -902,7 +863,7 @@
 - QR code rotates to a new one (for security).
 - Success message is shown.
 
-**Status:** [ ]
+**Status:** [ ✅]
 
 ---
 
@@ -917,7 +878,7 @@
 - Unique, dynamic QR code is displayed.
 - Code changes after each successful scan.
 
-**Status:** [ ]
+**Status:** [✅ ]
 
 ---
 

@@ -11,17 +11,20 @@ import {
     TextInput,
     Modal,
     Dimensions,
+    Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCart } from '../../contexts/CartContext';
 import { Card, Button, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { safeSupabaseFetch } from '../../lib/supabaseApi';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - spacing.lg * 3) / 2;
+const CARD_WIDTH = (width - spacing.lg * 2 - spacing.md) / 2;
 
 type Product = {
     id: string;
@@ -36,18 +39,17 @@ type Product = {
 };
 
 const CATEGORIES = [
-    { label: 'All', icon: '✨' },
+    { label: 'All', icon: '✦' },
     { label: 'Nails', icon: '💅' },
     { label: 'Lashes', icon: '👁️' },
     { label: 'Brows', icon: '✨' },
-    { label: 'Equipment', icon: '🔧' },
+    { label: 'Equipment', icon: '⚙️' },
 ];
-
-import { safeSupabaseFetch } from '../../lib/supabaseApi';
 
 export function ShopScreen() {
     const navigation = useNavigation<any>();
     const { profile, checkSession } = useAuth();
+    const { addToCart, getItemCount } = useCart();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
@@ -66,6 +68,7 @@ export function ShopScreen() {
 
     const isMaster = profile?.is_master || profile?.role === 'master';
     const isAdmin = (profile?.role as string) === 'admin' || profile?.role === 'owner';
+    const cartItemCount = getItemCount();
 
     useEffect(() => {
         fetchProducts();
@@ -94,8 +97,6 @@ export function ShopScreen() {
             setRefreshing(false);
         }
     };
-
-
 
     const onRefresh = () => {
         setRefreshing(true);
@@ -139,6 +140,23 @@ export function ShopScreen() {
         }
     };
 
+    const handleQuickAddToCart = (product: Product) => {
+        if (product.stock_count === 0) {
+            Alert.alert('Out of Stock', 'This product is currently unavailable.');
+            return;
+        }
+
+        const price = getPrice(product);
+        addToCart({
+            id: product.id,
+            name: product.name,
+            price: price,
+            quantity: 1,
+            image_url: product.image_url,
+            stock_count: product.stock_count,
+        });
+    };
+
     const filteredProducts = products.filter(p => {
         const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
         const matchesSearch = !searchQuery ||
@@ -151,13 +169,13 @@ export function ShopScreen() {
         return (isMaster || isAdmin) ? product.wholesale_price : product.retail_price;
     };
 
-    const getCategoryIcon = (category: string | null) => {
+    const getCategoryGradient = (category: string | null): [string, string] => {
         switch (category) {
-            case 'Nails': return '💅';
-            case 'Lashes': return '👁️';
-            case 'Brows': return '✨';
-            case 'Equipment': return '🔧';
-            default: return '🛍️';
+            case 'Nails': return ['#D48A82', '#B8756D'];
+            case 'Lashes': return ['#C0A0E0', '#8B5CF6'];
+            case 'Brows': return ['#E6C090', '#D4A574'];
+            case 'Equipment': return ['#6B7280', '#4B5563'];
+            default: return ['#8B5CF6', '#6366F1'];
         }
     };
 
@@ -166,7 +184,7 @@ export function ShopScreen() {
             <ScreenBackground>
                 <SafeAreaView style={styles.container}>
                     <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={colors.text} />
+                        <ActivityIndicator size="large" color={colors.primary} />
                     </View>
                 </SafeAreaView>
             </ScreenBackground>
@@ -184,42 +202,58 @@ export function ShopScreen() {
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Premium Header */}
-                    <LinearGradient
-                        colors={['#1E0A40', '#000000']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 0, y: 1 }}
-                        style={styles.headerGradient}
-                    >
-                        <View style={styles.headerContent}>
-                            <View style={styles.headerTop}>
-                                <View>
-                                    <Text style={styles.headerTitle}>Shop</Text>
-                                    <Text style={styles.headerSubtitle}>
-                                        {(isMaster || isAdmin) ? 'Wholesale Prices' : 'Premium Beauty Products'}
-                                    </Text>
-                                </View>
+                    <View style={styles.headerContainer}>
+                        <View style={styles.headerRow}>
+                            <View style={styles.headerLeft}>
+                                <Text style={styles.headerTitle}>Shop</Text>
+                                <Text style={styles.headerSubtitle}>
+                                    {(isMaster || isAdmin) ? 'Wholesale Prices' : 'Premium Beauty Products'}
+                                </Text>
+                            </View>
+                            <View style={styles.headerRight}>
                                 {isAdmin && (
-                                    <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
-                                        <Text style={styles.addButtonText}>+ Add</Text>
+                                    <TouchableOpacity
+                                        style={styles.addButton}
+                                        onPress={() => setShowAddModal(true)}
+                                    >
+                                        <Text style={styles.addButtonText}>+</Text>
                                     </TouchableOpacity>
                                 )}
-                            </View>
-
-                            {/* Search Bar */}
-                            <View style={styles.searchContainer}>
-                                <Text style={styles.searchIcon}>🔍</Text>
-                                <TextInput
-                                    style={styles.searchInput}
-                                    placeholder="Search products..."
-                                    placeholderTextColor="rgba(15,15,19,0.5)"
-                                    value={searchQuery}
-                                    onChangeText={setSearchQuery}
-                                />
+                                <TouchableOpacity
+                                    style={styles.cartButton}
+                                    onPress={() => navigation.navigate('Cart')}
+                                >
+                                    <Text style={styles.cartIcon}>🛍️</Text>
+                                    {cartItemCount > 0 && (
+                                        <View style={styles.cartBadge}>
+                                            <Text style={styles.cartBadgeText}>
+                                                {cartItemCount > 99 ? '99+' : cartItemCount}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
                             </View>
                         </View>
-                    </LinearGradient>
 
-                    {/* Categories */}
+                        {/* Sleek Search Bar */}
+                        <View style={styles.searchContainer}>
+                            <Text style={styles.searchIcon}>🔍</Text>
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Search products..."
+                                placeholderTextColor={colors.textMuted}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                            />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                    <Text style={styles.clearSearch}>✕</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
+
+                    {/* Modern Category Pills */}
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
@@ -230,18 +264,24 @@ export function ShopScreen() {
                             <TouchableOpacity
                                 key={cat.label}
                                 onPress={() => setSelectedCategory(cat.label)}
-                                style={[
-                                    styles.categoryChip,
-                                    selectedCategory === cat.label && styles.categoryChipActive,
-                                ]}
+                                activeOpacity={0.7}
                             >
-                                <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                                <Text style={[
-                                    styles.categoryText,
-                                    selectedCategory === cat.label && styles.categoryTextActive,
-                                ]}>
-                                    {cat.label}
-                                </Text>
+                                {selectedCategory === cat.label ? (
+                                    <LinearGradient
+                                        colors={['#D48A82', '#C0A0E0']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={styles.categoryChipActive}
+                                    >
+                                        <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                                        <Text style={styles.categoryTextActive}>{cat.label}</Text>
+                                    </LinearGradient>
+                                ) : (
+                                    <View style={styles.categoryChip}>
+                                        <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                                        <Text style={styles.categoryText}>{cat.label}</Text>
+                                    </View>
+                                )}
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
@@ -259,33 +299,76 @@ export function ShopScreen() {
                                         key={product.id}
                                         style={styles.productCard}
                                         onPress={() => navigation.navigate('ProductDetail', { productId: product.id, product })}
-                                        activeOpacity={0.8}
+                                        activeOpacity={0.9}
                                     >
-                                        <View style={styles.productImageContainer}>
-                                            <LinearGradient
-                                                colors={['rgba(139,92,246,0.1)', 'rgba(59,130,246,0.1)']}
-                                                style={styles.productImage}
-                                            >
-                                                <Text style={styles.productEmoji}>{getCategoryIcon(product.category)}</Text>
-                                            </LinearGradient>
+                                        {/* Product Image Container */}
+                                        <View style={styles.productImageWrapper}>
+                                            {product.image_url ? (
+                                                <Image
+                                                    source={{ uri: product.image_url }}
+                                                    style={styles.productImage}
+                                                    resizeMode="cover"
+                                                />
+                                            ) : (
+                                                <LinearGradient
+                                                    colors={getCategoryGradient(product.category)}
+                                                    style={styles.productImagePlaceholder}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 1 }}
+                                                >
+                                                    <View style={styles.productIconContainer}>
+                                                        <Text style={styles.productCategoryLabel}>
+                                                            {product.category || 'Product'}
+                                                        </Text>
+                                                    </View>
+                                                </LinearGradient>
+                                            )}
+
+                                            {/* Stock Badge */}
                                             {product.stock_count < 10 && (
                                                 <View style={[
                                                     styles.stockBadge,
                                                     product.stock_count === 0 && styles.outOfStockBadge
                                                 ]}>
                                                     <Text style={styles.stockBadgeText}>
-                                                        {product.stock_count === 0 ? 'Out' : 'Low'}
+                                                        {product.stock_count === 0 ? 'Sold Out' : `${product.stock_count} left`}
                                                     </Text>
                                                 </View>
                                             )}
                                         </View>
+
+                                        {/* Product Info */}
                                         <View style={styles.productInfo}>
-                                            <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
+                                            <Text style={styles.productName} numberOfLines={2}>
+                                                {product.name}
+                                            </Text>
+
                                             <View style={styles.priceRow}>
-                                                <Text style={styles.productPrice}>€{getPrice(product).toFixed(2)}</Text>
-                                                {(isMaster || isAdmin) && (
-                                                    <Text style={styles.retailPrice}>€{product.retail_price.toFixed(2)}</Text>
-                                                )}
+                                                <View style={styles.priceContainer}>
+                                                    <Text style={styles.productPrice}>
+                                                        €{getPrice(product).toFixed(2)}
+                                                    </Text>
+                                                    {(isMaster || isAdmin) && (
+                                                        <Text style={styles.retailPrice}>
+                                                            €{product.retail_price.toFixed(2)}
+                                                        </Text>
+                                                    )}
+                                                </View>
+
+                                                {/* Add to Cart Button */}
+                                                <TouchableOpacity
+                                                    style={[
+                                                        styles.addToCartButton,
+                                                        product.stock_count === 0 && styles.addToCartDisabled
+                                                    ]}
+                                                    onPress={(e) => {
+                                                        e.stopPropagation();
+                                                        handleQuickAddToCart(product);
+                                                    }}
+                                                    disabled={product.stock_count === 0}
+                                                >
+                                                    <Text style={styles.addToCartIcon}>+</Text>
+                                                </TouchableOpacity>
                                             </View>
                                         </View>
                                     </TouchableOpacity>
@@ -293,10 +376,12 @@ export function ShopScreen() {
                             </View>
                         ) : (
                             <View style={styles.emptyState}>
-                                <Text style={styles.emptyIcon}>🛍️</Text>
+                                <View style={styles.emptyIconContainer}>
+                                    <Text style={styles.emptyIcon}>🛍️</Text>
+                                </View>
                                 <Text style={styles.emptyText}>No products found</Text>
                                 <Text style={styles.emptySubtext}>
-                                    {searchQuery ? 'Try a different search' : 'Check back soon!'}
+                                    {searchQuery ? 'Try a different search term' : 'Check back soon for new arrivals!'}
                                 </Text>
                             </View>
                         )}
@@ -420,66 +505,135 @@ export function ShopScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    scrollContent: { paddingBottom: 100 },
-    headerGradient: {
-        paddingTop: spacing.lg,
-        paddingBottom: spacing.xl,
-        paddingHorizontal: spacing.lg,
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
+    container: {
+        flex: 1
     },
-    headerContent: {},
-    headerTop: {
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    scrollContent: {
+        paddingBottom: 100
+    },
+
+    // Header Styles
+    headerContainer: {
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.md,
+        paddingBottom: spacing.lg,
+    },
+    headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
         marginBottom: spacing.lg,
     },
+    headerLeft: {
+        flex: 1,
+    },
     headerTitle: {
-        fontSize: 48,
-        fontWeight: '900',
+        fontSize: 28,
+        fontWeight: '700',
         color: colors.text,
-        marginBottom: 8,
-        letterSpacing: -1,
+        letterSpacing: -0.5,
     },
     headerSubtitle: {
-        fontSize: 14,
-        color: 'rgba(255,255,255,0.8)',
-        fontWeight: '500',
+        fontSize: 12,
+        color: colors.textMuted,
+        marginTop: 2,
+        fontWeight: '400',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
     },
     addButton: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        borderRadius: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.surface,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.3)',
+        borderColor: colors.border,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    addButtonText: { color: colors.text, fontSize: 14, fontWeight: '600' },
+    addButtonText: {
+        color: colors.text,
+        fontSize: 18,
+        fontWeight: '500'
+    },
+    cartButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+    },
+    cartIcon: {
+        fontSize: 20,
+    },
+    cartBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        minWidth: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 4,
+    },
+    cartBadgeText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: colors.text,
+    },
+
+    // Search Styles
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.text,
-        borderRadius: 16,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         paddingHorizontal: spacing.md,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
+        height: 44,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    searchIcon: {
+        fontSize: 14,
+        marginRight: spacing.sm,
+        opacity: 0.5
     },
     searchInput: {
         flex: 1,
-        paddingVertical: spacing.lg,
-        fontSize: 16,
-        color: colors.background,
-        fontWeight: '500',
+        fontSize: 15,
+        color: colors.text,
+        fontWeight: '400',
     },
-    searchIcon: { fontSize: 16, marginRight: spacing.sm, opacity: 0.7 },
-    categoriesScroll: { marginTop: spacing.lg },
-    categories: { paddingHorizontal: spacing.lg, gap: spacing.sm },
+    clearSearch: {
+        fontSize: 14,
+        color: colors.textMuted,
+        padding: spacing.xs,
+    },
+
+    // Categories Styles
+    categoriesScroll: {
+        marginTop: spacing.sm
+    },
+    categories: {
+        paddingHorizontal: spacing.lg,
+        gap: spacing.sm
+    },
     categoryChip: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -489,19 +643,48 @@ const styles = StyleSheet.create({
         backgroundColor: colors.surface,
         borderWidth: 1,
         borderColor: colors.border,
-        gap: spacing.xs,
+        gap: 6,
     },
-    categoryChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-    categoryIcon: { fontSize: 14 },
-    categoryText: { fontSize: 14, color: colors.textSecondary, fontWeight: '500' },
-    categoryTextActive: { color: colors.text, fontWeight: '600' },
-    productsSection: { padding: spacing.lg },
-    resultsText: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.md },
+    categoryChipActive: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        borderRadius: 20,
+        gap: 6,
+    },
+    categoryIcon: {
+        fontSize: 12
+    },
+    categoryText: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        fontWeight: '500'
+    },
+    categoryTextActive: {
+        fontSize: 13,
+        color: colors.text,
+        fontWeight: '600'
+    },
+
+    // Products Section
+    productsSection: {
+        padding: spacing.lg
+    },
+    resultsText: {
+        fontSize: 12,
+        color: colors.textMuted,
+        marginBottom: spacing.md,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
     productsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: spacing.md,
     },
+
+    // Product Card Styles
     productCard: {
         width: CARD_WIDTH,
         backgroundColor: colors.surface,
@@ -510,57 +693,204 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
-    productImageContainer: {
+    productImageWrapper: {
         position: 'relative',
+        height: 140,
     },
     productImage: {
-        height: 120,
+        width: '100%',
+        height: '100%',
+    },
+    productImagePlaceholder: {
+        width: '100%',
+        height: '100%',
         alignItems: 'center',
         justifyContent: 'center',
     },
-    productEmoji: { fontSize: 48 },
+    productIconContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    productCategoryLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: 'rgba(255,255,255,0.9)',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
     stockBadge: {
         position: 'absolute',
         top: spacing.sm,
-        right: spacing.sm,
-        backgroundColor: '#F59E0B',
+        left: spacing.sm,
+        backgroundColor: 'rgba(245, 158, 11, 0.9)',
         paddingHorizontal: spacing.sm,
-        paddingVertical: 2,
-        borderRadius: 4,
+        paddingVertical: 3,
+        borderRadius: 6,
     },
-    outOfStockBadge: { backgroundColor: '#EF4444' },
-    stockBadgeText: { fontSize: 10, fontWeight: '700', color: colors.text },
-    productInfo: { padding: spacing.md },
+    outOfStockBadge: {
+        backgroundColor: 'rgba(239, 68, 68, 0.9)'
+    },
+    stockBadgeText: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: '#FFF'
+    },
+    productInfo: {
+        padding: spacing.md
+    },
     productName: {
         fontSize: 14,
         fontWeight: '600',
         color: colors.text,
         marginBottom: spacing.sm,
+        lineHeight: 18,
         minHeight: 36,
     },
-    priceRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-    productPrice: { fontSize: 18, fontWeight: '700', color: colors.primary },
-    retailPrice: { fontSize: 12, color: colors.textMuted, textDecorationLine: 'line-through' },
-    emptyState: { alignItems: 'center', paddingVertical: spacing.xxxl },
-    emptyIcon: { fontSize: 64, marginBottom: spacing.lg, opacity: 0.5 },
-    emptyText: { fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: spacing.sm },
-    emptySubtext: { fontSize: 14, color: colors.textSecondary },
+    priceRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+    },
+    priceContainer: {
+        flexDirection: 'column',
+    },
+    productPrice: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: colors.primary
+    },
+    retailPrice: {
+        fontSize: 11,
+        color: colors.textMuted,
+        textDecorationLine: 'line-through',
+        marginTop: 2,
+    },
+    addToCartButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    addToCartDisabled: {
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    addToCartIcon: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: colors.text,
+    },
+
+    // Empty State
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: spacing.xxxl
+    },
+    emptyIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: colors.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing.lg,
+    },
+    emptyIcon: {
+        fontSize: 36,
+        opacity: 0.6
+    },
+    emptyText: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: spacing.xs
+    },
+    emptySubtext: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        textAlign: 'center',
+    },
+
     // Modal styles
-    modalContainer: { flex: 1, backgroundColor: colors.background },
-    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border },
-    modalCancel: { color: colors.textSecondary, fontSize: 16 },
-    modalTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
-    modalContent: { padding: spacing.lg },
-    inputGroup: { marginBottom: spacing.lg },
-    inputLabel: { fontSize: 14, fontWeight: '500', color: colors.text, marginBottom: spacing.sm },
-    input: { backgroundColor: colors.surface, borderRadius: 12, padding: spacing.md, color: colors.text, fontSize: 16, borderWidth: 1, borderColor: colors.border },
-    textArea: { minHeight: 80, textAlignVertical: 'top' },
-    inputRow: { flexDirection: 'row' },
-    categoryPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-    categoryOption: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: 4, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-    categoryOptionActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-    categoryOptionText: { fontSize: 12, color: colors.textSecondary },
-    categoryOptionTextActive: { color: colors.text },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: colors.background
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: spacing.lg,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border
+    },
+    modalCancel: {
+        color: colors.textSecondary,
+        fontSize: 16
+    },
+    modalTitle: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: colors.text
+    },
+    modalContent: {
+        padding: spacing.lg
+    },
+    inputGroup: {
+        marginBottom: spacing.lg
+    },
+    inputLabel: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: colors.textSecondary,
+        marginBottom: spacing.sm,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    input: {
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: spacing.md,
+        color: colors.text,
+        fontSize: 15,
+        borderWidth: 1,
+        borderColor: colors.border
+    },
+    textArea: {
+        minHeight: 80,
+        textAlignVertical: 'top'
+    },
+    inputRow: {
+        flexDirection: 'row'
+    },
+    categoryPicker: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: spacing.xs
+    },
+    categoryOption: {
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xs,
+        borderRadius: 6,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border
+    },
+    categoryOptionActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary
+    },
+    categoryOptionText: {
+        fontSize: 12,
+        color: colors.textSecondary
+    },
+    categoryOptionTextActive: {
+        color: colors.text,
+        fontWeight: '500',
+    },
 });
 
 export default ShopScreen;
