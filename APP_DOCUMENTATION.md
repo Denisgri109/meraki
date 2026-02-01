@@ -50,13 +50,14 @@ Regular users who book services. They can:
 ### 2. Master (Service Provider)
 Beauty and wellness professionals who offer services. They can:
 - Access a dedicated dashboard with business analytics
-- Manage appointment requests (confirm/decline)
+- **Instant Book**: Appointments are confirmed automatically (no manual approval needed)
+- Receive push notifications for new bookings
 - Set weekly availability schedules
 - View and track earnings
 - Communicate with clients via in-app chat
 - Mark appointments as completed or no-show
-- Reschedule appointments (requires client approval)
-- Receive push notifications for appointment changes
+- Reschedule appointments (requires client approval for late changes)
+- Handle client reschedule requests
 
 ### 3. Owner (Platform Administrator)
 Platform administrators with full access. They can:
@@ -147,10 +148,15 @@ All booking records.
 - service_id: UUID (FK -> services)
 - start_time: timestamp
 - end_time: timestamp
-- status: enum ('pending', 'confirmed', 'completed', 'cancelled', 'no_show')
+- status: enum ('pending', 'confirmed', 'completed', 'cancelled', 'cancelled_free', 'cancelled_charge', 'reschedule_pending', 'no_show')
 - price: number
 - notes: string
 - stripe_payment_intent_id: string
+- proposed_start_time: timestamp (for reschedule requests)
+- proposed_end_time: timestamp (for reschedule requests)
+- reschedule_initiated_by: UUID (FK -> profiles)
+- cancellation_fee_amount: integer (cents, for late cancellations)
+- cancellation_reason: string
 ```
 
 #### `master_availability`
@@ -284,8 +290,12 @@ Refund records.
 - [x] Tabbed view (Upcoming / Past appointments)
 - [x] Appointment cards with status badges
 - [x] Appointment details (date, time, duration, price)
-- [x] Appointment cancellation with confirmation modal
-- [x] Appointment rescheduling with date/time picker
+- [x] **Time-window based cancellation policy** (24-hour rule)
+  - [x] Early cancellation (>24h): Free, automatic, no Master approval
+  - [x] Late cancellation (<24h): Warning modal with 50% penalty fee
+- [x] **Time-window based reschedule policy**
+  - [x] Early reschedule (>24h): Instant update, no approval needed
+  - [x] Late reschedule (<24h): Requires Master approval
 - [x] Direct chat access from appointment cards
 - [x] Pull-to-refresh
 

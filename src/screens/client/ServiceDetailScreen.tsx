@@ -31,8 +31,7 @@ type ServiceDetailScreenProps = {
 export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenProps) {
     const { serviceId } = route.params;
     const [service, setService] = useState<Service | null>(null);
-    const [masters, setMasters] = useState<Profile[]>([]);
-    const [selectedMaster, setSelectedMaster] = useState<string | null>(null);
+    const [master, setMaster] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -48,15 +47,48 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                 .eq('id', serviceId)
                 .single();
 
-            // Fetch masters and owners who offer services
-            const { data: mastersData } = await supabase
-                .from('profiles')
-                .select('*')
-                .or('is_master.eq.true,role.eq.owner')
-                .order('full_name');
+            // Fetch masters who offer this specific service (as a reliable source of truth)
+            const { data: masterServiceData } = await supabase
+                .from('master_services')
+                .select(`
+                    master_id,
+                    custom_price,
+                    custom_duration,
+                    profiles:master_id (
+                        id,
+                        full_name,
+                        avatar_url,
+                        bio,
+                        is_master,
+                        role
+                    )
+                `)
+                .eq('service_id', serviceId)
+                .eq('is_available', true);
+
+            // Extract profiles
+            const availableMasters = (masterServiceData || [])
+                .map((item: any) => item.profiles)
+                .filter((profile: any) => profile !== null);
+
+            let selectedProfile = null;
+
+            if (availableMasters.length > 0) {
+                // Logic: 
+                // 1. Try to find the creator of the service
+                // 2. Fallback to the first available master
+                if (serviceData && serviceData.created_by) {
+                    selectedProfile = availableMasters.find((m: any) => m.id === serviceData.created_by);
+                }
+
+                if (!selectedProfile) {
+                    selectedProfile = availableMasters[0];
+                }
+
+                setMaster(selectedProfile);
+            }
 
             setService(serviceData);
-            setMasters(mastersData || []);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -65,10 +97,10 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
     };
 
     const handleContinue = () => {
-        if (selectedMaster) {
+        if (master) {
             navigation.navigate('SelectDateTime', {
                 serviceId,
-                masterId: selectedMaster,
+                masterId: master.id,
             });
         }
     };
@@ -126,56 +158,40 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                         </View>
                     </View>
 
-                    {/* Select Master */}
-                    <View style={styles.masterSection}>
-                        <Text style={styles.sectionTitle}>Choose Your Specialist</Text>
-                        {masters.length > 0 ? (
-                            masters.map((master) => (
-                                <TouchableOpacity
-                                    key={master.id}
-                                    onPress={() => setSelectedMaster(master.id)}
-                                >
-                                    <Card
-                                        variant="glass"
-                                        style={[
-                                            styles.masterCard,
-                                            selectedMaster === master.id ? styles.masterCardSelected : undefined,
-                                        ].filter(Boolean) as any}
-                                    >
-                                        {master.avatar_url ? (
-                                            <Image source={{ uri: master.avatar_url }} style={styles.masterAvatarImage} />
-                                        ) : (
-                                            <View style={styles.masterAvatar}>
-                                                <Text style={styles.masterAvatarText}>
-                                                    {master.full_name?.[0] || 'M'}
-                                                </Text>
-                                            </View>
-                                        )}
-                                        <View style={styles.masterInfo}>
-                                            <Text style={styles.masterName}>
-                                                {master.full_name || 'Beauty Master'}
-                                            </Text>
-                                            {master.bio && (
-                                                <Text style={styles.masterBio} numberOfLines={2}>
-                                                    {master.bio}
-                                                </Text>
-                                            )}
-                                        </View>
-                                        <View style={[
-                                            styles.radioOuter,
-                                            selectedMaster === master.id && styles.radioOuterSelected,
-                                        ]}>
-                                            {selectedMaster === master.id && (
-                                                <View style={styles.radioInner} />
-                                            )}
-                                        </View>
-                                    </Card>
-                                </TouchableOpacity>
-                            ))
-                        ) : (
-                            <Text style={styles.noMasters}>No specialists available</Text>
-                        )}
-                    </View>
+                    {/* Specialist Info (Auto-assigned) */}
+                    {master && (
+                        <View style={styles.masterSection}>
+                            <Text style={styles.sectionTitle}>Your Specialist</Text>
+                            <Card variant="glass" style={styles.masterCard}>
+                                {master.avatar_url ? (
+                                    <Image source={{ uri: master.avatar_url }} style={styles.masterAvatarImage} />
+                                ) : (
+                                    <View style={styles.masterAvatar}>
+                                        <Text style={styles.masterAvatarText}>
+                                            {master.full_name?.[0] || 'M'}
+                                        </Text>
+                                    </View>
+                                )}
+                                <View style={styles.masterInfo}>
+                                    <Text style={styles.masterName}>
+                                        {master.full_name || 'Beauty Master'}
+                                    </Text>
+                                    {master.bio && (
+                                        <Text style={styles.masterBio} numberOfLines={2}>
+                                            {master.bio}
+                                        </Text>
+                                    )}
+                                </View>
+                            </Card>
+                        </View>
+                    )}
+
+                    {/* Fallback if no master found */}
+                    {!master && (
+                        <View style={styles.masterSection}>
+                            <Text style={styles.noMasters}>No specialist currently available for this service.</Text>
+                        </View>
+                    )}
                 </ScrollView>
 
                 {/* Bottom Button */}
@@ -183,7 +199,7 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                     <Button
                         title="Continue"
                         onPress={handleContinue}
-                        disabled={!selectedMaster}
+                        disabled={!master}
                         fullWidth
                     />
                 </View>
@@ -265,10 +281,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
-    masterCardSelected: {
-        borderColor: colors.primary,
-        backgroundColor: colors.primaryLight,
-    },
     masterAvatar: {
         width: 50,
         height: 50,
@@ -305,24 +317,6 @@ const styles = StyleSheet.create({
     masterBio: {
         fontSize: 13,
         color: colors.textSecondary,
-    },
-    radioOuter: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: colors.border,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    radioOuterSelected: {
-        borderColor: colors.primary,
-    },
-    radioInner: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: colors.primary,
     },
     noMasters: {
         color: colors.textSecondary,

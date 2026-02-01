@@ -50,14 +50,42 @@ export function MasterDetailScreen({ navigation, route }: MasterDetailScreenProp
 
             // Fetch all available services (for now, show all services)
             // Later we can filter by master_services table
-            const { data: servicesData } = await supabase
-                .from('services')
-                .select('*')
-                .eq('is_active', true)
-                .order('name');
+            // Fetch services specifically linked to this master
+            // This includes both:
+            // 1. Global services assigned to them
+            // 2. Custom services they created (which are automatically linked)
+            const { data: masterServicesData, error: servicesError } = await supabase
+                .from('master_services')
+                .select(`
+                    service:services (
+                        id,
+                        name,
+                        description,
+                        category,
+                        base_price,
+                        duration_minutes,
+                        is_active
+                    ),
+                    custom_price,
+                    custom_duration
+                `)
+                .eq('master_id', masterId)
+                .eq('is_available', true);
+
+            if (servicesError) throw servicesError;
+
+            // Transform data to match Service type, prioritizing custom values
+            const formattedServices = (masterServicesData || [])
+                .map((item: any) => ({
+                    ...item.service,
+                    base_price: item.custom_price || item.service.base_price,
+                    duration_minutes: item.custom_duration || item.service.duration_minutes,
+                }))
+                .filter(s => s && s.is_active) // Ensure service exists and is active
+                .sort((a, b) => a.name.localeCompare(b.name));
 
             setMaster(masterData);
-            setServices(servicesData || []);
+            setServices(formattedServices);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {

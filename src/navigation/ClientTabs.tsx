@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation, NavigationProp, CommonActions } from '@react-navigation/native';
 import { Text, StyleSheet, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -23,6 +23,7 @@ import {
     MenuScreen,
     QRScannerScreen,
     MasterDetailScreen,
+    BookAndChatScreen,
 } from '../screens/client';
 import { ShopScreen, ProductDetailScreen, CartScreen, CheckoutScreen } from '../screens/shop';
 import { ChatListScreen, ChatScreen } from '../screens/chat';
@@ -31,6 +32,7 @@ import {
     CourseDetailScreen,
     LessonScreen,
     HomeworkScreen,
+    CoursePurchaseScreen,
 } from '../screens/academy';
 import { colors } from '../theme';
 
@@ -76,42 +78,10 @@ function HomeStackNavigator() {
 }
 
 // Booking Stack
-export type BookingStackParamList = {
-    BookingMain: undefined;
-    ServiceDetail: { serviceId: string };
-    SelectDateTime: { serviceId: string; masterId: string };
-    BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
-};
 
-const BookingStack = createNativeStackNavigator<BookingStackParamList>();
-
-function BookingStackNavigator() {
-    return (
-        <BookingStack.Navigator screenOptions={{ headerShown: false }}>
-            <BookingStack.Screen name="BookingMain" component={BookingScreen} />
-            <BookingStack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
-            <BookingStack.Screen name="SelectDateTime" component={SelectDateTimeScreen} />
-            <BookingStack.Screen name="BookingConfirm" component={BookingConfirmScreen} />
-        </BookingStack.Navigator>
-    );
-}
 
 // Messages Stack
-export type MessagesStackParamList = {
-    ChatList: undefined;
-    Chat: { conversationId: string; otherUser: any };
-};
 
-const MessagesStack = createNativeStackNavigator<MessagesStackParamList>();
-
-function MessagesStackNavigator() {
-    return (
-        <MessagesStack.Navigator screenOptions={{ headerShown: false }}>
-            <MessagesStack.Screen name="ChatList" component={ChatListScreen} />
-            <MessagesStack.Screen name="Chat" component={ChatScreen} />
-        </MessagesStack.Navigator>
-    );
-}
 
 // Shop Stack
 export type ShopStackParamList = {
@@ -135,23 +105,7 @@ function ShopStackNavigator() {
 }
 
 // Orders Stack (for drawer access)
-export type OrdersStackParamList = {
-    OrdersMain: undefined;
-    ChatList: undefined;
-    Chat: { conversationId: string; otherUser: any };
-};
 
-const OrdersStack = createNativeStackNavigator<OrdersStackParamList>();
-
-function OrdersStackNavigator() {
-    return (
-        <OrdersStack.Navigator screenOptions={{ headerShown: false }}>
-            <OrdersStack.Screen name="OrdersMain" component={OrdersScreen} />
-            <OrdersStack.Screen name="ChatList" component={ChatListScreen} />
-            <OrdersStack.Screen name="Chat" component={ChatScreen} />
-        </OrdersStack.Navigator>
-    );
-}
 
 // Profile Stack
 export type ProfileStackParamList = {
@@ -186,6 +140,7 @@ export type AcademyStackParamList = {
     CourseDetail: { course: any };
     Lesson: { lesson: any; courseId: string };
     Homework: { lessonId: string };
+    CoursePurchase: { course: any };
 };
 
 const AcademyStack = createNativeStackNavigator<AcademyStackParamList>();
@@ -197,6 +152,7 @@ function AcademyStackNavigator() {
             <AcademyStack.Screen name="CourseDetail" component={CourseDetailScreen} />
             <AcademyStack.Screen name="Lesson" component={LessonScreen} />
             <AcademyStack.Screen name="Homework" component={HomeworkScreen} />
+            <AcademyStack.Screen name="CoursePurchase" component={CoursePurchaseScreen} />
         </AcademyStack.Navigator>
     );
 }
@@ -221,35 +177,14 @@ function MenuStackNavigator() {
     );
 }
 
-// Book & Chat Top Tab Navigator
-const TopTab = createMaterialTopTabNavigator();
+// Book & Chat Tab
 
 function BookAndChatNavigator() {
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
-            <TopTab.Navigator
-                screenOptions={{
-                    tabBarStyle: { backgroundColor: colors.surface },
-                    tabBarActiveTintColor: colors.text,
-                    tabBarInactiveTintColor: colors.textMuted,
-                    tabBarIndicatorStyle: { backgroundColor: colors.primary },
-                    tabBarLabelStyle: { fontWeight: '600', fontSize: 14, textTransform: 'none' },
-                }}
-            >
-                <TopTab.Screen
-                    name="Appointments"
-                    component={BookingStackNavigator}
-                    options={{ title: 'Book Appointment' }}
-                />
-                <TopTab.Screen
-                    name="Messages"
-                    component={MessagesStackNavigator}
-                    options={{ title: 'Messages' }}
-                />
-            </TopTab.Navigator>
-        </SafeAreaView>
+        <BookAndChatScreen />
     );
 }
+
 
 export function ClientTabs() {
     return (
@@ -262,66 +197,98 @@ export function ClientTabs() {
                     tabBarInactiveTintColor: colors.textMuted,
                     tabBarLabelStyle: styles.tabLabel,
                 })}
-                screenListeners={({ navigation, route }) => ({
-                    blur: () => {
-                        // Reset the stack to initial screen when LEAVING this tab
-                        const state = navigation.getState();
-                        const currentRoute = state.routes.find((r: any) => r.key === route.key);
-                        // If this tab has nested navigation state, reset it
-                        if (currentRoute?.state && typeof currentRoute.state.index === 'number' && currentRoute.state.index > 0) {
-                            navigation.dispatch({
-                                ...navigation.getState(),
-                                type: 'RESET',
-                                payload: {
-                                    index: state.index,
-                                    routes: state.routes.map((r: any) => {
-                                        if (r.key === route.key) {
-                                            return { ...r, state: undefined };
-                                        }
-                                        return r;
-                                    }),
-                                },
-                            });
-                        }
-                    },
-                })}
             >
                 <Tab.Screen
                     name="Home"
                     component={HomeStackNavigator}
                     options={{
-                        tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>🏠</Text>,
-                    }}
+                        tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>🏠</Text>,
+                    } as any}
+                    listeners={({ navigation, route }) => ({
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            navigation.dispatch(
+                                CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: route.name }],
+                                })
+                            );
+                        },
+                    })}
                 />
                 <Tab.Screen
                     name="Book"
                     component={BookAndChatNavigator}
                     options={{
-                        tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>📅</Text>,
+                        tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>📅</Text>,
                         tabBarLabel: 'Book & Chat',
-                    }}
+                    } as any}
+                    listeners={({ navigation, route }) => ({
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            navigation.dispatch(
+                                CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: route.name }],
+                                })
+                            );
+                        },
+                    })}
                 />
 
                 <Tab.Screen
                     name="Academy"
                     component={AcademyStackNavigator}
                     options={{
-                        tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>🎓</Text>,
-                    }}
+                        tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>🎓</Text>,
+                    } as any}
+                    listeners={({ navigation, route }) => ({
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            navigation.dispatch(
+                                CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: route.name }],
+                                })
+                            );
+                        },
+                    })}
                 />
                 <Tab.Screen
                     name="Shop"
                     component={ShopStackNavigator}
                     options={{
-                        tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>🛒</Text>,
-                    }}
+                        tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>🛒</Text>,
+                    } as any}
+                    listeners={({ navigation, route }) => ({
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            navigation.dispatch(
+                                CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: route.name }],
+                                })
+                            );
+                        },
+                    })}
                 />
                 <Tab.Screen
                     name="Menu"
                     component={MenuStackNavigator}
                     options={{
-                        tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>☰</Text>,
-                    }}
+                        tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>☰</Text>,
+                    } as any}
+                    listeners={({ navigation, route }) => ({
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            navigation.dispatch(
+                                CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: route.name }],
+                                })
+                            );
+                        },
+                    })}
                 />
             </Tab.Navigator>
         </>

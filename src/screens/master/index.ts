@@ -7,3 +7,4 @@ export { LoyaltyQRScreen } from './LoyaltyQRScreen';
 export { PortfolioScreen } from './PortfolioScreen';
 export { MyServicesScreen } from './MyServicesScreen';
 export { BlockedSlotsScreen } from './BlockedSlotsScreen';
+export { CreateServiceScreen } from './CreateServiceScreen';

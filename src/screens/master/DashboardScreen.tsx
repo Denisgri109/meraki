@@ -47,7 +47,7 @@ export function MasterDashboardScreen() {
         pendingRequests: 0,
         unreadMessages: 0,
     });
-    const [todaysAppointments, setTodaysAppointments] = useState<Appointment[]>([]);
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([]);
 
     useFocusEffect(
@@ -100,6 +100,22 @@ export function MasterDashboardScreen() {
                 .order('start_time');
 
             const { data: todayData } = await safeSupabaseFetch(todayPromise as any, { timeout: 8000 });
+
+            // Fetch ALL appointments for schedule (upcoming confirmed only)
+            const allAppointmentsPromise = supabase
+                .from('appointments')
+                .select(`
+                    id, start_time, status, price,
+                    service:services(name),
+                    client:profiles!appointments_client_id_fkey(full_name)
+                `)
+                .eq('master_id', user.id)
+                .eq('status', 'confirmed')
+                .gte('start_time', new Date().toISOString())
+                .order('start_time', { ascending: true })
+                .limit(20);
+
+            const { data: allAppointmentsData } = await safeSupabaseFetch(allAppointmentsPromise as any, { timeout: 8000 });
 
             // Fetch pending requests count
             const pendingPromise = supabase
@@ -181,7 +197,7 @@ export function MasterDashboardScreen() {
                 .filter((apt: any) => apt.status === 'completed')
                 .reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
 
-            setTodaysAppointments((todayData as unknown as Appointment[]) || []);
+            setAppointments((allAppointmentsData as unknown as Appointment[]) || []);
             setRecentMessages(recentMsgs);
             setStats({
                 todayAppointments: ((todayData as any[]) || []).filter((apt: any) => apt.status !== 'completed').length,
@@ -252,18 +268,18 @@ export function MasterDashboardScreen() {
                                 <Text style={styles.actionLabel}>Portfolio</Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('BlockedSlots')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="calendar-lock" size={24} color="#F87171" />
-                                </View>
-                                <Text style={styles.actionLabel}>Blocked Slots</Text>
-                            </TouchableOpacity>
-
                             <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('MyServices')}>
                                 <View style={[styles.actionIcon, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
                                     <MaterialCommunityIcons name="format-list-checks" size={24} color="#34D399" />
                                 </View>
                                 <Text style={styles.actionLabel}>My Services</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Availability')}>
+                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
+                                    <MaterialCommunityIcons name="clock-outline" size={24} color="#60A5FA" />
+                                </View>
+                                <Text style={styles.actionLabel}>Availability</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -317,13 +333,14 @@ export function MasterDashboardScreen() {
                         </View>
                     )}
 
-                    {/* Today's Schedule */}
+                    {/* Schedule */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Today's Schedule</Text>
-                        {todaysAppointments.length > 0 ? (
-                            todaysAppointments.map((apt) => (
+                        <Text style={styles.sectionTitle}>Schedule</Text>
+                        {appointments.length > 0 ? (
+                            appointments.map((apt) => (
                                 <Card key={apt.id} style={styles.appointmentCard}>
                                     <View style={styles.appointmentTime}>
+                                        <Text style={styles.dateText}>{format(new Date(apt.start_time), 'MMM d')}</Text>
                                         <Text style={styles.timeText}>{format(new Date(apt.start_time), 'HH:mm')}</Text>
                                     </View>
                                     <View style={styles.appointmentInfo}>
@@ -335,8 +352,8 @@ export function MasterDashboardScreen() {
                             ))
                         ) : (
                             <Card variant="glass" style={styles.emptyCard}>
-                                <Text style={styles.emptyIcon}>☀️</Text>
-                                <Text style={styles.emptyText}>No appointments today</Text>
+                                <Text style={styles.emptyIcon}>📅</Text>
+                                <Text style={styles.emptyText}>No appointments yet</Text>
                             </Card>
                         )}
                     </View>
@@ -383,6 +400,7 @@ const styles = StyleSheet.create({
     appointmentCard: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm, padding: spacing.md },
     appointmentTime: { marginRight: spacing.md },
     timeText: { fontSize: 16, fontWeight: '600', color: colors.text },
+    dateText: { fontSize: 11, color: colors.textSecondary, marginBottom: 2 },
     appointmentInfo: { flex: 1 },
     serviceName: { fontSize: 14, fontWeight: '500', color: colors.text },
     clientName: { fontSize: 12, color: colors.textSecondary },

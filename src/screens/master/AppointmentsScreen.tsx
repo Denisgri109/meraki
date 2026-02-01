@@ -27,6 +27,7 @@ type Appointment = {
     proposed_start_time: string | null;
     proposed_end_time: string | null;
     stripe_payment_intent_id: string | null;
+    reschedule_initiated_by: string | null;
     service: { name: string; duration_minutes: number } | null;
     client: { full_name: string; phone: string | null; push_token?: string } | null;
 };
@@ -36,7 +37,7 @@ export function MasterAppointmentsScreen() {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [activeTab, setActiveTab] = useState<'pending' | 'upcoming' | 'past'>('pending');
+    const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
 
     // Reschedule State
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
@@ -69,6 +70,7 @@ export function MasterAppointmentsScreen() {
                     proposed_start_time,
                     proposed_end_time,
                     stripe_payment_intent_id,
+                    reschedule_initiated_by,
                     service:services(name, duration_minutes),
                     client:profiles!appointments_client_id_fkey(full_name, phone, push_token)
                 `)
@@ -76,7 +78,12 @@ export function MasterAppointmentsScreen() {
                 .order('start_time', { ascending: true });
 
             if (error) throw error;
-            setAppointments((data as unknown as Appointment[]) || []);
+
+            // Filter out appointments with null service or client (orphaned data)
+            const validAppointments = ((data as unknown as Appointment[]) || []).filter(
+                apt => apt.service !== null && apt.client !== null
+            );
+            setAppointments(validAppointments);
         } catch (error) {
             console.error('Error fetching appointments:', error);
         } finally {
@@ -203,13 +210,16 @@ export function MasterAppointmentsScreen() {
     };
 
     const handleApproveCancellation = (id: string) => {
+        // No longer needed - cancellations are now automatic
+        // This function is kept for backwards compatibility if there are legacy pending_cancellation statuses
         Alert.alert('Approve Cancellation', 'Accept this cancellation request?', [
             { text: 'No', style: 'cancel' },
-            { text: 'Yes, Cancel', style: 'destructive', onPress: () => updateAppointmentStatus(id, 'cancelled') },
+            { text: 'Yes, Cancel', style: 'destructive', onPress: () => updateAppointmentStatus(id, 'cancelled_free') },
         ]);
     };
 
     const handleRejectCancellation = (id: string) => {
+        // Legacy function - kept for backwards compatibility
         Alert.alert('Reject Cancellation', 'Keep this appointment as confirmed?', [
             { text: 'No', style: 'cancel' },
             { text: 'Yes, Keep', onPress: () => updateAppointmentStatus(id, 'confirmed') },
@@ -231,6 +241,7 @@ export function MasterAppointmentsScreen() {
                                 end_time: apt.proposed_end_time,
                                 proposed_start_time: null,
                                 proposed_end_time: null,
+                                reschedule_initiated_by: null,
                                 status: 'confirmed',
                             } as any)
                             .eq('id', apt.id);
@@ -257,6 +268,7 @@ export function MasterAppointmentsScreen() {
                             .update({
                                 proposed_start_time: null,
                                 proposed_end_time: null,
+                                reschedule_initiated_by: null,
                                 status: 'confirmed',
                             } as any)
                             .eq('id', id);
@@ -318,6 +330,7 @@ export function MasterAppointmentsScreen() {
                     proposed_start_time: newStartTime.toISOString(),
                     proposed_end_time: newEndTime.toISOString(),
                     status: 'pending_reschedule',
+                    reschedule_initiated_by: user?.id,
                 } as any)
                 .eq('id', appointmentToReschedule.id);
 
@@ -353,20 +366,21 @@ export function MasterAppointmentsScreen() {
     };
 
     const now = new Date();
-    const pendingAppointments = appointments.filter(apt =>
-        apt.status === 'pending' || apt.status === 'pending_cancellation' || apt.status === 'pending_reschedule'
+    // Instant Book: No more pending tab - appointments are confirmed immediately
+    // Only show reschedule requests that need approval
+    const rescheduleRequests = appointments.filter(apt =>
+        apt.status === 'reschedule_pending' || apt.status === 'pending_reschedule'
     );
     const upcomingAppointments = appointments.filter(
-        apt => new Date(apt.start_time) >= now && (apt.status === 'confirmed' || apt.status === 'pending')
+        apt => new Date(apt.start_time) >= now && apt.status === 'confirmed'
     );
     const pastAppointments = appointments.filter(
-        apt => new Date(apt.start_time) < now || apt.status === 'completed' || apt.status === 'cancelled'
+        apt => new Date(apt.start_time) < now || apt.status === 'completed' || apt.status === 'cancelled' || apt.status === 'cancelled_free' || apt.status === 'cancelled_charge'
     );
 
     const getDisplayedAppointments = () => {
         switch (activeTab) {
-            case 'pending': return pendingAppointments;
-            case 'upcoming': return upcomingAppointments;
+            case 'upcoming': return [...rescheduleRequests, ...upcomingAppointments];
             case 'past': return pastAppointments;
         }
     };
@@ -397,22 +411,14 @@ export function MasterAppointmentsScreen() {
                     <Text style={styles.title}>Appointments</Text>
                 </View>
 
-                {/* Tabs */}
+                {/* Tabs - Instant Book: Only Upcoming and Past */}
                 <View style={styles.tabs}>
-                    <TouchableOpacity
-                        style={[styles.tab, activeTab === 'pending' && styles.tabActive]}
-                        onPress={() => setActiveTab('pending')}
-                    >
-                        <Text style={[styles.tabText, activeTab === 'pending' && styles.tabTextActive]}>
-                            Pending ({pendingAppointments.length})
-                        </Text>
-                    </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.tab, activeTab === 'upcoming' && styles.tabActive]}
                         onPress={() => setActiveTab('upcoming')}
                     >
                         <Text style={[styles.tabText, activeTab === 'upcoming' && styles.tabTextActive]}>
-                            Upcoming
+                            Upcoming {rescheduleRequests.length > 0 ? `(${rescheduleRequests.length} pending)` : ''}
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -458,28 +464,14 @@ export function MasterAppointmentsScreen() {
                                         <Text style={styles.duration}>{apt.service?.duration_minutes} min</Text>
                                     </View>
 
-                                    {/* Action Buttons */}
-                                    {apt.status === 'pending' && (
-                                        <View style={styles.actionButtons}>
-                                            <TouchableOpacity
-                                                style={styles.declineButton}
-                                                onPress={() => handleDecline(apt.id)}
-                                            >
-                                                <Text style={styles.declineButtonText}>Decline</Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity
-                                                style={styles.confirmButton}
-                                                onPress={() => handleConfirm(apt.id)}
-                                            >
-                                                <Text style={styles.confirmButtonText}>Confirm</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
 
+                                    {/* Instant Book: No pending status - appointments are confirmed immediately */}
+
+                                    {/* Legacy: Show pending_cancellation UI if there are old records */}
                                     {apt.status === 'pending_cancellation' && (
                                         <View>
                                             <View style={styles.requestBadge}>
-                                                <Text style={styles.requestBadgeText}>🚫 Cancellation Request</Text>
+                                                <Text style={styles.requestBadgeText}>🚫 Legacy Cancellation Request</Text>
                                             </View>
                                             <View style={styles.actionButtons}>
                                                 <TouchableOpacity
@@ -498,7 +490,8 @@ export function MasterAppointmentsScreen() {
                                         </View>
                                     )}
 
-                                    {apt.status === 'pending_reschedule' && apt.proposed_start_time && (
+                                    {/* Show approve/reject for client-initiated late reschedules */}
+                                    {(apt.status === 'pending_reschedule' || apt.status === 'reschedule_pending') && apt.proposed_start_time && apt.reschedule_initiated_by !== user?.id && (
                                         <View>
                                             <View style={styles.requestBadge}>
                                                 <Text style={styles.requestBadgeText}>📅 Reschedule Request</Text>
@@ -566,8 +559,7 @@ export function MasterAppointmentsScreen() {
                         <View style={styles.emptyState}>
                             <Text style={styles.emptyIcon}>📅</Text>
                             <Text style={styles.emptyText}>
-                                {activeTab === 'pending' ? 'No pending requests' :
-                                    activeTab === 'upcoming' ? 'No upcoming appointments' : 'No past appointments'}
+                                {activeTab === 'upcoming' ? 'No upcoming appointments' : 'No past appointments'}
                             </Text>
                         </View>
                     )}
@@ -701,7 +693,7 @@ const styles = StyleSheet.create({
     declineButtonText: { color: colors.textSecondary, fontWeight: '500' },
     confirmButton: { flex: 1, paddingVertical: spacing.md, borderRadius: 8, backgroundColor: colors.text, alignItems: 'center' },
     confirmButtonText: { color: colors.background, fontWeight: '600' },
-    completeButton: { marginTop: spacing.lg, paddingVertical: spacing.md, borderRadius: 8, backgroundColor: '#22C55E', alignItems: 'center' },
+    completeButton: { flex: 1, paddingVertical: spacing.md, borderRadius: 8, backgroundColor: '#22C55E', alignItems: 'center' },
     completeButtonText: { color: 'white', fontWeight: '600' },
     emptyState: { alignItems: 'center', paddingVertical: spacing.xxxl },
     emptyIcon: { fontSize: 64, marginBottom: spacing.lg, opacity: 0.5 },

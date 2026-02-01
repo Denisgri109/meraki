@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { CommonActions } from '@react-navigation/native';
 import { Text, StyleSheet } from 'react-native';
 import {
     OwnerDashboardScreen,
@@ -19,6 +20,10 @@ import {
 import {
     MasterAppointmentsScreen,
     LoyaltyQRScreen,
+    MasterAvailabilityScreen,
+    PortfolioScreen,
+    MyServicesScreen,
+    CreateServiceScreen,
 } from '../screens/master';
 import {
     ProfileScreen,
@@ -40,6 +45,10 @@ export type OwnerDashboardStackParamList = {
     ServiceForm: { service?: any } | undefined;
     Inventory: undefined;
     LoyaltyQR: undefined;
+    Availability: undefined;
+    Portfolio: undefined;
+    MyServices: undefined;
+    CreateService: undefined;
 };
 
 const DashboardStack = createNativeStackNavigator<OwnerDashboardStackParamList>();
@@ -54,6 +63,10 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="ServiceForm" component={ServiceFormScreen} />
             <DashboardStack.Screen name="Inventory" component={InventoryScreen} />
             <DashboardStack.Screen name="LoyaltyQR" component={LoyaltyQRScreen} />
+            <DashboardStack.Screen name="Availability" component={MasterAvailabilityScreen} />
+            <DashboardStack.Screen name="Portfolio" component={PortfolioScreen} />
+            <DashboardStack.Screen name="MyServices" component={MyServicesScreen} />
+            <DashboardStack.Screen name="CreateService" component={CreateServiceScreen} />
         </DashboardStack.Navigator>
     );
 }
@@ -156,62 +169,96 @@ export function OwnerTabs() {
                 tabBarInactiveTintColor: colors.textMuted,
                 tabBarLabelStyle: styles.tabLabel,
             }}
-            screenListeners={({ navigation, route }) => ({
-                blur: () => {
-                    const state = navigation.getState();
-                    const currentRoute = state.routes.find((r: any) => r.key === route.key);
-                    if (currentRoute?.state && typeof currentRoute.state.index === 'number' && currentRoute.state.index > 0) {
-                        navigation.dispatch({
-                            ...navigation.getState(),
-                            type: 'RESET',
-                            payload: {
-                                index: state.index,
-                                routes: state.routes.map((r: any) => {
-                                    if (r.key === route.key) {
-                                        return { ...r, state: undefined };
-                                    }
-                                    return r;
-                                }),
-                            },
-                        });
-                    }
-                },
-            })}
         >
             <Tab.Screen
                 name="Dashboard"
                 component={DashboardStackNavigator}
                 options={{
-                    tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>📊</Text>,
-                }}
+                    tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>📊</Text>,
+                } as any}
+                listeners={({ navigation, route }) => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.dispatch(
+                            CommonActions.reset({
+                                index: 0,
+                                routes: [{ name: route.name }],
+                            })
+                        );
+                    },
+                })}
             />
             <Tab.Screen
                 name="Academy"
                 component={AcademyStackNavigator}
                 options={{
-                    tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>🎓</Text>,
-                }}
+                    tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>🎓</Text>,
+                } as any}
+                listeners={({ navigation, route }) => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.dispatch(
+                            CommonActions.reset({
+                                index: 0,
+                                routes: [{ name: route.name }],
+                            })
+                        );
+                    },
+                })}
             />
             <Tab.Screen
                 name="Appointments"
                 component={MasterAppointmentsScreen}
                 options={{
-                    tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>📅</Text>,
-                }}
+                    tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>📅</Text>,
+                } as any}
+                listeners={({ navigation, route }) => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.dispatch(
+                            CommonActions.reset({
+                                index: 0,
+                                routes: [{ name: route.name }],
+                            })
+                        );
+                    },
+                })}
             />
             <Tab.Screen
                 name="Messages"
                 component={MessagesStackNavigator}
                 options={{
-                    tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>💬</Text>,
-                }}
+                    tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>💬</Text>,
+                } as any}
+                listeners={({ navigation, route }) => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.dispatch(
+                            CommonActions.reset({
+                                index: 0,
+                                routes: [{ name: route.name }],
+                            })
+                        );
+                    },
+                })}
             />
             <Tab.Screen
                 name="Profile"
                 component={ProfileStackNavigator}
                 options={{
-                    tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>👤</Text>,
-                }}
+                    tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>👤</Text>,
+                } as any}
+                listeners={({ navigation, route }) => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.dispatch(
+                            CommonActions.reset({
+                                index: 0,
+                                routes: [{ name: route.name }],
+                            })
+                        );
+                    },
+                })}
             />
         </Tab.Navigator>
     );

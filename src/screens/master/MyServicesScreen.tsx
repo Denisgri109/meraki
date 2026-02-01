@@ -207,7 +207,12 @@ export function MyServicesScreen() {
                         <Text style={styles.backButtonText}>← Back</Text>
                     </TouchableOpacity>
                     <Text style={styles.title}>My Services</Text>
-                    <View style={{ width: 60 }} />
+                    <TouchableOpacity
+                        onPress={() => (navigation as any).navigate('CreateService')}
+                        style={styles.addButton}
+                    >
+                        <Text style={styles.addButtonText}>+ New</Text>
+                    </TouchableOpacity>
                 </View>
 
                 {loading ? (
@@ -245,6 +250,8 @@ const styles = StyleSheet.create({
     inputGroup: { flex: 1 },
     label: { fontSize: 12, color: colors.textSecondary, marginBottom: spacing.xs },
     input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: spacing.sm, color: colors.text, borderWidth: 1, borderColor: colors.border },
+    addButton: { backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 20 },
+    addButtonText: { color: colors.text, fontSize: 14, fontWeight: '600' },
 });
 
 export default MyServicesScreen;

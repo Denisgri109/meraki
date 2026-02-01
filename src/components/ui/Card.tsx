@@ -18,6 +18,7 @@ export function Card({
 }: CardProps) {
     return (
         <View
+            pointerEvents="box-none"
             style={[
                 styles.card,
                 getVariantStyle(variant),

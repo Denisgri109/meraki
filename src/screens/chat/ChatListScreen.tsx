@@ -245,9 +245,7 @@ export function ChatListScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.title}>Messages</Text>
-                </View>
+
 
                 {/* Masters Section (only for clients) */}
                 {!isMaster && masters.length > 0 && (
@@ -297,12 +295,7 @@ export function ChatListScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: {
-        paddingHorizontal: spacing.lg,
-        paddingTop: spacing.lg,
-        paddingBottom: spacing.md
-    },
-    title: { fontSize: 28, fontWeight: '700', color: colors.text },
+
     mastersSection: {
         paddingBottom: spacing.lg,
         borderBottomWidth: 1,

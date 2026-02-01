@@ -194,7 +194,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 throw new Error(paymentResult.error.message);
             }
 
-            // Insert appointment with payment intent ID
+            // Insert appointment with payment intent ID - INSTANT BOOK: status is 'confirmed'
             const insertPromise = (supabase as any)
                 .from('appointments')
                 .insert({
@@ -203,7 +203,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                     service_id: serviceId,
                     start_time: startTime.toISOString(),
                     end_time: endTime.toISOString(),
-                    status: 'pending',
+                    status: 'confirmed',
                     price: finalPrice,
                     notes: notes || null,
                     stripe_payment_intent_id: paymentIntentId,
@@ -259,10 +259,32 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 console.warn('Failed to auto-create conversation', err);
             }
 
+            // Send push notification to Master about new booking
+            if (master?.push_token) {
+                try {
+                    await fetch('https://exp.host/--/api/v2/push/send', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            to: master.push_token,
+                            sound: 'default',
+                            title: 'New Booking Received! 🎉',
+                            body: `${profile?.full_name || 'A client'} booked ${service.name} on ${format(startTime, 'MMM d')} at ${format(startTime, 'HH:mm')}`,
+                            data: { appointmentId: (appointment as any).id },
+                        }),
+                    });
+                } catch (e) {
+                    console.error('Failed to send booking notification:', e);
+                }
+            }
+
             const discountMsg = appliedCredit ? `\n\n💰 Discount of €${getDiscountAmount().toFixed(2)} applied!` : '';
             Alert.alert(
                 'Booking Confirmed! 🎉',
-                `Your appointment with ${master?.full_name} on ${format(startTime, 'MMMM d')} at ${format(startTime, 'HH:mm')} has been submitted.${discountMsg}\n\n💳 Payment of €${finalPrice.toFixed(2)} has been authorized and will be charged upon service completion.\n\nYou'll receive a confirmation once the specialist accepts.`,
+                `Your appointment with ${master?.full_name} on ${format(startTime, 'MMMM d')} at ${format(startTime, 'HH:mm')} has been confirmed!${discountMsg}\n\n💳 Payment of €${finalPrice.toFixed(2)} has been authorized and will be charged upon service completion.`,
                 [
                     {
                         text: 'Done',

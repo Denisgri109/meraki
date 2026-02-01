@@ -120,30 +120,43 @@ export function CheckoutScreen() {
 
             // 2. Process payment
             const totalInCents = eurosToCents(getTotal());
-            const { clientSecret, paymentIntentId } = await createPaymentIntent({
-                amount: totalInCents,
-                customerId: profile?.stripe_customer_id || undefined,
-                description: `Shop Order: ${items.length} item(s)`,
-                captureMethod: 'automatic', // Immediate charge for shop orders
-            });
 
-            // Confirm the payment
-            let paymentResult;
-            if (showNewCard) {
-                paymentResult = await confirmPayment(clientSecret, {
-                    paymentMethodType: 'Card',
-                });
+            // SIMULATION MODE: Bypass real Stripe payment for testing
+            // Set to false to use real Stripe integration
+            const USE_SIMULATION = true;
+            let paymentIntentId = '';
+
+            if (USE_SIMULATION) {
+                console.log('Using simulated payment flow');
+                await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
+                paymentIntentId = 'pi_simulated_' + Math.random().toString(36).substr(2, 9);
             } else {
-                paymentResult = await confirmPayment(clientSecret, {
-                    paymentMethodType: 'Card',
-                    paymentMethodData: {
-                        paymentMethodId: selectedCardId!,
-                    },
+                const result = await createPaymentIntent({
+                    amount: totalInCents,
+                    customerId: profile?.stripe_customer_id || undefined,
+                    description: `Shop Order: ${items.length} item(s)`,
+                    captureMethod: 'automatic', // Immediate charge for shop orders
                 });
-            }
+                paymentIntentId = result.paymentIntentId;
 
-            if (paymentResult.error) {
-                throw new Error(paymentResult.error.message);
+                // Confirm the payment
+                let paymentResult;
+                if (showNewCard) {
+                    paymentResult = await confirmPayment(result.clientSecret, {
+                        paymentMethodType: 'Card',
+                    });
+                } else {
+                    paymentResult = await confirmPayment(result.clientSecret, {
+                        paymentMethodType: 'Card',
+                        paymentMethodData: {
+                            paymentMethodId: selectedCardId!,
+                        },
+                    });
+                }
+
+                if (paymentResult.error) {
+                    throw new Error(paymentResult.error.message);
+                }
             }
 
             // 3. Create the order

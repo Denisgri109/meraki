@@ -46,13 +46,16 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
 
     const fetchServices = async () => {
         try {
+            // Only fetch services that are active AND have at least one available master
             const { data } = await supabase
                 .from('services')
-                .select('*')
+                .select('*, master_services!inner(is_available)')
                 .eq('is_active', true)
+                .eq('master_services.is_available', true)
                 .order('name');
 
-            setServices(data || []);
+            // Cast data to ensure it fits Service[] state, ignoring the extra master_services property
+            setServices((data as any) || []);
         } catch (error) {
             console.error('Error fetching services:', error);
         } finally {
@@ -101,10 +104,7 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
                     }
                 >
                     {/* Header */}
-                    <View style={styles.header}>
-                        <Text style={styles.title}>Book Appointment</Text>
-                        <Text style={styles.subtitle}>Choose a service to get started</Text>
-                    </View>
+
 
                     {/* Category Filter */}
                     <ScrollView
@@ -194,21 +194,7 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingBottom: 100,
     },
-    header: {
-        paddingHorizontal: spacing.lg,
-        paddingTop: spacing.lg,
-        paddingBottom: spacing.md,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: colors.text,
-        marginBottom: 4,
-    },
-    subtitle: {
-        fontSize: 14,
-        color: colors.textSecondary,
-    },
+
     categoriesScroll: {
         marginTop: spacing.md,
         marginBottom: spacing.md,

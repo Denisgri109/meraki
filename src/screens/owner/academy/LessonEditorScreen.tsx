@@ -19,6 +19,19 @@ import { supabase } from '../../../lib/supabase';
 import { ScreenBackground, Button, ConfirmModal } from '../../../components/ui';
 import { colors, spacing } from '../../../theme';
 
+// Helper function to format duration in seconds to a readable string
+const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.round(seconds % 60);
+    if (mins === 0) {
+        return `${secs} seconds`;
+    } else if (secs === 0) {
+        return `${mins} minute${mins !== 1 ? 's' : ''}`;
+    } else {
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+};
+
 export function LessonEditorScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
@@ -32,8 +45,7 @@ export function LessonEditorScreen() {
     const [description, setDescription] = useState('');
     const [videoUrl, setVideoUrl] = useState('');
     const [videoProvider, setVideoProvider] = useState('upload');
-    const [duration, setDuration] = useState('');
-    const [resourceUrl, setResourceUrl] = useState('');
+    const [durationSeconds, setDurationSeconds] = useState<number>(0);
     const [hasHomework, setHasHomework] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
@@ -54,9 +66,9 @@ export function LessonEditorScreen() {
             setTitle(data.title);
             setDescription(data.description || '');
             setVideoUrl(data.video_url || '');
-            setVideoProvider(data.video_provider || 'vimeo');
-            setDuration(data.duration_minutes?.toString() || '');
-            setResourceUrl(data.resource_url || '');
+            setVideoProvider(data.video_provider || 'upload');
+            // Convert stored minutes back to seconds for display
+            setDurationSeconds((data.duration_minutes || 0) * 60);
             setHasHomework(data.has_homework);
         } catch (error) {
             console.error('Error fetching lesson:', error);
@@ -116,6 +128,12 @@ export function LessonEditorScreen() {
 
                 setVideoUrl(urlData.publicUrl);
                 setVideoProvider('upload');
+
+                // Capture video duration from asset (duration is in milliseconds, convert to seconds)
+                if (asset.duration) {
+                    setDurationSeconds(asset.duration / 1000);
+                }
+
                 Alert.alert('Success', 'Video uploaded successfully!');
             } catch (err: any) {
                 console.error('Error uploading video:', err);
@@ -139,8 +157,9 @@ export function LessonEditorScreen() {
                 description: description.trim(),
                 video_url: videoUrl.trim(),
                 video_provider: videoProvider,
-                duration_minutes: parseInt(duration) || 0,
-                resource_url: resourceUrl.trim() || null,
+                // Store duration in minutes (rounded to nearest minute)
+                duration_minutes: Math.round(durationSeconds / 60),
+                resource_url: null,
                 has_homework: hasHomework,
                 course_id: courseId,
                 chapter_id: chapterId,
@@ -264,76 +283,15 @@ export function LessonEditorScreen() {
                         </TouchableOpacity>
 
                         {videoUrl && videoProvider === 'upload' && (
-                            <Text style={styles.uploadedHint}>✅ Video uploaded</Text>
-                        )}
-
-                        <Text style={styles.orDivider}>— OR paste a link —</Text>
-
-                        {/* URL Input */}
-                        <TextInput
-                            style={styles.input}
-                            value={videoProvider === 'upload' ? '' : videoUrl}
-                            onChangeText={(text) => {
-                                setVideoUrl(text);
-                                if (text) setVideoProvider('vimeo'); // Auto-switch to link mode
-                            }}
-                            placeholder="Vimeo, YouTube, or direct video URL"
-                            placeholderTextColor={colors.textMuted}
-                        />
-                        <Text style={styles.hint}>
-                            Optional: Paste a Vimeo/YouTube link or direct MP4 URL
-                        </Text>
-                    </View>
-
-                    {/* Video Provider (only show if using link) */}
-                    {videoUrl && videoProvider !== 'upload' && (
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Video Provider</Text>
-                            <View style={styles.providerRow}>
-                                {['vimeo', 'mux', 'youtube'].map((provider) => (
-                                    <TouchableOpacity
-                                        key={provider}
-                                        style={[
-                                            styles.providerBtn,
-                                            videoProvider === provider && styles.providerActive,
-                                        ]}
-                                        onPress={() => setVideoProvider(provider)}
-                                    >
-                                        <Text style={[
-                                            styles.providerText,
-                                            videoProvider === provider && styles.providerTextActive,
-                                        ]}>
-                                            {provider.charAt(0).toUpperCase() + provider.slice(1)}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
+                            <View>
+                                <Text style={styles.uploadedHint}>✅ Video uploaded</Text>
+                                {durationSeconds > 0 && (
+                                    <Text style={styles.durationText}>
+                                        ⏱️ Duration: {formatDuration(durationSeconds)}
+                                    </Text>
+                                )}
                             </View>
-                        </View>
-                    )}
-
-                    {/* Duration */}
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Duration (minutes)</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={duration}
-                            onChangeText={setDuration}
-                            placeholder="15"
-                            placeholderTextColor={colors.textMuted}
-                            keyboardType="number-pad"
-                        />
-                    </View>
-
-                    {/* Resource URL */}
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Resource PDF (Optional)</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={resourceUrl}
-                            onChangeText={setResourceUrl}
-                            placeholder="URL to downloadable PDF"
-                            placeholderTextColor={colors.textMuted}
-                        />
+                        )}
                     </View>
 
                     {/* Has Homework Toggle */}
@@ -403,19 +361,6 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
     },
     textArea: { height: 80, textAlignVertical: 'top' },
-    hint: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
-    providerRow: { flexDirection: 'row', gap: spacing.sm },
-    providerBtn: {
-        flex: 1,
-        paddingVertical: spacing.sm,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: colors.border,
-        alignItems: 'center',
-    },
-    providerActive: { borderColor: colors.primary, backgroundColor: 'rgba(139,92,246,0.1)' },
-    providerText: { fontSize: 14, color: colors.textMuted },
-    providerTextActive: { color: colors.primary, fontWeight: '600' },
     toggleRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -443,12 +388,7 @@ const styles = StyleSheet.create({
     uploadBtnDisabled: { opacity: 0.5 },
     uploadBtnText: { fontSize: 16, color: colors.primary, fontWeight: '600' },
     uploadedHint: { fontSize: 12, color: '#22c55e', marginBottom: spacing.sm },
-    orDivider: {
-        textAlign: 'center',
-        color: colors.textMuted,
-        fontSize: 12,
-        marginVertical: spacing.md,
-    },
+    durationText: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.sm },
 });
 
 export default LessonEditorScreen;

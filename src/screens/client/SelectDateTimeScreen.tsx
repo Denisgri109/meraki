@@ -57,30 +57,86 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
     const [selectedTime, setSelectedTime] = useState<Date | null>(null);
     const [bookedSlots, setBookedSlots] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
+    const [masterAvailability, setMasterAvailability] = useState<any[]>([]);
+    const [blockedSlots, setBlockedSlots] = useState<any[]>([]);
 
     const dates = generateDates();
-    const timeSlots = generateTimeSlots();
+
+    // Get availability for selected day
+    const getDayAvailability = () => {
+        const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
+        const dayAvailability = masterAvailability.find(
+            (a) => a.day_of_week === dayOfWeek && a.is_available
+        );
+        return dayAvailability;
+    };
+
+    // Generate time slots based on master's availability for selected day
+    const generateTimeSlotsForDay = () => {
+        const dayAvailability = getDayAvailability();
+
+        if (!dayAvailability) {
+            return []; // Master not available on this day
+        }
+
+        const slots = [];
+        // Parse start and end times (format: "HH:mm:ss" or "HH:mm")
+        const [startHour, startMin] = dayAvailability.start_time.split(':').map(Number);
+        const [endHour, endMin] = dayAvailability.end_time.split(':').map(Number);
+
+        let currentHour = startHour;
+        let currentMin = startMin || 0;
+
+        while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
+            slots.push(setMinutes(setHours(new Date(), currentHour), currentMin));
+            // Increment by 30 minutes
+            currentMin += 30;
+            if (currentMin >= 60) {
+                currentMin = 0;
+                currentHour++;
+            }
+        }
+
+        return slots;
+    };
+
+    const timeSlots = generateTimeSlotsForDay();
 
     useEffect(() => {
         fetchData();
     }, []);
 
     useEffect(() => {
-        fetchBookedSlots();
-    }, [selectedDate]);
+        if (master) {
+            fetchBookedSlots();
+        }
+    }, [selectedDate, master]);
 
     const fetchData = async () => {
         try {
             const servicePromise = supabase.from('services').select('*').eq('id', serviceId).single();
             const masterPromise = supabase.from('profiles').select('*').eq('id', masterId).single();
+            const availabilityPromise = supabase
+                .from('master_availability')
+                .select('*')
+                .eq('master_id', masterId)
+                .order('day_of_week');
+            const blockedPromise = supabase
+                .from('blocked_slots')
+                .select('*')
+                .eq('master_id', masterId);
 
-            const [serviceRes, masterRes] = await Promise.all([
+            const [serviceRes, masterRes, availabilityRes, blockedRes] = await Promise.all([
                 safeSupabaseFetch(servicePromise as any, { timeout: 5000 }),
-                safeSupabaseFetch(masterPromise as any, { timeout: 5000 })
+                safeSupabaseFetch(masterPromise as any, { timeout: 5000 }),
+                safeSupabaseFetch(availabilityPromise as any, { timeout: 5000 }),
+                safeSupabaseFetch(blockedPromise as any, { timeout: 5000 }),
             ]);
 
             setService(serviceRes.data as Service);
             setMaster(masterRes.data as Profile);
+            setMasterAvailability((availabilityRes.data as any[]) || []);
+            setBlockedSlots((blockedRes.data as any[]) || []);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -113,6 +169,8 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
 
     const isSlotAvailable = (slot: Date) => {
         const timeKey = `${slot.getHours()}:${slot.getMinutes().toString().padStart(2, '0')}`;
+
+        // Check if already booked
         if (bookedSlots.includes(timeKey)) return false;
 
         // Check if slot is in the past
@@ -121,7 +179,25 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
         slotDateTime.setHours(slot.getHours(), slot.getMinutes());
         if (isBefore(slotDateTime, now)) return false;
 
+        // Check blocked slots
+        for (const blocked of blockedSlots) {
+            const blockStart = new Date(blocked.start_time);
+            const blockEnd = new Date(blocked.end_time);
+            if (slotDateTime >= blockStart && slotDateTime < blockEnd) {
+                return false;
+            }
+        }
+
         return true;
+    };
+
+    // Check if a day is available for the master
+    const isDayAvailable = (date: Date) => {
+        const dayOfWeek = date.getDay();
+        const dayAvailability = masterAvailability.find(
+            (a) => a.day_of_week === dayOfWeek && a.is_available
+        );
+        return !!dayAvailability;
     };
 
     const handleContinue = () => {
@@ -171,23 +247,40 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                             {dates.map((date) => {
                                 const isSelected = format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
                                 const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                                const isAvailable = masterAvailability.length === 0 || isDayAvailable(date);
 
                                 return (
                                     <TouchableOpacity
                                         key={date.toISOString()}
-                                        style={[styles.dateCard, isSelected && styles.dateCardSelected]}
+                                        style={[
+                                            styles.dateCard,
+                                            isSelected && styles.dateCardSelected,
+                                            !isAvailable && styles.dateCardUnavailable,
+                                        ]}
                                         onPress={() => {
-                                            setSelectedDate(date);
-                                            setSelectedTime(null);
+                                            if (isAvailable) {
+                                                setSelectedDate(date);
+                                                setSelectedTime(null);
+                                            }
                                         }}
+                                        disabled={!isAvailable}
                                     >
-                                        <Text style={[styles.dateDay, isSelected && styles.dateTextSelected]}>
+                                        <Text style={[
+                                            styles.dateDay,
+                                            isSelected && styles.dateTextSelected,
+                                            !isAvailable && styles.dateTextUnavailable,
+                                        ]}>
                                             {format(date, 'EEE')}
                                         </Text>
-                                        <Text style={[styles.dateNum, isSelected && styles.dateTextSelected]}>
+                                        <Text style={[
+                                            styles.dateNum,
+                                            isSelected && styles.dateTextSelected,
+                                            !isAvailable && styles.dateTextUnavailable,
+                                        ]}>
                                             {format(date, 'd')}
                                         </Text>
                                         {isToday && <Text style={styles.todayLabel}>Today</Text>}
+                                        {!isAvailable && <Text style={styles.offLabel}>Off</Text>}
                                     </TouchableOpacity>
                                 );
                             })}
@@ -197,35 +290,45 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                     {/* Time Selection */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Choose a Time</Text>
-                        <View style={styles.timeSlotsGrid}>
-                            {timeSlots.map((slot) => {
-                                const timeStr = format(slot, 'HH:mm');
-                                const available = isSlotAvailable(slot);
-                                const isSelected = selectedTime &&
-                                    format(selectedTime, 'HH:mm') === timeStr;
+                        {timeSlots.length > 0 ? (
+                            <View style={styles.timeSlotsGrid}>
+                                {timeSlots.map((slot) => {
+                                    const timeStr = format(slot, 'HH:mm');
+                                    const available = isSlotAvailable(slot);
+                                    const isSelected = selectedTime &&
+                                        format(selectedTime, 'HH:mm') === timeStr;
 
-                                return (
-                                    <TouchableOpacity
-                                        key={timeStr}
-                                        style={[
-                                            styles.timeSlot,
-                                            !available && styles.timeSlotUnavailable,
-                                            isSelected && styles.timeSlotSelected,
-                                        ]}
-                                        onPress={() => available && setSelectedTime(slot)}
-                                        disabled={!available}
-                                    >
-                                        <Text style={[
-                                            styles.timeSlotText,
-                                            !available && styles.timeSlotTextUnavailable,
-                                            isSelected && styles.timeSlotTextSelected,
-                                        ]}>
-                                            {timeStr}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
+                                    return (
+                                        <TouchableOpacity
+                                            key={timeStr}
+                                            style={[
+                                                styles.timeSlot,
+                                                !available && styles.timeSlotUnavailable,
+                                                isSelected && styles.timeSlotSelected,
+                                            ]}
+                                            onPress={() => available && setSelectedTime(slot)}
+                                            disabled={!available}
+                                        >
+                                            <Text style={[
+                                                styles.timeSlotText,
+                                                !available && styles.timeSlotTextUnavailable,
+                                                isSelected && styles.timeSlotTextSelected,
+                                            ]}>
+                                                {timeStr}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        ) : (
+                            <View style={styles.noSlotsContainer}>
+                                <Text style={styles.noSlotsText}>
+                                    {masterAvailability.length === 0
+                                        ? 'This specialist hasn\'t set their availability yet. Please try another day or contact them directly.'
+                                        : 'No time slots available for this day. Please select a different date.'}
+                                </Text>
+                            </View>
+                        )}
                     </View>
 
                     {/* Summary */}
@@ -338,6 +441,18 @@ const styles = StyleSheet.create({
         color: colors.textMuted,
         marginTop: spacing.xs,
     },
+    dateCardUnavailable: {
+        opacity: 0.4,
+        backgroundColor: colors.surfaceLight,
+    },
+    dateTextUnavailable: {
+        color: colors.textMuted,
+    },
+    offLabel: {
+        fontSize: 9,
+        color: colors.textMuted,
+        marginTop: spacing.xs,
+    },
     timeSlotsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -404,6 +519,20 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: colors.border,
         backgroundColor: 'transparent',
+    },
+    noSlotsContainer: {
+        padding: spacing.xl,
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    noSlotsText: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 20,
     },
 });
 

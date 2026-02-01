@@ -252,6 +252,7 @@ export type Database = {
                     base_price: number
                     category: string | null
                     created_at: string | null
+                    created_by: string | null
                     description: string | null
                     duration_minutes: number
                     id: string

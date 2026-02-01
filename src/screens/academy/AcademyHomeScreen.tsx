@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -12,7 +12,7 @@ import {
     Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -57,14 +57,20 @@ const getRandomGradient = (id: string): [string, string, string] => {
 
 export function AcademyHomeScreen() {
     const navigation = useNavigation<any>();
-    const { profile } = useAuth();
+    const { profile, user } = useAuth(); // Get user for enrollment check
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [courses, setCourses] = useState<Course[]>([]);
+    const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
 
-    useEffect(() => {
-        fetchCourses();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchCourses();
+            if (user) {
+                fetchEnrollments();
+            }
+        }, [user])
+    );
 
     const fetchCourses = async () => {
         try {
@@ -111,9 +117,39 @@ export function AcademyHomeScreen() {
         }
     };
 
+    const fetchEnrollments = async () => {
+        if (!user) return;
+        try {
+            const { data, error } = await (supabase as any)
+                .from('course_enrollments')
+                .select('course_id')
+                .eq('student_id', user.id);
+
+            if (error) throw error;
+
+            const ids = new Set<string>((data || []).map((e: any) => e.course_id));
+            setEnrolledCourseIds(ids);
+        } catch (error) {
+            console.error('Error fetching enrollments:', error);
+        }
+    };
+
     const onRefresh = () => {
         setRefreshing(true);
         fetchCourses();
+        if (user) fetchEnrollments();
+    };
+
+    const handleCoursePress = (course: Course) => {
+        const isEnrolled = enrolledCourseIds.has(course.id);
+        const isFree = course.price === 0;
+
+        if (isEnrolled || isFree) {
+            navigation.navigate('CourseDetail', { course });
+        } else {
+            console.log('User not enrolled, redirecting to purchase');
+            navigation.navigate('CoursePurchase', { course });
+        }
     };
 
     if (loading) {
@@ -195,79 +231,83 @@ export function AcademyHomeScreen() {
                         </View>
                     ) : (
                         <View style={styles.coursesList}>
-                            {courses.map((course) => (
-                                <TouchableOpacity
-                                    key={course.id}
-                                    style={styles.courseCard}
-                                    onPress={() => navigation.navigate('CourseDetail', { course })}
-                                    activeOpacity={0.9}
-                                >
-                                    {/* Thumbnail Area */}
-                                    <View style={styles.thumbnailContainer}>
-                                        {course.thumbnail_url && course.thumbnail_url.startsWith('http') ? (
-                                            <Image
-                                                source={{ uri: course.thumbnail_url }}
-                                                style={styles.thumbnailImage}
-                                                resizeMode="cover"
-                                            />
-                                        ) : (
-                                            <LinearGradient
-                                                colors={getRandomGradient(course.id)}
-                                                start={{ x: 0, y: 0 }}
-                                                end={{ x: 1, y: 1 }}
-                                                style={styles.thumbnailGradient}
-                                            >
-                                                <Text style={styles.thumbnailIcon}>▶</Text>
-                                            </LinearGradient>
-                                        )}
-                                        <View style={styles.durationBadge}>
-                                            <Text style={styles.durationText}>⏱ {course.duration}</Text>
-                                        </View>
-                                    </View>
-
-                                    {/* Content Area */}
-                                    <View style={styles.cardContent}>
-                                        <View style={styles.cardHeader}>
-                                            <View style={styles.ratingContainer}>
-                                                <Text style={styles.starIcon}>⭐</Text>
-                                                <Text style={styles.ratingText}>{course.rating}</Text>
-                                                <Text style={styles.reviewsText}>({Math.floor(Math.random() * 100 + 20)})</Text>
-                                            </View>
-                                            <View style={styles.priceBadge}>
-                                                {course.price > 0 ? (
-                                                    <Text style={styles.priceText}>€{course.price.toFixed(2)}</Text>
-                                                ) : (
-                                                    <Text style={styles.freeText}>Free</Text>
-                                                )}
+                            {courses.map((course) => {
+                                const isEnrolled = enrolledCourseIds.has(course.id);
+                                return (
+                                    <TouchableOpacity
+                                        key={course.id}
+                                        style={styles.courseCard}
+                                        onPress={() => handleCoursePress(course)}
+                                        activeOpacity={0.9}
+                                    >
+                                        {/* Thumbnail Area */}
+                                        <View style={styles.thumbnailContainer}>
+                                            {course.thumbnail_url && course.thumbnail_url.startsWith('http') ? (
+                                                <Image
+                                                    source={{ uri: course.thumbnail_url }}
+                                                    style={styles.thumbnailImage}
+                                                    resizeMode="cover"
+                                                />
+                                            ) : (
+                                                <LinearGradient
+                                                    colors={getRandomGradient(course.id)}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 1 }}
+                                                    style={styles.thumbnailGradient}
+                                                >
+                                                    <Text style={styles.thumbnailIcon}>▶</Text>
+                                                </LinearGradient>
+                                            )}
+                                            <View style={styles.durationBadge}>
+                                                <Text style={styles.durationText}>⏱ {course.duration}</Text>
                                             </View>
                                         </View>
 
-                                        <Text style={styles.courseTitle} numberOfLines={2}>
-                                            {course.title}
-                                        </Text>
+                                        {/* Content Area */}
+                                        <View style={styles.cardContent}>
+                                            <View style={styles.cardHeader}>
+                                                <View style={styles.ratingContainer}>
+                                                    <Text style={styles.starIcon}>⭐</Text>
+                                                    <Text style={styles.ratingText}>{course.rating}</Text>
+                                                    <Text style={styles.reviewsText}>({Math.floor(Math.random() * 100 + 20)})</Text>
+                                                </View>
+                                                <View style={styles.priceBadge}>
+                                                    {!isEnrolled && (course.price > 0 ? (
+                                                        <Text style={styles.priceText}>€{course.price.toFixed(2)}</Text>
+                                                    ) : (
+                                                        <Text style={styles.freeText}>Free</Text>
+                                                    ))}
+                                                </View>
+                                            </View>
 
-                                        <Text style={styles.instructorText}>
-                                            By {course.instructor?.full_name}
-                                        </Text>
-
-                                        <View style={styles.cardFooter}>
-                                            <Text style={styles.lessonsText}>
-                                                {course.lesson_count} {course.lesson_count === 1 ? 'Lesson' : 'Lessons'}
+                                            <Text style={styles.courseTitle} numberOfLines={2}>
+                                                {course.title}
                                             </Text>
-                                            <TouchableOpacity style={styles.enrollButton}>
-                                                <Text style={styles.enrollText}>
-                                                    {course.price > 0 ? 'Buy Now' : 'Enroll'}
+
+                                            <Text style={styles.instructorText}>
+                                                By {course.instructor?.full_name}
+                                            </Text>
+
+                                            <View style={styles.cardFooter}>
+                                                <Text style={styles.lessonsText}>
+                                                    {course.lesson_count} {course.lesson_count === 1 ? 'Lesson' : 'Lessons'}
                                                 </Text>
-                                            </TouchableOpacity>
+                                                <TouchableOpacity style={styles.enrollButton}>
+                                                    <Text style={styles.enrollText}>
+                                                        {course.price > 0 ? 'Buy Now' : 'Enroll'}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            </View>
                                         </View>
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
-                    )}
+                    )
+                    }
                 </ScrollView>
-            </SafeAreaView>
-        </ScreenBackground>
+            </SafeAreaView >
+        </ScreenBackground >
     );
 }
 

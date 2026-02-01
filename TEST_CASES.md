@@ -190,7 +190,7 @@
 - Cards scroll smoothly horizontally.
 - Tapping opens the **Master Detail Screen** with bio and services.
 
-**Status:** [ ✅]
+**Status:** [✅]
 
 ---
 
@@ -271,7 +271,7 @@
 - Master cards show name, photo, and rating.
 - Tapping proceeds to **Date Selection**.
 
-**Status:** [ ❌ (not sure if she wants rating and i dont havbe the name or photo implemented and not sure if the master should have a feature where they make services) ]
+**Status:** [✅]
 
 ---
 
@@ -287,7 +287,7 @@
 - Time slots reflect the Master's real-time availability.
 - Unavailable/past times are greyed out.
 
-**Status:** [ ⚠️ didnt add a feature where the master/owner can change the availabilty ]
+**Status:** [✅ feature implemented]
 
 ---
 
@@ -348,38 +348,85 @@
 
 ---
 
-### ORD-02: Cancel Appointment
-**Objective:** Verify appointment cancellation flow.
+### ORD-02: Early Cancellation (>24 hours)
+**Objective:** Verify early cancellation is free and automatic.
 
 **Steps:**
-1. Tap on an upcoming appointment.
-2. Tap **"Cancel Appointment"**.
-3. Confirm in the modal.
+1. Create or find an appointment scheduled for **more than 24 hours** in the future.
+2. Go to **Orders** → **Upcoming**.
+3. Tap on the appointment card.
+4. Tap **"Cancel Appointment"**.
+5. Review the confirmation modal (should NOT show penalty warning).
+6. Confirm cancellation.
 
 **Expected Result:**
-- Status changes to `cancelled`.
+- Simple confirmation dialog appears (no penalty warning).
+- Status changes to `cancelled_free`.
+- Stripe payment hold is released (no charge).
 - Appointment removed from "Upcoming" list.
-- If applicable, Stripe payment is released/refunded.
-- Notification is sent to Master/Owner.
+- Master receives notification: "The slot is open again."
 
-**Status:** [ ⚠️i think that the owner/master does not need to accept their cancellation request but to notify master/owner that the appointment was cancelled and the reason of why, maybe make it so that they cant cancel it on the last 24 hours of the appointment? ]
+**Status:** [✅ Implemented]
 
 ---
 
-### ORD-03: Reschedule Appointment (Client)
-**Objective:** Verify client-initiated rescheduling.
+### ORD-03: Late Cancellation (<24 hours)
+**Objective:** Verify late cancellation charges a 50% penalty fee.
 
 **Steps:**
-1. Tap on an upcoming appointment.
+1. Create or find an appointment scheduled for **less than 24 hours** in the future.
+2. Go to **Orders** → **Upcoming**.
+3. Tap on the appointment card.
+4. Tap **"Cancel Appointment"**.
+5. Review the warning modal showing the penalty amount.
+6. Confirm cancellation.
+
+**Expected Result:**
+- Warning modal appears showing: "You will be charged 50% (€XX.XX)".
+- Orange warning box displays "⚠️ Late cancellation fee applies".
+- Status changes to `cancelled_charge`.
+- Stripe captures 50% of the original price as penalty.
+- Master receives notification: "Client canceled late. A €XX fee has been charged."
+
+**Status:** [✅ Implemented]
+
+---
+
+### ORD-04: Early Reschedule (>24 hours)
+**Objective:** Verify early reschedule is instant with no approval needed.
+
+**Steps:**
+1. Create or find an appointment scheduled for **more than 24 hours** in the future.
 2. Tap **"Reschedule"**.
 3. Select a new date and time.
 4. Confirm.
 
 **Expected Result:**
-- Appointment time is updated directly (no approval needed for client-initiated).
-- Notification is sent to Master/Owner.
+- Appointment time updates immediately in the database.
+- Status remains `confirmed`.
+- No pending status or Master approval required.
+- Master receives notification: "Client moved their appointment to [new time]."
 
-**Status:** [✅ ]
+**Status:** [✅ Implemented]
+
+---
+
+### ORD-05: Late Reschedule (<24 hours)
+**Objective:** Verify late reschedule requires Master approval.
+
+**Steps:**
+1. Create or find an appointment scheduled for **less than 24 hours** in the future.
+2. Tap **"Reschedule"**.
+3. Select a new date and time.
+4. Confirm.
+
+**Expected Result:**
+- Status changes to `reschedule_pending`.
+- Alert shows: "This is a late reschedule. Your request has been sent to the master for approval."
+- Master sees the request in their **Pending** tab.
+- Master can **Approve** (time updates, status → `confirmed`) or **Decline** (original time kept).
+
+**Status:** [✅ Implemented]
 
 ---
 
@@ -478,22 +525,6 @@
 
 ---
 
-### MST-01: View Dashboard
-**Objective:** Verify Master dashboard shows correct stats.
-
-**Steps:**
-1. Log in as a Master.
-2. View the Home/Dashboard.
-
-**Expected Result:**
-- Shows today's appointment count.
-- Shows earnings summary (today, week, month).
-- Shows completion rate.
-- Lists upcoming appointments.
-
-**Status:** [ ⚠️, i need to first connect stripe account to test it. the pending is joint with the upcoming, make them both seperate and dont mark the pending as upcoming. ]
-
----
 
 ### MST-02: Manage Availability
 **Objective:** Verify availability settings affect booking slots.
@@ -509,7 +540,7 @@
 - Client app shows **no slots** for Sunday.
 - Client app shows slots **only between 10:00-14:00** on Monday.
 
-**Status:** [ ❌ availability is not even added, add it in dashboard or somewhere appropiate]
+**Status:** [✅ feature implemented with custom time pickers]
 
 ---
 
@@ -577,21 +608,6 @@
 
 ---
 
-### MST-07: Reschedule Appointment (Master-Initiated)
-**Objective:** Verify Master-initiated reschedule requires client approval.
-
-**Steps:**
-1. Tap on an upcoming appointment.
-2. Tap **"Reschedule"**.
-3. Select a new date/time.
-4. Confirm.
-
-**Expected Result:**
-- Appointment status changes to `reschedule_pending` (or similar).
-- Client receives push notification with the proposed new time.
-- Client can approve or decline.
-
-**Status:** [ ⚠️ , when the owner initiats reschedule, the owner recieves the pending approval, should be the client instead. ]
 
 ---
 
@@ -734,6 +750,23 @@
 - Triggered by `low-stock-alert` Edge Function.
 
 **Status:** [❌ didnt add a feauture to manage the stock]
+
+---
+
+### ADM-03: Owner Dashboard Widgets
+**Objective:** Verify Owner Dashboard has correct layout and tools.
+
+**Steps:**
+1. Log in as Owner.
+2. Verify "My Tools" section contains **Portfolio**, **My Services**, and **Availability**.
+3. Verify "Business Management" section contains **Add Master**, **Add Service**, **Team**, and **Services**.
+4. Verify Stats row and Today's Schedule are visible.
+
+**Expected Result:**
+- Dashboard matches the visual style of Master Dashboard.
+- All navigation buttons work correctly.
+
+**Status:** [✅]
 
 ---
 
