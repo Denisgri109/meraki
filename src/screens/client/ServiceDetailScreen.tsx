@@ -60,7 +60,10 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                         avatar_url,
                         bio,
                         is_master,
-                        role
+                        role,
+                        city,
+                        country,
+                        timezone
                     )
                 `)
                 .eq('service_id', serviceId)
@@ -176,6 +179,11 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                                     <Text style={styles.masterName}>
                                         {master.full_name || 'Beauty Master'}
                                     </Text>
+                                    {((master as any).city || (master as any).country) && (
+                                        <Text style={styles.masterLocation}>
+                                            📍 {[(master as any).city, (master as any).country].filter(Boolean).join(', ')}
+                                        </Text>
+                                    )}
                                     {master.bio && (
                                         <Text style={styles.masterBio} numberOfLines={2}>
                                             {master.bio}
@@ -317,6 +325,11 @@ const styles = StyleSheet.create({
     masterBio: {
         fontSize: 13,
         color: colors.textSecondary,
+    },
+    masterLocation: {
+        fontSize: 13,
+        color: colors.textMuted,
+        marginBottom: 4,
     },
     noMasters: {
         color: colors.textSecondary,

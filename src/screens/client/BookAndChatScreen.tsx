@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -70,6 +70,15 @@ function AppointmentStackNavigator() {
 
 const TopTab = createMaterialTopTabNavigator();
 
+// Lazy placeholder to prevent white flash during tab loading
+function LazyPlaceholder() {
+    return (
+        <View style={styles.lazyPlaceholder}>
+            <ActivityIndicator size="small" color={colors.primary} />
+        </View>
+    );
+}
+
 function CustomTabBar({ state, descriptors, navigation }: any) {
     return (
         <View style={styles.tabContainer}>
@@ -127,10 +136,12 @@ export function BookAndChatScreen() {
 
                 <TopTab.Navigator
                     tabBar={props => <CustomTabBar {...props} />}
-                    style={{ backgroundColor: 'transparent' }}
+                    style={{ backgroundColor: colors.background }}
                     screenOptions={{
                         swipeEnabled: true,
                         lazy: true,
+                        lazyPlaceholder: LazyPlaceholder,
+                        sceneStyle: { backgroundColor: colors.background },
                     }}
                 >
                     <TopTab.Screen
@@ -191,5 +202,11 @@ const styles = StyleSheet.create({
     tabTextActive: {
         color: '#FFFFFF', // White text on primary
         fontWeight: '700',
+    },
+    lazyPlaceholder: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: colors.background,
     },
 });

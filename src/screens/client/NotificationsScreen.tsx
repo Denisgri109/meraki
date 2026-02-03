@@ -26,6 +26,7 @@ type Notification = {
     read: boolean;
     created_at: string;
     data?: any;
+    productId?: string;
 };
 
 const NOTIFICATION_ICONS: Record<string, string> = {
@@ -35,6 +36,7 @@ const NOTIFICATION_ICONS: Record<string, string> = {
     system: '📢',
     payment: '💳',
     message: '💬',
+    low_stock: '📦',
 };
 
 export function NotificationsScreen() {
@@ -218,6 +220,36 @@ export function NotificationsScreen() {
                 }
             } catch (e) {
                 console.log('Appointment notifications error:', e);
+            }
+
+            // 3. Fetch low stock notifications for owners
+            if (profile?.role === 'owner' && settings.stockAlerts) {
+                try {
+                    const { data: lowStockProducts } = await (supabase as any)
+                        .from('products')
+                        .select('id, name, stock_count, low_stock_threshold')
+                        .eq('is_active', true);
+
+                    if (lowStockProducts) {
+                        for (const product of lowStockProducts as any[]) {
+                            if (product.stock_count < (product.low_stock_threshold || 5)) {
+                                allNotifications.push({
+                                    id: `lowstock-${product.id}`,
+                                    title: product.stock_count === 0 ? '🚨 Out of Stock' : '⚠️ Low Stock Alert',
+                                    body: product.stock_count === 0
+                                        ? `${product.name} is out of stock!`
+                                        : `${product.name} has only ${product.stock_count} units left`,
+                                    type: 'low_stock',
+                                    read: false,
+                                    created_at: new Date().toISOString(),
+                                    productId: product.id,
+                                });
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log('Low stock notifications error:', e);
+                }
             }
 
             // Sort by date

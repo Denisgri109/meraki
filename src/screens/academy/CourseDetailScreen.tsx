@@ -20,6 +20,7 @@ interface Course {
     title: string;
     description: string | null;
     price: number;
+    instructor_id?: string | null;
     instructor?: { full_name: string } | null;
 }
 
@@ -36,7 +37,12 @@ interface Lesson {
 type AcademyStackParamList = {
     AcademyHome: undefined;
     CourseDetail: { course: Course };
-    Lesson: { lesson: Lesson; courseId: string };
+    Lesson: {
+        lesson: Lesson;
+        courseId: string;
+        instructorId?: string | null;
+        instructorName?: string;
+    };
 };
 
 export function CourseDetailScreen() {
@@ -166,7 +172,12 @@ export function CourseDetailScreen() {
                                     <TouchableOpacity
                                         key={lesson.id}
                                         style={styles.lessonCard}
-                                        onPress={() => navigation.navigate('Lesson', { lesson, courseId: course.id })}
+                                        onPress={() => navigation.navigate('Lesson', {
+                                            lesson,
+                                            courseId: course.id,
+                                            instructorId: course.instructor_id,
+                                            instructorName: course.instructor?.full_name
+                                        })}
                                     >
                                         <View style={[
                                             styles.lessonNumber,
@@ -181,7 +192,7 @@ export function CourseDetailScreen() {
                                         <View style={styles.lessonInfo}>
                                             <Text style={styles.lessonTitle}>{lesson.title}</Text>
                                             <View style={styles.lessonMeta}>
-                                                {lesson.duration_minutes && (
+                                                {!!lesson.duration_minutes && (
                                                     <Text style={styles.lessonDuration}>
                                                         ⏱️ {lesson.duration_minutes} min
                                                     </Text>

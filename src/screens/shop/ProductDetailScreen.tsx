@@ -8,9 +8,13 @@ import {
     Alert,
     Modal,
     TextInput,
+    Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
@@ -25,6 +29,7 @@ type Product = {
     retail_price: number;
     wholesale_price: number;
     stock_count: number;
+    low_stock_threshold?: number;
     category: string;
 };
 
@@ -50,9 +55,12 @@ export function ProductDetailScreen() {
         retail_price: product.retail_price.toString(),
         wholesale_price: product.wholesale_price.toString(),
         stock_count: product.stock_count.toString(),
+        low_stock_threshold: (product.low_stock_threshold || 5).toString(),
         category: product.category,
+        image_url: product.image_url || '',
     });
     const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     const isMaster = profile?.is_master || profile?.role === 'master';
     const isOwner = profile?.role === 'owner';
@@ -80,6 +88,68 @@ export function ProductDetailScreen() {
         );
     };
 
+    const pickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission needed', 'Please grant gallery access to upload product photos.');
+            return;
+        }
+
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'] as any,
+                allowsEditing: true,
+                aspect: [1, 1], // Square aspect for products
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                uploadImage(result.assets[0]);
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to pick image');
+        }
+    };
+
+    const uploadImage = async (asset: ImagePicker.ImagePickerAsset) => {
+        setUploading(true);
+        try {
+            const fileExt = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+            const fileName = `products/${product.id}/${Date.now()}.${fileExt}`;
+            const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+                encoding: 'base64',
+            });
+
+            // 1. Upload to Storage
+            const { error: uploadError } = await supabase.storage
+                .from('products')
+                .upload(fileName, decode(base64), {
+                    contentType: 'image/jpeg',
+                    upsert: false,
+                });
+
+            if (uploadError) {
+                if (uploadError.message.includes('Bucket not found')) {
+                    throw new Error('Storage bucket "products" does not exist.');
+                }
+                throw uploadError;
+            }
+
+            // 2. Get Public URL
+            const { data: urlData } = supabase.storage
+                .from('products')
+                .getPublicUrl(fileName);
+
+            setEditProduct(prev => ({ ...prev, image_url: urlData.publicUrl }));
+
+        } catch (error: any) {
+            console.error('Upload error:', error);
+            Alert.alert('Error', error.message || 'Failed to upload image');
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleSaveProduct = async () => {
         if (!editProduct.name || !editProduct.retail_price || !editProduct.wholesale_price) {
             Alert.alert('Error', 'Please fill in all required fields');
@@ -88,19 +158,33 @@ export function ProductDetailScreen() {
 
         setSaving(true);
         try {
+            const newStockCount = parseInt(editProduct.stock_count) || 0;
+            const newThreshold = parseInt(editProduct.low_stock_threshold) || 5;
+
             const { error } = await (supabase as any)
                 .from('products')
                 .update({
                     name: editProduct.name,
                     description: editProduct.description || null,
+                    image_url: editProduct.image_url || null,
                     retail_price: parseFloat(editProduct.retail_price),
                     wholesale_price: parseFloat(editProduct.wholesale_price),
-                    stock_count: parseInt(editProduct.stock_count) || 0,
+                    stock_count: newStockCount,
+                    low_stock_threshold: newThreshold,
                     category: editProduct.category,
                 })
                 .eq('id', product.id);
 
             if (error) throw error;
+
+            // Trigger low stock alert if needed
+            if (newStockCount < newThreshold) {
+                try {
+                    await supabase.functions.invoke('low-stock-alert');
+                } catch (e) {
+                    console.log('Low stock alert:', e);
+                }
+            }
 
             Alert.alert('Success', 'Product updated successfully');
             setShowEditModal(false);
@@ -245,6 +329,26 @@ export function ProductDetailScreen() {
                         <View style={styles.modalContent}>
                             <Text style={styles.modalTitle}>Edit Product</Text>
 
+                            <View style={styles.imageUploadContainer}>
+                                <TouchableOpacity
+                                    style={styles.imagePreviewButton}
+                                    onPress={pickImage}
+                                    disabled={uploading}
+                                >
+                                    {editProduct.image_url ? (
+                                        <Image source={{ uri: editProduct.image_url }} style={styles.uploadedImage} />
+                                    ) : (
+                                        <View style={styles.imagePlaceholder}>
+                                            <Text style={styles.imagePlaceholderIcon}>📷</Text>
+                                        </View>
+                                    )}
+                                    <View style={styles.editIconOverlay}>
+                                        <Text style={styles.editIconText}>✏️</Text>
+                                    </View>
+                                </TouchableOpacity>
+                                {uploading && <Text style={styles.uploadingText}>Uploading...</Text>}
+                            </View>
+
                             <TextInput
                                 style={styles.modalInput}
                                 value={editProduct.name}
@@ -285,14 +389,53 @@ export function ProductDetailScreen() {
                                 </View>
                             </View>
 
-                            <TextInput
-                                style={styles.modalInput}
-                                value={editProduct.stock_count}
-                                onChangeText={(text) => setEditProduct({ ...editProduct, stock_count: text })}
-                                placeholder="Stock Count"
-                                keyboardType="number-pad"
-                                placeholderTextColor={colors.textMuted}
-                            />
+                            <View style={styles.priceRow}>
+                                <View style={styles.priceInputContainer}>
+                                    <Text style={styles.inputLabel}>Stock Count</Text>
+                                    <TextInput
+                                        style={styles.modalInput}
+                                        value={editProduct.stock_count}
+                                        onChangeText={(text) => setEditProduct({ ...editProduct, stock_count: text })}
+                                        keyboardType="number-pad"
+                                        placeholderTextColor={colors.textMuted}
+                                    />
+                                </View>
+                                <View style={styles.priceInputContainer}>
+                                    <Text style={styles.inputLabel}>Low Stock Alert</Text>
+                                    <TextInput
+                                        style={styles.modalInput}
+                                        value={editProduct.low_stock_threshold}
+                                        onChangeText={(text) => setEditProduct({ ...editProduct, low_stock_threshold: text })}
+                                        keyboardType="number-pad"
+                                        placeholderTextColor={colors.textMuted}
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.priceRow}>
+                                <View style={styles.priceInputContainer}>
+                                    <Text style={styles.inputLabel}>Category</Text>
+                                    <View style={styles.categoryRow}>
+                                        {['Nails', 'Lashes', 'Brows', 'Equipment'].map((cat) => (
+                                            <TouchableOpacity
+                                                key={cat}
+                                                style={[
+                                                    styles.categoryPill,
+                                                    editProduct.category === cat && styles.categoryPillActive,
+                                                ]}
+                                                onPress={() => setEditProduct({ ...editProduct, category: cat })}
+                                            >
+                                                <Text style={[
+                                                    styles.categoryPillText,
+                                                    editProduct.category === cat && styles.categoryPillTextActive,
+                                                ]}>
+                                                    {cat}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+                            </View>
 
                             <View style={styles.modalButtons}>
                                 <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteProduct}>
@@ -365,6 +508,45 @@ const styles = StyleSheet.create({
     cancelBtnText: { color: colors.textSecondary, fontWeight: '600' },
     saveBtn: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: 8, backgroundColor: colors.primary },
     saveBtnText: { color: colors.text, fontWeight: '600' },
+    // Category picker styles
+    categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
+    categoryPill: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: colors.border },
+    categoryPillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+    categoryPillText: { fontSize: 11, color: colors.textMuted, fontWeight: '500' },
+    categoryPillTextActive: { color: colors.text },
+
+    // Image Upload Styles
+    imageUploadContainer: { alignItems: 'center', marginBottom: spacing.md },
+    imagePreviewButton: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        overflow: 'hidden',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+    },
+    uploadedImage: { width: '100%', height: '100%' },
+    imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
+    imagePlaceholderIcon: { fontSize: 32, opacity: 0.5 },
+    editIconOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: colors.primary,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: colors.surface,
+    },
+    editIconText: { fontSize: 12 },
+    uploadingText: { fontSize: 12, color: colors.textSecondary, marginTop: spacing.xs },
 });
 
 export default ProductDetailScreen;

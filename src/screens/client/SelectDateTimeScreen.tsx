@@ -16,6 +16,7 @@ import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { Button, Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { Service, Profile } from '../../types/database';
+import { getDeviceTimezone, getTimezoneAbbreviation, COMMON_TIMEZONES } from '../../utils/timezone';
 
 type BookingStackParamList = {
     BookingMain: undefined;
@@ -289,7 +290,14 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
 
                     {/* Time Selection */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Choose a Time</Text>
+                        <View style={styles.sectionTitleRow}>
+                            <Text style={styles.sectionTitle}>Choose a Time</Text>
+                            {master?.timezone && (
+                                <Text style={styles.timezoneHint}>
+                                    🌐 {getTimezoneAbbreviation(master.timezone)} ({master.city || 'Master\'s time'})
+                                </Text>
+                            )}
+                        </View>
                         {timeSlots.length > 0 ? (
                             <View style={styles.timeSlotsGrid}>
                                 {timeSlots.map((slot) => {
@@ -405,6 +413,20 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: colors.text,
         marginBottom: spacing.md,
+    },
+    sectionTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: spacing.md,
+    },
+    timezoneHint: {
+        fontSize: 12,
+        color: colors.textMuted,
+        backgroundColor: 'rgba(139, 92, 246, 0.15)',
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xs,
+        borderRadius: 8,
     },
     datesContainer: {
         gap: spacing.sm,

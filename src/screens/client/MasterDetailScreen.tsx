@@ -41,10 +41,10 @@ export function MasterDetailScreen({ navigation, route }: MasterDetailScreenProp
 
     const fetchData = async () => {
         try {
-            // Fetch master details
+            // Fetch master details with city and country
             const { data: masterData } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('id, full_name, bio, avatar_url, city, country, timezone')
                 .eq('id', masterId)
                 .single();
 
@@ -84,7 +84,7 @@ export function MasterDetailScreen({ navigation, route }: MasterDetailScreenProp
                 .filter(s => s && s.is_active) // Ensure service exists and is active
                 .sort((a, b) => a.name.localeCompare(b.name));
 
-            setMaster(masterData);
+            setMaster(masterData as Profile);
             setServices(formattedServices);
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -143,6 +143,11 @@ export function MasterDetailScreen({ navigation, route }: MasterDetailScreenProp
                             </View>
                         )}
                         <Text style={styles.masterName}>{master.full_name || 'Beauty Master'}</Text>
+                        {(master.city || master.country) && (
+                            <Text style={styles.masterLocation}>
+                                📍 {[master.city, master.country].filter(Boolean).join(', ')}
+                            </Text>
+                        )}
                         {master.bio && (
                             <Text style={styles.masterBio}>{master.bio}</Text>
                         )}
@@ -249,6 +254,11 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
         textAlign: 'center',
         lineHeight: 20,
+    },
+    masterLocation: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        marginBottom: spacing.sm,
     },
     servicesSection: {
         padding: spacing.lg,

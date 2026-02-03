@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
+import { NotificationProvider } from '../contexts/NotificationContext';
 import { AuthStack } from './AuthStack';
 import { ClientTabs } from './ClientTabs';
 import { MasterTabs } from './MasterTabs';
@@ -48,19 +49,21 @@ export function AppNavigator() {
 
     return (
         <NavigationContainer>
-            <Stack.Navigator
-                initialRouteName={getInitialRoute()}
-                screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor: colors.background },
-                }}
-            >
-                {!session ? (
-                    <Stack.Screen name="Auth" component={AuthStack} />
-                ) : (
-                    renderAppScreens()
-                )}
-            </Stack.Navigator>
+            <NotificationProvider>
+                <Stack.Navigator
+                    initialRouteName={getInitialRoute()}
+                    screenOptions={{
+                        headerShown: false,
+                        contentStyle: { backgroundColor: colors.background },
+                    }}
+                >
+                    {!session ? (
+                        <Stack.Screen name="Auth" component={AuthStack} />
+                    ) : (
+                        renderAppScreens()
+                    )}
+                </Stack.Navigator>
+            </NotificationProvider>
         </NavigationContainer>
     );
 }
@@ -75,4 +78,3 @@ const styles = StyleSheet.create({
 });
 
 export default AppNavigator;
-

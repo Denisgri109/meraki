@@ -416,11 +416,13 @@ export function AppointmentListScreen() {
 
     if (loading && !refreshing) {
         return (
-            <SafeAreaView style={styles.container}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.text} />
-                </View>
-            </SafeAreaView>
+            <ScreenBackground>
+                <SafeAreaView style={styles.container}>
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={colors.text} />
+                    </View>
+                </SafeAreaView>
+            </ScreenBackground>
         );
     }
 

@@ -27,6 +27,7 @@ import {
     formatCardBrand,
     PaymentMethod,
 } from '../../services/stripeService';
+import { getTimezoneAbbreviation } from '../../utils/timezone';
 
 type BookingStackParamList = {
     BookingMain: undefined;
@@ -360,7 +361,14 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                             <Text style={styles.detailIcon}>🕐</Text>
                             <View style={styles.detailInfo}>
                                 <Text style={styles.detailLabel}>Time</Text>
-                                <Text style={styles.detailValue}>{format(startTime, 'HH:mm')}</Text>
+                                <View style={styles.timeWithTimezone}>
+                                    <Text style={styles.detailValue}>{format(startTime, 'HH:mm')}</Text>
+                                    {master?.timezone && (
+                                        <Text style={styles.timezoneTag}>
+                                            {getTimezoneAbbreviation(master.timezone)}
+                                        </Text>
+                                    )}
+                                </View>
                             </View>
                         </View>
 
@@ -809,6 +817,20 @@ const styles = StyleSheet.create({
         color: '#22C55E',
         fontWeight: '600',
         marginTop: spacing.sm,
+    },
+    timeWithTimezone: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+    },
+    timezoneTag: {
+        fontSize: 10,
+        color: colors.primary,
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        paddingHorizontal: spacing.xs,
+        paddingVertical: 2,
+        borderRadius: 4,
+        overflow: 'hidden',
     },
     bottomBar: {
         padding: spacing.lg,

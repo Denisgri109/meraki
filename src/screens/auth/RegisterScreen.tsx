@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { Button, Input, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
@@ -35,11 +36,13 @@ type RegisterScreenProps = {
 };
 
 export function RegisterScreen({ navigation }: RegisterScreenProps) {
+    const { signUp } = useAuth();
     const [fullName, setFullName] = useState('');
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [selectedRole, setSelectedRole] = useState<'client' | 'master'>('client');
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<{
         fullName?: string;
@@ -101,40 +104,73 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
         setLoading(true);
         try {
+            console.log('=== REGISTRATION START ===');
+            console.log('Selected role:', selectedRole);
+            console.log('Email:', email.trim().toLowerCase());
+            console.log('Full name:', fullName.trim());
+
             // Normalize phone for storage
             const normalizedPhone = phone.trim() ? normalizeIrishPhone(phone) : null;
+            console.log('Phone:', normalizedPhone);
 
-            // Sign up with Supabase - this will send an OTP email
-            const { data, error } = await supabase.auth.signUp({
-                email: email.trim().toLowerCase(),
+            // Use AuthContext signUp which handles role properly
+            console.log('Calling AuthContext signUp with role:', selectedRole);
+            const { error: signUpError } = await signUp(
+                email.trim().toLowerCase(),
                 password,
-                options: {
-                    data: {
-                        full_name: fullName.trim(),
-                        phone: normalizedPhone,
-                    },
-                },
+                fullName.trim(),
+                selectedRole
+            );
+
+            if (signUpError) {
+                console.error('SignUp error:', signUpError);
+                throw signUpError;
+            }
+
+            console.log('SignUp successful!');
+
+            // Now send OTP for email verification
+            console.log('Sending OTP for email verification...');
+            const { error: otpError } = await supabase.auth.resend({
+                type: 'signup',
+                email: email.trim().toLowerCase(),
             });
 
-            if (error) throw error;
-
-            // Update profile with phone if provided
-            if (data.user && normalizedPhone) {
-                await supabase
-                    .from('profiles')
-                    .update({
-                        phone: normalizedPhone,
-                        full_name: fullName.trim(),
-                    })
-                    .eq('id', data.user.id);
+            if (otpError) {
+                console.error('OTP send error:', otpError);
+                // Don't throw - user can request resend later
+                console.log('OTP send failed but continuing...');
+            } else {
+                console.log('OTP sent successfully!');
             }
+
+            console.log('=== REGISTRATION COMPLETE ===');
+            console.log('Role selected:', selectedRole);
+            console.log('Navigating to VerifyOtp screen...');
 
             // Navigate to OTP verification screen
             navigation.navigate('VerifyOtp', { email: email.trim().toLowerCase() });
 
         } catch (error: any) {
-            console.error('Registration error:', error);
-            Alert.alert('Registration Failed', error.message || 'An error occurred during registration.');
+            console.error('=== REGISTRATION ERROR ===', error);
+            console.error('Error name:', error.name);
+            console.error('Error code:', error.code);
+            console.error('Error status:', error.status);
+            
+            let errorMessage = error.message || 'An error occurred during registration.';
+            
+            // Provide more helpful error messages
+            if (error.message?.includes('Database error')) {
+                errorMessage = 'Database error creating account. Please try again or contact support.';
+            } else if (error.message?.includes('already registered') || error.message?.includes('already exists')) {
+                errorMessage = 'This email is already registered. Please sign in instead.';
+            } else if (error.message?.includes('password')) {
+                errorMessage = 'Password is too weak. Please use at least 6 characters.';
+            } else if (error.message?.includes('valid')) {
+                errorMessage = 'Please check your email format and try again.';
+            }
+            
+            Alert.alert('Registration Failed', errorMessage);
         } finally {
             setLoading(false);
         }
@@ -156,8 +192,58 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                             <Text style={styles.logo}>Merakí</Text>
                             <Text style={styles.title}>Create Account</Text>
                             <Text style={styles.subtitle}>
-                                Join us and discover the best beauty services
+                                Choose your account type and get started
                             </Text>
+                        </View>
+
+                        {/* Account Type Selection */}
+                        <View style={styles.roleSection}>
+                            <Text style={styles.roleLabel}>I want to join as a:</Text>
+                            <View style={styles.roleButtons}>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.roleButton,
+                                        selectedRole === 'client' && styles.roleButtonActive
+                                    ]}
+                                    onPress={() => {
+                                        console.log('Role changed to: client');
+                                        setSelectedRole('client');
+                                    }}
+                                >
+                                    <Text style={styles.roleIcon}>👤</Text>
+                                    <Text style={[
+                                        styles.roleButtonText,
+                                        selectedRole === 'client' && styles.roleButtonTextActive
+                                    ]}>
+                                        Client
+                                    </Text>
+                                    <Text style={styles.roleDescription}>
+                                        Book services, shop, learn
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[
+                                        styles.roleButton,
+                                        selectedRole === 'master' && styles.roleButtonActive
+                                    ]}
+                                    onPress={() => {
+                                        console.log('Role changed to: master');
+                                        setSelectedRole('master');
+                                    }}
+                                >
+                                    <Text style={styles.roleIcon}>💇</Text>
+                                    <Text style={[
+                                        styles.roleButtonText,
+                                        selectedRole === 'master' && styles.roleButtonTextActive
+                                    ]}>
+                                        Master
+                                    </Text>
+                                    <Text style={styles.roleDescription}>
+                                        Provide services, manage bookings
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
                         {/* Form */}
@@ -286,6 +372,50 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: colors.textSecondary,
         marginTop: spacing.sm,
+        textAlign: 'center',
+    },
+    roleSection: {
+        marginBottom: spacing.lg,
+    },
+    roleLabel: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: spacing.md,
+    },
+    roleButtons: {
+        flexDirection: 'row',
+        gap: spacing.md,
+    },
+    roleButton: {
+        flex: 1,
+        backgroundColor: colors.surface,
+        borderWidth: 2,
+        borderColor: colors.border,
+        borderRadius: 16,
+        padding: spacing.md,
+        alignItems: 'center',
+    },
+    roleButtonActive: {
+        borderColor: colors.primary,
+        backgroundColor: 'rgba(139,92,246,0.1)',
+    },
+    roleIcon: {
+        fontSize: 32,
+        marginBottom: spacing.sm,
+    },
+    roleButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: spacing.xs,
+    },
+    roleButtonTextActive: {
+        color: colors.primary,
+    },
+    roleDescription: {
+        fontSize: 12,
+        color: colors.textSecondary,
         textAlign: 'center',
     },
     form: {

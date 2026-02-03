@@ -246,6 +246,13 @@ export function OwnerDashboardScreen() {
                                 </View>
                                 <Text style={styles.actionLabel}>Services</Text>
                             </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Inventory')}>
+                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(236, 72, 153, 0.2)' }]}>
+                                    <MaterialCommunityIcons name="package-variant-closed" size={24} color="#EC4899" />
+                                </View>
+                                <Text style={styles.actionLabel}>Inventory</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -261,8 +268,8 @@ export function OwnerDashboardScreen() {
                             <Text style={styles.statValue}>{stats.todayAppointments}</Text>
                             <Text style={styles.statLabel}>Today</Text>
                         </Card>
-                        <Card style={[styles.statCard, stats.pendingAppointments > 0 && styles.pendingCard]} variant="elevated">
-                            <Text style={[styles.statValue, stats.pendingAppointments > 0 && styles.pendingValue]}>
+                        <Card style={[styles.statCard, stats.pendingAppointments > 0 ? styles.pendingCard : undefined]} variant="elevated">
+                            <Text style={[styles.statValue, stats.pendingAppointments > 0 ? styles.pendingValue : undefined]}>
                                 {stats.pendingAppointments}
                             </Text>
                             <Text style={styles.statLabel}>Pending</Text>

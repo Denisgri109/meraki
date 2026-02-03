@@ -44,7 +44,16 @@
           "merchantIdentifier": "merchant.com.meraki.app",
           "enableGooglePay": true
         }
-      ]
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./public/logo512.png",
+          "color": "#8B5CF6",
+          "sounds": []
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

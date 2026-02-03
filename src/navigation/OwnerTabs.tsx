@@ -16,6 +16,7 @@ import {
     CourseEditorScreen,
     LessonEditorScreen,
     HomeworkReviewScreen,
+    StudentDetailScreen,
 } from '../screens/owner/academy';
 import {
     MasterAppointmentsScreen,
@@ -44,6 +45,7 @@ export type OwnerDashboardStackParamList = {
     Services: undefined;
     ServiceForm: { service?: any } | undefined;
     Inventory: undefined;
+    ProductDetail: { productId: string; product: any };
     LoyaltyQR: undefined;
     Availability: undefined;
     Portfolio: undefined;
@@ -62,6 +64,7 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="Services" component={ServiceListScreen} />
             <DashboardStack.Screen name="ServiceForm" component={ServiceFormScreen} />
             <DashboardStack.Screen name="Inventory" component={InventoryScreen} />
+            <DashboardStack.Screen name="ProductDetail" component={ProductDetailScreen} />
             <DashboardStack.Screen name="LoyaltyQR" component={LoyaltyQRScreen} />
             <DashboardStack.Screen name="Availability" component={MasterAvailabilityScreen} />
             <DashboardStack.Screen name="Portfolio" component={PortfolioScreen} />
@@ -134,6 +137,7 @@ export type AcademyStackParamList = {
     CourseEditor: { courseId: string | null };
     LessonEditor: { lessonId: string | null; chapterId: string; courseId: string };
     HomeworkReview: { submissionId: string };
+    StudentDetail: { enrollment: any };
 };
 
 const AcademyStack = createNativeStackNavigator<AcademyStackParamList>();
@@ -145,6 +149,7 @@ function AcademyStackNavigator() {
             <AcademyStack.Screen name="CourseEditor" component={CourseEditorScreen} />
             <AcademyStack.Screen name="LessonEditor" component={LessonEditorScreen} />
             <AcademyStack.Screen name="HomeworkReview" component={HomeworkReviewScreen} />
+            <AcademyStack.Screen name="StudentDetail" component={StudentDetailScreen} />
         </AcademyStack.Navigator>
     );
 }

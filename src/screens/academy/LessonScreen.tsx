@@ -31,8 +31,17 @@ interface Lesson {
 }
 
 type AcademyStackParamList = {
-    Lesson: { lesson: Lesson; courseId: string };
+    Lesson: {
+        lesson: Lesson;
+        courseId: string;
+        instructorId?: string | null;
+        instructorName?: string;
+    };
     Homework: { lessonId: string };
+    Chat: {
+        conversationId: string;
+        otherUser: { full_name: string | null; avatar_url: string | null; id?: string };
+    };
 };
 
 // Helper to extract YouTube video ID from various URL formats
@@ -109,12 +118,14 @@ export function LessonScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<RouteProp<AcademyStackParamList, 'Lesson'>>();
     const { user } = useAuth();
-    const { lesson, courseId } = route.params;
+    const { lesson, courseId, instructorId, instructorName } = route.params;
 
     const videoRef = useRef<Video>(null);
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [videoDuration, setVideoDuration] = useState<number>(0);
+    const [chatLoading, setChatLoading] = useState(false);
 
     useEffect(() => {
         loadProgress();
@@ -161,6 +172,11 @@ export function LessonScreen() {
 
     const handleVideoProgress = (status: any) => {
         if (status.isLoaded && status.durationMillis) {
+            // Set duration if not set yet
+            if (videoDuration === 0) {
+                setVideoDuration(status.durationMillis / 1000);
+            }
+
             const watchedPercent = Math.round((status.positionMillis / status.durationMillis) * 100);
             if (watchedPercent > progress) {
                 updateProgress(Math.min(watchedPercent, 100));
@@ -171,6 +187,62 @@ export function LessonScreen() {
     const markComplete = async () => {
         await updateProgress(100);
         Alert.alert('🎉 Lesson Complete!', 'Great job! Keep up the good work.');
+    };
+
+    const handleChatOwner = async () => {
+        if (!instructorId || !user) {
+            Alert.alert('Unavailable', 'This course does not have an instructor assigned to chat with.');
+            return;
+        }
+
+        if (instructorId === user.id) {
+            Alert.alert('Note', 'You are the instructor of this course.');
+            return;
+        }
+
+        setChatLoading(true);
+        try {
+            // Check for existing conversation
+            // Client initiating chat with Master (Owner)
+            const { data: existing } = await (supabase as any)
+                .from('conversations')
+                .select('id')
+                .eq('client_id', user.id)
+                .eq('master_id', instructorId)
+                .single();
+
+            let conversationId = existing?.id;
+
+            // Create if not exists
+            if (!conversationId) {
+                const { data: newConv, error } = await (supabase as any)
+                    .from('conversations')
+                    .insert({
+                        client_id: user.id,
+                        master_id: instructorId,
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                conversationId = newConv.id;
+            }
+
+            navigation.navigate('Chat', {
+                conversationId,
+                otherUser: {
+                    full_name: instructorName || 'Instructor',
+                    avatar_url: null, // We might want to pass this if available
+                    id: instructorId
+                }
+            });
+
+        } catch (error: any) {
+            console.error('Error starting chat:', error);
+            Alert.alert('Error', 'Failed to start conversation');
+        } finally {
+            setChatLoading(false);
+        }
     };
 
     // Render video player based on URL type
@@ -284,8 +356,16 @@ export function LessonScreen() {
                     {/* Lesson Info */}
                     <View style={styles.lessonInfo}>
                         <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                        {lesson.duration_minutes && (
-                            <Text style={styles.lessonDuration}>⏱️ {lesson.duration_minutes} minutes</Text>
+
+                        {(videoDuration > 0 || !!lesson.duration_minutes) && (
+                            <Text style={styles.lessonDuration}>
+                                ⏱️ {videoDuration > 0
+                                    ? (videoDuration < 60
+                                        ? `${Math.round(videoDuration)} seconds`
+                                        : `${Math.ceil(videoDuration / 60)} minutes`)
+                                    : `${lesson.duration_minutes} minutes`
+                                }
+                            </Text>
                         )}
 
                         {lesson.description && (
@@ -302,6 +382,21 @@ export function LessonScreen() {
                                 fullWidth
                             />
                         )}
+
+                        <TouchableOpacity
+                            style={styles.chatButton}
+                            onPress={handleChatOwner}
+                            disabled={chatLoading}
+                        >
+                            {chatLoading ? (
+                                <ActivityIndicator color={colors.primary} size="small" />
+                            ) : (
+                                <>
+                                    <Text style={styles.chatButtonIcon}>💬</Text>
+                                    <Text style={styles.chatButtonText}>Chat with Owner</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
 
                         {lesson.has_homework && (
                             <TouchableOpacity
@@ -366,6 +461,19 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(139,92,246,0.3)',
     },
     homeworkButtonText: { fontSize: 16, fontWeight: '600', color: colors.primary },
+    chatButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        gap: spacing.sm,
+    },
+    chatButtonIcon: { fontSize: 18 },
+    chatButtonText: { fontSize: 16, fontWeight: '600', color: colors.text },
 });
 
 export default LessonScreen;

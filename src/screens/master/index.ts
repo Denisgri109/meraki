@@ -8,3 +8,8 @@ export { PortfolioScreen } from './PortfolioScreen';
 export { MyServicesScreen } from './MyServicesScreen';
 export { BlockedSlotsScreen } from './BlockedSlotsScreen';
 export { CreateServiceScreen } from './CreateServiceScreen';
+export { MasterSettingsScreen } from './MasterSettingsScreen';
+export { BusinessSettingsScreen } from './BusinessSettingsScreen';
+export { LoyaltyCardBuilderScreen } from './LoyaltyCardBuilderScreen';
+export { AftercareCampaignScreen } from './AftercareCampaignScreen';
+

@@ -204,7 +204,10 @@ export type Database = {
                 Row: {
                     avatar_url: string | null
                     bio: string | null
+                    city: string | null
+                    country: string | null
                     created_at: string | null
+                    currency: string | null
                     email: string
                     full_name: string | null
                     id: string
@@ -213,13 +216,19 @@ export type Database = {
                     phone: string | null
                     push_token: string | null
                     role: Database["public"]["Enums"]["user_role"]
+                    stripe_connect_id: string | null
+                    stripe_connect_status: string | null
                     stripe_customer_id: string | null
+                    timezone: string | null
                     updated_at: string | null
                 }
                 Insert: {
                     avatar_url?: string | null
                     bio?: string | null
+                    city?: string | null
+                    country?: string | null
                     created_at?: string | null
+                    currency?: string | null
                     email: string
                     full_name?: string | null
                     id: string
@@ -227,13 +236,19 @@ export type Database = {
                     phone?: string | null
                     push_token?: string | null
                     role?: Database["public"]["Enums"]["user_role"]
+                    stripe_connect_id?: string | null
+                    stripe_connect_status?: string | null
                     stripe_customer_id?: string | null
+                    timezone?: string | null
                     updated_at?: string | null
                 }
                 Update: {
                     avatar_url?: string | null
                     bio?: string | null
+                    city?: string | null
+                    country?: string | null
                     created_at?: string | null
+                    currency?: string | null
                     email?: string
                     full_name?: string | null
                     id?: string
@@ -242,7 +257,10 @@ export type Database = {
                     phone?: string | null
                     push_token?: string | null
                     role?: Database["public"]["Enums"]["user_role"]
+                    stripe_connect_id?: string | null
+                    stripe_connect_status?: string | null
                     stripe_customer_id?: string | null
+                    timezone?: string | null
                     updated_at?: string | null
                 }
                 Relationships: []
@@ -354,6 +372,177 @@ export type Database = {
                     },
                 ]
             }
+            master_applications: {
+                Row: {
+                    id: string
+                    email: string
+                    full_name: string
+                    phone: string | null
+                    bio: string | null
+                    years_of_experience: number | null
+                    specialties: string[] | null
+                    certifications: string[] | null
+                    portfolio_urls: string[] | null
+                    country_code: string
+                    city: string | null
+                    timezone: string
+                    service_radius_km: number | null
+                    currency_code: string
+                    status: string
+                    reviewed_by: string | null
+                    reviewed_at: string | null
+                    rejection_reason: string | null
+                    notes: string | null
+                    profile_id: string | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    email: string
+                    full_name: string
+                    phone?: string | null
+                    bio?: string | null
+                    years_of_experience?: number | null
+                    specialties?: string[] | null
+                    certifications?: string[] | null
+                    portfolio_urls?: string[] | null
+                    country_code: string
+                    city?: string | null
+                    timezone?: string
+                    service_radius_km?: number | null
+                    currency_code?: string
+                    status?: string
+                    reviewed_by?: string | null
+                    reviewed_at?: string | null
+                    rejection_reason?: string | null
+                    notes?: string | null
+                    profile_id?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    email?: string
+                    full_name?: string
+                    phone?: string | null
+                    bio?: string | null
+                    years_of_experience?: number | null
+                    specialties?: string[] | null
+                    certifications?: string[] | null
+                    portfolio_urls?: string[] | null
+                    country_code?: string
+                    city?: string | null
+                    timezone?: string
+                    service_radius_km?: number | null
+                    currency_code?: string
+                    status?: string
+                    reviewed_by?: string | null
+                    reviewed_at?: string | null
+                    rejection_reason?: string | null
+                    notes?: string | null
+                    profile_id?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "master_applications_profile_id_fkey"
+                        columns: ["profile_id"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
+            photo_consultations: {
+                Row: {
+                    id: string
+                    client_id: string
+                    master_id: string | null
+                    title: string
+                    description: string
+                    service_type: string | null
+                    photo_urls: string[]
+                    status: string
+                    is_doable: boolean | null
+                    professional_notes: string | null
+                    recommendations: string | null
+                    estimated_price_range: string | null
+                    estimated_duration: string | null
+                    responded_at: string | null
+                    responded_by: string | null
+                    converted_to_booking: boolean | null
+                    booking_id: string | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    client_id: string
+                    master_id?: string | null
+                    title: string
+                    description: string
+                    service_type?: string | null
+                    photo_urls: string[]
+                    status?: string
+                    is_doable?: boolean | null
+                    professional_notes?: string | null
+                    recommendations?: string | null
+                    estimated_price_range?: string | null
+                    estimated_duration?: string | null
+                    responded_at?: string | null
+                    responded_by?: string | null
+                    converted_to_booking?: boolean | null
+                    booking_id?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    client_id?: string
+                    master_id?: string | null
+                    title?: string
+                    description?: string
+                    service_type?: string | null
+                    photo_urls?: string[]
+                    status?: string
+                    is_doable?: boolean | null
+                    professional_notes?: string | null
+                    recommendations?: string | null
+                    estimated_price_range?: string | null
+                    estimated_duration?: string | null
+                    responded_at?: string | null
+                    responded_by?: string | null
+                    converted_to_booking?: boolean | null
+                    booking_id?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "photo_consultations_client_id_fkey"
+                        columns: ["client_id"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "photo_consultations_master_id_fkey"
+                        columns: ["master_id"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "photo_consultations_booking_id_fkey"
+                        columns: ["booking_id"]
+                        isOneToOne: false
+                        referencedRelation: "appointments"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
         }
         Views: {
             [_ in never]: never
@@ -407,3 +596,5 @@ export type UserRole = Enums<'user_role'>
 export type AppointmentStatus = Enums<'appointment_status'>
 export type BlockedSlot = Tables<'blocked_slots'>
 export type Portfolio = Tables<'portfolios'>
+export type MasterApplication = Tables<'master_applications'>
+export type PhotoConsultation = Tables<'photo_consultations'>

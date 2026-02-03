@@ -20,11 +20,14 @@ import { format } from 'date-fns';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
+import * as Clipboard from 'expo-clipboard';
 import { supabase } from '../../lib/supabase';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { colors, spacing } from '../../theme';
 import { ScreenBackground } from '../../components/ui';
+import { SwipeableMessage } from '../../components/chat/SwipeableMessage';
+import { MessageContextMenu } from '../../components/chat/MessageContextMenu';
 
 type Message = {
     id: string;
@@ -34,6 +37,8 @@ type Message = {
     media_url: string | null;
     media_type: string | null;
     created_at: string;
+    is_deleted?: boolean;
+    reply_to_id?: string | null;
 };
 
 type ChatStackParamList = {
@@ -55,7 +60,12 @@ export function ChatScreen() {
     const [newMessage, setNewMessage] = useState('');
     const [sending, setSending] = useState(false);
     const [previewMedia, setPreviewMedia] = useState<{ url: string; type: string } | null>(null);
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const flatListRef = useRef<FlatList>(null);
+
+    // Context Menu State
+    const [contextMenuVisible, setContextMenuVisible] = useState(false);
+    const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
 
     useEffect(() => {
         fetchMessages();
@@ -132,9 +142,12 @@ export function ChatScreen() {
                 conversation_id: conversationId,
                 sender_id: user?.id,
                 content: messageText,
+                reply_to_id: replyingTo?.id,
             });
 
             if (error) throw error;
+
+            setReplyingTo(null);
 
             await (supabase as any)
                 .from('conversations')
@@ -231,14 +244,50 @@ export function ChatScreen() {
         }
     };
 
+    const handleLongPress = (message: Message) => {
+        if (message.is_deleted) return;
+        setSelectedMessage(message);
+        setContextMenuVisible(true);
+    };
+
+    const handleCopyMessage = async (message: Message) => {
+        if (message.content) {
+            await Clipboard.setStringAsync(message.content);
+        }
+    };
+
+    const handleDeleteMessage = async (message: Message) => {
+        // Optimistic update
+        setMessages(prev => prev.map(m =>
+            m.id === message.id
+                ? { ...m, is_deleted: true, content: null, media_url: null, media_type: null }
+                : m
+        ));
+
+        const { error } = await (supabase as any)
+            .from('messages')
+            .update({ is_deleted: true, content: null, media_url: null, media_type: null })
+            .eq('id', message.id);
+
+        if (error) {
+            Alert.alert('Error', 'Failed to delete message: ' + error.message);
+            fetchMessages();
+        }
+    };
+
+    const handleReplyMessage = (message: Message) => {
+        setReplyingTo(message);
+    };
+
     const renderMessage = ({ item }: { item: Message }) => {
         const isMe = item.sender_id === user?.id;
         const isOptimistic = item.id.startsWith('temp-');
         const hasMedia = !!item.media_url;
         const hasContent = !!item.content;
+        const isDeleted = item.is_deleted;
 
-        // Skip empty messages (no content and no media)
-        if (!hasMedia && !hasContent) return null;
+        // Skip empty messages unless deleted
+        if (!hasMedia && !hasContent && !isDeleted) return null;
 
         const openPreview = () => {
             if (item.media_url && item.media_type) {
@@ -246,38 +295,82 @@ export function ChatScreen() {
             }
         };
 
-        return (
-            <View style={[styles.messageContainer, isMe ? styles.messageRight : styles.messageLeft]}>
-                <View style={[
+        const replyMessage = item.reply_to_id ? messages.find(m => m.id === item.reply_to_id) : null;
+
+        const MessageContent = (
+            <TouchableOpacity
+                activeOpacity={0.8}
+                onLongPress={() => handleLongPress(item)}
+                style={[
                     styles.messageBubble,
                     hasMedia && styles.mediaBubble,
                     isMe ? styles.bubbleRight : styles.bubbleLeft,
-                    isOptimistic && styles.bubbleOptimistic
-                ]}>
-                    {item.media_url && item.media_type === 'video' ? (
-                        <TouchableOpacity onPress={openPreview} activeOpacity={0.9}>
-                            <Video
-                                source={{ uri: item.media_url }}
-                                style={styles.mediaVideo}
-                                useNativeControls
-                                resizeMode={ResizeMode.CONTAIN}
-                                isLooping={false}
-                            />
-                        </TouchableOpacity>
-                    ) : item.media_url ? (
-                        <TouchableOpacity onPress={openPreview} activeOpacity={0.9}>
-                            <Image source={{ uri: item.media_url }} style={styles.mediaImage} resizeMode="cover" />
-                        </TouchableOpacity>
-                    ) : null}
-                    {item.content && (
-                        <Text style={[styles.messageText, isMe && styles.messageTextRight]}>
-                            {item.content}
-                        </Text>
-                    )}
-                    <Text style={[styles.messageTime, isMe && styles.messageTimeRight]}>
-                        {isOptimistic ? 'Sending...' : format(new Date(item.created_at), 'HH:mm')}
+                    isOptimistic && styles.bubbleOptimistic,
+                    isDeleted && styles.bubbleDeleted
+                ]}
+            >
+                {isDeleted ? (
+                    <Text style={[styles.messageText, { fontStyle: 'italic', color: colors.textMuted }]}>
+                        This message was deleted
                     </Text>
-                </View>
+                ) : (
+                    <>
+                        {replyMessage && (
+                            <View style={styles.replyContainer}>
+                                <View style={styles.replyBar} />
+                                <View style={styles.replyContent}>
+                                    <Text style={styles.replySender}>
+                                        {replyMessage.sender_id === user?.id ? 'You' : (otherUser?.full_name || 'User')}
+                                    </Text>
+                                    <Text numberOfLines={1} style={styles.replyText}>
+                                        {replyMessage.is_deleted ? 'Message deleted' : (replyMessage.content || (replyMessage.media_url ? '📷 Media' : '...'))}
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+
+                        {item.media_url && item.media_type === 'video' ? (
+                            <TouchableOpacity onPress={openPreview} activeOpacity={0.9}>
+                                <Video
+                                    source={{ uri: item.media_url }}
+                                    style={styles.mediaVideo}
+                                    useNativeControls
+                                    resizeMode={ResizeMode.CONTAIN}
+                                    isLooping={false}
+                                />
+                            </TouchableOpacity>
+                        ) : item.media_url ? (
+                            <TouchableOpacity onPress={openPreview} activeOpacity={0.9}>
+                                <Image source={{ uri: item.media_url }} style={styles.mediaImage} resizeMode="cover" />
+                            </TouchableOpacity>
+                        ) : null}
+
+                        {item.content && (
+                            <Text style={[styles.messageText, isMe && styles.messageTextRight]}>
+                                {item.content}
+                            </Text>
+                        )}
+                    </>
+                )}
+
+                <Text style={[styles.messageTime, isMe && styles.messageTimeRight]}>
+                    {isOptimistic ? 'Sending...' : format(new Date(item.created_at), 'HH:mm')}
+                </Text>
+            </TouchableOpacity>
+        );
+
+        return (
+            <View style={[styles.messageContainer, isMe ? styles.messageRight : styles.messageLeft]}>
+                {!isDeleted ? (
+                    <SwipeableMessage
+                        onReply={() => handleReplyMessage(item)}
+                        isMe={isMe}
+                    >
+                        {MessageContent}
+                    </SwipeableMessage>
+                ) : (
+                    MessageContent
+                )}
             </View>
         );
     };
@@ -327,26 +420,43 @@ export function ChatScreen() {
                 />
 
                 {/* Input - Fixed at bottom */}
-                <View style={styles.inputContainer}>
-                    <TouchableOpacity style={styles.mediaButton} onPress={pickMedia} disabled={sending}>
-                        <Text style={styles.mediaButtonText}>📷</Text>
-                    </TouchableOpacity>
-                    <TextInput
-                        style={styles.input}
-                        value={newMessage}
-                        onChangeText={setNewMessage}
-                        placeholder="Type a message..."
-                        placeholderTextColor={colors.textMuted}
-                        multiline
-                        maxLength={1000}
-                    />
-                    <TouchableOpacity
-                        style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
-                        onPress={sendMessage}
-                        disabled={!newMessage.trim() || sending}
-                    >
-                        <Text style={styles.sendButtonText}>{sending ? '...' : '→'}</Text>
-                    </TouchableOpacity>
+                <View style={styles.footer}>
+                    {replyingTo && (
+                        <View style={styles.replyPreviewBar}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.replyPreviewHeader}>
+                                    Replying to {replyingTo.sender_id === user?.id ? 'Yourself' : (otherUser?.full_name || 'User')}
+                                </Text>
+                                <Text numberOfLines={1} style={styles.replyPreviewText}>
+                                    {replyingTo.is_deleted ? 'Message deleted' : (replyingTo.content || (replyingTo.media_url ? '📷 Media' : '...'))}
+                                </Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                <Text style={styles.closeReply}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                    <View style={styles.inputContainer}>
+                        <TouchableOpacity style={styles.mediaButton} onPress={pickMedia} disabled={sending}>
+                            <Text style={styles.mediaButtonText}>📷</Text>
+                        </TouchableOpacity>
+                        <TextInput
+                            style={styles.input}
+                            value={newMessage}
+                            onChangeText={setNewMessage}
+                            placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
+                            placeholderTextColor={colors.textMuted}
+                            multiline
+                            maxLength={1000}
+                        />
+                        <TouchableOpacity
+                            style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
+                            onPress={sendMessage}
+                            disabled={!newMessage.trim() || sending}
+                        >
+                            <Text style={styles.sendButtonText}>{sending ? '...' : '→'}</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </SafeAreaView>
 
@@ -376,6 +486,17 @@ export function ChatScreen() {
                     </SafeAreaView>
                 </View>
             </Modal>
+
+            {/* Custom Context Menu */}
+            <MessageContextMenu
+                visible={contextMenuVisible}
+                onClose={() => setContextMenuVisible(false)}
+                message={selectedMessage}
+                onReply={() => selectedMessage && handleReplyMessage(selectedMessage)}
+                onCopy={() => selectedMessage && handleCopyMessage(selectedMessage)}
+                onDelete={() => selectedMessage && handleDeleteMessage(selectedMessage)}
+                isMe={selectedMessage?.sender_id === user?.id}
+            />
         </ScreenBackground>
     );
 }
@@ -428,7 +549,7 @@ const styles = StyleSheet.create({
     messageContainer: { marginBottom: spacing.sm },
     messageRight: { alignItems: 'flex-end' },
     messageLeft: { alignItems: 'flex-start' },
-    messageBubble: { maxWidth: '75%', padding: spacing.md, borderRadius: 20 },
+    messageBubble: { maxWidth: '100%', padding: spacing.md, borderRadius: 20 },
     mediaBubble: { padding: spacing.xs, paddingBottom: 0 },
     bubbleRight: { backgroundColor: colors.primary, borderBottomRightRadius: 4 },
     bubbleLeft: { backgroundColor: 'rgba(255,255,255,0.1)', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
@@ -443,10 +564,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-end',
         padding: spacing.md,
-        paddingBottom: Platform.OS === 'ios' ? spacing.lg : spacing.md,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
-        backgroundColor: 'rgba(0,0,0,0.3)',
     },
     mediaButton: {
         width: 44,
@@ -491,6 +608,17 @@ const styles = StyleSheet.create({
     previewBackText: { color: colors.text, fontSize: 16, fontWeight: '600' },
     previewImage: { width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.8 },
     previewVideo: { width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.6 },
+    bubbleDeleted: { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    replyContainer: { marginBottom: spacing.xs, backgroundColor: 'rgba(0,0,0,0.2)', padding: spacing.xs, borderRadius: 8, flexDirection: 'row' },
+    replyBar: { width: 4, backgroundColor: colors.primary, marginRight: spacing.xs, borderRadius: 2 },
+    replyContent: { flex: 1 },
+    replySender: { color: colors.primary, fontSize: 12, fontWeight: '600', marginBottom: 2 },
+    replyText: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
+    footer: { backgroundColor: 'rgba(0,0,0,0.3)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
+    replyPreviewBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.sm, backgroundColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+    replyPreviewHeader: { color: colors.primary, fontSize: 12, fontWeight: '600', marginBottom: 2 },
+    replyPreviewText: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
+    closeReply: { color: colors.textMuted, fontSize: 20, padding: spacing.xs },
 });
 
 export default ChatScreen;

@@ -7,11 +7,12 @@ import {
     Image,
     RefreshControl,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../../../lib/supabase';
 import { ScreenBackground } from '../../../components/ui';
 import { colors, spacing } from '../../../theme';
+import { TouchableOpacity } from 'react-native';
 
 interface StudentEnrollment {
     id: string;
@@ -31,6 +32,7 @@ interface Analytics {
 }
 
 export function AcademyStudentsScreen() {
+    const navigation = useNavigation<any>();
     const [enrollments, setEnrollments] = useState<StudentEnrollment[]>([]);
     const [analytics, setAnalytics] = useState<Analytics>({
         totalRevenue: 0,
@@ -56,15 +58,18 @@ export function AcademyStudentsScreen() {
 
             const enrichedEnrollments = await Promise.all(
                 (enrollmentData || []).map(async (enrollment: any) => {
-                    const { count: totalLessons } = await (supabase as any)
+                    const { data: courseLessons } = await (supabase as any)
                         .from('lessons')
-                        .select('*', { count: 'exact', head: true })
+                        .select('id')
                         .eq('course_id', enrollment.course_id);
+
+                    const lessonIds = (courseLessons || []).map((l: any) => l.id);
 
                     const { count: completedLessons } = await (supabase as any)
                         .from('lesson_progress')
                         .select('*', { count: 'exact', head: true })
                         .eq('user_id', enrollment.student_id)
+                        .in('lesson_id', lessonIds.length > 0 ? lessonIds : ['no-match'])
                         .not('completed_at', 'is', null);
 
                     const { data: lastProgress } = await (supabase as any)
@@ -74,8 +79,11 @@ export function AcademyStudentsScreen() {
                         .order('updated_at', { ascending: false })
                         .limit(1);
 
-                    const progress = totalLessons > 0
-                        ? Math.round((completedLessons / totalLessons) * 100)
+                    // Re-fetch total lessons count to be safe (or use courseLessons.length)
+                    const totalLessonsCount = courseLessons?.length || 0;
+
+                    const progress = totalLessonsCount > 0
+                        ? Math.min(Math.round((completedLessons / totalLessonsCount) * 100), 100)
                         : 0;
 
                     return {
@@ -94,7 +102,7 @@ export function AcademyStudentsScreen() {
 
             const { data: courses } = await (supabase as any)
                 .from('courses')
-                .select('price');
+                .select('id, price');
 
             const totalRevenue = enrichedEnrollments.reduce((sum, e) => {
                 const course = courses?.find((c: any) => c.id === e.course?.id);
@@ -133,7 +141,10 @@ export function AcademyStudentsScreen() {
     };
 
     const renderStudent = ({ item }: { item: StudentEnrollment }) => (
-        <View style={styles.studentCard}>
+        <TouchableOpacity
+            style={styles.studentCard}
+            onPress={() => navigation.navigate('StudentDetail', { enrollment: item })}
+        >
             <View style={styles.avatar}>
                 {item.student?.avatar_url ? (
                     <Image source={{ uri: item.student.avatar_url }} style={styles.avatarImage} />
@@ -163,7 +174,7 @@ export function AcademyStudentsScreen() {
                     </View>
                 )}
             </View>
-        </View>
+        </TouchableOpacity>
     );
 
     return (

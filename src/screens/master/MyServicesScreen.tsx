@@ -41,11 +41,12 @@ export function MyServicesScreen() {
 
     const fetchData = async () => {
         try {
-            // 1. Fetch all active global services
-            const { data: globalServices, error: servicesError } = await supabase
+            // 1. Fetch only MY services (created by this master)
+            const { data: myServices, error: servicesError } = await supabase
                 .from('services')
                 .select('*')
                 .eq('is_active', true)
+                .eq('created_by', user!.id)
                 .order('category')
                 .order('name');
 
@@ -60,7 +61,7 @@ export function MyServicesScreen() {
             if (configsError) throw configsError;
 
             // 3. Merge
-            const merged = (globalServices || []).map(service => {
+            const merged = (myServices || []).map(service => {
                 const config = myConfigs?.find(c => c.service_id === service.id);
                 return { ...service, config };
             });

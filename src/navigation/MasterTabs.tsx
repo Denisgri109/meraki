@@ -13,7 +13,12 @@ import {
     MyServicesScreen,
     BlockedSlotsScreen,
     CreateServiceScreen,
+    MasterSettingsScreen,
+    BusinessSettingsScreen,
+    LoyaltyCardBuilderScreen,
+    AftercareCampaignScreen,
 } from '../screens/master';
+import PhotoConsultationReviewScreen from '../screens/master/PhotoConsultationReviewScreen';
 import {
     ProfileScreen,
     HelpSupportScreen,
@@ -38,6 +43,11 @@ export type DashboardStackParamList = {
     BlockedSlots: undefined;
     CreateService: undefined;
     Availability: undefined;
+    Settings: undefined;
+    BusinessSettings: undefined;
+    LoyaltyCardBuilder: undefined;
+    AftercareCampaigns: undefined;
+    PhotoConsultations: undefined;
 };
 
 const DashboardStack = createNativeStackNavigator<DashboardStackParamList>();
@@ -54,6 +64,11 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="BlockedSlots" component={BlockedSlotsScreen} />
             <DashboardStack.Screen name="CreateService" component={CreateServiceScreen} />
             <DashboardStack.Screen name="Availability" component={MasterAvailabilityScreen} />
+            <DashboardStack.Screen name="Settings" component={MasterSettingsScreen} />
+            <DashboardStack.Screen name="BusinessSettings" component={BusinessSettingsScreen} />
+            <DashboardStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
+            <DashboardStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />
+            <DashboardStack.Screen name="PhotoConsultations" component={PhotoConsultationReviewScreen} />
         </DashboardStack.Navigator>
     );
 }

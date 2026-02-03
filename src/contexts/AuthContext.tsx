@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback, useRef } from 'react';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { safeSupabaseFetch } from '../lib/supabaseApi';
@@ -32,6 +32,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [sessionError, setSessionError] = useState<AuthError | null>(null);
+    const isManualSignOut = useRef(false);
 
     // Function to check if session is valid and refresh if needed
     const checkSession = useCallback(async (): Promise<boolean> => {
@@ -190,6 +191,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 options: {
                     data: {
                         full_name: fullName,
+                        role: role,
                     },
                 },
             });
@@ -261,7 +263,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         signOut,
         updateProfile,
         refreshProfile,
-        checkSession
+        checkSession,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

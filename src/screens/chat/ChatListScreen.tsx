@@ -9,6 +9,9 @@ import {
     Image,
     RefreshControl,
     ScrollView,
+    TextInput,
+    Keyboard,
+    TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -21,6 +24,30 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 
+interface Master {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+    bio?: string | null;
+}
+
+interface Conversation {
+    id: string;
+    last_message_at: string;
+    client_id: string;
+    master_id: string;
+    other_user: {
+        full_name: string | null;
+        avatar_url: string | null;
+        id?: string;
+    } | null;
+    last_message: {
+        content: string | null;
+        media_type: string | null;
+        is_deleted?: boolean;
+    } | null;
+}
+
 export function ChatListScreen() {
     const navigation = useNavigation<any>();
     const { user, profile, checkSession } = useAuth();
@@ -28,6 +55,9 @@ export function ChatListScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [masters, setMasters] = useState<Master[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
 
     const isMaster = profile?.is_master || profile?.role === 'master' || profile?.role === 'owner';
 
@@ -36,6 +66,36 @@ export function ChatListScreen() {
             fetchData();
         }, [user?.id])
     );
+
+    useEffect(() => {
+        if (!isMaster) return;
+
+        const timer = setTimeout(async () => {
+            if (searchQuery.trim().length > 0) {
+                setIsSearching(true);
+                try {
+                    const { data, error } = await supabase
+                        .from('profiles')
+                        .select('id, full_name, avatar_url, role')
+                        .ilike('full_name', `%${searchQuery}%`)
+                        .neq('id', user?.id || '')
+                        .limit(20);
+
+                    if (error) throw error;
+                    setSearchResults(data || []);
+                } catch (err) {
+                    console.error('Search error:', err);
+                } finally {
+                    setIsSearching(false);
+                }
+            } else {
+                setSearchResults([]);
+                setIsSearching(false);
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery, isMaster, user?.id]);
 
     const fetchData = async () => {
         if (!user?.id) {
@@ -107,7 +167,7 @@ export function ChatListScreen() {
                     // Fetch the last message for this conversation
                     const { data: lastMsgData } = await (supabase as any)
                         .from('messages')
-                        .select('content, media_type')
+                        .select('content, media_type, is_deleted')
                         .eq('conversation_id', conv.id)
                         .order('created_at', { ascending: false })
                         .limit(1)
@@ -136,28 +196,32 @@ export function ChatListScreen() {
         fetchData();
     };
 
-    const startOrOpenConversation = async (masterId: string, masterName: string | null, masterAvatarUrl: string | null) => {
+    const startOrOpenConversation = async (targetUserId: string, targetUserName: string | null, targetUserAvatarUrl: string | null) => {
         if (!user?.id) return;
 
         try {
+            const field1 = isMaster ? 'master_id' : 'client_id';
+            const field2 = isMaster ? 'client_id' : 'master_id';
+
             // Check if conversation exists
             const { data: existing } = await (supabase as any)
                 .from('conversations')
                 .select('id')
-                .eq('client_id', user.id)
-                .eq('master_id', masterId)
+                .eq(field1, user.id)
+                .eq(field2, targetUserId)
                 .single();
 
             let conversationId = existing?.id;
 
             // Create if not exists
             if (!conversationId) {
+                const insertData = isMaster
+                    ? { master_id: user.id, client_id: targetUserId }
+                    : { client_id: user.id, master_id: targetUserId };
+
                 const { data: newConv, error } = await (supabase as any)
                     .from('conversations')
-                    .insert({
-                        client_id: user.id,
-                        master_id: masterId,
-                    })
+                    .insert(insertData)
                     .select()
                     .single();
 
@@ -165,9 +229,17 @@ export function ChatListScreen() {
                 conversationId = newConv.id;
             }
 
+            // Clear search context if any
+            setSearchQuery('');
+            setSearchResults([]);
+
             navigation.navigate('Chat', {
                 conversationId,
-                otherUser: { full_name: masterName, avatar_url: masterAvatarUrl },
+                otherUser: {
+                    full_name: targetUserName,
+                    avatar_url: targetUserAvatarUrl,
+                    id: targetUserId
+                },
             });
         } catch (error: any) {
             console.error('Error starting conversation:', error);
@@ -217,14 +289,42 @@ export function ChatListScreen() {
                         {item.other_user?.full_name || 'Unknown'}
                     </Text>
                     <Text style={styles.lastMessage} numberOfLines={1}>
-                        {item.last_message?.media_type
-                            ? `📷 ${item.last_message.media_type === 'image' ? 'Photo' : 'Video'}`
-                            : item.last_message?.content || 'Start a conversation...'}
+                        {item.last_message?.is_deleted
+                            ? 'Message deleted'
+                            : item.last_message?.media_type
+                                ? `📷 ${item.last_message.media_type === 'image' ? 'Photo' : 'Video'}`
+                                : item.last_message?.content || 'Start a conversation...'}
                     </Text>
                 </View>
                 <Text style={styles.timestamp}>
                     {formatDistanceToNow(new Date(item.last_message_at), { addSuffix: false })}
                 </Text>
+            </Card>
+        </TouchableOpacity>
+    );
+
+    const renderSearchResult = ({ item }: { item: any }) => (
+        <TouchableOpacity
+            onPress={() => startOrOpenConversation(item.id, item.full_name, item.avatar_url)}
+        >
+            <Card style={styles.conversationCard} variant="glass">
+                {item.avatar_url ? (
+                    <Image source={{ uri: item.avatar_url }} style={styles.conversationAvatarImage} />
+                ) : (
+                    <View style={styles.conversationAvatar}>
+                        <Text style={styles.conversationAvatarText}>
+                            {item.full_name?.[0] || '?'}
+                        </Text>
+                    </View>
+                )}
+                <View style={styles.conversationInfo}>
+                    <Text style={styles.conversationName}>
+                        {item.full_name || 'Unknown'}
+                    </Text>
+                    <Text style={styles.lastMessage} numberOfLines={1}>
+                        {item.role === 'client' ? 'Client' : 'User'}
+                    </Text>
+                </View>
             </Card>
         </TouchableOpacity>
     );
@@ -246,46 +346,91 @@ export function ChatListScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 {/* Header */}
 
-
-                {/* Masters Section (only for clients) */}
-                {!isMaster && masters.length > 0 && (
-                    <View style={styles.mastersSection}>
-                        <Text style={styles.mastersTitle}>Contact a Master</Text>
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.mastersScroll}
-                        >
-                            {masters.map(renderMaster)}
-                        </ScrollView>
+                {/* Search Header for Masters */}
+                {isMaster && (
+                    <View style={styles.searchContainer}>
+                        <View style={styles.searchBar}>
+                            <Text style={styles.searchIcon}>🔍</Text>
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Search clients..."
+                                placeholderTextColor={colors.textSecondary}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                autoCapitalize="none"
+                            />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                    <Text style={styles.clearIcon}>✕</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
                 )}
 
-                {/* Conversations Section */}
-                <View style={styles.conversationsSection}>
-                    <Text style={styles.sectionTitle}>Conversations</Text>
-                </View>
-
-                {conversations.length > 0 ? (
-                    <FlatList
-                        data={conversations}
-                        keyExtractor={(item) => item.id}
-                        renderItem={renderConversation}
-                        contentContainerStyle={styles.listContent}
-                        refreshControl={
-                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
-                        }
-                    />
-                ) : (
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyIcon}>💬</Text>
-                        <Text style={styles.emptyText}>No conversations yet</Text>
-                        <Text style={styles.emptySubtext}>
-                            {isMaster
-                                ? 'Conversations with clients will appear here'
-                                : 'Tap a master above to start chatting'}
-                        </Text>
+                {/* Search Results Overlay */}
+                {isMaster && searchQuery.length > 0 ? (
+                    <View style={styles.searchResultsContainer}>
+                        {isSearching ? (
+                            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
+                        ) : searchResults.length > 0 ? (
+                            <FlatList
+                                data={searchResults}
+                                keyExtractor={(item) => item.id}
+                                renderItem={renderSearchResult}
+                                contentContainerStyle={styles.listContent}
+                                keyboardShouldPersistTaps="handled"
+                            />
+                        ) : (
+                            <View style={styles.emptyContainer}>
+                                <Text style={styles.emptyText}>No clients found</Text>
+                            </View>
+                        )}
                     </View>
+                ) : (
+                    <>
+
+                        {/* Masters Section (only for clients) */}
+                        {!isMaster && masters.length > 0 && (
+                            <View style={styles.mastersSection}>
+                                <Text style={styles.mastersTitle}>Contact a Master</Text>
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={styles.mastersScroll}
+                                >
+                                    {masters.map(renderMaster)}
+                                </ScrollView>
+                            </View>
+                        )}
+
+                        {/* Conversations Section */}
+                        <View style={styles.conversationsSection}>
+                            <Text style={styles.sectionTitle}>Conversations</Text>
+                        </View>
+
+                        {conversations.length > 0 ? (
+                            <FlatList
+                                data={conversations}
+                                keyExtractor={(item) => item.id}
+                                renderItem={renderConversation}
+                                contentContainerStyle={styles.listContent}
+                                refreshControl={
+                                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
+                                }
+                            />
+                        ) : (
+                            <View style={styles.emptyContainer}>
+                                <Text style={styles.emptyIcon}>💬</Text>
+                                <Text style={styles.emptyText}>No conversations yet</Text>
+                                <Text style={styles.emptySubtext}>
+                                    {isMaster
+                                        ? 'Search above to start chatting with a client'
+                                        : 'Tap a master above to start chatting'}
+                                </Text>
+                            </View>
+                        )}
+                    </>
                 )}
             </SafeAreaView>
         </ScreenBackground>
@@ -398,6 +543,39 @@ const styles = StyleSheet.create({
     emptyIcon: { fontSize: 64, marginBottom: spacing.lg, opacity: 0.5 },
     emptyText: { fontSize: 18, fontWeight: '500', color: colors.text, marginBottom: spacing.sm },
     emptySubtext: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
+    searchContainer: {
+        paddingHorizontal: spacing.lg,
+        paddingBottom: spacing.md,
+        paddingTop: spacing.sm,
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.surfaceLight,
+        borderRadius: 12,
+        paddingHorizontal: spacing.md,
+        height: 48,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    searchIcon: {
+        fontSize: 18,
+        marginRight: spacing.sm,
+    },
+    searchInput: {
+        flex: 1,
+        color: colors.text,
+        fontSize: 16,
+        height: '100%',
+    },
+    clearIcon: {
+        fontSize: 18,
+        color: colors.textSecondary,
+        marginLeft: spacing.sm,
+    },
+    searchResultsContainer: {
+        flex: 1,
+    },
 });
 
 export default ChatListScreen;

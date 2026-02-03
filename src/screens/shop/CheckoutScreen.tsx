@@ -8,6 +8,7 @@ import {
     Alert,
     ActivityIndicator,
     TextInput,
+    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -24,6 +25,7 @@ import {
     formatCardBrand,
     PaymentMethod,
 } from '../../services/stripeService';
+import { COMMON_COUNTRIES } from '../../utils/timezone';
 
 export function CheckoutScreen() {
     const navigation = useNavigation<any>();
@@ -40,6 +42,10 @@ export function CheckoutScreen() {
     const [showNewCard, setShowNewCard] = useState(false);
     const [newCardComplete, setNewCardComplete] = useState(false);
     const [loadingCards, setLoadingCards] = useState(true);
+
+    // Shipping state
+    const [shippingCountry, setShippingCountry] = useState('GB');
+    const [showCountryPicker, setShowCountryPicker] = useState(false);
 
     useEffect(() => {
         fetchPaymentMethods();
@@ -277,6 +283,20 @@ export function CheckoutScreen() {
                         </View>
                     </View>
 
+                    {/* Shipping Country */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Shipping Country</Text>
+                        <TouchableOpacity
+                            style={styles.countrySelector}
+                            onPress={() => setShowCountryPicker(true)}
+                        >
+                            <Text style={styles.countrySelectorText}>
+                                {COMMON_COUNTRIES.find(c => c.value === shippingCountry)?.label || shippingCountry}
+                            </Text>
+                            <Text style={styles.countrySelectorArrow}>›</Text>
+                        </TouchableOpacity>
+                    </View>
+
                     {/* Customer Info */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Customer</Text>
@@ -414,6 +434,54 @@ export function CheckoutScreen() {
                         <Text style={styles.loadingText}>Processing your order...</Text>
                     </View>
                 )}
+
+                {/* Country Picker Modal */}
+                <Modal
+                    visible={showCountryPicker}
+                    transparent
+                    animationType="slide"
+                    onRequestClose={() => setShowCountryPicker(false)}
+                >
+                    <TouchableOpacity
+                        style={styles.modalOverlay}
+                        activeOpacity={1}
+                        onPress={() => setShowCountryPicker(false)}
+                    >
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Select Country</Text>
+                                <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
+                                    <Text style={styles.modalClose}>✕</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <ScrollView style={styles.countryList}>
+                                {COMMON_COUNTRIES.map((country) => (
+                                    <TouchableOpacity
+                                        key={country.value}
+                                        style={[
+                                            styles.countryOption,
+                                            shippingCountry === country.value && styles.countryOptionSelected
+                                        ]}
+                                        onPress={() => {
+                                            setShippingCountry(country.value);
+                                            setShowCountryPicker(false);
+                                        }}
+                                    >
+                                        <Text style={[
+                                            styles.countryOptionText,
+                                            shippingCountry === country.value && styles.countryOptionTextSelected
+                                        ]}>
+                                            {country.label}
+                                        </Text>
+                                        {shippingCountry === country.value && (
+                                            <Text style={styles.checkmark}>✓</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    </TouchableOpacity>
+                </Modal>
             </SafeAreaView>
         </ScreenBackground>
     );
@@ -599,6 +667,83 @@ const styles = StyleSheet.create({
         color: colors.text,
         marginTop: spacing.md,
         fontSize: 16,
+    },
+    // Country selector styles
+    countrySelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        padding: spacing.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    countrySelectorText: {
+        fontSize: 16,
+        color: colors.text,
+    },
+    countrySelectorArrow: {
+        fontSize: 20,
+        color: colors.textMuted,
+    },
+    // Modal styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: colors.surface,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        maxHeight: '70%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: spacing.lg,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: colors.text,
+    },
+    modalClose: {
+        fontSize: 20,
+        color: colors.textMuted,
+        padding: spacing.sm,
+    },
+    countryList: {
+        padding: spacing.md,
+    },
+    countryOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.md,
+        borderRadius: 8,
+        marginBottom: spacing.xs,
+    },
+    countryOptionSelected: {
+        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    },
+    countryOptionText: {
+        fontSize: 16,
+        color: colors.text,
+    },
+    countryOptionTextSelected: {
+        color: colors.primary,
+        fontWeight: '500',
+    },
+    checkmark: {
+        fontSize: 18,
+        color: colors.primary,
+        fontWeight: '600',
     },
 });
 

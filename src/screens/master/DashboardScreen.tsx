@@ -12,11 +12,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { format, isToday, startOfDay, endOfDay } from 'date-fns';
+import * as Location from 'expo-location';
+import { Alert } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { getDeviceTimezone, COMMON_TIMEZONES, COMMON_COUNTRIES } from '../../utils/timezone';
 
 type Appointment = {
     id: string;
@@ -38,7 +41,7 @@ type RecentMessage = {
 
 export function MasterDashboardScreen() {
     const navigation = useNavigation<any>();
-    const { profile, user } = useAuth();
+    const { profile, user, refreshProfile } = useAuth();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [stats, setStats] = useState({
@@ -55,6 +58,117 @@ export function MasterDashboardScreen() {
             fetchDashboardData();
         }, [user?.id])
     );
+
+    // Auto-detect location on mount if settings are missing
+    useEffect(() => {
+        const checkLocationSettings = async () => {
+            if (!profile || !user) return;
+
+            // Only run if critical location info is missing
+            if (profile.timezone && profile.city && profile.country) return;
+
+            try {
+                // Request permission
+                const { status } = await Location.requestForegroundPermissionsAsync();
+
+                if (status !== 'granted') {
+                    // Notify user as requested
+                    Alert.alert(
+                        'Location Access Important',
+                        'To show your availability correctly and display your location to clients, we need your location permission. Please enable it in settings.',
+                        [{ text: 'OK' }]
+                    );
+                    return;
+                }
+
+                // Get device timezone
+                let newTimezone = profile.timezone;
+                const deviceTimezone = getDeviceTimezone();
+                const matchedTimezone = COMMON_TIMEZONES.find(tz => tz.value === deviceTimezone);
+                if (matchedTimezone && !profile.timezone) {
+                    newTimezone = matchedTimezone.value;
+                }
+
+                // Get location for city/country
+                let newCity = profile.city;
+                let newCountry = profile.country;
+                let newCurrency = profile.currency;
+
+                try {
+                    const location = await Location.getCurrentPositionAsync({
+                        accuracy: Location.Accuracy.Balanced,
+                    });
+
+                    const addresses = await Location.reverseGeocodeAsync({
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                    });
+
+                    // Check if we got valid address data
+                    if (addresses && addresses.length > 0) {
+                        const address = addresses[0];
+                        
+                        // Only update if address has valid data
+                        if (address.city || address.subregion) {
+                            if (!newCity) {
+                                newCity = address.city || address.subregion || '';
+                            }
+                        }
+
+                        if (address.isoCountryCode) {
+                            if (!newCountry) {
+                                const matchedCountry = COMMON_COUNTRIES.find(
+                                    c => c.value === address.isoCountryCode
+                                );
+                                if (matchedCountry) {
+                                    newCountry = matchedCountry.value;
+
+                                    // Auto-set currency if missing
+                                    if (!newCurrency) {
+                                        const countryMap: Record<string, string> = {
+                                            GB: 'GBP', US: 'USD', DE: 'EUR', FR: 'EUR', ES: 'EUR', IT: 'EUR',
+                                            NL: 'EUR', BE: 'EUR', AT: 'EUR', CH: 'CHF', PL: 'EUR', PT: 'EUR',
+                                            IE: 'EUR', SE: 'EUR', DK: 'EUR', NO: 'EUR', FI: 'EUR', CA: 'CAD',
+                                            AU: 'AUD', NZ: 'NZD', JP: 'JPY', SGD: 'SGD', AED: 'AED', BRL: 'BRL',
+                                            RUB: 'RUB', CNY: 'CNY', KRW: 'KRW', INR: 'INR', MXN: 'MXN', ZAR: 'ZAR',
+                                        };
+                                        if (countryMap[newCountry]) {
+                                            newCurrency = countryMap[newCountry];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (locationError) {
+                    console.log('Location detection failed:', locationError);
+                    // Continue without location data - timezone already set above
+                }
+
+                // Update profile if changes needed
+                if (newTimezone !== profile.timezone || newCity !== profile.city || newCountry !== profile.country || newCurrency !== profile.currency) {
+                    const { error } = await supabase
+                        .from('profiles')
+                        .update({
+                            timezone: newTimezone,
+                            city: newCity,
+                            country: newCountry,
+                            currency: newCurrency
+                        })
+                        .eq('id', user.id);
+
+                    if (!error) {
+                        await refreshProfile();
+                    }
+                }
+
+            } catch (error) {
+                console.log('Auto-detect error:', error);
+            }
+        };
+
+        checkLocationSettings();
+    }, [profile?.id]);
 
     // Real-time subscription for new messages
     useEffect(() => {
@@ -281,6 +395,27 @@ export function MasterDashboardScreen() {
                                 </View>
                                 <Text style={styles.actionLabel}>Availability</Text>
                             </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('BusinessSettings')}>
+                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(244, 114, 182, 0.2)' }]}>
+                                    <MaterialCommunityIcons name="cog-outline" size={24} color="#F472B6" />
+                                </View>
+                                <Text style={styles.actionLabel}>Policies</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('LoyaltyCardBuilder')}>
+                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(251, 191, 36, 0.2)' }]}>
+                                    <MaterialCommunityIcons name="cards" size={24} color="#FBBF24" />
+                                </View>
+                                <Text style={styles.actionLabel}>Loyalty</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('AftercareCampaigns')}>
+                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
+                                    <MaterialCommunityIcons name="email-outline" size={24} color="#10B981" />
+                                </View>
+                                <Text style={styles.actionLabel}>Campaigns</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -409,10 +544,10 @@ const styles = StyleSheet.create({
     emptyCard: { alignItems: 'center', padding: spacing.xl },
     emptyIcon: { fontSize: 48, marginBottom: spacing.md, opacity: 0.5 },
     emptyText: { fontSize: 14, color: colors.textSecondary },
-    quickActionsGrid: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-    actionButton: { flex: 1, alignItems: 'center', backgroundColor: colors.surface, padding: spacing.md, borderRadius: 12 },
+    quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between' },
+    actionButton: { width: '30%', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.md, borderRadius: 12, marginBottom: spacing.sm },
     actionIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
-    actionLabel: { fontSize: 12, fontWeight: '600', color: colors.text, textAlign: 'center' },
+    actionLabel: { fontSize: 11, fontWeight: '600', color: colors.text, textAlign: 'center' },
 });
 
 export default MasterDashboardScreen;

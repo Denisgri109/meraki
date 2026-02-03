@@ -385,7 +385,7 @@ export function ClientHomeScreen() {
                         <View style={styles.featuredMastersSection}>
                             <View style={styles.sectionHeader}>
                                 <Text style={styles.sectionTitle}>Featured Masters</Text>
-                                <TouchableOpacity onPress={() => navigation.navigate('Book')}>
+                                <TouchableOpacity onPress={() => navigation.navigate('DiscoverMasters')}>
                                     <Text style={styles.seeAll}>See All</Text>
                                 </TouchableOpacity>
                             </View>

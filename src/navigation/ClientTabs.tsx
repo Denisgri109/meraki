@@ -24,7 +24,9 @@ import {
     QRScannerScreen,
     MasterDetailScreen,
     BookAndChatScreen,
+    DiscoverMastersScreen,
 } from '../screens/client';
+import PhotoConsultationRequestScreen from '../screens/client/PhotoConsultationRequestScreen';
 import { ShopScreen, ProductDetailScreen, CartScreen, CheckoutScreen } from '../screens/shop';
 import { ChatListScreen, ChatScreen } from '../screens/chat';
 import {
@@ -52,6 +54,10 @@ export type HomeStackParamList = {
     Notifications: undefined;
     QRScanner: undefined;
     MasterDetail: { masterId: string };
+    DiscoverMasters: undefined;
+    PhotoConsultationRequest: { masterId?: string } | undefined;
+    SelectDateTime: { serviceId: string; masterId: string };
+    BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
 };
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -73,6 +79,10 @@ function HomeStackNavigator() {
             <HomeStack.Screen name="Notifications" component={NotificationsScreen} />
             <HomeStack.Screen name="QRScanner" component={QRScannerScreen} />
             <HomeStack.Screen name="MasterDetail" component={MasterDetailScreen} />
+            <HomeStack.Screen name="DiscoverMasters" component={DiscoverMastersScreen} />
+            <HomeStack.Screen name="PhotoConsultationRequest" component={PhotoConsultationRequestScreen} />
+            <HomeStack.Screen name="SelectDateTime" component={SelectDateTimeScreen} />
+            <HomeStack.Screen name="BookingConfirm" component={BookingConfirmScreen} />
         </HomeStack.Navigator>
     );
 }

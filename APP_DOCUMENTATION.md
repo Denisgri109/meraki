@@ -98,11 +98,14 @@ Platform administrators with full access. They can:
 | **Row Level Security (RLS)** | Data access control |
 
 ### Design System
-- **Color Palette**: "Midnight Glass 2.0" - Deep matte blacks with electric violet-to-blue gradients
-- **Primary**: `#8B5CF6` (Violet)
-- **Secondary**: `#3B82F6` (Blue)
-- **Accent**: `#F472B6` (Pink)
-- **Background**: `#050505` (Deep matte black)
+- **Color Palette**: "Meraki Luxe" - Deep mauve-blacks with warm, luxurious tones
+- **Primary**: `#D48A82` (Muted dusty rose)
+- **Secondary**: `#C0A0E0` (Muted lavender)
+- **Accent**: `#E6C090` (Muted champagne gold)
+- **Background**: `#0F0F13` (Deep mauve-black)
+- **Surface**: `#1E1E24` (Warm charcoal)
+- **Text**: `#FDF6F6` (Rose white)
+- **Text Secondary**: `#AFA8BA` (Muted lavender-gray)
 - **Glass Effects**: Semi-transparent surfaces with subtle borders
 
 ---
@@ -303,7 +306,6 @@ Refund records.
 - [x] Conversation list with recent messages
 - [x] Real-time chat with Masters and Owners
 - [x] Text message support
-- [x] Text message support
 - [x] Image upload support (Photo Consultation)
 - [x] Video upload support
 - [x] Optimistic UI updates
@@ -353,7 +355,6 @@ Refund records.
 - [x] Appointment cards with client details
 - [x] Confirm pending appointments
 - [x] Decline pending appointments
-- [x] Mark as completed
 - [x] Mark as completed
 - [x] Mark as no-show (Charges cancellation fee automatically)
 - [x] Direct chat with clients
@@ -411,15 +412,17 @@ Refund records.
 
 ### Payment System
 ### Payment & Protection
-- [x] Stripe integration for payments
+- [x] Stripe integration for payments (⚠️ **Simulation Mode** - All payment infrastructure ready but using mock data for development)
 - [x] Automatic charge for No-Show
 - [x] Payment processing during booking (Pre-authorization)
 - [x] Saved payment methods functionality
 - [x] Payment history screen
 - [x] Secure SetupIntents for card saving
 - [x] Shop checkout immediate payment
-- [ ] Master payouts (Manual transfer logic pending)
+- [ ] Master payouts (Stripe Connect integration pending)
 - [x] Refund processing (Edge Function ready)
+
+**Note:** To enable real payments, connect a Stripe account and switch from simulation mode in `stripeService.ts` and `CheckoutScreen.tsx`.
 
 ### Push Notifications (Additional)
 - [x] Appointment reminder notifications (24h, 1h before)
@@ -427,12 +430,12 @@ Refund records.
 - [x] Marketing/promotional notifications
 
 ### Loyalty Program
-- [x] **Points System:** Earn 1 point per €1 spent (configurable).
-- [x] **QR Code Scanning:** Client scans Master's unique dynamic QR code to earn points.
+- [x] **QR Code Scanning:** Client scans Master's unique dynamic QR code to earn points (+50 points per scan).
 - [x] **Dynamic QR Codes:** Codes rotate automatically after each scan for security.
 - [x] **Rewards Catalog:** Redeem points for discounts or free services.
 - [x] **Transaction History:** Full history of earned and redeemed points.
 - [x] **Backend Integration:** Secure RPC functions for validation and processing.
+- [ ] **Purchase-Based Points:** Automatic points calculation for service bookings and shop purchases (currently QR scans only)
 
 
 
@@ -443,14 +446,16 @@ Refund records.
 - [x] Shopping cart management
 - [x] Checkout flow (Order placement)
 - [x] Stock tracking
-- [x] Payment processing (Cash on delivery only currently)
+- [x] Payment processing (Stripe online payment - simulation mode)
 - [x] Order history
+- [ ] Cash on Delivery option (displayed in orders but not offered at checkout)
 
 ### Master Features
 - [x] Blocked time slots
 - [x] Custom pricing per service
 - [x] Vacation mode (via Blocked Slots)
-- [ ] Business analytics dashboard
+- [x] Basic earnings tracking (today/week/month totals)
+- [ ] Business analytics dashboard (charts, trends, insights - basic stats only currently)
 
 
 
@@ -546,22 +551,55 @@ meraki_app/
 │   └── types/
 │       └── database.ts         # Supabase database types
 ├── supabase/
-│   └── functions/              # Edge Functions
-│       ├── aftercare-reminder/
-│       ├── appointment-reminders/
-│       ├── cancel-payment/
-│       ├── capture-payment/
-│       ├── create-payment-intent/
-│       ├── delete-payment-method/  # NEW
-│       ├── handle-no-show/         # NEW
-│       ├── list-payment-methods/   # NEW
-│       ├── low-stock-alert/
-│       ├── process-refund/         # NEW
-│       ├── send-marketing-notification/
-│       ├── send-message-notification/
-│       └── setup-intent/           # NEW
+│   └── functions/              # 13 Edge Functions
+│       ├── aftercare-reminder/       # Post-appointment care reminders
+│       ├── appointment-reminders/    # 24h and 1h before appointment alerts
+│       ├── cancel-payment/           # Cancel payment holds
+│       ├── capture-payment/          # Capture pre-authorized payments
+│       ├── create-payment-intent/    # Create Stripe PaymentIntents
+│       ├── delete-payment-method/    # Remove saved cards from Stripe
+│       ├── handle-no-show/           # Process no-show fee capture
+│       ├── list-payment-methods/     # Retrieve saved payment methods
+│       ├── low-stock-alert/          # Notify admin of low inventory
+│       ├── process-refund/           # Issue full or partial refunds
+│       ├── send-marketing-notification/  # Promotional push notifications
+│       ├── send-message-notification/    # New chat message alerts
+│       └── setup-intent/             # Create SetupIntents for saving cards
 └── supabase_migrations.sql     # Database schema
 ```
+
+---
+
+## ⚡ Edge Functions Reference
+
+All 13 Edge Functions deployed to Supabase:
+
+### Payment Functions
+| Function | Purpose | Status |
+|----------|---------|--------|
+| `create-payment-intent` | Creates Stripe PaymentIntent for bookings (pre-auth) or shop (immediate) | ✅ Deployed |
+| `capture-payment` | Captures held funds after appointment completion | ✅ Deployed |
+| `cancel-payment` | Cancels payment hold and releases funds | ✅ Deployed |
+| `handle-no-show` | Captures no-show fee from pre-authorized payment | ✅ Deployed |
+| `process-refund` | Issues full or partial refunds | ✅ Deployed |
+| `setup-intent` | Creates SetupIntent for securely saving cards | ✅ Deployed |
+| `list-payment-methods` | Retrieves saved payment methods for a customer | ✅ Deployed |
+| `delete-payment-method` | Detaches payment method from Stripe customer | ✅ Deployed |
+
+### Notification Functions
+| Function | Purpose | Status |
+|----------|---------|--------|
+| `appointment-reminders` | Sends 24h and 1h before appointment reminders | ✅ Deployed |
+| `send-message-notification` | Notifies users of new chat messages | ✅ Deployed |
+| `send-marketing-notification` | Sends promotional push notifications | ✅ Deployed |
+| `aftercare-reminder` | Sends post-appointment care instructions | ✅ Deployed |
+
+### Inventory Functions
+| Function | Purpose | Status |
+|----------|---------|--------|
+| `low-stock-alert` | Notifies admin when product stock is low | ✅ Deployed |
+
+**Note:** All payment Edge Functions currently operate in simulation mode for development. They will process real payments once connected to a live Stripe account.
 
 ---
 
@@ -616,11 +654,11 @@ npx expo start
 
 ## 🎨 Design Philosophy
 
-Merakí follows a "Midnight Glass" aesthetic that combines:
+Merakí follows a "Meraki Luxe" aesthetic that combines:
 
-1. **Depth through Darkness**: Deep matte black backgrounds (`#050505`) create a sense of premium luxury
+1. **Depth through Darkness**: Deep mauve-black backgrounds (`#0F0F13`) create a sense of premium luxury
 
-2. **Vibrant Accents**: Electric violet (`#8B5CF6`) and blue (`#3B82F6`) gradients add energy and visual interest
+2. **Warm Accents**: Muted dusty rose (`#D48A82`), lavender (`#C0A0E0`), and champagne gold (`#E6C090`) add elegance and warmth
 
 3. **Glassmorphism**: Semi-transparent surfaces with subtle borders create layered depth
 
@@ -646,9 +684,10 @@ Merakí follows a "Midnight Glass" aesthetic that combines:
 | Push Notifications | ✅ Complete (Core) |
 | Profile Pictures | ✅ Complete |
 | UI/UX Design System | ✅ Complete |
-| Payment Integration | ✅ Complete |
-
-| Shop Checkout | ✅ Complete |
+| Payment Integration | ✅ Infrastructure Complete (Simulation Mode) |
+| Shop Checkout | ✅ Complete (Stripe Payment) |
+| Master Payouts | ❌ Pending |
+| Business Analytics Dashboard | ❌ Pending |
 
 
 ---
@@ -660,7 +699,8 @@ Merakí follows a "Midnight Glass" aesthetic that combines:
 | 0.1.0 | Jan 2026 | Initial development version with core booking functionality |
 | 0.2.0 | Jan 21, 2026 | Added push notifications, reschedule flow with client approval, profile picture visibility across all screens, improved navigation (profile icon → Menu tab), consistent ScreenBackground on booking screens |
 | 0.3.0 | Jan 23, 2026 | Added Academy Management System, Master Invitations (Pending Masters), Chat with Owners, and Video Uploads |
-| 0.4.0 | Jan 26, 2026 | Complete Stripe Payment Integration: Saved cards, Booking pre-auth, Shop checkout, No-Show protection fee, Payment History |
+| 0.4.0 | Jan 26, 2026 | Complete Stripe Payment Infrastructure: Saved cards, Booking pre-auth, Shop checkout, No-Show protection fee, Payment History (Simulation Mode) |
+| 0.5.0 | Feb 2, 2026 | Documentation update: Fixed color palette to "Meraki Luxe", corrected feature status markers, removed duplicate entries, added complete Edge Functions list |
 
 ---
 

@@ -5,3 +5,4 @@ export { LessonEditorScreen } from './LessonEditorScreen';
 export { HomeworkInboxScreen } from './HomeworkInboxScreen';
 export { HomeworkReviewScreen } from './HomeworkReviewScreen';
 export { AcademyStudentsScreen } from './AcademyStudentsScreen';
+export { StudentDetailScreen } from './StudentDetailScreen';

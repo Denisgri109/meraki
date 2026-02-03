@@ -15,5 +15,7 @@ export { PaymentHistoryScreen } from './PaymentHistoryScreen';
 export { NotificationsScreen } from './NotificationsScreen';
 export { MenuScreen } from './MenuScreen';
 export { QRScannerScreen } from './QRScannerScreen';
+export { DiscoverMastersScreen } from './DiscoverMastersScreen';
 export * from './AppointmentListScreen';
 export * from './BookAndChatScreen';
+
