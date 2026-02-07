@@ -13,11 +13,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { format, addMinutes } from 'date-fns';
-import { useConfirmPayment, CardField } from '../../utils/stripe';
+import { useConfirmPayment, useConfirmSetupIntent, CardField } from '../../utils/stripe';
 import { supabase } from '../../lib/supabase';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button, Card, ScreenBackground } from '../../components/ui';
+import { Button, Card, ScreenBackground, ConfirmModal, AlertModal } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { Service, Profile } from '../../types/database';
 import {
@@ -45,6 +45,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
     const { serviceId, masterId, dateTime } = route.params;
     const { user, profile } = useAuth();
     const { confirmPayment } = useConfirmPayment();
+    const { confirmSetupIntent } = useConfirmSetupIntent();
 
     const [service, setService] = useState<Service | null>(null);
     const [master, setMaster] = useState<Profile | null>(null);
@@ -56,12 +57,34 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
     const [availableCredits, setAvailableCredits] = useState<any[]>([]);
     const [appliedCredit, setAppliedCredit] = useState<any | null>(null);
 
+    // Deposit state
+    const [depositSettings, setDepositSettings] = useState<{
+        deposit_type: 'fixed' | 'percentage';
+        deposit_amount: number;
+        deposit_percentage: number;
+    } | null>(null);
+
     // Payment state
     const [savedCards, setSavedCards] = useState<PaymentMethod[]>([]);
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
     const [showNewCard, setShowNewCard] = useState(false);
     const [newCardComplete, setNewCardComplete] = useState(false);
+
     const [loadingCards, setLoadingCards] = useState(true);
+
+    // Modal state
+    const [modalConfig, setModalConfig] = useState<{
+        visible: boolean;
+        title: string;
+        message: string;
+        type: 'success' | 'error' | 'warning' | 'info';
+        onConfirm?: () => void;
+    }>({
+        visible: false,
+        title: '',
+        message: '',
+        type: 'info',
+    });
 
     const startTime = new Date(dateTime);
 
@@ -73,14 +96,31 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
         try {
             const servicePromise = supabase.from('services').select('*').eq('id', serviceId).single();
             const masterPromise = supabase.from('profiles').select('*').eq('id', masterId).single();
+            const settingsPromise = supabase.from('master_settings').select('deposit_type, deposit_amount, deposit_percentage').eq('master_id', masterId).single();
 
-            const [serviceRes, masterRes] = await Promise.all([
+            const [serviceRes, masterRes, settingsRes] = await Promise.all([
                 safeSupabaseFetch(servicePromise as any, { timeout: 5000 }),
-                safeSupabaseFetch(masterPromise as any, { timeout: 5000 })
+                safeSupabaseFetch(masterPromise as any, { timeout: 5000 }),
+                safeSupabaseFetch(settingsPromise as any, { timeout: 5000 })
             ]);
 
             setService(serviceRes.data as Service);
             setMaster(masterRes.data as Profile);
+
+            if (settingsRes.data) {
+                const settings = settingsRes.data as any;
+                setDepositSettings({
+                    deposit_type: (settings.deposit_type as 'fixed' | 'percentage') || 'percentage',
+                    deposit_amount: settings.deposit_amount || 0,
+                    deposit_percentage: settings.deposit_percentage ?? 100,
+                });
+            } else {
+                setDepositSettings({
+                    deposit_type: 'percentage',
+                    deposit_amount: 0,
+                    deposit_percentage: 100,
+                });
+            }
 
             // Fetch available credits for the user
             if (user) {
@@ -144,6 +184,28 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
         return Math.min(Number(appliedCredit.amount), service.base_price);
     };
 
+    const calculateDeposit = () => {
+        const total = calculateFinalPrice();
+        if (!depositSettings) return { deposit: total, remaining: 0 };
+
+        let deposit = 0;
+        if (depositSettings.deposit_type === 'percentage') {
+            deposit = (total * (depositSettings.deposit_percentage || 100)) / 100;
+        } else {
+            deposit = depositSettings.deposit_amount || 0;
+        }
+
+        // Ensure deposit doesn't exceed total
+        deposit = Math.min(deposit, total);
+        // Round to 2 decimals
+        deposit = Math.round(deposit * 100) / 100;
+
+        return {
+            deposit,
+            remaining: Math.max(0, total - deposit)
+        };
+    };
+
     const handleConfirmBooking = async () => {
         if (!user || !service) return;
 
@@ -151,93 +213,137 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
         // Validate payment method selection
         if (!showNewCard && !selectedCardId) {
-            Alert.alert('Payment Required', 'Please select a payment method to continue.');
+            setModalConfig({
+                visible: true,
+                title: 'Payment Required',
+                message: 'Please select a payment method to continue.',
+                type: 'warning',
+                onConfirm: () => setModalConfig(prev => ({ ...prev, visible: false })),
+            });
             return;
         }
 
         if (showNewCard && !newCardComplete) {
-            Alert.alert('Card Required', 'Please enter your card details to continue.');
+            setModalConfig({
+                visible: true,
+                title: 'Card Required',
+                message: 'Please enter your card details to continue.',
+                type: 'warning',
+                onConfirm: () => setModalConfig(prev => ({ ...prev, visible: false })),
+            });
             return;
         }
 
         setSubmitting(true);
         try {
-            // Calculate end time based on service duration
-            const endTime = addMinutes(startTime, service.duration_minutes);
-            const amountInCents = eurosToCents(finalPrice);
+            const { deposit } = calculateDeposit();
+            const depositInCents = eurosToCents(deposit);
 
-            // Create PaymentIntent with manual capture for pre-authorization
-            const { clientSecret, paymentIntentId } = await createPaymentIntent({
-                amount: amountInCents,
-                customerId: profile?.stripe_customer_id || undefined,
-                description: `Booking: ${service.name} with ${master?.full_name}`,
-                captureMethod: 'manual', // Pre-authorization (hold)
+            // STEP 1: Create SetupIntent to save card (for potential no-show charge)
+            console.log('Debug - user:', user);
+            console.log('Debug - user.id:', user?.id);
+            console.log('Debug - profile:', profile);
+
+            // Ensure session is fresh before calling Edge Function
+            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError || !sessionData.session) {
+                throw new Error('Session expired. Please log in again.');
+            }
+            console.log('Debug - Session refreshed, token exists:', !!sessionData.session.access_token);
+
+            const requestBody = {
+                user_id: user?.id,
+                user_email: profile?.email,
+                customer_id: profile?.stripe_customer_id,
+                payment_method_id: showNewCard ? undefined : selectedCardId,
+            };
+            console.log('Debug - Sending setup-intent request with body:', requestBody);
+
+            const { data: setupIntentData, error: setupError } = await supabase.functions.invoke('setup-intent', {
+                body: requestBody,
             });
 
-            // Confirm the payment
-            let paymentResult;
-            if (showNewCard) {
-                // Use the new card entered in CardField
-                paymentResult = await confirmPayment(clientSecret, {
+            console.log('Debug - setup-intent response:', setupIntentData, setupError);
+
+            if (setupError) throw setupError;
+
+            // STEP 2: Confirm SetupIntent if using a new card
+            let savedPaymentMethodId = selectedCardId;
+            if (showNewCard && setupIntentData.client_secret) {
+                // Use confirmSetupIntent (not confirmPayment) for SetupIntent secrets
+                const setupResult = await confirmSetupIntent(setupIntentData.client_secret, {
                     paymentMethodType: 'Card',
                 });
-            } else {
-                // Use saved payment method
-                paymentResult = await confirmPayment(clientSecret, {
-                    paymentMethodType: 'Card',
-                    paymentMethodData: {
-                        paymentMethodId: selectedCardId!,
-                    },
-                });
+
+                if (setupResult.error) {
+                    throw new Error(setupResult.error.message);
+                }
+
+                // Get the newly saved payment method ID
+                savedPaymentMethodId = setupResult.setupIntent?.paymentMethodId || setupIntentData.payment_method_id;
             }
 
-            if (paymentResult.error) {
-                throw new Error(paymentResult.error.message);
+            // STEP 3: Create PaymentIntent for DEPOSIT (if applicable)
+            let paymentIntentId: string | undefined;
+
+            if (depositInCents > 0) {
+                const { clientSecret, paymentIntentId: pId } = await createPaymentIntent({
+                    amount: depositInCents,
+                    customerId: profile?.stripe_customer_id || setupIntentData.customer_id,
+                    paymentMethodId: savedPaymentMethodId || undefined,
+                    description: `Deposit: ${service.name} with ${master?.full_name}`,
+                    captureMethod: 'automatic', // Immediate charge
+                });
+                paymentIntentId = pId;
+
+                // Confirm the payment
+                let paymentResult;
+                if (showNewCard) {
+                    paymentResult = await confirmPayment(clientSecret, {
+                        paymentMethodType: 'Card',
+                        paymentMethodData: {
+                            paymentMethodId: savedPaymentMethodId!,
+                        },
+                    });
+                } else {
+                    paymentResult = await confirmPayment(clientSecret, {
+                        paymentMethodType: 'Card',
+                        paymentMethodData: {
+                            paymentMethodId: selectedCardId!,
+                        },
+                    });
+                }
+
+                if (paymentResult.error) {
+                    throw new Error(paymentResult.error.message);
+                }
             }
 
-            // Insert appointment with payment intent ID - INSTANT BOOK: status is 'confirmed'
-            const insertPromise = (supabase as any)
-                .from('appointments')
-                .insert({
-                    client_id: user.id,
-                    master_id: masterId,
-                    service_id: serviceId,
-                    start_time: startTime.toISOString(),
-                    end_time: endTime.toISOString(),
-                    status: 'confirmed',
-                    price: finalPrice,
-                    notes: notes || null,
-                    stripe_payment_intent_id: paymentIntentId,
-                })
-                .select()
-                .single();
+            // STEP 4: Create appointment using the new confirmation flow
+            const { data: appointmentId, error: bookError } = await supabase.rpc(
+                'book_appointment_with_confirmation',
+                {
+                    p_master_id: masterId,
+                    p_service_id: serviceId,
+                    p_start_time: startTime.toISOString(),
+                    p_stripe_setup_intent_id: setupIntentData.setup_intent_id,
+                    p_stripe_payment_intent_id: (paymentIntentId || null) as any,
+                    p_notes: notes || undefined,
+                    p_deposit_amount: deposit,
+                    p_deposit_payment_intent_id: (paymentIntentId || null) as any
+                }
+            );
 
-            const { data: appointment, error } = await safeSupabaseFetch(insertPromise, { timeout: 10000 });
-
-            if (error) throw error;
-
-            // Record the payment
-            await (supabase as any)
-                .from('payments')
-                .insert({
-                    user_id: user.id,
-                    appointment_id: (appointment as any).id,
-                    stripe_payment_intent_id: paymentIntentId,
-                    amount: amountInCents,
-                    currency: 'eur',
-                    status: 'requires_capture', // Pre-authorized, not captured yet
-                    payment_type: 'booking',
-                    description: `Booking: ${service.name}`,
-                });
+            if (bookError) throw bookError;
 
             // Mark credit as used if one was applied
-            if (appliedCredit && appointment) {
+            if (appliedCredit && appointmentId) {
                 await (supabase as any)
                     .from('user_credits')
                     .update({
                         is_used: true,
                         used_at: new Date().toISOString(),
-                        appointment_id: (appointment as any).id,
+                        appointment_id: appointmentId,
                     })
                     .eq('id', appliedCredit.id);
             }
@@ -260,7 +366,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 console.warn('Failed to auto-create conversation', err);
             }
 
-            // Send push notification to Master about new booking
+            // Send push notification to Master about new booking (pending confirmation)
             if (master?.push_token) {
                 try {
                     await fetch('https://exp.host/--/api/v2/push/send', {
@@ -272,9 +378,9 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                         body: JSON.stringify({
                             to: master.push_token,
                             sound: 'default',
-                            title: 'New Booking Received! 🎉',
-                            body: `${profile?.full_name || 'A client'} booked ${service.name} on ${format(startTime, 'MMM d')} at ${format(startTime, 'HH:mm')}`,
-                            data: { appointmentId: (appointment as any).id },
+                            title: 'New Booking Request 📅',
+                            body: `${profile?.full_name || 'A client'} requested ${service.name} on ${format(startTime, 'MMM d')} at ${format(startTime, 'HH:mm')}. Awaiting client confirmation.`,
+                            data: { appointmentId: appointmentId },
                         }),
                     });
                 } catch (e) {
@@ -283,18 +389,25 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             }
 
             const discountMsg = appliedCredit ? `\n\n💰 Discount of €${getDiscountAmount().toFixed(2)} applied!` : '';
-            Alert.alert(
-                'Booking Confirmed! 🎉',
-                `Your appointment with ${master?.full_name} on ${format(startTime, 'MMMM d')} at ${format(startTime, 'HH:mm')} has been confirmed!${discountMsg}\n\n💳 Payment of €${finalPrice.toFixed(2)} has been authorized and will be charged upon service completion.`,
-                [
-                    {
-                        text: 'Done',
-                        onPress: () => navigation.popToTop(),
-                    },
-                ]
-            );
+
+            setModalConfig({
+                visible: true,
+                title: 'Request Sent! 📅',
+                message: `Your appointment request with ${master?.full_name} has been received!${discountMsg}\n\n📧 You'll receive a confirmation request soon.\n\n💳 Card securely saved for booking.`,
+                type: 'success',
+                onConfirm: () => {
+                    setModalConfig(prev => ({ ...prev, visible: false }));
+                    navigation.popToTop();
+                },
+            });
         } catch (error: any) {
-            Alert.alert('Booking Failed', error.message || 'Something went wrong');
+            setModalConfig({
+                visible: true,
+                title: 'Booking Failed',
+                message: error.message || 'Something went wrong',
+                type: 'error',
+                onConfirm: () => setModalConfig(prev => ({ ...prev, visible: false })),
+            });
         } finally {
             setSubmitting(false);
         }
@@ -501,7 +614,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                                                 borderRadius: 12,
                                             }}
                                             style={styles.cardField}
-                                            onCardChange={(cardDetails) => {
+                                            onCardChange={(cardDetails: any) => {
                                                 setNewCardComplete(cardDetails.complete);
                                             }}
                                         />
@@ -514,7 +627,9 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                         <View style={styles.paymentInfo}>
                             <Text style={styles.paymentInfoIcon}>ℹ️</Text>
                             <Text style={styles.paymentInfoText}>
-                                Your card will be authorized now but only charged after your appointment is completed.
+                                {calculateDeposit().deposit > 0
+                                    ? `You will be charged a deposit of €${calculateDeposit().deposit.toFixed(2)} now. The remaining balance is paid at the appointment.`
+                                    : 'No deposit required. Payment will be collected at the appointment.'}
                             </Text>
                         </View>
                     </View>
@@ -536,20 +651,39 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                             <Text style={styles.totalLabel}>Total</Text>
                             <Text style={styles.totalValue}>€{calculateFinalPrice().toFixed(2)}</Text>
                         </View>
+                        <View style={styles.priceDivider} />
+                        <View style={styles.priceRow}>
+                            <Text style={styles.priceLabel}>Deposit to Pay Now</Text>
+                            <Text style={[styles.priceValue, { color: colors.primary }]}>€{calculateDeposit().deposit.toFixed(2)}</Text>
+                        </View>
+                        <View style={styles.priceRow}>
+                            <Text style={styles.priceLabel}>Pay in Person</Text>
+                            <Text style={styles.priceValue}>€{calculateDeposit().remaining.toFixed(2)}</Text>
+                        </View>
                     </Card>
                 </ScrollView>
 
                 {/* Bottom Button */}
                 <View style={styles.bottomBar}>
                     <Button
-                        title={submitting ? 'Processing...' : `Pay €${calculateFinalPrice().toFixed(2)} & Confirm`}
+                        title={submitting ? 'Processing...' : (calculateDeposit().deposit > 0 ? `Pay Deposit €${calculateDeposit().deposit.toFixed(2)} & Confirm` : 'Confirm Booking')}
                         onPress={handleConfirmBooking}
                         loading={submitting}
                         fullWidth
                     />
                 </View>
+
+                {/* Confirm/Alert Modal */}
+                <AlertModal
+                    visible={modalConfig.visible}
+                    onClose={() => setModalConfig(prev => ({ ...prev, visible: false }))}
+                    title={modalConfig.title}
+                    message={modalConfig.message}
+                    buttonText={modalConfig.type === 'success' ? 'Done' : 'OK'}
+                    type={modalConfig.type}
+                />
             </SafeAreaView>
-        </ScreenBackground>
+        </ScreenBackground >
     );
 }
 

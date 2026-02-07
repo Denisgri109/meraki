@@ -67,26 +67,20 @@ export function OwnerDashboardScreen() {
             const todayStart = startOfDay(today).toISOString();
             const todayEnd = endOfDay(today).toISOString();
 
-            // Fetch masters count
-            const { count: mastersCount } = await supabase
-                .from('profiles')
-                .select('*', { count: 'exact', head: true })
-                .eq('role', 'master');
-
-            const { count: activeMastersCount } = await supabase
-                .from('profiles')
-                .select('*', { count: 'exact', head: true })
-                .eq('role', 'master')
-                .eq('master_status', 'active');
+            // Masters stats removed for independent account
+            const mastersCount = 0;
+            const activeMastersCount = 0;
 
             // Fetch services count
             const { count: servicesCount } = await supabase
                 .from('services')
-                .select('*', { count: 'exact', head: true });
+                .select('*', { count: 'exact', head: true })
+                .eq('created_by', user.id);
 
             const { count: activeServicesCount } = await supabase
                 .from('services')
                 .select('*', { count: 'exact', head: true })
+                .eq('created_by', user.id)
                 .eq('is_active', true);
 
             // Fetch today's appointments (for stats)
@@ -97,6 +91,7 @@ export function OwnerDashboardScreen() {
                     service:services(name),
                     client:profiles!appointments_client_id_fkey(full_name)
                 `)
+                .eq('master_id', user.id)
                 .gte('start_time', todayStart)
                 .lt('start_time', todayEnd)
                 .in('status', ['confirmed', 'pending', 'completed'])
@@ -123,6 +118,7 @@ export function OwnerDashboardScreen() {
             const { count: pendingCount } = await supabase
                 .from('appointments')
                 .select('*', { count: 'exact', head: true })
+                .eq('master_id', user.id)
                 .eq('status', 'pending');
 
             // Calculate today's earnings from completed appointments
@@ -219,49 +215,49 @@ export function OwnerDashboardScreen() {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Business Management</Text>
                         <View style={styles.quickActionsGrid}>
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('MasterForm')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(6, 182, 212, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="account-plus" size={24} color="#22D3EE" />
+                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('OwnerSupplies')}>
+                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(20, 184, 166, 0.2)' }]}>
+                                    <MaterialCommunityIcons name="clipboard-list" size={24} color="#14B8A6" />
                                 </View>
-                                <Text style={styles.actionLabel}>Add Master</Text>
+                                <Text style={styles.actionLabel}>My Supplies</Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('ServiceForm')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(251, 191, 36, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="star-plus" size={24} color="#FBBF24" />
-                                </View>
-                                <Text style={styles.actionLabel}>Add Service</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Masters')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(99, 102, 241, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="account-group" size={24} color="#818CF8" />
-                                </View>
-                                <Text style={styles.actionLabel}>Masters</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Services')}>
+                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('BusinessSettings')}>
                                 <View style={[styles.actionIcon, { backgroundColor: 'rgba(244, 114, 182, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="view-list" size={24} color="#F472B6" />
+                                    <MaterialCommunityIcons name="cog-outline" size={24} color="#F472B6" />
                                 </View>
-                                <Text style={styles.actionLabel}>Services</Text>
+                                <Text style={styles.actionLabel}>Policies</Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Inventory')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(236, 72, 153, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="package-variant-closed" size={24} color="#EC4899" />
+                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('LoyaltyCardBuilder')}>
+                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(251, 191, 36, 0.2)' }]}>
+                                    <MaterialCommunityIcons name="cards" size={24} color="#FBBF24" />
                                 </View>
-                                <Text style={styles.actionLabel}>Inventory</Text>
+                                <Text style={styles.actionLabel}>Loyalty</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('AftercareCampaigns')}>
+                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
+                                    <MaterialCommunityIcons name="email-outline" size={24} color="#10B981" />
+                                </View>
+                                <Text style={styles.actionLabel}>Campaigns</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('BookingConsultations')}>
+                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(217, 70, 239, 0.2)' }]}>
+                                    <MaterialCommunityIcons name="clipboard-check-outline" size={24} color="#D946EF" />
+                                </View>
+                                <Text style={styles.actionLabel}>Consults</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
 
                     {/* Stats */}
                     <View style={styles.statsRow}>
-                        <TouchableOpacity onPress={() => navigation.navigate('Masters')}>
+                        <TouchableOpacity onPress={() => navigation.navigate('MyServices')}>
                             <Card style={styles.statCard} variant="elevated">
-                                <Text style={styles.statValue}>{stats.activeMasters}/{stats.totalMasters}</Text>
-                                <Text style={styles.statLabel}>Masters</Text>
+                                <Text style={styles.statValue}>{stats.activeServices}</Text>
+                                <Text style={styles.statLabel}>My Services</Text>
                             </Card>
                         </TouchableOpacity>
                         <Card style={styles.statCard} variant="elevated">

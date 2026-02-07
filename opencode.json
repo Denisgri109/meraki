@@ -3,12 +3,21 @@
   "mcp": {
     "supabase-mcp-server": {
       "type": "local",
-      "command": ["npx", "-y", "@supabase/mcp-server-supabase@latest", "--access-token", "sbp_e308c28c5d835eefc5d714a299fd44de1e49c705"],
+      "command": [
+        "npx",
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_81c084dbc8ab6379acca69ee96e38eba9dfe3a78"
+      ],
       "enabled": true
     },
     "TestSprite": {
       "type": "local",
-      "command": ["npx", "@testsprite/testsprite-mcp@latest"],
+      "command": [
+        "npx",
+        "@testsprite/testsprite-mcp@latest"
+      ],
       "environment": {
         "API_KEY": "sk-user-IzO5wRiLXLslw6rK85VuOEksewZoh7QtXQSHZX4Ke6et5vhW3B7QAGcQ6YSwomH1QpzPbaUh7jrp_EB-K2BBEqKeVtLzRPRUzUOiEpXi3MP8WD9T21qKklhX6qWMcQMYejU"
       },

@@ -13,7 +13,7 @@ interface AuthContextType {
     loading: boolean;
     sessionError: AuthError | null;
     signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-    signUp: (email: string, password: string, fullName: string, role?: UserRole) => Promise<{ error: Error | null }>;
+    signUp: (email: string, password: string, fullName: string, role?: UserRole, tosAccepted?: boolean, tosVersion?: string) => Promise<{ error: Error | null }>;
     signOut: () => Promise<void>;
     updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
     refreshProfile: () => Promise<void>;
@@ -182,7 +182,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         email: string,
         password: string,
         fullName: string,
-        role: UserRole = 'client'
+        role: UserRole = 'client',
+        tosAccepted: boolean = false,
+        tosVersion: string = '1.0'
     ) => {
         try {
             const { data, error } = await supabase.auth.signUp({
@@ -205,7 +207,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
                     .update({
                         role,
                         is_master: role === 'master',
-                        full_name: fullName
+                        full_name: fullName,
+                        tos_accepted: tosAccepted,
+                        tos_accepted_at: tosAccepted ? new Date().toISOString() : null,
+                        tos_version: tosVersion
                     })
                     .eq('id', data.user.id);
 

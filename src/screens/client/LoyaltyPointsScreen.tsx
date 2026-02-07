@@ -146,6 +146,19 @@ export function LoyaltyPointsScreen() {
                         </Text>
                     </Card>
 
+                    {/* Stamp Cards Button */}
+                    <TouchableOpacity
+                        style={styles.stampCardsButton}
+                        onPress={() => (navigation as any).navigate('StampCards')}
+                    >
+                        <Text style={styles.stampCardsEmoji}>🎫</Text>
+                        <View style={styles.stampCardsText}>
+                            <Text style={styles.stampCardsTitle}>My Stamp Cards</Text>
+                            <Text style={styles.stampCardsSubtitle}>View your stamp collection progress</Text>
+                        </View>
+                        <Text style={styles.stampCardsArrow}>→</Text>
+                    </TouchableOpacity>
+
                     {/* Rewards */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Available Rewards</Text>
@@ -232,6 +245,21 @@ const styles = StyleSheet.create({
     transactionPoints: { fontSize: 16, fontWeight: '600' },
     pointsEarned: { color: '#22C55E' },
     pointsRedeemed: { color: colors.textSecondary },
+    stampCardsButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 12,
+        padding: spacing.md,
+        marginBottom: spacing.xl,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    stampCardsEmoji: { fontSize: 28, marginRight: spacing.md },
+    stampCardsText: { flex: 1 },
+    stampCardsTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
+    stampCardsSubtitle: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+    stampCardsArrow: { fontSize: 20, color: colors.textMuted },
     emptyText: { color: colors.textMuted, fontStyle: 'italic', textAlign: 'center', padding: spacing.md },
 });
 

@@ -196,6 +196,16 @@ export function MyServicesScreen() {
                         </View>
                     </View>
                 )}
+                
+                {/* Link Supplies Button */}
+                <TouchableOpacity
+                    style={styles.linkSuppliesButton}
+                    onPress={() => (navigation as any).navigate('ServiceSupplies', { serviceId: item.id })}
+                >
+                    <Text style={styles.linkSuppliesIcon}>📦</Text>
+                    <Text style={styles.linkSuppliesText}>Manage Supplies</Text>
+                    <Text style={styles.linkSuppliesArrow}>→</Text>
+                </TouchableOpacity>
             </Card>
         );
     };
@@ -253,6 +263,18 @@ const styles = StyleSheet.create({
     input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: spacing.sm, color: colors.text, borderWidth: 1, borderColor: colors.border },
     addButton: { backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 20 },
     addButtonText: { color: colors.text, fontSize: 14, fontWeight: '600' },
+    linkSuppliesButton: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        marginTop: spacing.md, 
+        paddingTop: spacing.md,
+        padding: spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.1)'
+    },
+    linkSuppliesIcon: { fontSize: 16, marginRight: spacing.sm },
+    linkSuppliesText: { flex: 1, fontSize: 14, color: colors.text, fontWeight: '500' },
+    linkSuppliesArrow: { fontSize: 18, color: colors.primary },
 });
 
 export default MyServicesScreen;

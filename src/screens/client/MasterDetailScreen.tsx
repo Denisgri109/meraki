@@ -15,6 +15,7 @@ import { supabase } from '../../lib/supabase';
 import { Button, Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { Service, Profile } from '../../types/database';
+import { useSafeBack } from '../../hooks';
 
 type BookingStackParamList = {
     BookingMain: undefined;
@@ -34,6 +35,7 @@ export function MasterDetailScreen({ navigation, route }: MasterDetailScreenProp
     const [master, setMaster] = useState<Profile | null>(null);
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
+    const { goBack } = useSafeBack({ fallbackRoute: 'HomeMain' });
 
     useEffect(() => {
         fetchData();
@@ -126,7 +128,7 @@ export function MasterDetailScreen({ navigation, route }: MasterDetailScreenProp
                 <ScrollView style={styles.scrollView}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
+                        <TouchableOpacity onPress={goBack}>
                             <Text style={styles.backButton}>← Back</Text>
                         </TouchableOpacity>
                     </View>

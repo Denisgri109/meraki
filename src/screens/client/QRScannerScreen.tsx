@@ -31,39 +31,89 @@ export function QRScannerScreen() {
         setProcessing(true);
 
         try {
-            // Call Supabase RPC to process the scan
-            const { data: result, error } = await (supabase as any).rpc('process_qr_scan', {
-                p_code: data,
-                p_client_id: user?.id
-            });
+            // Check if this is a stamp card QR code (format: stamp:{master_id})
+            if (data.startsWith('stamp:')) {
+                const masterId = data.replace('stamp:', '');
 
-            if (error) throw error;
+                // Call stamp-specific RPC
+                const { data: result, error } = await (supabase as any).rpc('process_stamp_scan', {
+                    p_master_id: masterId,
+                    p_client_id: user?.id
+                });
 
-            if (result.success) {
-                Alert.alert(
-                    'Success!',
-                    `You earned ${result.points} loyalty points!`,
-                    [
-                        {
-                            text: 'Awesome',
-                            onPress: () => navigation.goBack()
-                        }
-                    ]
-                );
-            } else {
-                Alert.alert(
-                    'Scan Failed',
-                    result.message || 'Invalid QR Code',
-                    [
-                        {
-                            text: 'Try Again',
-                            onPress: () => {
-                                setScanned(false);
-                                setProcessing(false);
+                if (error) throw error;
+
+                if (result.success) {
+                    const progressText = result.reward_available
+                        ? `${result.stamps_collected}/${result.stamps_required} stamps - REWARD READY!`
+                        : `${result.stamps_collected}/${result.stamps_required} stamps`;
+
+                    Alert.alert(
+                        result.reward_available ? '🎁 Reward Earned!' : '✓ Stamp Collected!',
+                        `${result.card_name} from ${result.master_name}\n\n${progressText}\n\n${result.message}`,
+                        [
+                            {
+                                text: result.reward_available ? 'View My Cards' : 'Awesome',
+                                onPress: () => {
+                                    if (result.reward_available) {
+                                        navigation.navigate('StampCards' as never);
+                                    } else {
+                                        navigation.goBack();
+                                    }
+                                }
                             }
-                        }
-                    ]
-                );
+                        ]
+                    );
+                } else {
+                    Alert.alert(
+                        'Scan Failed',
+                        result.message || 'Unable to process stamp',
+                        [
+                            {
+                                text: 'Try Again',
+                                onPress: () => {
+                                    setScanned(false);
+                                    setProcessing(false);
+                                }
+                            }
+                        ]
+                    );
+                }
+            } else {
+                // Legacy: Call general loyalty points RPC for other QR codes
+                const { data: result, error } = await (supabase as any).rpc('process_qr_scan', {
+                    p_code: data,
+                    p_client_id: user?.id
+                });
+
+                if (error) throw error;
+
+                if (result.success) {
+                    Alert.alert(
+                        'Success!',
+                        `You earned ${result.points} loyalty points!`,
+                        [
+                            {
+                                text: 'Awesome',
+                                onPress: () => navigation.goBack()
+                            }
+                        ]
+                    );
+                } else {
+                    Alert.alert(
+                        'Scan Failed',
+                        result.message || 'Invalid QR Code',
+                        [
+                            {
+                                text: 'Try Again',
+                                onPress: () => {
+                                    setScanned(false);
+                                    setProcessing(false);
+                                }
+                            }
+                        ]
+                    );
+                }
             }
         } catch (error: any) {
             console.error('Scan error:', error);

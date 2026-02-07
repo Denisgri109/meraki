@@ -11,6 +11,7 @@ import {
     Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { format, addDays, isSameDay, differenceInHours } from 'date-fns';
 import { supabase } from '../../lib/supabase';
@@ -34,6 +35,11 @@ type Appointment = {
     service_id: string;
     master_id: string;
     stripe_payment_intent_id: string | null;
+    deposit_amount: number | null;
+    deposit_paid: boolean | null;
+    proposed_start_time: string | null;
+    proposed_end_time: string | null;
+    reschedule_initiated_by: string | null;
     service: { name: string; duration_minutes: number } | null;
     master: { full_name: string; push_token?: string } | null;
 };
@@ -99,6 +105,11 @@ export function AppointmentListScreen() {
                     service_id,
                     master_id,
                     stripe_payment_intent_id,
+                    deposit_amount,
+                    deposit_paid,
+                    proposed_start_time,
+                    proposed_end_time,
+                    reschedule_initiated_by,
                     service:services(name, duration_minutes),
                     master:profiles!appointments_master_id_fkey(full_name, push_token)
                 `)
@@ -343,6 +354,71 @@ export function AppointmentListScreen() {
         }
     };
 
+    // Handle client approving master's reschedule proposal
+    const handleApproveMasterReschedule = async (apt: Appointment) => {
+        if (!apt.proposed_start_time || !apt.proposed_end_time) return;
+
+        Alert.alert(
+            'Approve Reschedule',
+            `Accept new time: ${format(new Date(apt.proposed_start_time), 'EEEE, MMM d at HH:mm')}?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Approve',
+                    onPress: async () => {
+                        try {
+                            const { error } = await supabase
+                                .from('appointments')
+                                .update({
+                                    start_time: apt.proposed_start_time,
+                                    end_time: apt.proposed_end_time,
+                                    proposed_start_time: null,
+                                    proposed_end_time: null,
+                                    reschedule_initiated_by: null,
+                                    status: 'confirmed',
+                                } as any)
+                                .eq('id', apt.id);
+
+                            if (error) throw error;
+
+                            // Notify master
+                            const masterPushToken = apt.master?.push_token;
+                            if (masterPushToken) {
+                                await fetch('https://exp.host/--/api/v2/push/send', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        to: masterPushToken,
+                                        sound: 'default',
+                                        title: 'Reschedule Approved',
+                                        body: `${user?.user_metadata?.full_name || 'Client'} approved your reschedule request.`,
+                                        data: { appointmentId: apt.id },
+                                    }),
+                                });
+                            }
+
+                            Alert.alert('Success', 'Appointment rescheduled successfully.');
+                            fetchAppointments();
+                        } catch (error: any) {
+                            Alert.alert('Error', error.message);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    // Handle client counter-proposing a different time
+    const handleCounterPropose = (apt: Appointment) => {
+        setSelectedAppointment(apt);
+        setSelectedDate(null);
+        setSelectedTime(null);
+        setShowRescheduleModal(true);
+    };
+
     const handleChat = async (appointment: Appointment) => {
         if (!user || !appointment.master_id) return;
         try {
@@ -430,24 +506,42 @@ export function AppointmentListScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={[]}>
 
-                {/* Sub Tabs (Only for Appointments) */}
-                <View style={styles.subTabs}>
-                    <TouchableOpacity
-                        style={[styles.subTab, subTab === 'upcoming' && styles.subTabActive]}
-                        onPress={() => setSubTab('upcoming')}
-                    >
-                        <Text style={[styles.subTabText, subTab === 'upcoming' && styles.subTabTextActive]}>
-                            Upcoming ({upcomingAppointments.length})
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.subTab, subTab === 'past' && styles.subTabActive]}
-                        onPress={() => setSubTab('past')}
-                    >
-                        <Text style={[styles.subTabText, subTab === 'past' && styles.subTabTextActive]}>
-                            Past ({pastAppointments.length})
-                        </Text>
-                    </TouchableOpacity>
+                {/* Premium Pill Tabs */}
+                <View style={styles.tabsContainer}>
+                    <View style={styles.subTabs}>
+                        <TouchableOpacity
+                            style={[styles.subTab, subTab === 'upcoming' && styles.subTabActive]}
+                            onPress={() => setSubTab('upcoming')}
+                        >
+                            {subTab === 'upcoming' && (
+                                <LinearGradient
+                                    colors={[colors.primary, colors.secondary]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.tabGradient}
+                                />
+                            )}
+                            <Text style={[styles.subTabText, subTab === 'upcoming' && styles.subTabTextActive]}>
+                                Upcoming ({upcomingAppointments.length})
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.subTab, subTab === 'past' && styles.subTabActive]}
+                            onPress={() => setSubTab('past')}
+                        >
+                            {subTab === 'past' && (
+                                <LinearGradient
+                                    colors={[colors.primary, colors.secondary]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.tabGradient}
+                                />
+                            )}
+                            <Text style={[styles.subTabText, subTab === 'past' && styles.subTabTextActive]}>
+                                Past ({pastAppointments.length})
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <ScrollView
@@ -455,6 +549,7 @@ export function AppointmentListScreen() {
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
                     }
+                    showsVerticalScrollIndicator={false}
                 >
                     {/* --- APPOINTMENTS LIST --- */}
                     {(subTab === 'upcoming' ? upcomingAppointments : pastAppointments).length > 0 ? (
@@ -496,8 +591,43 @@ export function AppointmentListScreen() {
                                         </View>
                                     </View>
 
+                                    {/* Master-initiated reschedule proposal */}
+                                    {(apt.status === 'pending_reschedule' || apt.status === 'reschedule_pending') &&
+                                        apt.proposed_start_time &&
+                                        apt.reschedule_initiated_by !== user?.id && (
+                                            <View style={styles.rescheduleProposalBox}>
+                                                <Text style={styles.rescheduleProposalTitle}>
+                                                    ✨ New time proposed by {apt.master?.full_name || 'specialist'}
+                                                </Text>
+                                                <Text style={styles.rescheduleProposalTime}>
+                                                    {format(new Date(apt.proposed_start_time), 'EEEE, MMM d at HH:mm')}
+                                                </Text>
+                                                <View style={styles.rescheduleProposalActions}>
+                                                    <TouchableOpacity
+                                                        style={styles.approveRescheduleButton}
+                                                        onPress={() => handleApproveMasterReschedule(apt)}
+                                                    >
+                                                        <Text style={styles.approveRescheduleText}>✓ Approve</Text>
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={styles.counterProposeButton}
+                                                        onPress={() => handleCounterPropose(apt)}
+                                                    >
+                                                        <Text style={styles.counterProposeText}>Suggest Different</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        )}
+
                                     <View style={styles.cardFooter}>
-                                        <Text style={styles.price}>€{apt.price}</Text>
+                                        <View>
+                                            <Text style={styles.price}>€{apt.price}</Text>
+                                            {apt.deposit_paid && (
+                                                <Text style={styles.depositPaidText}>
+                                                    Paid: €{apt.deposit_amount}
+                                                </Text>
+                                            )}
+                                        </View>
                                         {canModify && (
                                             <View style={styles.actionButtons}>
                                                 <TouchableOpacity
@@ -526,17 +656,24 @@ export function AppointmentListScreen() {
                         })
                     ) : (
                         <View style={styles.emptyState}>
-                            <Text style={styles.emptyIcon}>
-                                {subTab === 'upcoming' ? '📅' : '📋'}
+                            <View style={styles.emptyIconContainer}>
+                                <Text style={styles.emptyIcon}>
+                                    {subTab === 'upcoming' ? '📅' : '📋'}
+                                </Text>
+                            </View>
+                            <Text style={styles.emptyTitle}>
+                                {subTab === 'upcoming' ? 'No Upcoming Appointments' : 'No Past Appointments'}
                             </Text>
                             <Text style={styles.emptyText}>
-                                {subTab === 'upcoming' ? 'No upcoming appointments' : 'No past appointments'}
+                                {subTab === 'upcoming'
+                                    ? 'Your schedule is clear. Book an appointment to get started.'
+                                    : 'Completed appointments will appear here.'}
                             </Text>
                             {subTab === 'upcoming' && (
                                 <Button
                                     title="Book Appointment"
                                     onPress={() => navigation.navigate('BookNew')}
-                                    style={{ marginTop: spacing.md, width: '50%', alignSelf: 'center' }}
+                                    style={{ marginTop: spacing.lg, width: '60%', alignSelf: 'center' }}
                                 />
                             )}
                         </View>
@@ -693,39 +830,38 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingBottom: 100,
     },
+    // Premium Pill Tabs
+    tabsContainer: {
+        paddingHorizontal: spacing.lg,
+        marginTop: spacing.md
+    },
     subTabs: {
         flexDirection: 'row',
-        paddingHorizontal: spacing.lg,
-        marginTop: spacing.md,
-        borderRadius: 12,
-        backgroundColor: colors.surface, // Dark background
-        marginHorizontal: spacing.lg,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 16,
         padding: 4,
-        borderWidth: 1,
-        borderColor: colors.border,
     },
     subTab: {
         flex: 1,
-        paddingVertical: 8,
+        paddingVertical: 12,
         alignItems: 'center',
-        borderRadius: 10,
+        borderRadius: 12,
+        overflow: 'hidden',
     },
-    subTabActive: {
-        backgroundColor: colors.primary, // Pop with primary color
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+    subTabActive: {},
+    tabGradient: {
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: 12,
+        opacity: 0.9
     },
     subTabText: {
-        fontSize: 13,
-        fontWeight: '500',
+        fontSize: 14,
+        fontWeight: '600',
         color: colors.textSecondary,
+        zIndex: 1,
     },
     subTabTextActive: {
         color: '#FFFFFF',
-        fontWeight: '600',
     },
     card: {
         padding: spacing.md,
@@ -828,14 +964,29 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: spacing.xxxl,
     },
+    emptyIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: spacing.lg
+    },
     emptyIcon: {
-        fontSize: 48,
-        marginBottom: spacing.md,
-        opacity: 0.5,
+        fontSize: 36,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: spacing.sm
     },
     emptyText: {
-        fontSize: 16,
+        fontSize: 14,
         color: colors.textSecondary,
+        textAlign: 'center',
+        paddingHorizontal: spacing.xl,
     },
     // Modal Styles
     overlayContainer: {
@@ -1014,5 +1165,62 @@ const styles = StyleSheet.create({
         color: '#D97706',
         textAlign: 'center',
         fontStyle: 'italic',
+    },
+    depositPaidText: {
+        fontSize: 12,
+        color: '#059669',
+        marginTop: 2,
+        fontWeight: '500',
+    },
+    // Master-initiated reschedule proposal styles
+    rescheduleProposalBox: {
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        borderRadius: 12,
+        padding: spacing.md,
+        marginBottom: spacing.md,
+        borderWidth: 1,
+        borderColor: 'rgba(139, 92, 246, 0.3)',
+    },
+    rescheduleProposalTitle: {
+        fontSize: 14,
+        color: colors.primary,
+        fontWeight: '600',
+        marginBottom: 6,
+    },
+    rescheduleProposalTime: {
+        fontSize: 16,
+        color: colors.text,
+        fontWeight: '700',
+        marginBottom: spacing.md,
+    },
+    rescheduleProposalActions: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+    },
+    approveRescheduleButton: {
+        flex: 1,
+        backgroundColor: colors.primary,
+        paddingVertical: 10,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    approveRescheduleText: {
+        color: '#FFF',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    counterProposeButton: {
+        flex: 1,
+        backgroundColor: colors.surface,
+        paddingVertical: 10,
+        borderRadius: 10,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    counterProposeText: {
+        color: colors.text,
+        fontSize: 14,
+        fontWeight: '600',
     },
 });

@@ -17,6 +17,10 @@ import {
     BusinessSettingsScreen,
     LoyaltyCardBuilderScreen,
     AftercareCampaignScreen,
+    SuppliesScreen,
+    AddSupplyScreen,
+    ServiceSuppliesScreen,
+    BookingConsultationReviewScreen,
 } from '../screens/master';
 import PhotoConsultationReviewScreen from '../screens/master/PhotoConsultationReviewScreen';
 import {
@@ -48,6 +52,8 @@ export type DashboardStackParamList = {
     LoyaltyCardBuilder: undefined;
     AftercareCampaigns: undefined;
     PhotoConsultations: undefined;
+    BookingConsultations: undefined;
+    ServiceSupplies: { serviceId?: string } | undefined;
 };
 
 const DashboardStack = createNativeStackNavigator<DashboardStackParamList>();
@@ -69,6 +75,8 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
             <DashboardStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />
             <DashboardStack.Screen name="PhotoConsultations" component={PhotoConsultationReviewScreen} />
+            <DashboardStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
+            <DashboardStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
         </DashboardStack.Navigator>
     );
 }
@@ -87,6 +95,25 @@ function ShopStackNavigator() {
             <ShopStack.Screen name="ShopMain" component={ShopScreen} />
             <ShopStack.Screen name="ProductDetail" component={ProductDetailScreen} />
         </ShopStack.Navigator>
+    );
+}
+
+// Supplies Stack
+export type SuppliesStackParamList = {
+    SuppliesMain: undefined;
+    AddSupply: { supply?: any } | undefined;
+    ServiceSupplies: undefined;
+};
+
+const SuppliesStack = createNativeStackNavigator<SuppliesStackParamList>();
+
+function SuppliesStackNavigator() {
+    return (
+        <SuppliesStack.Navigator screenOptions={{ headerShown: false }}>
+            <SuppliesStack.Screen name="SuppliesMain" component={SuppliesScreen} />
+            <SuppliesStack.Screen name="AddSupply" component={AddSupplyScreen} />
+            <SuppliesStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
+        </SuppliesStack.Navigator>
     );
 }
 
@@ -118,6 +145,7 @@ function ProfileStackNavigator() {
 export type MasterTabsParamList = {
     Dashboard: undefined;
     Appointments: undefined;
+    Supplies: undefined;
     Messages: undefined;
     Shop: undefined;
     Profile: undefined;
@@ -176,6 +204,24 @@ export function MasterTabs() {
                 component={MasterAppointmentsScreen}
                 options={{
                     tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>📅</Text>,
+                } as any}
+                listeners={({ navigation, route }) => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.dispatch(
+                            CommonActions.reset({
+                                index: 0,
+                                routes: [{ name: route.name }],
+                            })
+                        );
+                    },
+                })}
+            />
+            <Tab.Screen
+                name="Supplies"
+                component={SuppliesStackNavigator}
+                options={{
+                    tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>📦</Text>,
                 } as any}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {

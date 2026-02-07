@@ -9,6 +9,7 @@ import {
     Alert,
     ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
@@ -29,6 +30,7 @@ type AuthStackParamList = {
     Register: undefined;
     VerifyOtp: { email: string };
     ForgotPassword: undefined;
+    Terms: undefined;
 };
 
 type RegisterScreenProps = {
@@ -43,6 +45,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [selectedRole, setSelectedRole] = useState<'client' | 'master'>('client');
+    const [tosAccepted, setTosAccepted] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<{
         fullName?: string;
@@ -102,6 +105,11 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     const handleRegister = async () => {
         if (!validate()) return;
 
+        if (!tosAccepted) {
+            Alert.alert('Terms Required', 'Please accept the Terms of Service to continue.');
+            return;
+        }
+
         setLoading(true);
         try {
             console.log('=== REGISTRATION START ===');
@@ -119,7 +127,9 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                 email.trim().toLowerCase(),
                 password,
                 fullName.trim(),
-                selectedRole
+                selectedRole,
+                tosAccepted,
+                '1.0' // Current TOS version
             );
 
             if (signUpError) {
@@ -156,9 +166,9 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             console.error('Error name:', error.name);
             console.error('Error code:', error.code);
             console.error('Error status:', error.status);
-            
+
             let errorMessage = error.message || 'An error occurred during registration.';
-            
+
             // Provide more helpful error messages
             if (error.message?.includes('Database error')) {
                 errorMessage = 'Database error creating account. Please try again or contact support.';
@@ -169,7 +179,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             } else if (error.message?.includes('valid')) {
                 errorMessage = 'Please check your email format and try again.';
             }
-            
+
             Alert.alert('Registration Failed', errorMessage);
         } finally {
             setLoading(false);
@@ -313,12 +323,25 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                         </View>
 
                         {/* Terms */}
-                        <Text style={styles.terms}>
-                            By creating an account, you agree to our{' '}
-                            <Text style={styles.termsLink}>Terms of Service</Text>
-                            {' '}and{' '}
-                            <Text style={styles.termsLink}>Privacy Policy</Text>
-                        </Text>
+                        {/* Terms */}
+                        <View style={styles.termsContainer}>
+                            <TouchableOpacity
+                                style={[styles.checkbox, tosAccepted && styles.checkboxChecked]}
+                                onPress={() => setTosAccepted(!tosAccepted)}
+                            >
+                                {tosAccepted && <Ionicons name="checkmark" size={16} color="white" />}
+                            </TouchableOpacity>
+                            <Text style={styles.termsText} onPress={() => setTosAccepted(!tosAccepted)}>
+                                I agree to the{' '}
+                                <Text style={styles.termsLink} onPress={() => navigation.navigate('Terms')}>
+                                    Terms of Service
+                                </Text>
+                                {' '}and{' '}
+                                <Text style={styles.termsLink} onPress={() => navigation.navigate('Terms')}>
+                                    Privacy Policy
+                                </Text>
+                            </Text>
+                        </View>
 
                         {/* Login Link */}
                         <View style={styles.footer}>
@@ -429,16 +452,36 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 4,
     },
-    terms: {
-        fontSize: 12,
-        color: colors.textMuted,
-        textAlign: 'center',
-        marginBottom: spacing.xl,
-        lineHeight: 18,
-    },
     termsLink: {
         color: colors.primary,
         textDecorationLine: 'underline',
+    },
+    termsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: spacing.xl,
+        paddingHorizontal: spacing.sm,
+    },
+    checkbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: colors.border,
+        marginRight: spacing.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.surface,
+    },
+    checkboxChecked: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    termsText: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        flex: 1,
+        lineHeight: 20,
     },
     phoneHint: {
         fontSize: 12,

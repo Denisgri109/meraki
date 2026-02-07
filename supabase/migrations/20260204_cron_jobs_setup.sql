@@ -1,0 +1,54 @@
+-- Cron Jobs for Campaign Processing
+-- Created: 2026-02-04
+-- Purpose: Schedule automatic campaign processing
+
+-- Enable pg_cron extension (if not already enabled)
+-- Note: This must be enabled by a superuser or via Supabase dashboard
+-- CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- ============================================
+-- CRON JOB SETUP INSTRUCTIONS
+-- ============================================
+-- Since pg_cron requires superuser access, you need to set up these cron jobs 
+-- via the Supabase Dashboard:
+--
+-- 1. Go to Database > Extensions > Enable pg_cron
+-- 2. Go to SQL Editor and run:
+--
+-- Schedule aftercare-reminder to run every hour:
+-- SELECT cron.schedule(
+--     'aftercare-reminders',
+--     '0 * * * *',  -- Every hour at minute 0
+--     $$
+--     SELECT net.http_post(
+--         url := 'https://tvxgevcmoevzvifylxac.supabase.co/functions/v1/aftercare-reminder',
+--         headers := '{"Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb
+--     ) AS request_id;
+--     $$
+-- );
+--
+-- Schedule process-campaigns to run daily at 10 AM:
+-- SELECT cron.schedule(
+--     'process-campaigns',
+--     '0 10 * * *',  -- Every day at 10:00 AM
+--     $$
+--     SELECT net.http_post(
+--         url := 'https://tvxgevcmoevzvifylxac.supabase.co/functions/v1/process-campaigns',
+--         headers := '{"Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb
+--     ) AS request_id;
+--     $$
+-- );
+--
+-- To view scheduled jobs:
+-- SELECT * FROM cron.job;
+--
+-- To unschedule a job:
+-- SELECT cron.unschedule('job-name');
+
+-- ============================================
+-- ALTERNATIVE: Use Supabase Scheduled Functions
+-- ============================================
+-- If pg_cron is not available, you can use external schedulers like:
+-- - Supabase Edge Functions with pg_net scheduled triggers
+-- - External services like Pipedream, Zapier, or a simple cron server
+-- - GitHub Actions scheduled workflows

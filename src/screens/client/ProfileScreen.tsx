@@ -24,8 +24,8 @@ import { colors, spacing } from '../../theme';
 
 // Countries list for dropdown
 const COUNTRIES = [
-    'Ireland', 'United Kingdom', 'United States', 'Canada', 'Australia', 'Germany', 
-    'France', 'Spain', 'Italy', 'Netherlands', 'Belgium', 'Austria', 'Switzerland', 
+    'Ireland', 'United Kingdom', 'United States', 'Canada', 'Australia', 'Germany',
+    'France', 'Spain', 'Italy', 'Netherlands', 'Belgium', 'Austria', 'Switzerland',
     'Poland', 'Portugal', 'Sweden', 'Denmark', 'Norway', 'Finland', 'Japan', 'Other'
 ];
 
@@ -72,28 +72,28 @@ export function ProfileScreen() {
     const [saving, setSaving] = useState(false);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [activeSection, setActiveSection] = useState<'personal' | 'location' | 'professional' | 'preferences'>('personal');
-    
+
     // Personal Info
     const [editName, setEditName] = useState(profile?.full_name || '');
     const [editPhone, setEditPhone] = useState(profile?.phone || '');
     const [editBio, setEditBio] = useState(profile?.bio || '');
     const [phoneError, setPhoneError] = useState<string | undefined>(undefined);
-    
+
     // Location
     const [editCity, setEditCity] = useState(profile?.city || '');
     const [editCountry, setEditCountry] = useState(profile?.country || '');
     const [editTimezone, setEditTimezone] = useState(profile?.timezone || 'Europe/Dublin');
-    
+
     // Professional (Masters/Owners only)
     const [editCurrency, setEditCurrency] = useState(profile?.currency || 'EUR');
     const [editYearsExp, setEditYearsExp] = useState('');
     const [editSpecialties, setEditSpecialties] = useState('');
     const [editCertifications, setEditCertifications] = useState('');
-    
+
     // Preferences
     const [emailNotifications, setEmailNotifications] = useState(true);
     const [pushNotifications, setPushNotifications] = useState(true);
-    
+
     // Country dropdown modal
     const [countryModalVisible, setCountryModalVisible] = useState(false);
     const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
@@ -234,27 +234,27 @@ export function ProfileScreen() {
     // Render section tabs
     const renderSectionTabs = () => (
         <View style={styles.sectionTabs}>
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[styles.tab, activeSection === 'personal' && styles.tabActive]}
                 onPress={() => setActiveSection('personal')}
             >
                 <Text style={[styles.tabText, activeSection === 'personal' && styles.tabTextActive]}>Personal</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[styles.tab, activeSection === 'location' && styles.tabActive]}
                 onPress={() => setActiveSection('location')}
             >
                 <Text style={[styles.tabText, activeSection === 'location' && styles.tabTextActive]}>Location</Text>
             </TouchableOpacity>
             {isMasterOrOwner && (
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[styles.tab, activeSection === 'professional' && styles.tabActive]}
                     onPress={() => setActiveSection('professional')}
                 >
                     <Text style={[styles.tabText, activeSection === 'professional' && styles.tabTextActive]}>Pro</Text>
                 </TouchableOpacity>
             )}
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[styles.tab, activeSection === 'preferences' && styles.tabActive]}
                 onPress={() => setActiveSection('preferences')}
             >
@@ -330,7 +330,7 @@ export function ProfileScreen() {
 
             <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Country</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.selector}
                     onPress={() => setCountryModalVisible(true)}
                 >
@@ -343,7 +343,7 @@ export function ProfileScreen() {
 
             <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Timezone</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.selector}
                     onPress={() => setTimezoneModalVisible(true)}
                 >
@@ -362,7 +362,7 @@ export function ProfileScreen() {
         <View style={styles.sectionContent}>
             <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Currency</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.selector}
                     onPress={() => setCurrencyModalVisible(true)}
                 >
@@ -419,7 +419,7 @@ export function ProfileScreen() {
     const renderPreferencesSection = () => (
         <View style={styles.sectionContent}>
             <Text style={styles.sectionSubtitle}>Notification Preferences</Text>
-            
+
             <View style={styles.switchRow}>
                 <View style={styles.switchLabel}>
                     <Text style={styles.switchTitle}>Email Notifications</Text>
@@ -634,10 +634,9 @@ export function ProfileScreen() {
                 <Modal
                     visible={editModalVisible}
                     animationType="slide"
-                    presentationStyle="pageSheet"
                     onRequestClose={() => setEditModalVisible(false)}
                 >
-                    <SafeAreaView style={styles.modalContainer}>
+                    <View style={styles.modalContainer}>
                         <ScreenBackground>
                             <View style={styles.modalHeader}>
                                 <TouchableOpacity onPress={() => setEditModalVisible(false)}>
@@ -654,7 +653,7 @@ export function ProfileScreen() {
                                 {activeSection === 'location' && renderLocationSection()}
                                 {activeSection === 'professional' && renderProfessionalSection()}
                                 {activeSection === 'preferences' && renderPreferencesSection()}
-                                
+
                                 <View style={styles.saveButtonContainer}>
                                     <Button
                                         title={saving ? 'Saving...' : 'Save Changes'}
@@ -665,7 +664,7 @@ export function ProfileScreen() {
                                 </View>
                             </ScrollView>
                         </ScreenBackground>
-                    </SafeAreaView>
+                    </View>
                 </Modal>
 
                 {/* Dropdown Modals */}
@@ -698,7 +697,7 @@ const styles = StyleSheet.create({
     signOutButton: { paddingVertical: spacing.md, alignItems: 'center', borderRadius: 16, borderWidth: 1, borderColor: colors.error, marginBottom: spacing.lg, backgroundColor: 'rgba(239, 68, 68, 0.1)' },
     signOutText: { fontSize: 16, fontWeight: '600', color: colors.error },
     version: { textAlign: 'center', fontSize: 12, color: colors.textMuted },
-    
+
     // Modal styles
     modalContainer: { flex: 1 },
     modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border },
@@ -706,18 +705,18 @@ const styles = StyleSheet.create({
     modalTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
     modalScrollContent: { flex: 1, padding: spacing.lg },
     saveButtonContainer: { padding: spacing.lg, marginTop: spacing.md },
-    
+
     // Section tabs
-    sectionTabs: { 
-        flexDirection: 'row', 
-        paddingHorizontal: spacing.lg, 
+    sectionTabs: {
+        flexDirection: 'row',
+        paddingHorizontal: spacing.lg,
         paddingVertical: spacing.md,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
         gap: spacing.sm
     },
-    tab: { 
-        paddingHorizontal: spacing.md, 
+    tab: {
+        paddingHorizontal: spacing.md,
         paddingVertical: spacing.xs,
         borderRadius: 16,
         backgroundColor: 'rgba(255,255,255,0.05)'
@@ -725,7 +724,7 @@ const styles = StyleSheet.create({
     tabActive: { backgroundColor: colors.primary },
     tabText: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
     tabTextActive: { color: colors.text },
-    
+
     // Section content
     sectionContent: { paddingTop: spacing.md },
     sectionSubtitle: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: spacing.md, marginTop: spacing.md },
@@ -738,7 +737,7 @@ const styles = StyleSheet.create({
     hintText: { fontSize: 11, color: colors.textMuted, marginTop: spacing.xs },
     charCount: { fontSize: 11, color: colors.textMuted, textAlign: 'right', marginTop: spacing.xs },
     readOnlyField: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: spacing.md, color: colors.textSecondary, fontSize: 16, borderWidth: 1, borderColor: colors.border },
-    
+
     // Selectors
     selector: {
         flexDirection: 'row',
@@ -753,18 +752,18 @@ const styles = StyleSheet.create({
     selectorText: { fontSize: 16, color: colors.text, flex: 1 },
     selectorPlaceholder: { fontSize: 16, color: colors.textMuted, flex: 1 },
     selectorArrow: { fontSize: 12, color: colors.textMuted },
-    
+
     // Switches
     switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
     switchLabel: { flex: 1, marginRight: spacing.md },
     switchTitle: { fontSize: 16, color: colors.text, fontWeight: '500' },
     switchDescription: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-    
+
     // Password section
     passwordSection: { marginTop: spacing.xl },
     passwordButton: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: spacing.md, alignItems: 'center' },
     passwordButtonText: { color: colors.primary, fontSize: 16, fontWeight: '600' },
-    
+
     // Dropdown modals
     dropdownOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
     dropdownContent: { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '70%' },
@@ -777,7 +776,7 @@ const styles = StyleSheet.create({
     dropdownItemText: { fontSize: 16, color: colors.text, flex: 1 },
     dropdownItemTextSelected: { color: colors.primary, fontWeight: '500' },
     checkmark: { fontSize: 18, color: colors.primary, fontWeight: '600' },
-    
+
     // Avatar image styles
     avatarImage: { width: 100, height: 100, borderRadius: 50, marginBottom: spacing.md, borderWidth: 2, borderColor: colors.primary },
     cameraIcon: { position: 'absolute', bottom: spacing.sm, right: 0, backgroundColor: colors.primary, borderRadius: 14, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },

@@ -8,12 +8,14 @@ import { AuthStack } from './AuthStack';
 import { ClientTabs } from './ClientTabs';
 import { MasterTabs } from './MasterTabs';
 import { OwnerTabs } from './OwnerTabs';
+import { MasterOnboardingScreen } from '../screens/master';
 import { colors } from '../theme';
 
 export type RootStackParamList = {
     Auth: undefined;
     ClientApp: undefined;
     MasterApp: undefined;
+    MasterOnboarding: undefined;
     OwnerApp: undefined;
 };
 
@@ -33,7 +35,13 @@ export function AppNavigator() {
     const getInitialRoute = (): keyof RootStackParamList => {
         if (!session) return 'Auth';
         if (profile?.role === 'owner') return 'OwnerApp';
-        if (profile?.role === 'master') return 'MasterApp';
+        if (profile?.role === 'master') {
+            // Show onboarding if not completed (handles null, undefined, and false)
+            if (profile?.onboarding_completed !== true) {
+                return 'MasterOnboarding';
+            }
+            return 'MasterApp';
+        }
         return 'ClientApp';
     };
 
@@ -42,7 +50,12 @@ export function AppNavigator() {
             return <Stack.Screen name="OwnerApp" component={OwnerTabs} />;
         }
         if (profile?.role === 'master') {
-            return <Stack.Screen name="MasterApp" component={MasterTabs} />;
+            return (
+                <>
+                    <Stack.Screen name="MasterOnboarding" component={MasterOnboardingScreen} />
+                    <Stack.Screen name="MasterApp" component={MasterTabs} />
+                </>
+            );
         }
         return <Stack.Screen name="ClientApp" component={ClientTabs} />;
     };

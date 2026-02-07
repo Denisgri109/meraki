@@ -92,11 +92,11 @@ export function ServiceListScreen() {
     };
 
     const renderServiceCard = (service: Service) => (
-        <TouchableOpacity
-            key={service.id}
-            onPress={() => navigation.navigate('ServiceForm', { service })}
-        >
-            <Card style={styles.serviceCard}>
+        <Card style={styles.serviceCard} key={service.id}>
+            <TouchableOpacity
+                onPress={() => navigation.navigate('ServiceForm', { service })}
+                style={styles.serviceCardContent}
+            >
                 <View style={styles.serviceInfo}>
                     <Text style={styles.serviceName}>{service.name}</Text>
                     <Text style={styles.serviceDetails}>
@@ -109,8 +109,18 @@ export function ServiceListScreen() {
                     trackColor={{ false: colors.border, true: '#8B5CF6' }}
                     thumbColor={service.is_active ? '#fff' : '#f4f3f4'}
                 />
-            </Card>
-        </TouchableOpacity>
+            </TouchableOpacity>
+            
+            {/* Manage Supplies Button */}
+            <TouchableOpacity
+                style={styles.linkSuppliesButton}
+                onPress={() => navigation.navigate('ServiceSupplies', { serviceId: service.id })}
+            >
+                <Text style={styles.linkSuppliesIcon}>📦</Text>
+                <Text style={styles.linkSuppliesText}>Manage Supplies</Text>
+                <Text style={styles.linkSuppliesArrow}>→</Text>
+            </TouchableOpacity>
+        </Card>
     );
 
     if (loading) {
@@ -196,14 +206,28 @@ const styles = StyleSheet.create({
         marginBottom: spacing.sm,
     },
     serviceCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
         padding: spacing.md,
         marginBottom: spacing.sm,
+    },
+    serviceCardContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     serviceInfo: { flex: 1 },
     serviceName: { fontSize: 16, fontWeight: '600', color: colors.text },
     serviceDetails: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+    linkSuppliesButton: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        marginTop: spacing.md, 
+        paddingTop: spacing.md,
+        padding: spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.1)'
+    },
+    linkSuppliesIcon: { fontSize: 16, marginRight: spacing.sm },
+    linkSuppliesText: { flex: 1, fontSize: 14, color: colors.text, fontWeight: '500' },
+    linkSuppliesArrow: { fontSize: 18, color: colors.primary },
     emptyCard: { alignItems: 'center', padding: spacing.xl, marginTop: spacing.xl },
     emptyIcon: { fontSize: 48, marginBottom: spacing.md, opacity: 0.5 },
     emptyText: { fontSize: 14, color: colors.textSecondary, marginBottom: spacing.lg },

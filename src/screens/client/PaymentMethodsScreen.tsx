@@ -5,15 +5,14 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
     RefreshControl,
+    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { CardField, useConfirmSetupIntent } from '../../utils/stripe';
-import { Modal } from 'react-native';
-import { Card, Button, ScreenBackground } from '../../components/ui';
+import { Card, Button, ScreenBackground, MerakiModal, MerakiModalProps } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -41,6 +40,15 @@ export function PaymentMethodsScreen() {
     const [cards, setCards] = useState<PaymentMethod[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+
+    // Modal State
+    const [modalConfig, setModalConfig] = useState<MerakiModalProps>({
+        visible: false,
+        title: '',
+        onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+    });
+
+    // Add Card State
     const [showAddModal, setShowAddModal] = useState(false);
     const [addingCard, setAddingCard] = useState(false);
     const [cardComplete, setCardComplete] = useState(false);
@@ -92,7 +100,13 @@ export function PaymentMethodsScreen() {
 
     const handleAddCard = async () => {
         if (!user || !cardComplete) {
-            Alert.alert('Error', 'Please enter valid card details');
+            setModalConfig({
+                visible: true,
+                title: 'Error',
+                message: 'Please enter valid card details',
+                type: 'error',
+                onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+            });
             return;
         }
 
@@ -102,8 +116,8 @@ export function PaymentMethodsScreen() {
             // Create a SetupIntent
             const { clientSecret, customerId } = await createSetupIntent(
                 user.id,
-                profile?.email,
-                profile?.stripe_customer_id
+                profile?.email || undefined,
+                profile?.stripe_customer_id || undefined
             );
 
             // If this is a new customer, save the customer ID
@@ -112,6 +126,10 @@ export function PaymentMethodsScreen() {
                     .from('profiles')
                     .update({ stripe_customer_id: customerId })
                     .eq('id', user.id);
+            }
+
+            if (!clientSecret) {
+                throw new Error('Failed to initialize card setup');
             }
 
             // Confirm the SetupIntent with the card details
@@ -144,12 +162,26 @@ export function PaymentMethodsScreen() {
                         });
                 }
 
-                Alert.alert('Success', 'Card added successfully');
                 setShowAddModal(false);
-                fetchPaymentMethods();
+                setModalConfig({
+                    visible: true,
+                    title: 'Success',
+                    message: 'Card added successfully',
+                    type: 'success',
+                    onClose: () => {
+                        setModalConfig(prev => ({ ...prev, visible: false }));
+                        fetchPaymentMethods();
+                    },
+                });
             }
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to add card');
+            setModalConfig({
+                visible: true,
+                title: 'Error',
+                message: error.message || 'Failed to add card',
+                type: 'error',
+                onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+            });
         } finally {
             setAddingCard(false);
         }
@@ -175,40 +207,68 @@ export function PaymentMethodsScreen() {
                 isDefault: card.id === cardId,
             })));
 
-            Alert.alert('Success', 'Default payment method updated');
+            setModalConfig({
+                visible: true,
+                title: 'Success',
+                message: 'Default payment method updated',
+                type: 'success',
+                onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+            });
         } catch (error) {
-            Alert.alert('Error', 'Failed to update default payment method');
+            setModalConfig({
+                visible: true,
+                title: 'Error',
+                message: 'Failed to update default payment method',
+                type: 'error',
+                onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+            });
         }
     };
 
     const handleDelete = async (cardId: string) => {
-        Alert.alert(
-            'Remove Card',
-            'Are you sure you want to remove this payment method?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Remove',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await deletePaymentMethod(cardId);
+        setModalConfig({
+            visible: true,
+            title: 'Remove Card',
+            message: 'Are you sure you want to remove this payment method?',
+            type: 'default',
+            confirmText: 'Remove',
+            confirmDestructive: true,
+            onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+            onConfirm: async () => {
+                setModalConfig(prev => ({ ...prev, visible: false }));
+                try {
+                    await deletePaymentMethod(cardId);
 
-                            // Remove from database
-                            await (supabase as any)
-                                .from('payment_methods')
-                                .delete()
-                                .eq('stripe_payment_method_id', cardId);
+                    // Remove from database
+                    await (supabase as any)
+                        .from('payment_methods')
+                        .delete()
+                        .eq('stripe_payment_method_id', cardId);
 
-                            setCards(cards.filter(c => c.id !== cardId));
-                            Alert.alert('Success', 'Card removed');
-                        } catch (error) {
-                            Alert.alert('Error', 'Failed to remove card');
-                        }
-                    },
-                },
-            ]
-        );
+                    setCards(cards.filter(c => c.id !== cardId));
+                    // Re-show success modal
+                    setTimeout(() => {
+                        setModalConfig({
+                            visible: true,
+                            title: 'Success',
+                            message: 'Card removed',
+                            type: 'success',
+                            onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+                        });
+                    }, 300);
+                } catch (error) {
+                    setTimeout(() => {
+                        setModalConfig({
+                            visible: true,
+                            title: 'Error',
+                            message: 'Failed to remove card',
+                            type: 'error',
+                            onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+                        });
+                    }, 300);
+                }
+            }
+        });
     };
 
     if (loading) {
@@ -307,62 +367,80 @@ export function PaymentMethodsScreen() {
                     </View>
                 </ScrollView>
 
-                {/* Add Card Modal */}
+                {/* Add Card Modal (Full Screen Page) */}
                 <Modal
                     visible={showAddModal}
                     animationType="slide"
                     presentationStyle="pageSheet"
                     onRequestClose={() => setShowAddModal(false)}
                 >
-                    <ScreenBackground>
-                        <SafeAreaView style={styles.modalContainer}>
-                            <View style={styles.modalHeader}>
-                                <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                                    <Text style={styles.modalCancel}>Cancel</Text>
-                                </TouchableOpacity>
-                                <Text style={styles.modalTitle}>Add Card</Text>
-                                <View style={{ width: 60 }} />
-                            </View>
-
-                            <View style={styles.modalContent}>
-                                <Text style={styles.inputLabel}>Card Information</Text>
-                                <CardField
-                                    postalCodeEnabled={false}
-                                    placeholders={{
-                                        number: '4242 4242 4242 4242',
-                                    }}
-                                    cardStyle={{
-                                        backgroundColor: colors.surface,
-                                        textColor: colors.text,
-                                        placeholderColor: colors.textMuted,
-                                        borderWidth: 1,
-                                        borderColor: colors.border,
-                                        borderRadius: 12,
-                                    }}
-                                    style={styles.cardField}
-                                    onCardChange={(cardDetails) => {
-                                        setCardComplete(cardDetails.complete);
-                                    }}
-                                />
-
-                                <View style={styles.modalInfo}>
-                                    <Text style={styles.modalInfoIcon}>ℹ️</Text>
-                                    <Text style={styles.modalInfoText}>
-                                        Your card will be securely saved for future bookings and purchases.
-                                    </Text>
+                    <View style={styles.fullScreenModal}>
+                        <ScreenBackground>
+                            <SafeAreaView style={styles.container}>
+                                <View style={styles.modalHeader}>
+                                    <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                                        <Text style={styles.cancelText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                    <Text style={styles.modalTitle}>Add Payment Method</Text>
+                                    <View style={{ width: 50 }} />
                                 </View>
 
-                                <Button
-                                    title={addingCard ? 'Adding...' : 'Add Card'}
-                                    onPress={handleAddCard}
-                                    fullWidth
-                                    disabled={!cardComplete || addingCard}
-                                    loading={addingCard}
-                                />
-                            </View>
-                        </SafeAreaView>
-                    </ScreenBackground>
+                                <ScrollView style={styles.modalScroll}>
+                                    <Text style={styles.inputLabel}>Card Information</Text>
+
+                                    <View style={styles.cardFieldContainer}>
+                                        <CardField
+                                            postalCodeEnabled={false}
+                                            placeholders={{
+                                                number: '4242 4242 4242 4242',
+                                            }}
+                                            cardStyle={{
+                                                backgroundColor: '#2A2A2A', // Dark background for input
+                                                textColor: '#FFFFFF',
+                                                placeholderColor: '#9CA3AF',
+                                                borderWidth: 0,
+                                                borderRadius: 8,
+                                            }}
+                                            style={styles.cardField}
+                                            onCardChange={(cardDetails: any) => {
+                                                setCardComplete(cardDetails.complete);
+                                            }}
+                                        />
+                                    </View>
+
+                                    <View style={styles.modalInfo}>
+                                        <Text style={styles.modalInfoIcon}>ℹ️</Text>
+                                        <Text style={styles.modalInfoText}>
+                                            Your card will be securely saved for future bookings and purchases.
+                                        </Text>
+                                    </View>
+
+                                    <Button
+                                        title="Save Card"
+                                        onPress={handleAddCard}
+                                        loading={addingCard}
+                                        fullWidth
+                                        style={styles.saveButton}
+                                    />
+                                </ScrollView>
+                            </SafeAreaView>
+                        </ScreenBackground>
+                    </View>
                 </Modal>
+
+                {/* Alert Modal */}
+                <MerakiModal
+                    visible={modalConfig.visible}
+                    title={modalConfig.title}
+                    message={modalConfig.message}
+                    type={modalConfig.type}
+                    onClose={modalConfig.onClose}
+                    onConfirm={modalConfig.onConfirm}
+                    confirmText={modalConfig.confirmText}
+                    cancelText={modalConfig.cancelText}
+                    confirmDestructive={modalConfig.confirmDestructive}
+                    hideCancel={modalConfig.hideCancel}
+                />
             </SafeAreaView>
         </ScreenBackground>
     );
@@ -414,29 +492,28 @@ const styles = StyleSheet.create({
     },
     securityIcon: { fontSize: 16, marginRight: spacing.sm, marginTop: 2 },
     securityText: { flex: 1, fontSize: 12, color: colors.textSecondary, lineHeight: 18 },
+
     // Modal styles
-    modalContainer: { flex: 1 },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: spacing.lg,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border
+    modalContent: {
+        width: '100%',
     },
-    modalCancel: { color: colors.textSecondary, fontSize: 16 },
-    modalTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
-    modalContent: { padding: spacing.lg },
     inputLabel: {
         fontSize: 14,
         fontWeight: '500',
         color: colors.text,
         marginBottom: spacing.sm
     },
+    cardFieldContainer: {
+        marginBottom: spacing.lg,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 12,
+        padding: 4,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
     cardField: {
         width: '100%',
         height: 50,
-        marginBottom: spacing.lg,
     },
     modalInfo: {
         flexDirection: 'row',
@@ -444,10 +521,38 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
         padding: spacing.md,
         borderRadius: 12,
-        marginBottom: spacing.lg,
+        marginBottom: spacing.xs,
     },
     modalInfoIcon: { fontSize: 14, marginRight: spacing.sm, marginTop: 2 },
     modalInfoText: { flex: 1, fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
-});
 
-export default PaymentMethodsScreen;
+    // New Full Screen Modal Styles
+    fullScreenModal: {
+        flex: 1,
+        backgroundColor: colors.background,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: spacing.lg,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: colors.text,
+    },
+    cancelText: {
+        fontSize: 16,
+        color: colors.primary,
+    },
+    modalScroll: {
+        flex: 1,
+        padding: spacing.lg,
+    },
+    saveButton: {
+        marginTop: spacing.xl,
+    },
+});

@@ -7,15 +7,13 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Switch,
-    Alert,
     TextInput,
-    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card, Button } from '../../components/ui';
+import { Card, Button, MerakiModal, MerakiModalProps } from '../../components/ui';
 import { ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 
@@ -50,7 +48,14 @@ export function MasterAvailabilityScreen() {
     const [availability, setAvailability] = useState<Availability[]>(DEFAULT_AVAILABILITY);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [timePickerModal, setTimePickerModal] = useState<{
+    const [modalConfig, setModalConfig] = useState<MerakiModalProps>({
+        visible: false,
+        title: '',
+        onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+    });
+
+    // Time picker state management
+    const [timePickerState, setTimePickerState] = useState<{
         visible: boolean;
         dayIndex: number;
         field: 'start_time' | 'end_time';
@@ -107,12 +112,12 @@ export function MasterAvailabilityScreen() {
     };
 
     const openTimePicker = (dayIndex: number, field: 'start_time' | 'end_time') => {
-        setTimePickerModal({ visible: true, dayIndex, field });
+        setTimePickerState({ visible: true, dayIndex, field });
     };
 
     const handleTimeSelect = (time: string) => {
-        updateTime(timePickerModal.dayIndex, timePickerModal.field, time);
-        setTimePickerModal({ ...timePickerModal, visible: false });
+        updateTime(timePickerState.dayIndex, timePickerState.field, time);
+        setTimePickerState(prev => ({ ...prev, visible: false }));
     };
 
     const handleSave = async () => {
@@ -121,7 +126,15 @@ export function MasterAvailabilityScreen() {
         // Validate times
         for (const day of availability) {
             if (day.is_available && day.start_time >= day.end_time) {
-                Alert.alert('Invalid Time', `${DAYS_OF_WEEK[day.day_of_week]}: End time must be after start time`);
+                setModalConfig({
+                    visible: true,
+                    title: 'Invalid Time',
+                    message: `${DAYS_OF_WEEK[day.day_of_week]}: End time must be after start time`,
+                    type: 'error',
+                    onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+                    confirmText: 'OK',
+                    hideCancel: true
+                });
                 return;
             }
         }
@@ -147,9 +160,25 @@ export function MasterAvailabilityScreen() {
                 );
 
             if (error) throw error;
-            Alert.alert('Success', 'Your availability has been saved');
+            setModalConfig({
+                visible: true,
+                title: 'Success',
+                message: 'Your availability has been saved',
+                type: 'success',
+                onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+                confirmText: 'OK',
+                hideCancel: true
+            });
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            setModalConfig({
+                visible: true,
+                title: 'Error',
+                message: error.message,
+                type: 'error',
+                onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+                confirmText: 'OK',
+                hideCancel: true
+            });
         } finally {
             setSaving(false);
         }
@@ -231,58 +260,46 @@ export function MasterAvailabilityScreen() {
                     />
                 </View>
 
-                {/* Time Picker Modal */}
-                <Modal
-                    visible={timePickerModal.visible}
-                    transparent
-                    animationType="slide"
-                    onRequestClose={() => setTimePickerModal({ ...timePickerModal, visible: false })}
+                {/* Time Picker Modal using MerakiModal */}
+                <MerakiModal
+                    visible={timePickerState.visible}
+                    title={`Select ${timePickerState.field === 'start_time' ? 'Start' : 'End'} Time`}
+                    onClose={() => setTimePickerState(prev => ({ ...prev, visible: false }))}
+                    hideCancel
+                    confirmText="Close"
                 >
-                    <TouchableOpacity
-                        style={styles.modalOverlay}
-                        activeOpacity={1}
-                        onPress={() => setTimePickerModal({ ...timePickerModal, visible: false })}
-                    >
-                        <View style={styles.modalContent}>
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>
-                                    Select {timePickerModal.field === 'start_time' ? 'Start' : 'End'} Time
-                                </Text>
-                                <TouchableOpacity
-                                    onPress={() => setTimePickerModal({ ...timePickerModal, visible: false })}
-                                >
-                                    <Text style={styles.modalClose}>✕</Text>
-                                </TouchableOpacity>
-                            </View>
-                            <ScrollView style={styles.timeOptionsScroll}>
-                                <View style={styles.timeOptionsGrid}>
-                                    {TIME_OPTIONS.map((time) => {
-                                        const currentValue = availability[timePickerModal.dayIndex]?.[timePickerModal.field];
-                                        const isSelected = time === currentValue;
+                    <View style={styles.timeOptionsContainer}>
+                        <ScrollView style={styles.timeOptionsScroll} nestedScrollEnabled>
+                            <View style={styles.timeOptionsGrid}>
+                                {TIME_OPTIONS.map((time) => {
+                                    const currentValue = availability[timePickerState.dayIndex]?.[timePickerState.field];
+                                    const isSelected = time === currentValue;
 
-                                        return (
-                                            <TouchableOpacity
-                                                key={time}
-                                                style={[
-                                                    styles.timeOption,
-                                                    isSelected && styles.timeOptionSelected
-                                                ]}
-                                                onPress={() => handleTimeSelect(time)}
-                                            >
-                                                <Text style={[
-                                                    styles.timeOptionText,
-                                                    isSelected && styles.timeOptionTextSelected
-                                                ]}>
-                                                    {time}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
-                                </View>
-                            </ScrollView>
-                        </View>
-                    </TouchableOpacity>
-                </Modal>
+                                    return (
+                                        <TouchableOpacity
+                                            key={time}
+                                            style={[
+                                                styles.timeOption,
+                                                isSelected && styles.timeOptionSelected
+                                            ]}
+                                            onPress={() => handleTimeSelect(time)}
+                                        >
+                                            <Text style={[
+                                                styles.timeOptionText,
+                                                isSelected && styles.timeOptionTextSelected
+                                            ]}>
+                                                {time}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        </ScrollView>
+                    </View>
+                </MerakiModal>
+
+                {/* Alert Modal */}
+                <MerakiModal {...modalConfig} />
             </SafeAreaView>
         </ScreenBackground>
     );
@@ -337,43 +354,18 @@ const styles = StyleSheet.create({
     },
     bottomBar: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border },
 
-    // Modal styles
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: colors.surface,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        maxHeight: '60%',
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: spacing.lg,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: colors.text,
-    },
-    modalClose: {
-        fontSize: 20,
-        color: colors.textMuted,
-        padding: spacing.sm,
+    timeOptionsContainer: {
+        maxHeight: 400,
+        width: '100%',
     },
     timeOptionsScroll: {
-        padding: spacing.lg,
+        padding: spacing.xs,
     },
     timeOptionsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: spacing.sm,
+        justifyContent: 'flex-start',
     },
     timeOption: {
         width: '23%',

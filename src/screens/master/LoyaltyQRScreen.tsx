@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
 import { supabase } from '../../lib/supabase';
-import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { ScreenBackground, Card, Button } from '../../components/ui';
 import { colors, spacing } from '../../theme';
@@ -46,27 +45,29 @@ export function LoyaltyQRScreen() {
 
     const setupQR = async () => {
         try {
-            // Get or create code
-            const rpcPromise = (supabase as any).rpc('get_my_qr_code');
-            const { data: code, error } = await safeSupabaseFetch(rpcPromise as Promise<any>, { timeout: 10000 });
+            // For stamp cards, the QR code simply encodes the master ID
+            // Format: stamp:{master_id}
+            const stampQrValue = `stamp:${user?.id}`;
+            setQrCode(stampQrValue);
 
-            if (error) throw error;
-            setQrCode(code as string);
+            // Get stats - count how many stamps given today
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-            // Get stats
-            const statsPromise = (supabase as any)
-                .from('loyalty_qr_codes')
-                .select('scans_count')
-                .eq('user_id', user?.id)
-                .single();
+            const { data: stats, error } = await (supabase as any)
+                .from('stamp_history')
+                .select('id, client_stamp_id!inner(master_id)')
+                .eq('client_stamp_id.master_id', user?.id)
+                .eq('action', 'earned')
+                .gte('created_at', today.toISOString());
 
-            const { data: stats } = await safeSupabaseFetch(statsPromise as Promise<any>, { timeout: 5000 });
-
-            if (stats) setScansCount((stats as any).scans_count);
-
+            if (!error && stats) {
+                setScansCount(stats.length);
+            }
         } catch (error: any) {
             console.error('QR Setup Error:', error);
-            Alert.alert('Error', 'Failed to generate QR code');
+            // Still show QR even if stats fail
+            setQrCode(`stamp:${user?.id}`);
         } finally {
             setLoading(false);
         }
@@ -94,13 +95,13 @@ export function LoyaltyQRScreen() {
                         onPress={() => navigation.goBack()}
                         style={styles.closeBtn}
                     />
-                    <Text style={styles.title}>Client Scanner</Text>
+                    <Text style={styles.title}>Stamp Card QR</Text>
                     <View style={{ width: 60 }} />
                 </View>
 
                 <View style={styles.content}>
                     <Text style={styles.instruction}>
-                        Ask your client to scan this code to earn points.
+                        Ask your client to scan this code to collect a stamp on your loyalty card.
                     </Text>
 
                     <Card style={styles.qrCard}>
@@ -117,14 +118,14 @@ export function LoyaltyQRScreen() {
                             )}
                         </View>
                         <Text style={styles.securityNote}>
-                            🔒 Code automatically rotates after each scan
+                            🎫 Client scans this to collect stamps
                         </Text>
                     </Card>
 
                     <Card variant="glass" style={styles.statsCard}>
-                        <Text style={styles.statsLabel}>Total Scans Today</Text>
+                        <Text style={styles.statsLabel}>Stamps Given Today</Text>
                         <Text style={styles.statsValue}>{scansCount}</Text>
-                        <Text style={styles.statsSub}>+50 points per scan</Text>
+                        <Text style={styles.statsSub}>+1 stamp per scan</Text>
                     </Card>
                 </View>
             </SafeAreaView>

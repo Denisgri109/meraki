@@ -1,9 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 // Create Payment Intent Edge Function
 // Creates a Stripe PaymentIntent for pre-authorization
 
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 interface RequestBody {
     amount: number;
@@ -27,6 +30,33 @@ Deno.serve(async (req: Request) => {
     }
 
     try {
+        console.log("Create payment intent received request");
+
+        // 1. Manually verify the JWT
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+            return new Response(
+                JSON.stringify({ error: "Missing Authorization header" }),
+                { status: 401, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+            );
+        }
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: authHeader } },
+        });
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            console.error("Auth error:", authError);
+            return new Response(
+                JSON.stringify({ error: "Unauthorized", details: authError?.message }),
+                { status: 401, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+            );
+        }
+
+        console.log("User verified:", user.id);
+
         const body: RequestBody = await req.json();
         const {
             amount,
@@ -37,11 +67,23 @@ Deno.serve(async (req: Request) => {
             capture_method = "manual",
         } = body;
 
-        if (!amount || !appointment_id) {
+        if (!amount) {
             return new Response(
-                JSON.stringify({ error: "Missing required fields: amount, appointment_id" }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
+                JSON.stringify({ error: "Missing required field: amount" }),
+                { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
             );
+        }
+
+        let stripeCustomerId = customer_id;
+        // Safety check for mock IDs here too
+        if (stripeCustomerId && stripeCustomerId.startsWith('cus_mock_')) {
+            console.warn("Mock customer ID detected in payment intent:", stripeCustomerId);
+            // We can't easily create a customer here without email/metadata, 
+            // but hopefully setup-intent already fixed it. 
+            // If we proceed with mock ID, it WILL fail.
+            // Better to strip it and let it fail with "missing customer" or attached to guest if logic allowed,
+            // but for now let's just null it so it doesn't cause a 400 from Stripe for invalid ID.
+            stripeCustomerId = undefined;
         }
 
         // Create PaymentIntent with Stripe API
@@ -56,17 +98,19 @@ Deno.serve(async (req: Request) => {
                 currency: currency,
                 capture_method: capture_method,
                 description: description,
-                "metadata[appointment_id]": appointment_id,
-                ...(customer_id && { customer: customer_id }),
+                ...(appointment_id && { "metadata[appointment_id]": appointment_id }),
+                ...(stripeCustomerId && { customer: stripeCustomerId }),
+                "metadata[user_id]": user.id
             }),
         });
 
         const paymentIntent = await stripeResponse.json();
 
         if (paymentIntent.error) {
+            console.error("Stripe payment intent creation error:", paymentIntent.error);
             return new Response(
                 JSON.stringify({ error: paymentIntent.error.message }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
+                { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
             );
         }
 
@@ -85,8 +129,8 @@ Deno.serve(async (req: Request) => {
     } catch (error) {
         console.error("Error creating payment intent:", error);
         return new Response(
-            JSON.stringify({ error: "Failed to create payment intent" }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
+            JSON.stringify({ error: "Failed to create payment intent", details: String(error) }),
+            { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
         );
     }
 });

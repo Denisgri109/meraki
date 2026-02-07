@@ -7,20 +7,23 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Image,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { Button, Card, ScreenBackground } from '../../components/ui';
+import { PreBookingQuestionnaireModal } from '../../components/booking';
 import { colors, spacing } from '../../theme';
-import { Service, Profile } from '../../types/database';
+import { Service, Profile, BookingConsultation } from '../../types/database';
 
 type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
     SelectDateTime: { serviceId: string; masterId: string };
     BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
+    ConsultationWaiting: { consultationId: string; serviceId: string; masterId: string };
 };
 
 type ServiceDetailScreenProps = {
@@ -28,11 +31,19 @@ type ServiceDetailScreenProps = {
     route: RouteProp<BookingStackParamList, 'ServiceDetail'>;
 };
 
+// Extended service type to include requires_consultation
+interface ServiceWithConsultation extends Service {
+    requires_consultation?: boolean;
+}
+
 export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenProps) {
     const { serviceId } = route.params;
-    const [service, setService] = useState<Service | null>(null);
+    const [service, setService] = useState<ServiceWithConsultation | null>(null);
     const [master, setMaster] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
+    const [checkingConsultation, setCheckingConsultation] = useState(false);
+    const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+    const [existingConsultation, setExistingConsultation] = useState<BookingConsultation | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -92,6 +103,11 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
             }
 
             setService(serviceData);
+
+            // Check for existing consultation if service requires it
+            if (serviceData?.requires_consultation) {
+                await checkExistingConsultation(serviceData.id, selectedProfile?.id);
+            }
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -99,13 +115,132 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
         }
     };
 
-    const handleContinue = () => {
-        if (master) {
+    const checkExistingConsultation = async (svcId: string, mstId?: string) => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            // Check for existing pending or approved consultation
+            const { data: consultations } = await supabase
+                .from('booking_consultations')
+                .select('*')
+                .eq('client_id', user.id)
+                .eq('service_id', svcId)
+                .in('status', ['pending', 'approved', 'chat_requested'])
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (consultations && consultations.length > 0) {
+                const consultation = consultations[0];
+
+                // Check if approval has expired
+                if (consultation.status === 'approved' && consultation.approval_expires_at) {
+                    const expiresAt = new Date(consultation.approval_expires_at);
+                    if (expiresAt < new Date()) {
+                        // Expired - don't use this consultation
+                        setExistingConsultation(null);
+                        return;
+                    }
+                }
+
+                setExistingConsultation(consultation);
+            }
+        } catch (error) {
+            console.error('Error checking existing consultation:', error);
+        }
+    };
+
+    const handleContinue = async () => {
+        if (!master) return;
+
+        // Check if service requires consultation
+        if (service?.requires_consultation) {
+            setCheckingConsultation(true);
+
+            try {
+                // Re-check for latest consultation status
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error('Not authenticated');
+
+                const { data: consultations } = await supabase
+                    .from('booking_consultations')
+                    .select('*')
+                    .eq('client_id', user.id)
+                    .eq('service_id', serviceId)
+                    .in('status', ['pending', 'approved', 'chat_requested'])
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (consultations && consultations.length > 0) {
+                    const consultation = consultations[0];
+
+                    if (consultation.status === 'approved') {
+                        // Check expiry
+                        if (consultation.approval_expires_at) {
+                            const expiresAt = new Date(consultation.approval_expires_at);
+                            if (expiresAt < new Date()) {
+                                // Expired - need new consultation
+                                setShowQuestionnaireModal(true);
+                                return;
+                            }
+                        }
+                        // Approved and not expired - continue to booking
+                        navigation.navigate('SelectDateTime', {
+                            serviceId,
+                            masterId: master.id,
+                        });
+                    } else {
+                        // Pending or chat_requested - go to waiting screen
+                        navigation.navigate('ConsultationWaiting', {
+                            consultationId: consultation.id,
+                            serviceId,
+                            masterId: master.id,
+                        });
+                    }
+                } else {
+                    // No existing consultation - show questionnaire
+                    setShowQuestionnaireModal(true);
+                }
+            } catch (error) {
+                console.error('Error checking consultation:', error);
+                Alert.alert('Error', 'Failed to check consultation status');
+            } finally {
+                setCheckingConsultation(false);
+            }
+        } else {
+            // No consultation required - proceed directly
             navigation.navigate('SelectDateTime', {
                 serviceId,
                 masterId: master.id,
             });
         }
+    };
+
+    const handleConsultationSubmitted = (consultationId: string) => {
+        setShowQuestionnaireModal(false);
+
+        // Navigate to waiting screen
+        navigation.navigate('ConsultationWaiting', {
+            consultationId,
+            serviceId,
+            masterId: master?.id || '',
+        });
+    };
+
+    const getButtonText = () => {
+        if (checkingConsultation) return 'Checking...';
+
+        if (service?.requires_consultation && existingConsultation) {
+            if (existingConsultation.status === 'approved') {
+                return 'Continue Booking';
+            } else if (existingConsultation.status === 'pending') {
+                return 'View Consultation Status';
+            } else if (existingConsultation.status === 'chat_requested') {
+                return 'View Chat Request';
+            }
+        }
+
+        return 'Continue';
     };
 
     if (loading) {
@@ -159,6 +294,16 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                                 <Text style={styles.metaValue}>{service.duration_minutes} min</Text>
                             </View>
                         </View>
+
+                        {/* Consultation Required Badge */}
+                        {service.requires_consultation && (
+                            <View style={styles.consultationBadge}>
+                                <Text style={styles.consultationBadgeIcon}>📋</Text>
+                                <Text style={styles.consultationBadgeText}>
+                                    Consultation required before booking
+                                </Text>
+                            </View>
+                        )}
                     </View>
 
                     {/* Specialist Info (Auto-assigned) */}
@@ -205,13 +350,24 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                 {/* Bottom Button */}
                 <View style={styles.bottomBar}>
                     <Button
-                        title="Continue"
+                        title={getButtonText()}
                         onPress={handleContinue}
-                        disabled={!master}
+                        disabled={!master || checkingConsultation}
+                        loading={checkingConsultation}
                         fullWidth
                     />
                 </View>
             </SafeAreaView>
+
+            {/* Pre-Booking Questionnaire Modal */}
+            <PreBookingQuestionnaireModal
+                visible={showQuestionnaireModal}
+                onClose={() => setShowQuestionnaireModal(false)}
+                onSubmit={handleConsultationSubmitted}
+                serviceId={serviceId}
+                serviceName={service.name}
+                masterId={master?.id || null}
+            />
         </ScreenBackground>
     );
 }
@@ -272,6 +428,23 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: '600',
         color: colors.text,
+    },
+    consultationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        borderRadius: 12,
+        padding: spacing.md,
+        marginTop: spacing.lg,
+        gap: spacing.sm,
+    },
+    consultationBadgeIcon: {
+        fontSize: 18,
+    },
+    consultationBadgeText: {
+        fontSize: 13,
+        color: colors.primary,
+        fontWeight: '500',
     },
     masterSection: {
         padding: spacing.lg,

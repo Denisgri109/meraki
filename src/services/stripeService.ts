@@ -38,7 +38,7 @@ interface CreatePaymentIntentParams {
     captureMethod?: 'manual' | 'automatic';
 }
 
-const SIMULATION_MODE = __DEV__; // Automatically enable simulation in development
+const SIMULATION_MODE = false; // Disabled - use real Stripe integration
 
 // Helper to simulate delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -63,11 +63,14 @@ export async function createSetupIntent(userId: string, userEmail?: string, cust
         };
     }
 
+    // Filter out mock customer IDs from simulation mode - don't send them to the real Stripe API
+    const realCustomerId = customerId && !customerId.startsWith('cus_mock_') ? customerId : undefined;
+
     const { data, error } = await supabase.functions.invoke('setup-intent', {
         body: {
             user_id: userId,
             user_email: userEmail,
-            customer_id: customerId,
+            customer_id: realCustomerId,
         },
     });
 
@@ -82,7 +85,12 @@ export async function createSetupIntent(userId: string, userEmail?: string, cust
 /**
  * List saved payment methods for a customer
  */
-export async function listPaymentMethods(customerId: string): Promise<PaymentMethod[]> {
+export async function listPaymentMethods(customerId: string | null | undefined): Promise<PaymentMethod[]> {
+    // Return empty array if no customer ID (new user without Stripe setup)
+    if (!customerId) {
+        return [];
+    }
+
     if (SIMULATION_MODE) {
         // Return a mock card if in simulation mode
         await delay(500);
@@ -103,7 +111,7 @@ export async function listPaymentMethods(customerId: string): Promise<PaymentMet
     });
 
     if (error) throw error;
-    return data.paymentMethods;
+    return data.paymentMethods || [];
 }
 
 /**

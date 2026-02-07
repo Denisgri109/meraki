@@ -107,7 +107,7 @@ export function MasterDashboardScreen() {
                     // Check if we got valid address data
                     if (addresses && addresses.length > 0) {
                         const address = addresses[0];
-                        
+
                         // Only update if address has valid data
                         if (address.city || address.subregion) {
                             if (!newCity) {
@@ -415,6 +415,13 @@ export function MasterDashboardScreen() {
                                     <MaterialCommunityIcons name="email-outline" size={24} color="#10B981" />
                                 </View>
                                 <Text style={styles.actionLabel}>Campaigns</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('BookingConsultations')}>
+                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(217, 70, 239, 0.2)' }]}>
+                                    <MaterialCommunityIcons name="clipboard-check-outline" size={24} color="#D946EF" />
+                                </View>
+                                <Text style={styles.actionLabel}>Consults</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

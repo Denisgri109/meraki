@@ -10,6 +10,8 @@ import {
     ServiceListScreen,
     ServiceFormScreen,
     InventoryScreen,
+    OwnerSuppliesScreen,
+    AddOwnerSupplyScreen,
 } from '../screens/owner';
 import {
     ManageAcademyScreen,
@@ -25,6 +27,11 @@ import {
     PortfolioScreen,
     MyServicesScreen,
     CreateServiceScreen,
+    ServiceSuppliesScreen,
+    BusinessSettingsScreen,
+    LoyaltyCardBuilderScreen,
+    AftercareCampaignScreen,
+    BookingConsultationReviewScreen,
 } from '../screens/master';
 import {
     ProfileScreen,
@@ -51,6 +58,14 @@ export type OwnerDashboardStackParamList = {
     Portfolio: undefined;
     MyServices: undefined;
     CreateService: undefined;
+    ServiceSupplies: { serviceId?: string } | undefined;
+    OwnerSupplies: undefined;
+    AddOwnerSupply: { supply?: any } | undefined;
+
+    BusinessSettings: undefined;
+    LoyaltyCardBuilder: undefined;
+    AftercareCampaigns: undefined;
+    BookingConsultations: undefined;
 };
 
 const DashboardStack = createNativeStackNavigator<OwnerDashboardStackParamList>();
@@ -70,6 +85,13 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="Portfolio" component={PortfolioScreen} />
             <DashboardStack.Screen name="MyServices" component={MyServicesScreen} />
             <DashboardStack.Screen name="CreateService" component={CreateServiceScreen} />
+            <DashboardStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
+            <DashboardStack.Screen name="OwnerSupplies" component={OwnerSuppliesScreen} />
+            <DashboardStack.Screen name="AddOwnerSupply" component={AddOwnerSupplyScreen} />
+            <DashboardStack.Screen name="BusinessSettings" component={BusinessSettingsScreen} />
+            <DashboardStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
+            <DashboardStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />
+            <DashboardStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
         </DashboardStack.Navigator>
     );
 }

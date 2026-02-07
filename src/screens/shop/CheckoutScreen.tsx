@@ -128,8 +128,8 @@ export function CheckoutScreen() {
             const totalInCents = eurosToCents(getTotal());
 
             // SIMULATION MODE: Bypass real Stripe payment for testing
-            // Set to false to use real Stripe integration
-            const USE_SIMULATION = true;
+            // Set to true to simulate payments without real charges
+            const USE_SIMULATION = false;
             let paymentIntentId = '';
 
             if (USE_SIMULATION) {

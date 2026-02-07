@@ -32,6 +32,23 @@ credentials/
 # expo
 .expo/
 
+
 # binaries
 *.exe
 *.zip
+
+# Android
+/android/build
+/android/app/build
+/android/.gradle
+/android/app/src/main/assets/
+/android/app/src/main/res/raw/
+/android/app/build/
+/android/app/build/intermediates/
+/android/app/build/generated/
+
+# iOS
+/ios/Pods
+/ios/build
+/ios/*.xcworkspace
+/ios/DerivedData

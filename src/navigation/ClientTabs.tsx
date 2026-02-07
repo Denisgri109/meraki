@@ -13,6 +13,7 @@ import {
     TermsOfServiceScreen,
     PrivacyPolicyScreen,
     LoyaltyPointsScreen,
+    StampCardsScreen,
     PaymentMethodsScreen,
     PaymentHistoryScreen,
     NotificationsScreen,
@@ -49,6 +50,7 @@ export type HomeStackParamList = {
     TermsOfService: undefined;
     PrivacyPolicy: undefined;
     LoyaltyPoints: undefined;
+    StampCards: undefined;
     PaymentMethods: undefined;
     PaymentHistory: undefined;
     Notifications: undefined;
@@ -74,6 +76,7 @@ function HomeStackNavigator() {
             <HomeStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
             <HomeStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
             <HomeStack.Screen name="LoyaltyPoints" component={LoyaltyPointsScreen} />
+            <HomeStack.Screen name="StampCards" component={StampCardsScreen} />
             <HomeStack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
             <HomeStack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
             <HomeStack.Screen name="Notifications" component={NotificationsScreen} />

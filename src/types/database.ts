@@ -57,6 +57,9 @@ export type Database = {
                     start_time: string
                     status: Database["public"]["Enums"]["appointment_status"]
                     stripe_payment_intent_id: string | null
+                    deposit_amount: number | null
+                    deposit_paid: boolean | null
+                    deposit_payment_intent_id: string | null
                     updated_at: string | null
                 }
                 Insert: {
@@ -71,6 +74,9 @@ export type Database = {
                     start_time: string
                     status?: Database["public"]["Enums"]["appointment_status"]
                     stripe_payment_intent_id?: string | null
+                    deposit_amount?: number | null
+                    deposit_paid?: boolean | null
+                    deposit_payment_intent_id?: string | null
                     updated_at?: string | null
                 }
                 Update: {
@@ -85,6 +91,9 @@ export type Database = {
                     start_time?: string
                     status?: Database["public"]["Enums"]["appointment_status"]
                     stripe_payment_intent_id?: string | null
+                    deposit_amount?: number | null
+                    deposit_paid?: boolean | null
+                    deposit_payment_intent_id?: string | null
                     updated_at?: string | null
                 }
                 Relationships: [
@@ -107,6 +116,135 @@ export type Database = {
                         columns: ["service_id"]
                         isOneToOne: false
                         referencedRelation: "services"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
+            booking_consultations: {
+                Row: {
+                    id: string
+                    client_id: string
+                    service_id: string
+                    master_id: string | null
+                    had_before: boolean
+                    how_long_ago: string | null
+                    was_my_work: boolean | null
+                    photo_urls: string[]
+                    additional_notes: string | null
+                    status: Database["public"]["Enums"]["booking_consultation_status"]
+                    booking_link_token: string
+                    approval_expires_at: string | null
+                    master_notes: string | null
+                    responded_at: string | null
+                    converted_to_booking: boolean
+                    booking_id: string | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    client_id: string
+                    service_id: string
+                    master_id?: string | null
+                    had_before?: boolean
+                    how_long_ago?: string | null
+                    was_my_work?: boolean | null
+                    photo_urls?: string[]
+                    additional_notes?: string | null
+                    status?: Database["public"]["Enums"]["booking_consultation_status"]
+                    booking_link_token?: string
+                    approval_expires_at?: string | null
+                    master_notes?: string | null
+                    responded_at?: string | null
+                    converted_to_booking?: boolean
+                    booking_id?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    client_id?: string
+                    service_id?: string
+                    master_id?: string | null
+                    had_before?: boolean
+                    how_long_ago?: string | null
+                    was_my_work?: boolean | null
+                    photo_urls?: string[]
+                    additional_notes?: string | null
+                    status?: Database["public"]["Enums"]["booking_consultation_status"]
+                    booking_link_token?: string
+                    approval_expires_at?: string | null
+                    master_notes?: string | null
+                    responded_at?: string | null
+                    converted_to_booking?: boolean
+                    booking_id?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "booking_consultations_client_id_fkey"
+                        columns: ["client_id"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "booking_consultations_service_id_fkey"
+                        columns: ["service_id"]
+                        isOneToOne: false
+                        referencedRelation: "services"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "booking_consultations_master_id_fkey"
+                        columns: ["master_id"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
+            master_settings: {
+                Row: {
+                    master_id: string
+                    no_show_charge_percent: number | null
+                    grace_period_multiplier: number | null
+                    auto_charge_after_grace_period: boolean | null
+                    deposit_type: string | null
+                    deposit_amount: number | null
+                    deposit_percentage: number | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    master_id: string
+                    no_show_charge_percent?: number | null
+                    grace_period_multiplier?: number | null
+                    auto_charge_after_grace_period?: boolean | null
+                    deposit_type?: string | null
+                    deposit_amount?: number | null
+                    deposit_percentage?: number | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    master_id?: string
+                    no_show_charge_percent?: number | null
+                    grace_period_multiplier?: number | null
+                    auto_charge_after_grace_period?: boolean | null
+                    deposit_type?: string | null
+                    deposit_amount?: number | null
+                    deposit_percentage?: number | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "master_settings_master_id_fkey"
+                        columns: ["master_id"]
+                        isOneToOne: true
+                        referencedRelation: "profiles"
                         referencedColumns: ["id"]
                     },
                 ]
@@ -213,6 +351,7 @@ export type Database = {
                     id: string
                     is_master: boolean | null
                     notification_preferences: Json | null
+                    onboarding_completed: boolean | null
                     phone: string | null
                     push_token: string | null
                     role: Database["public"]["Enums"]["user_role"]
@@ -233,6 +372,7 @@ export type Database = {
                     full_name?: string | null
                     id: string
                     is_master?: boolean | null
+                    onboarding_completed?: boolean | null
                     phone?: string | null
                     push_token?: string | null
                     role?: Database["public"]["Enums"]["user_role"]
@@ -254,6 +394,7 @@ export type Database = {
                     id?: string
                     is_master?: boolean | null
                     notification_preferences?: Json | null
+                    onboarding_completed?: boolean | null
                     phone?: string | null
                     push_token?: string | null
                     role?: Database["public"]["Enums"]["user_role"]
@@ -277,6 +418,7 @@ export type Database = {
                     image_url: string | null
                     is_active: boolean | null
                     name: string
+                    requires_consultation: boolean | null
                     updated_at: string | null
                 }
                 Insert: {
@@ -289,6 +431,7 @@ export type Database = {
                     image_url?: string | null
                     is_active?: boolean | null
                     name: string
+                    requires_consultation?: boolean | null
                     updated_at?: string | null
                 }
                 Update: {
@@ -301,6 +444,7 @@ export type Database = {
                     image_url?: string | null
                     is_active?: boolean | null
                     name?: string
+                    requires_consultation?: boolean | null
                     updated_at?: string | null
                 }
                 Relationships: []
@@ -543,6 +687,286 @@ export type Database = {
                     },
                 ]
             }
+            master_supplies: {
+                Row: {
+                    id: string
+                    master_id: string
+                    name: string
+                    description: string | null
+                    quantity: number
+                    unit: string
+                    low_stock_threshold: number | null
+                    cost_per_unit: number | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    master_id: string
+                    name: string
+                    description?: string | null
+                    quantity?: number
+                    unit?: string
+                    low_stock_threshold?: number | null
+                    cost_per_unit?: number | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    master_id?: string
+                    name?: string
+                    description?: string | null
+                    quantity?: number
+                    unit?: string
+                    low_stock_threshold?: number | null
+                    cost_per_unit?: number | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "master_supplies_master_id_fkey"
+                        columns: ["master_id"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
+            service_supplies: {
+                Row: {
+                    id: string
+                    service_id: string
+                    supply_id: string
+                    quantity_per_service: number
+                    notes: string | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    service_id: string
+                    supply_id: string
+                    quantity_per_service?: number
+                    notes?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    service_id?: string
+                    supply_id?: string
+                    quantity_per_service?: number
+                    notes?: string | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "service_supplies_service_id_fkey"
+                        columns: ["service_id"]
+                        isOneToOne: false
+                        referencedRelation: "services"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "service_supplies_supply_id_fkey"
+                        columns: ["supply_id"]
+                        isOneToOne: false
+                        referencedRelation: "master_supplies"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
+            supply_consumption_log: {
+                Row: {
+                    id: string
+                    supply_id: string
+                    appointment_id: string | null
+                    quantity_used: number
+                    quantity_before: number
+                    quantity_after: number
+                    notes: string | null
+                    created_by: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    supply_id: string
+                    appointment_id?: string | null
+                    quantity_used: number
+                    quantity_before: number
+                    quantity_after: number
+                    notes?: string | null
+                    created_by?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    supply_id?: string
+                    appointment_id?: string | null
+                    quantity_used?: number
+                    quantity_before?: number
+                    quantity_after?: number
+                    notes?: string | null
+                    created_by?: string | null
+                    created_at?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "supply_consumption_log_supply_id_fkey"
+                        columns: ["supply_id"]
+                        isOneToOne: false
+                        referencedRelation: "master_supplies"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "supply_consumption_log_appointment_id_fkey"
+                        columns: ["appointment_id"]
+                        isOneToOne: false
+                        referencedRelation: "appointments"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "supply_consumption_log_created_by_fkey"
+                        columns: ["created_by"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
+            global_settings: {
+                Row: {
+                    id: string
+                    key: string
+                    value: string
+                    description: string | null
+                    updated_at: string | null
+                    updated_by: string | null
+                }
+                Insert: {
+                    id?: string
+                    key: string
+                    value: string
+                    description?: string | null
+                    updated_at?: string | null
+                    updated_by?: string | null
+                }
+                Update: {
+                    id?: string
+                    key?: string
+                    value?: string
+                    description?: string | null
+                    updated_at?: string | null
+                    updated_by?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "global_settings_updated_by_fkey"
+                        columns: ["updated_by"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
+            owner_supplies: {
+                Row: {
+                    id: string
+                    owner_id: string
+                    name: string
+                    description: string | null
+                    quantity: number
+                    unit: string
+                    low_stock_threshold: number | null
+                    cost_per_unit: number | null
+                    created_at: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    owner_id: string
+                    name: string
+                    description?: string | null
+                    quantity?: number
+                    unit?: string
+                    low_stock_threshold?: number | null
+                    cost_per_unit?: number | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    owner_id?: string
+                    name?: string
+                    description?: string | null
+                    quantity?: number
+                    unit?: string
+                    low_stock_threshold?: number | null
+                    cost_per_unit?: number | null
+                    created_at?: string | null
+                    updated_at?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "owner_supplies_owner_id_fkey"
+                        columns: ["owner_id"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
+            owner_supply_consumption_log: {
+                Row: {
+                    id: string
+                    supply_id: string
+                    quantity_used: number
+                    quantity_before: number
+                    quantity_after: number
+                    notes: string | null
+                    created_by: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    supply_id: string
+                    quantity_used: number
+                    quantity_before: number
+                    quantity_after: number
+                    notes?: string | null
+                    created_by?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    supply_id?: string
+                    quantity_used?: number
+                    quantity_before?: number
+                    quantity_after?: number
+                    notes?: string | null
+                    created_by?: string | null
+                    created_at?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "owner_supply_consumption_log_supply_id_fkey"
+                        columns: ["supply_id"]
+                        isOneToOne: false
+                        referencedRelation: "owner_supplies"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "owner_supply_consumption_log_created_by_fkey"
+                        columns: ["created_by"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
         }
         Views: {
             [_ in never]: never
@@ -553,6 +977,17 @@ export type Database = {
                     p_master_id: string
                     p_service_id: string
                     p_start_time: string
+                    p_notes?: string
+                }
+                Returns: string
+            }
+            book_appointment_with_confirmation: {
+                Args: {
+                    p_master_id: string
+                    p_service_id: string
+                    p_start_time: string
+                    p_stripe_setup_intent_id: string
+                    p_stripe_payment_intent_id: string
                     p_notes?: string
                 }
                 Returns: string
@@ -568,9 +1003,91 @@ export type Database = {
                     slot_end: string
                 }[]
             }
+            client_confirm_appointment: {
+                Args: {
+                    p_appointment_id: string
+                    p_response: string
+                }
+                Returns: {
+                    success: boolean
+                    new_status: string
+                    message: string
+                }[]
+            }
+            process_no_show_charge: {
+                Args: {
+                    p_appointment_id: string
+                    p_charge_now: boolean
+                }
+                Returns: {
+                    success: boolean
+                    charge_amount: number
+                    grace_period_minutes: number
+                    grace_period_ends_at: string
+                    message: string
+                }[]
+            }
+            auto_cancel_appointment: {
+                Args: {
+                    p_appointment_id: string
+                }
+                Returns: {
+                    success: boolean
+                    message: string
+                }[]
+            }
+            client_arrived_late: {
+                Args: {
+                    p_appointment_id: string
+                }
+                Returns: {
+                    success: boolean
+                    message: string
+                }[]
+            }
+            get_appointments_needing_confirmation_reminder: {
+                Args: Record<PropertyKey, never>
+                Returns: {
+                    appointment_id: string
+                    client_id: string
+                    master_id: string
+                    start_time: string
+                    confirmation_deadline: string
+                    master_full_name: string
+                    client_email: string
+                    client_push_token: string
+                    service_name: string
+                }[]
+            }
+            get_appointments_for_auto_cancel: {
+                Args: Record<PropertyKey, never>
+                Returns: {
+                    appointment_id: string
+                    client_id: string
+                    master_id: string
+                    stripe_payment_intent_id: string
+                    client_email: string
+                    master_email: string
+                    service_name: string
+                    start_time: string
+                }[]
+            }
+            get_appointments_for_auto_charge: {
+                Args: Record<PropertyKey, never>
+                Returns: {
+                    appointment_id: string
+                    client_id: string
+                    master_id: string
+                    no_show_charge_amount: number
+                    stripe_payment_intent_id: string
+                    client_email: string
+                    master_email: string
+                }[]
+            }
         }
         Enums: {
-            appointment_status: "pending" | "confirmed" | "completed" | "cancelled" | "no_show" | "pending_cancellation" | "pending_reschedule"
+            appointment_status: "awaiting_confirmation" | "pending" | "confirmed" | "completed" | "cancelled" | "no_show" | "pending_cancellation" | "pending_reschedule" | "reschedule_pending"
+            booking_consultation_status: "pending" | "approved" | "declined" | "chat_requested"
             user_role: "client" | "master" | "owner"
         }
         CompositeTypes: {
@@ -598,3 +1115,34 @@ export type BlockedSlot = Tables<'blocked_slots'>
 export type Portfolio = Tables<'portfolios'>
 export type MasterApplication = Tables<'master_applications'>
 export type PhotoConsultation = Tables<'photo_consultations'>
+export type MasterSupply = Tables<'master_supplies'>
+export type ServiceSupply = Tables<'service_supplies'>
+export type SupplyConsumptionLog = Tables<'supply_consumption_log'>
+export type GlobalSetting = Tables<'global_settings'>
+export type OwnerSupply = Tables<'owner_supplies'>
+export type OwnerSupplyConsumptionLog = Tables<'owner_supply_consumption_log'>
+
+// Booking Consultation for pre-booking approval flow
+export type BookingConsultationStatus = 'pending' | 'approved' | 'declined' | 'chat_requested';
+
+export interface BookingConsultation {
+    id: string;
+    client_id: string;
+    service_id: string;
+    master_id: string | null;
+    had_before: boolean;
+    how_long_ago: string | null;
+    was_my_work: boolean | null;
+    photo_urls: string[];
+    additional_notes: string | null;
+    status: BookingConsultationStatus;
+    booking_link_token: string;
+    approval_expires_at: string | null;
+    master_notes: string | null;
+    responded_at: string | null;
+    converted_to_booking: boolean;
+    booking_id: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+}
+

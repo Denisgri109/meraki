@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { colors, spacing } from '../../theme';
 import { ScreenBackground } from '../../components/ui';
+import { safeGoBack } from '../../navigation/navigationUtils';
 
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - spacing.lg * 3) / 2;
@@ -72,7 +73,7 @@ export function MenuScreen() {
                 >
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
+                        <TouchableOpacity style={styles.closeButton} onPress={() => safeGoBack(navigation, 'Home') }>
                             <Text style={styles.closeIcon}>✕</Text>
                         </TouchableOpacity>
                         <Text style={styles.title}>Menu</Text>

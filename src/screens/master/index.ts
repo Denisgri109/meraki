@@ -12,4 +12,10 @@ export { MasterSettingsScreen } from './MasterSettingsScreen';
 export { BusinessSettingsScreen } from './BusinessSettingsScreen';
 export { LoyaltyCardBuilderScreen } from './LoyaltyCardBuilderScreen';
 export { AftercareCampaignScreen } from './AftercareCampaignScreen';
+export { MasterOnboardingScreen } from './MasterOnboardingScreen';
+export { SuppliesScreen } from './SuppliesScreen';
+export { AddSupplyScreen } from './AddSupplyScreen';
+export { ServiceSuppliesScreen } from './ServiceSuppliesScreen';
+export { BookingConsultationReviewScreen } from './BookingConsultationReviewScreen';
+
 

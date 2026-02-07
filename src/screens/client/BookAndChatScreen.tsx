@@ -13,6 +13,7 @@ import { ChatListScreen, ChatScreen } from '../chat';
 import { ServiceDetailScreen } from './ServiceDetailScreen';
 import { SelectDateTimeScreen } from './SelectDateTimeScreen';
 import { BookingConfirmScreen } from './BookingConfirmScreen';
+import { ConsultationWaitingScreen } from './ConsultationWaitingScreen';
 
 // --- STACKS ---
 
@@ -22,6 +23,7 @@ export type BookingStackParamList = {
     ServiceDetail: { serviceId: string };
     SelectDateTime: { serviceId: string; masterId: string };
     BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
+    ConsultationWaiting: { consultationId: string; serviceId: string; masterId: string };
 };
 
 const BookingStack = createNativeStackNavigator<BookingStackParamList>();
@@ -33,6 +35,7 @@ function BookingStackNavigator() {
             <BookingStack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
             <BookingStack.Screen name="SelectDateTime" component={SelectDateTimeScreen} />
             <BookingStack.Screen name="BookingConfirm" component={BookingConfirmScreen} />
+            <BookingStack.Screen name="ConsultationWaiting" component={ConsultationWaitingScreen} />
         </BookingStack.Navigator>
     );
 }

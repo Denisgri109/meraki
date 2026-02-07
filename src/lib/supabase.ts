@@ -6,6 +6,9 @@ import { Database } from '../types/database';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key exists:', !!supabaseAnonKey);
+
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
         storage: AsyncStorage,
@@ -14,5 +17,10 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
         detectSessionInUrl: false,
     },
 });
+
+// Test connection
+fetch(supabaseUrl)
+  .then(() => console.log('✅ Supabase is reachable'))
+  .catch(err => console.error('❌ Cannot reach Supabase:', err.message));
 
 export default supabase;
