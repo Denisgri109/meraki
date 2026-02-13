@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     Image,
     ScrollView,
@@ -10,8 +9,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
-import { ScreenBackground } from '../../../components/ui';
+import { ScreenBackground, MerakiText } from '../../../components/ui';
 import { colors, spacing } from '../../../theme';
 import { formatDistanceToNow, format } from 'date-fns';
 
@@ -53,15 +53,6 @@ export function StudentDetailScreen() {
             if (error) throw error;
 
             // Filter to only include lessons from this course
-            // Since we can't easily join up to course in one query without complex RLS/views sometimes
-            // We'll fetch course lessons first to filter efficiently if needed, 
-            // but for now let's hope the lesson->chapter->course link is consistent.
-            // Actually, best to just show "Recent Activity" which might include other courses? 
-            // No, the user expects to see progress for THIS course.
-
-            // Let's filter client-side for safety if we can't easily do it in query without deep nesting
-            // But we don't have course_id in lesson_progress. 
-            // We need to verify these lessons belong to the enrolled course.
             const { data: courseLessons } = await (supabase as any)
                 .from('lessons')
                 .select('id')
@@ -82,11 +73,12 @@ export function StudentDetailScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Text style={styles.backButton}>←</Text>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+                        <MerakiText variant="body" color={colors.text} style={{ marginLeft: 4 }}>Back</MerakiText>
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Student Details</Text>
-                    <View style={{ width: 40 }} />
+                    <MerakiText variant="h3" style={styles.headerTitle}>Student Details</MerakiText>
+                    <View style={{ width: 60 }} />
                 </View>
 
                 <ScrollView contentContainerStyle={styles.content}>
@@ -100,14 +92,14 @@ export function StudentDetailScreen() {
                                         style={styles.avatarImage}
                                     />
                                 ) : (
-                                    <Text style={styles.avatarText}>
+                                    <MerakiText variant="h3" color={colors.primary}>
                                         {enrollment.student?.full_name?.[0] || '?'}
-                                    </Text>
+                                    </MerakiText>
                                 )}
                             </View>
                             <View style={styles.profileInfo}>
-                                <Text style={styles.studentName}>{enrollment.student?.full_name}</Text>
-                                <Text style={styles.studentId}>ID: {enrollment.student?.id.slice(0, 8)}</Text>
+                                <MerakiText variant="h3" style={styles.studentName}>{enrollment.student?.full_name}</MerakiText>
+                                <MerakiText variant="caption" style={styles.studentId}>ID: {enrollment.student?.id.slice(0, 8)}</MerakiText>
                             </View>
                         </View>
 
@@ -115,24 +107,24 @@ export function StudentDetailScreen() {
 
                         <View style={styles.statsRow}>
                             <View style={styles.statItem}>
-                                <Text style={styles.statLabel}>Enrolled</Text>
-                                <Text style={styles.statValue}>
+                                <MerakiText variant="caption" style={styles.statLabel}>Enrolled</MerakiText>
+                                <MerakiText variant="body" style={styles.statValue}>
                                     {format(new Date(enrollment.enrolled_at), 'MMM d, yyyy')}
-                                </Text>
+                                </MerakiText>
                             </View>
                             <View style={styles.statItem}>
-                                <Text style={styles.statLabel}>Last Active</Text>
-                                <Text style={styles.statValue}>
+                                <MerakiText variant="caption" style={styles.statLabel}>Last Active</MerakiText>
+                                <MerakiText variant="body" style={styles.statValue}>
                                     {formatDistanceToNow(new Date(enrollment.lastActive || enrollment.enrolled_at), { addSuffix: true })}
-                                </Text>
+                                </MerakiText>
                             </View>
                         </View>
                     </View>
 
                     {/* Course Progress Card */}
-                    <Text style={styles.sectionTitle}>Course Progress</Text>
+                    <MerakiText variant="body" style={styles.sectionTitle}>Course Progress</MerakiText>
                     <View style={styles.card}>
-                        <Text style={styles.courseTitle}>{enrollment.course?.title}</Text>
+                        <MerakiText variant="body" style={styles.courseTitle}>{enrollment.course?.title}</MerakiText>
                         <View style={styles.progressContainer}>
                             <View style={styles.progressBar}>
                                 <View
@@ -142,12 +134,12 @@ export function StudentDetailScreen() {
                                     ]}
                                 />
                             </View>
-                            <Text style={styles.progressText}>{enrollment.progress}% Complete</Text>
+                            <MerakiText variant="caption" style={styles.progressText}>{enrollment.progress}% Complete</MerakiText>
                         </View>
                     </View>
 
                     {/* Lesson History */}
-                    <Text style={styles.sectionTitle}>Completed Lessons ({progressDetails.length})</Text>
+                    <MerakiText variant="body" style={styles.sectionTitle}>Completed Lessons ({progressDetails.length})</MerakiText>
                     {loading ? (
                         <ActivityIndicator size="small" color={colors.primary} />
                     ) : progressDetails.length > 0 ? (
@@ -159,18 +151,18 @@ export function StudentDetailScreen() {
                                         {index < progressDetails.length - 1 && <View style={styles.timelineLine} />}
                                     </View>
                                     <View style={styles.timelineContent}>
-                                        <Text style={styles.lessonTitle}>{item.lesson?.title}</Text>
-                                        <Text style={styles.chapterTitle}>{item.lesson?.chapter?.title}</Text>
-                                        <Text style={styles.completedDate}>
+                                        <MerakiText variant="body" style={styles.lessonTitle}>{item.lesson?.title}</MerakiText>
+                                        <MerakiText variant="caption" style={styles.chapterTitle}>{item.lesson?.chapter?.title}</MerakiText>
+                                        <MerakiText variant="caption" style={styles.completedDate}>
                                             Completed {format(new Date(item.completed_at), 'MMM d, h:mm a')}
-                                        </Text>
+                                        </MerakiText>
                                     </View>
                                 </View>
                             ))}
                         </View>
                     ) : (
                         <View style={styles.emptyState}>
-                            <Text style={styles.emptyText}>No lessons completed yet.</Text>
+                            <MerakiText variant="body" style={styles.emptyText}>No lessons completed yet.</MerakiText>
                         </View>
                     )}
                 </ScrollView>
@@ -188,8 +180,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.md,
     },
-    backButton: { fontSize: 24, color: colors.text },
-    headerTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
+    headerTitle: { fontWeight: '600', color: colors.text },
     content: { padding: spacing.lg },
     card: {
         backgroundColor: colors.surface,
@@ -214,23 +205,21 @@ const styles = StyleSheet.create({
         marginRight: spacing.md,
     },
     avatarImage: { width: 60, height: 60, borderRadius: 30 },
-    avatarText: { fontSize: 24, fontWeight: '600', color: colors.primary },
     profileInfo: { flex: 1 },
-    studentName: { fontSize: 18, fontWeight: '700', color: colors.text },
-    studentId: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+    studentName: { fontWeight: '700', color: colors.text },
+    studentId: { color: colors.textMuted, marginTop: 2 },
     divider: { height: 1, backgroundColor: colors.border, marginBottom: spacing.md },
     statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
     statItem: { flex: 1 },
-    statLabel: { fontSize: 12, color: colors.textMuted, marginBottom: 4 },
-    statValue: { fontSize: 14, fontWeight: '600', color: colors.text },
+    statLabel: { color: colors.textMuted, marginBottom: 4 },
+    statValue: { fontWeight: '600', color: colors.text },
     sectionTitle: {
-        fontSize: 16,
         fontWeight: '600',
         color: colors.text,
         marginBottom: spacing.sm,
         marginTop: spacing.sm
     },
-    courseTitle: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: spacing.md },
+    courseTitle: { fontWeight: '600', color: colors.text, marginBottom: spacing.md },
     progressContainer: { gap: 8 },
     progressBar: {
         height: 8,
@@ -239,7 +228,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     progressFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 4 },
-    progressText: { fontSize: 12, color: colors.textMuted, textAlign: 'right' },
+    progressText: { color: colors.textMuted, textAlign: 'right' },
     timeline: {
         backgroundColor: colors.surface,
         borderRadius: 16,
@@ -267,9 +256,9 @@ const styles = StyleSheet.create({
         bottom: -20, // Connect to next item
     },
     timelineContent: { flex: 1, paddingBottom: 4 },
-    lessonTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
-    chapterTitle: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-    completedDate: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
+    lessonTitle: { fontWeight: '600', color: colors.text },
+    chapterTitle: { color: colors.textSecondary, marginTop: 2 },
+    completedDate: { color: colors.textMuted, marginTop: 4 },
     emptyState: { padding: spacing.xl, alignItems: 'center' },
     emptyText: { color: colors.textMuted },
 });

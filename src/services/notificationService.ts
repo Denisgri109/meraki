@@ -1,6 +1,6 @@
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
 
@@ -105,7 +105,7 @@ export async function registerForPushNotificationsAsync(userId: string) {
         }
         if (finalStatus !== 'granted') {
             console.log('Push notification permission not granted');
-            Alert.alert('Error', 'Push notification permission was rejected');
+            // Allow app to continue even if push is rejected
             return null;
         }
 
@@ -115,7 +115,6 @@ export async function registerForPushNotificationsAsync(userId: string) {
 
             if (!projectId) {
                 console.log('No projectId found');
-                Alert.alert('Error', 'Project ID not found in app config');
                 return null;
             }
 
@@ -135,7 +134,6 @@ export async function registerForPushNotificationsAsync(userId: string) {
 
                 if (error) {
                     console.error('Error saving push token:', error);
-                    Alert.alert('Error', 'Error saving token to DB: ' + error.message);
                 } else {
                     // alert('Push notifications registered successfully!');
                 }
@@ -143,12 +141,10 @@ export async function registerForPushNotificationsAsync(userId: string) {
 
         } catch (e: any) {
             console.log('Push notifications error:', e);
-            Alert.alert('Error', 'Push registration failed: ' + e.message);
             return null;
         }
     } else {
         console.log('Push notifications require a physical device');
-        Alert.alert('Notice', 'Push notifications require a physical device');
     }
 
     return token;

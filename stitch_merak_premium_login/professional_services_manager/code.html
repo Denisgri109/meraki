@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merakí - Professional Services Manager</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#ee2b5b",
+                "background-light": "#f8f6f6",
+                "background-dark": "#0F0F13",
+                "champagne": "#F7E7CE",
+                "rose-gold": "#E0A39A"
+              },
+              fontFamily: {
+                "display": ["Plus Jakarta Sans"]
+              },
+              borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        .rose-gold-gradient {
+            background: linear-gradient(135deg, #E0A39A 0%, #ee2b5b 100%);
+        }
+        .fab-gradient {
+            background: linear-gradient(135deg, #ee2b5b 0%, #F7E7CE 100%);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex justify-center">
+<!-- Mobile Container (iOS Form Factor) -->
+<div class="w-full max-w-md h-screen flex flex-col relative overflow-hidden bg-background-light dark:bg-background-dark">
+<!-- Status Bar Spacer (iOS) -->
+<div class="h-12 w-full"></div>
+<!-- Header -->
+<header class="px-6 py-4 flex items-center justify-between">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white">
+<span class="material-icons-round">chevron_left</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight">My Services</h1>
+<button class="rose-gold-gradient px-4 py-2 rounded-full text-white text-sm font-semibold shadow-lg shadow-primary/20">
+                Add New
+            </button>
+</header>
+<!-- Category Filters -->
+<div class="px-6 py-4">
+<div class="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+<button class="bg-primary text-white px-6 py-2 rounded-full text-sm font-medium whitespace-nowrap">
+                    All
+                </button>
+<button class="glass-card text-white/60 px-6 py-2 rounded-full text-sm font-medium whitespace-nowrap">
+                    Lashes
+                </button>
+<button class="glass-card text-white/60 px-6 py-2 rounded-full text-sm font-medium whitespace-nowrap">
+                    Brows
+                </button>
+<button class="glass-card text-white/60 px-6 py-2 rounded-full text-sm font-medium whitespace-nowrap">
+                    Nails
+                </button>
+<button class="glass-card text-white/60 px-6 py-2 rounded-full text-sm font-medium whitespace-nowrap">
+                    Skincare
+                </button>
+</div>
+</div>
+<!-- Services List -->
+<div class="flex-1 overflow-y-auto px-6 space-y-4 pb-32 hide-scrollbar">
+<!-- Service Card 1 -->
+<div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-icons-round">visibility</span>
+</div>
+<div>
+<h3 class="font-bold text-lg">Volume Silk Set</h3>
+<div class="flex items-center gap-2 text-white/40 text-xs">
+<span class="material-icons-round text-sm">schedule</span>
+                                90 min
+                            </div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-champagne font-bold text-xl">$150</span>
+<span class="bg-white/5 text-champagne/80 text-[10px] uppercase tracking-wider px-2 py-1 rounded mt-1 font-bold">Deposit Required</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-white/5">
+<div class="flex items-center gap-4">
+<button class="text-white/40 hover:text-white flex items-center gap-1 transition-colors">
+<span class="material-icons-round text-lg">edit</span>
+<span class="text-xs">Edit</span>
+</button>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<!-- Service Card 2 -->
+<div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-icons-round">face</span>
+</div>
+<div>
+<h3 class="font-bold text-lg">Brow Lamination</h3>
+<div class="flex items-center gap-2 text-white/40 text-xs">
+<span class="material-icons-round text-sm">schedule</span>
+                                45 min
+                            </div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-champagne font-bold text-xl">$85</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-white/5">
+<div class="flex items-center gap-4">
+<button class="text-white/40 hover:text-white flex items-center gap-1 transition-colors">
+<span class="material-icons-round text-lg">edit</span>
+<span class="text-xs">Edit</span>
+</button>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<!-- Service Card 3 -->
+<div class="glass-card rounded-2xl p-5 relative overflow-hidden opacity-60">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/40">
+<span class="material-icons-round">spa</span>
+</div>
+<div>
+<h3 class="font-bold text-lg">Classic Mani-Pedi</h3>
+<div class="flex items-center gap-2 text-white/40 text-xs">
+<span class="material-icons-round text-sm">schedule</span>
+                                60 min
+                            </div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-champagne font-bold text-xl">$120</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-white/5">
+<div class="flex items-center gap-4">
+<button class="text-white/40 hover:text-white flex items-center gap-1 transition-colors">
+<span class="material-icons-round text-lg">edit</span>
+<span class="text-xs">Edit</span>
+</button>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<!-- Service Card 4 -->
+<div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-icons-round">auto_awesome</span>
+</div>
+<div>
+<h3 class="font-bold text-lg">Luxe Hybrid Fill</h3>
+<div class="flex items-center gap-2 text-white/40 text-xs">
+<span class="material-icons-round text-sm">schedule</span>
+                                75 min
+                            </div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-champagne font-bold text-xl">$110</span>
+<span class="bg-white/5 text-champagne/80 text-[10px] uppercase tracking-wider px-2 py-1 rounded mt-1 font-bold">Deposit Required</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-white/5">
+<div class="flex items-center gap-4">
+<button class="text-white/40 hover:text-white flex items-center gap-1 transition-colors">
+<span class="material-icons-round text-lg">edit</span>
+<span class="text-xs">Edit</span>
+</button>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</div>
+<!-- Floating Action Button -->
+<button class="absolute bottom-24 right-6 w-16 h-16 rounded-full fab-gradient flex items-center justify-center text-white shadow-2xl shadow-primary/40 active:scale-95 transition-transform z-20">
+<span class="material-icons-round text-3xl">add</span>
+</button>
+<!-- Bottom Navigation Bar -->
+<nav class="absolute bottom-0 left-0 w-full glass-card border-t border-white/10 pb-8 pt-3 px-8 z-10">
+<div class="flex justify-between items-center max-w-sm mx-auto">
+<button class="flex flex-col items-center gap-1 text-white/40">
+<span class="material-icons-round">calendar_today</span>
+<span class="text-[10px] font-medium">Schedule</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-icons-round">content_cut</span>
+<span class="text-[10px] font-bold">Services</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-white/40">
+<span class="material-icons-round">group</span>
+<span class="text-[10px] font-medium">Clients</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-white/40">
+<span class="material-icons-round">payments</span>
+<span class="text-[10px] font-medium">Earnings</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-white/40">
+<span class="material-icons-round">settings</span>
+<span class="text-[10px] font-medium">Settings</span>
+</button>
+</div>
+</nav>
+<!-- Background Accent Glows -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-rose-gold/5 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
+</div>
+</body></html>

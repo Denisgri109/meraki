@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     FlatList,
     TouchableOpacity,
@@ -9,8 +8,9 @@ import {
     RefreshControl,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
-import { ScreenBackground } from '../../../components/ui';
+import { ScreenBackground, MerakiText } from '../../../components/ui';
 import { colors, spacing } from '../../../theme';
 
 interface Course {
@@ -78,22 +78,28 @@ export function CoursesListScreen() {
                 {item.thumbnail_url ? (
                     <Image source={{ uri: item.thumbnail_url }} style={styles.thumbnailImage} />
                 ) : (
-                    <Text style={styles.thumbnailPlaceholder}>🎓</Text>
+                    <MaterialCommunityIcons name="school" size={48} color={colors.primary} />
                 )}
             </View>
             <View style={styles.courseInfo}>
                 <View style={styles.courseHeader}>
-                    <Text style={styles.courseTitle} numberOfLines={1}>{item.title}</Text>
+                    <MerakiText variant="body" style={styles.courseTitle} numberOfLines={1}>{item.title}</MerakiText>
                     <View style={[styles.statusBadge, item.is_published ? styles.published : styles.draft]}>
-                        <Text style={styles.statusText}>
+                        <MerakiText variant="caption" style={styles.statusText}>
                             {item.is_published ? 'Published' : 'Draft'}
-                        </Text>
+                        </MerakiText>
                     </View>
                 </View>
-                <Text style={styles.coursePrice}>€{item.price?.toFixed(2) || '0.00'}</Text>
+                <MerakiText variant="h3" style={styles.coursePrice}>€{item.price?.toFixed(2) || '0.00'}</MerakiText>
                 <View style={styles.courseMeta}>
-                    <Text style={styles.metaText}>📚 {item.lesson_count} lessons</Text>
-                    <Text style={styles.metaText}>👥 {item.enrollment_count} students</Text>
+                    <View style={styles.metaItem}>
+                        <MaterialCommunityIcons name="book-open-page-variant" size={14} color={colors.textMuted} />
+                        <MerakiText variant="caption" style={styles.metaText}>{item.lesson_count} lessons</MerakiText>
+                    </View>
+                    <View style={styles.metaItem}>
+                        <MaterialCommunityIcons name="account-group" size={14} color={colors.textMuted} />
+                        <MerakiText variant="caption" style={styles.metaText}>{item.enrollment_count} students</MerakiText>
+                    </View>
                 </View>
             </View>
         </TouchableOpacity>
@@ -112,9 +118,9 @@ export function CoursesListScreen() {
                     }
                     ListEmptyComponent={
                         <View style={styles.empty}>
-                            <Text style={styles.emptyIcon}>📚</Text>
-                            <Text style={styles.emptyTitle}>No Courses Yet</Text>
-                            <Text style={styles.emptyText}>Create your first course to start teaching</Text>
+                            <MaterialCommunityIcons name="book-open-variant" size={48} color={colors.textMuted} style={{ marginBottom: spacing.md }} />
+                            <MerakiText variant="h3" style={styles.emptyTitle}>No Courses Yet</MerakiText>
+                            <MerakiText variant="body" style={styles.emptyText}>Create your first course to start teaching</MerakiText>
                         </View>
                     }
                 />
@@ -123,7 +129,7 @@ export function CoursesListScreen() {
                     style={styles.fab}
                     onPress={() => navigation.navigate('CourseEditor', { courseId: null })}
                 >
-                    <Text style={styles.fabIcon}>+</Text>
+                    <MaterialCommunityIcons name="plus" size={32} color="#fff" />
                 </TouchableOpacity>
             </View>
         </ScreenBackground>
@@ -150,21 +156,20 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     thumbnailImage: { width: '100%', height: '100%' },
-    thumbnailPlaceholder: { fontSize: 32 },
     courseInfo: { flex: 1, padding: spacing.md },
     courseHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    courseTitle: { fontSize: 16, fontWeight: '600', color: colors.text, flex: 1, marginRight: spacing.sm },
+    courseTitle: { fontWeight: '600', color: colors.text, flex: 1, marginRight: spacing.sm },
     statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
     published: { backgroundColor: 'rgba(34,197,94,0.1)' },
     draft: { backgroundColor: 'rgba(245,158,11,0.1)' },
-    statusText: { fontSize: 10, fontWeight: '600', color: colors.textSecondary },
-    coursePrice: { fontSize: 18, fontWeight: '700', color: colors.primary, marginTop: 4 },
+    statusText: { fontWeight: '600', color: colors.textSecondary },
+    coursePrice: { color: colors.primary, marginTop: 4 },
     courseMeta: { flexDirection: 'row', gap: spacing.md, marginTop: 8 },
-    metaText: { fontSize: 12, color: colors.textMuted },
+    metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    metaText: { color: colors.textMuted },
     empty: { alignItems: 'center', paddingTop: 60 },
-    emptyIcon: { fontSize: 48, marginBottom: spacing.md },
-    emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
-    emptyText: { fontSize: 14, color: colors.textMuted, marginTop: 4 },
+    emptyTitle: { fontWeight: '600', color: colors.text },
+    emptyText: { color: colors.textMuted, marginTop: 4 },
     fab: {
         position: 'absolute',
         bottom: 24,
@@ -181,7 +186,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 8,
     },
-    fabIcon: { fontSize: 28, color: '#fff', marginTop: -2 },
 });
 
 export default CoursesListScreen;

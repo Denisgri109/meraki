@@ -5,12 +5,12 @@ import {
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
 } from 'react-native';
+import { useModal } from '../../contexts/ModalContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,10 +23,12 @@ const COMMON_UNITS = ['pieces', 'pairs', 'sets', 'trays', 'bottles', 'tubes', 's
 
 export function AddSupplyScreen() {
     const navigation = useNavigation();
+
     const { user } = useAuth();
+    const { showAlert } = useModal();
     const route = useRoute();
     const editingSupply = (route.params as any)?.supply as MasterSupply | undefined;
-    
+
     const [name, setName] = useState(editingSupply?.name || '');
     const [description, setDescription] = useState(editingSupply?.description || '');
     const [quantity, setQuantity] = useState(editingSupply?.quantity.toString() || '');
@@ -42,19 +44,19 @@ export function AddSupplyScreen() {
 
     const handleSave = async () => {
         if (!name.trim()) {
-            Alert.alert('Error', 'Please enter a supply name');
+            showAlert('Error', 'Please enter a supply name', 'error');
             return;
         }
 
         const quantityNum = parseInt(quantity);
         if (isNaN(quantityNum) || quantityNum < 0) {
-            Alert.alert('Error', 'Please enter a valid quantity');
+            showAlert('Error', 'Please enter a valid quantity', 'error');
             return;
         }
 
         const finalUnit = showCustomUnit ? customUnit.trim() : unit;
         if (!finalUnit) {
-            Alert.alert('Error', 'Please select or enter a unit');
+            showAlert('Error', 'Please select or enter a unit', 'error');
             return;
         }
 
@@ -76,20 +78,20 @@ export function AddSupplyScreen() {
                     .eq('id', editingSupply.id);
 
                 if (error) throw error;
-                Alert.alert('Success', 'Supply updated successfully!');
+                showAlert('Success', 'Supply updated successfully!', 'success');
             } else {
                 const { error } = await supabase
                     .from('master_supplies')
                     .insert(supplyData);
 
                 if (error) throw error;
-                Alert.alert('Success', 'Supply added successfully!');
+                showAlert('Success', 'Supply added successfully!', 'success');
             }
 
             navigation.goBack();
         } catch (error: any) {
             console.error('Error saving supply:', error);
-            Alert.alert('Error', error.message || 'Failed to save supply');
+            showAlert('Error', error.message || 'Failed to save supply', 'error');
         } finally {
             setLoading(false);
         }
@@ -98,7 +100,7 @@ export function AddSupplyScreen() {
     const handleAdjustQuantity = async (amount: number) => {
         const currentQty = parseInt(quantity) || 0;
         const newQty = Math.max(0, currentQty + amount);
-        
+
         if (isEditing) {
             // For editing, update immediately
             try {
@@ -108,7 +110,7 @@ export function AddSupplyScreen() {
                     .eq('id', editingSupply.id);
 
                 if (error) throw error;
-                
+
                 // Log the adjustment manually
                 await supabase
                     .from('supply_consumption_log')
@@ -120,10 +122,10 @@ export function AddSupplyScreen() {
                         notes: `Manual adjustment from ${currentQty} to ${newQty}`,
                         created_by: user!.id
                     });
-                
+
                 setQuantity(newQty.toString());
             } catch (error: any) {
-                Alert.alert('Error', 'Failed to adjust quantity');
+                showAlert('Error', 'Failed to adjust quantity', 'error');
             }
         } else {
             setQuantity(newQty.toString());
@@ -262,7 +264,7 @@ export function AddSupplyScreen() {
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>Low Stock Alert Threshold (Optional)</Text>
                                 <Text style={styles.helperText}>
-                                    You'll be notified when quantity drops below this number. 
+                                    You'll be notified when quantity drops below this number.
                                     Leave empty to use global default (5).
                                 </Text>
                                 <TextInput

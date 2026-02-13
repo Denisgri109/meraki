@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     FlatList,
     Switch,
     TextInput,
-    Alert,
     ActivityIndicator,
     RefreshControl,
     KeyboardAvoidingView,
     Platform,
     TouchableOpacity,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { ScreenBackground, Card } from '../../components/ui';
+import { ScreenBackground, Card, MerakiText } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 import { Service, MasterService } from '../../types/database';
 
@@ -28,6 +28,7 @@ type ServiceWithConfig = Service & {
 export function MyServicesScreen() {
     const navigation = useNavigation();
     const { user } = useAuth();
+    const { showAlert } = useModal();
     const [services, setServices] = useState<ServiceWithConfig[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -69,7 +70,7 @@ export function MyServicesScreen() {
             setServices(merged);
         } catch (error: any) {
             console.error('Error fetching services:', error);
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -109,7 +110,7 @@ export function MyServicesScreen() {
             // Optimistic update
             await fetchData(); // Re-fetch to get simplified logic or just update local state
         } catch (error: any) {
-            Alert.alert('Error', 'Failed to update status');
+            showAlert('Error', 'Failed to update status', 'error');
         } finally {
             setUpdating(null);
         }
@@ -156,11 +157,11 @@ export function MyServicesScreen() {
             <Card style={styles.card}>
                 <View style={styles.headerRow}>
                     <View style={styles.info}>
-                        <Text style={styles.category}>{item.category}</Text>
-                        <Text style={styles.name}>{item.name}</Text>
-                        <Text style={styles.baseInfo}>
+                        <MerakiText variant="label" color={colors.accent} style={{ textTransform: 'uppercase', marginBottom: 4 }}>{item.category}</MerakiText>
+                        <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18, marginBottom: 4 }}>{item.name}</MerakiText>
+                        <MerakiText variant="caption" color={colors.textSecondary}>
                             Base: €{item.base_price} • {item.duration_minutes} min
-                        </Text>
+                        </MerakiText>
                     </View>
                     <Switch
                         value={isEnabled}
@@ -173,7 +174,7 @@ export function MyServicesScreen() {
                 {isEnabled && (
                     <View style={styles.configContainer}>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>My Price (€)</Text>
+                            <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.xs }}>My Price (€)</MerakiText>
                             <TextInput
                                 style={styles.input}
                                 placeholder={item.base_price.toString()}
@@ -184,7 +185,7 @@ export function MyServicesScreen() {
                             />
                         </View>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Duration (min)</Text>
+                            <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.xs }}>Duration (min)</MerakiText>
                             <TextInput
                                 style={styles.input}
                                 placeholder={item.duration_minutes.toString()}
@@ -196,15 +197,15 @@ export function MyServicesScreen() {
                         </View>
                     </View>
                 )}
-                
+
                 {/* Link Supplies Button */}
                 <TouchableOpacity
                     style={styles.linkSuppliesButton}
                     onPress={() => (navigation as any).navigate('ServiceSupplies', { serviceId: item.id })}
                 >
-                    <Text style={styles.linkSuppliesIcon}>📦</Text>
-                    <Text style={styles.linkSuppliesText}>Manage Supplies</Text>
-                    <Text style={styles.linkSuppliesArrow}>→</Text>
+                    <MaterialCommunityIcons name="package-variant" size={18} color={colors.accent} style={{ marginRight: spacing.sm }} />
+                    <MerakiText variant="body" color={colors.text} style={{ flex: 1, fontWeight: '500' }}>Manage Supplies</MerakiText>
+                    <MaterialCommunityIcons name="chevron-right" size={20} color={colors.accent} />
                 </TouchableOpacity>
             </Card>
         );
@@ -215,14 +216,15 @@ export function MyServicesScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← Back</Text>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
-                    <Text style={styles.title}>My Services</Text>
+                    <MerakiText variant="h2">My Services</MerakiText>
                     <TouchableOpacity
                         onPress={() => (navigation as any).navigate('CreateService')}
                         style={styles.addButton}
                     >
-                        <Text style={styles.addButtonText}>+ New</Text>
+                        <MaterialCommunityIcons name="plus" size={18} color={colors.text} />
+                        <MerakiText variant="label" color={colors.text} style={{ marginLeft: 4 }}>New</MerakiText>
                     </TouchableOpacity>
                 </View>
 
@@ -263,10 +265,10 @@ const styles = StyleSheet.create({
     input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: spacing.sm, color: colors.text, borderWidth: 1, borderColor: colors.border },
     addButton: { backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 20 },
     addButtonText: { color: colors.text, fontSize: 14, fontWeight: '600' },
-    linkSuppliesButton: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        marginTop: spacing.md, 
+    linkSuppliesButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: spacing.md,
         paddingTop: spacing.md,
         padding: spacing.sm,
         borderTopWidth: 1,

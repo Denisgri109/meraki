@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation, NavigationProp, CommonActions } from '@react-navigation/native';
-import { Text, StyleSheet, View, TouchableOpacity } from 'react-native';
+import { useNavigation, NavigationProp, CommonActions, getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { Text, StyleSheet, View, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { colors, spacing, layout } from '../theme';
 import {
     ClientHomeScreen as HomeScreen,
     ProfileScreen,
@@ -26,10 +29,14 @@ import {
     MasterDetailScreen,
     BookAndChatScreen,
     DiscoverMastersScreen,
+    NFCScannerScreen,
+    RewardsCatalogScreen,
+    PointsHistoryScreen,
 } from '../screens/client';
+
 import PhotoConsultationRequestScreen from '../screens/client/PhotoConsultationRequestScreen';
 import { ShopScreen, ProductDetailScreen, CartScreen, CheckoutScreen } from '../screens/shop';
-import { ChatListScreen, ChatScreen } from '../screens/chat';
+import { ChatListScreen } from '../screens/chat';
 import {
     AcademyHomeScreen,
     CourseDetailScreen,
@@ -37,13 +44,13 @@ import {
     HomeworkScreen,
     CoursePurchaseScreen,
 } from '../screens/academy';
-import { colors } from '../theme';
+
 
 // Home Stack (with drawer trigger)
 export type HomeStackParamList = {
     HomeMain: undefined;
     ChatList: undefined;
-    Chat: { conversationId: string; otherUser: any };
+
     Profile: undefined;
     Orders: undefined;
     HelpSupport: undefined;
@@ -55,7 +62,12 @@ export type HomeStackParamList = {
     PaymentHistory: undefined;
     Notifications: undefined;
     QRScanner: undefined;
+    NFCScanner: undefined;
+    RewardsCatalog: undefined;
+    PointsHistory: undefined;
     MasterDetail: { masterId: string };
+    ServiceDetail: { serviceId: string };
+
     DiscoverMasters: undefined;
     PhotoConsultationRequest: { masterId?: string } | undefined;
     SelectDateTime: { serviceId: string; masterId: string };
@@ -69,7 +81,7 @@ function HomeStackNavigator() {
         <HomeStack.Navigator screenOptions={{ headerShown: false }}>
             <HomeStack.Screen name="HomeMain" component={HomeScreen} />
             <HomeStack.Screen name="ChatList" component={ChatListScreen} />
-            <HomeStack.Screen name="Chat" component={ChatScreen} />
+
             <HomeStack.Screen name="Profile" component={ProfileScreen} />
             <HomeStack.Screen name="Orders" component={OrdersScreen} />
             <HomeStack.Screen name="HelpSupport" component={HelpSupportScreen} />
@@ -81,7 +93,12 @@ function HomeStackNavigator() {
             <HomeStack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
             <HomeStack.Screen name="Notifications" component={NotificationsScreen} />
             <HomeStack.Screen name="QRScanner" component={QRScannerScreen} />
+            <HomeStack.Screen name="NFCScanner" component={NFCScannerScreen} />
+            <HomeStack.Screen name="RewardsCatalog" component={RewardsCatalogScreen} />
+            <HomeStack.Screen name="PointsHistory" component={PointsHistoryScreen} />
             <HomeStack.Screen name="MasterDetail" component={MasterDetailScreen} />
+            <HomeStack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
+
             <HomeStack.Screen name="DiscoverMasters" component={DiscoverMastersScreen} />
             <HomeStack.Screen name="PhotoConsultationRequest" component={PhotoConsultationRequestScreen} />
             <HomeStack.Screen name="SelectDateTime" component={SelectDateTimeScreen} />
@@ -89,12 +106,6 @@ function HomeStackNavigator() {
         </HomeStack.Navigator>
     );
 }
-
-// Booking Stack
-
-
-// Messages Stack
-
 
 // Shop Stack
 export type ShopStackParamList = {
@@ -116,9 +127,6 @@ function ShopStackNavigator() {
         </ShopStack.Navigator>
     );
 }
-
-// Orders Stack (for drawer access)
-
 
 // Profile Stack
 export type ProfileStackParamList = {
@@ -206,17 +214,42 @@ export function ClientTabs() {
                 screenOptions={({ navigation }) => ({
                     headerShown: false,
                     tabBarStyle: styles.tabBar,
-                    tabBarActiveTintColor: colors.text,
-                    tabBarInactiveTintColor: colors.textMuted,
+                    tabBarActiveTintColor: colors.primary,
+                    tabBarInactiveTintColor: 'rgba(139, 148, 158, 0.55)',
                     tabBarLabelStyle: styles.tabLabel,
+                    tabBarShowLabel: true,
+                    tabBarBackground: () => (
+                        <BlurView
+                            tint="dark"
+                            intensity={80}
+                            style={StyleSheet.absoluteFill}
+                        />
+                    ),
                 })}
             >
                 <Tab.Screen
                     name="Home"
                     component={HomeStackNavigator}
-                    options={{
-                        tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>🏠</Text>,
-                    } as any}
+                    options={({ route }) => ({
+                        tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+                            <MaterialIcons name="home" size={22} color={color} />
+                        ),
+                        tabBarStyle: ((route) => {
+                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'HomeMain';
+                            // Only show tab bar on HomeMain and ChatList (maybe? user said "important screen... confirming... settings... should be hidden")
+                            // User said: "It should only pair when the page isn't really as important, or the pages displaying a lot of stuff"
+                            // "Every screen, right, that has to do with confirming something or doing something, or whatever, or when going into settings... should be hidden"
+                            // ChatList is a top level feature. But User said "Book & Chat" has one screen.
+                            // Let's stick to showing it ONLY on HomeMain for now as requested "non-root screens". 
+                            // Actually, ChatList is in HomeStack but is it a "root" level thing? 
+                            // The user said "Select Date and Time" was the issue. 
+                            // Let's strictly follow: Visible ONLY on root.
+                            if (routeName !== 'HomeMain') {
+                                return { display: 'none' };
+                            }
+                            return styles.tabBar;
+                        })(route),
+                    } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
                             e.preventDefault();
@@ -233,7 +266,9 @@ export function ClientTabs() {
                     name="Book"
                     component={BookAndChatNavigator}
                     options={{
-                        tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>📅</Text>,
+                        tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+                            <MaterialIcons name="explore" size={22} color={color} />
+                        ),
                         tabBarLabel: 'Book & Chat',
                     } as any}
                     listeners={({ navigation, route }) => ({
@@ -252,9 +287,18 @@ export function ClientTabs() {
                 <Tab.Screen
                     name="Academy"
                     component={AcademyStackNavigator}
-                    options={{
-                        tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>🎓</Text>,
-                    } as any}
+                    options={({ route }) => ({
+                        tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+                            <MaterialIcons name="school" size={22} color={color} />
+                        ),
+                        tabBarStyle: ((route) => {
+                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'AcademyHome';
+                            if (routeName !== 'AcademyHome') {
+                                return { display: 'none' };
+                            }
+                            return styles.tabBar;
+                        })(route),
+                    } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
                             e.preventDefault();
@@ -270,9 +314,18 @@ export function ClientTabs() {
                 <Tab.Screen
                     name="Shop"
                     component={ShopStackNavigator}
-                    options={{
-                        tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>🛒</Text>,
-                    } as any}
+                    options={({ route }) => ({
+                        tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+                            <MaterialIcons name="storefront" size={22} color={color} />
+                        ),
+                        tabBarStyle: ((route) => {
+                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'ShopMain';
+                            if (routeName !== 'ShopMain') {
+                                return { display: 'none' };
+                            }
+                            return styles.tabBar;
+                        })(route),
+                    } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
                             e.preventDefault();
@@ -288,9 +341,18 @@ export function ClientTabs() {
                 <Tab.Screen
                     name="Menu"
                     component={MenuStackNavigator}
-                    options={{
-                        tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>☰</Text>,
-                    } as any}
+                    options={({ route }) => ({
+                        tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+                            <MaterialIcons name="settings" size={22} color={color} />
+                        ),
+                        tabBarStyle: ((route) => {
+                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'MenuMain';
+                            if (routeName !== 'MenuMain') {
+                                return { display: 'none' };
+                            }
+                            return styles.tabBar;
+                        })(route),
+                    } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
                             e.preventDefault();
@@ -310,20 +372,29 @@ export function ClientTabs() {
 
 const styles = StyleSheet.create({
     tabBar: {
-        backgroundColor: colors.surface,
-        borderTopColor: colors.border,
-        borderTopWidth: 1,
+        position: 'absolute',
+        bottom: Platform.OS === 'ios' ? 24 : 12,
+        left: 20,
+        right: 20,
+        backgroundColor: 'rgba(22, 27, 34, 0.96)',
+        borderTopWidth: 0,
+        borderRadius: 32,
+        height: 70,
+        paddingBottom: Platform.OS === 'ios' ? 0 : 8,
         paddingTop: 8,
-        paddingBottom: 24,
-        height: 80,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(48, 54, 61, 0.50)',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
     },
     tabLabel: {
         fontSize: 10,
-        fontWeight: '500',
-        marginTop: 4,
-    },
-    icon: {
-        fontSize: 24,
+        fontWeight: '600',
+        marginBottom: 8,
     },
 });
 

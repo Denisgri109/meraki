@@ -7,6 +7,7 @@ import { colors, spacing, borderRadius } from '../../theme';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ScreenBackground } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 
 const { width } = Dimensions.get('window');
 const SCAN_AREA_SIZE = width * 0.7;
@@ -14,6 +15,7 @@ const SCAN_AREA_SIZE = width * 0.7;
 export function QRScannerScreen() {
     const navigation = useNavigation();
     const { user } = useAuth();
+    const { showModal, hideModal } = useModal();
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -48,36 +50,33 @@ export function QRScannerScreen() {
                         ? `${result.stamps_collected}/${result.stamps_required} stamps - REWARD READY!`
                         : `${result.stamps_collected}/${result.stamps_required} stamps`;
 
-                    Alert.alert(
-                        result.reward_available ? '🎁 Reward Earned!' : '✓ Stamp Collected!',
-                        `${result.card_name} from ${result.master_name}\n\n${progressText}\n\n${result.message}`,
-                        [
-                            {
-                                text: result.reward_available ? 'View My Cards' : 'Awesome',
-                                onPress: () => {
-                                    if (result.reward_available) {
-                                        navigation.navigate('StampCards' as never);
-                                    } else {
-                                        navigation.goBack();
-                                    }
-                                }
+                    showModal({
+                        title: result.reward_available ? '🎁 Reward Earned!' : '✓ Stamp Collected!',
+                        message: `${result.card_name} from ${result.master_name}\n\n${progressText}\n\n${result.message}`,
+                        confirmText: result.reward_available ? 'View My Cards' : 'Awesome',
+                        hideCancel: true,
+                        onConfirm: () => {
+                            hideModal();
+                            if (result.reward_available) {
+                                navigation.navigate('StampCards' as never);
+                            } else {
+                                navigation.goBack();
                             }
-                        ]
-                    );
+                        }
+                    });
                 } else {
-                    Alert.alert(
-                        'Scan Failed',
-                        result.message || 'Unable to process stamp',
-                        [
-                            {
-                                text: 'Try Again',
-                                onPress: () => {
-                                    setScanned(false);
-                                    setProcessing(false);
-                                }
-                            }
-                        ]
-                    );
+                    showModal({
+                        title: 'Scan Failed',
+                        message: result.message || 'Unable to process stamp',
+                        confirmText: 'Try Again',
+                        hideCancel: true,
+                        type: 'error',
+                        onConfirm: () => {
+                            hideModal();
+                            setScanned(false);
+                            setProcessing(false);
+                        }
+                    });
                 }
             } else {
                 // Legacy: Call general loyalty points RPC for other QR codes
@@ -89,47 +88,46 @@ export function QRScannerScreen() {
                 if (error) throw error;
 
                 if (result.success) {
-                    Alert.alert(
-                        'Success!',
-                        `You earned ${result.points} loyalty points!`,
-                        [
-                            {
-                                text: 'Awesome',
-                                onPress: () => navigation.goBack()
-                            }
-                        ]
-                    );
+                    showModal({
+                        title: 'Success!',
+                        message: `You earned ${result.points} loyalty points!`,
+                        confirmText: 'Awesome',
+                        hideCancel: true,
+                        type: 'success',
+                        onConfirm: () => {
+                            hideModal();
+                            navigation.goBack();
+                        }
+                    });
                 } else {
-                    Alert.alert(
-                        'Scan Failed',
-                        result.message || 'Invalid QR Code',
-                        [
-                            {
-                                text: 'Try Again',
-                                onPress: () => {
-                                    setScanned(false);
-                                    setProcessing(false);
-                                }
-                            }
-                        ]
-                    );
+                    showModal({
+                        title: 'Scan Failed',
+                        message: result.message || 'Invalid QR Code',
+                        confirmText: 'Try Again',
+                        hideCancel: true,
+                        type: 'error',
+                        onConfirm: () => {
+                            hideModal();
+                            setScanned(false);
+                            setProcessing(false);
+                        }
+                    });
                 }
             }
         } catch (error: any) {
             console.error('Scan error:', error);
-            Alert.alert(
-                'Error',
-                'Something went wrong while processing the code.',
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => {
-                            setScanned(false);
-                            setProcessing(false);
-                        }
-                    }
-                ]
-            );
+            showModal({
+                title: 'Error',
+                message: 'Something went wrong while processing the code.',
+                confirmText: 'OK',
+                hideCancel: true,
+                type: 'error',
+                onConfirm: () => {
+                    hideModal();
+                    setScanned(false);
+                    setProcessing(false);
+                }
+            });
         }
     };
 

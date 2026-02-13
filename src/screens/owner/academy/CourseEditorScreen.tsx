@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
@@ -13,9 +12,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../../lib/supabase';
-import { ScreenBackground, Button, ConfirmModal } from '../../../components/ui';
+import { ScreenBackground, Button, ConfirmModal, MerakiText } from '../../../components/ui';
 import { colors, spacing } from '../../../theme';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -249,16 +249,16 @@ export function CourseEditorScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Text style={styles.backButton}>←</Text>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>{isNew ? 'New Course' : 'Edit Course'}</Text>
+                    <MerakiText variant="h3" style={styles.headerTitle}>{isNew ? 'New Course' : 'Edit Course'}</MerakiText>
                     {!isNew && (
                         <TouchableOpacity onPress={() => setDeleteModalVisible(true)}>
-                            <Text style={styles.deleteButton}>🗑️</Text>
+                            <MaterialCommunityIcons name="delete" size={24} color={colors.error} />
                         </TouchableOpacity>
                     )}
-                    {isNew && <View style={{ width: 40 }} />}
+                    {isNew && <View style={{ width: 24 }} />}
                 </View>
 
                 <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -268,15 +268,15 @@ export function CourseEditorScreen() {
                             <Image source={{ uri: thumbnailUrl }} style={styles.coverImage} />
                         ) : (
                             <View style={styles.coverPlaceholder}>
-                                <Text style={styles.coverIcon}>📷</Text>
-                                <Text style={styles.coverText}>Add Cover Image</Text>
+                                <MaterialCommunityIcons name="camera" size={32} color={colors.textMuted} style={{ marginBottom: spacing.sm }} />
+                                <MerakiText variant="body" color={colors.textMuted}>Add Cover Image</MerakiText>
                             </View>
                         )}
                     </TouchableOpacity>
 
                     {/* Title */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Course Title</Text>
+                        <MerakiText variant="caption" style={styles.label}>Course Title</MerakiText>
                         <TextInput
                             style={styles.input}
                             value={title}
@@ -288,7 +288,7 @@ export function CourseEditorScreen() {
 
                     {/* Description */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Description</Text>
+                        <MerakiText variant="caption" style={styles.label}>Description</MerakiText>
                         <TextInput
                             style={[styles.input, styles.textArea]}
                             value={description}
@@ -302,7 +302,7 @@ export function CourseEditorScreen() {
 
                     {/* Price */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Price (€)</Text>
+                        <MerakiText variant="caption" style={styles.label}>Price (€)</MerakiText>
                         <TextInput
                             style={styles.input}
                             value={price}
@@ -316,10 +316,10 @@ export function CourseEditorScreen() {
                     {/* Published Toggle */}
                     <View style={styles.toggleRow}>
                         <View>
-                            <Text style={styles.toggleLabel}>Published</Text>
-                            <Text style={styles.toggleHint}>
+                            <MerakiText variant="body" style={styles.toggleLabel}>Published</MerakiText>
+                            <MerakiText variant="caption" style={styles.toggleHint}>
                                 {isPublished ? 'Visible to students' : 'Hidden (Draft)'}
-                            </Text>
+                            </MerakiText>
                         </View>
                         <Switch
                             value={isPublished}
@@ -332,16 +332,16 @@ export function CourseEditorScreen() {
                     {/* Curriculum Section */}
                     {!isNew && (
                         <View style={styles.curriculumSection}>
-                            <Text style={styles.sectionTitle}>Curriculum</Text>
+                            <MerakiText variant="caption" style={styles.sectionTitle}>Curriculum</MerakiText>
 
                             {chapters.map((chapter, idx) => (
                                 <View key={chapter.id} style={styles.chapterCard}>
                                     <View style={styles.chapterHeader}>
-                                        <Text style={styles.chapterTitle}>
+                                        <MerakiText variant="body" style={styles.chapterTitle}>
                                             Chapter {idx + 1}: {chapter.title}
-                                        </Text>
+                                        </MerakiText>
                                         <TouchableOpacity onPress={() => deleteChapter(chapter.id)}>
-                                            <Text style={styles.deleteIcon}>✕</Text>
+                                            <MaterialCommunityIcons name="close" size={16} color={colors.textMuted} />
                                         </TouchableOpacity>
                                     </View>
 
@@ -355,9 +355,9 @@ export function CourseEditorScreen() {
                                                 courseId,
                                             })}
                                         >
-                                            <Text style={styles.lessonIcon}>🎬</Text>
-                                            <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                                            <Text style={styles.lessonDuration}>{lesson.duration_minutes}m</Text>
+                                            <MaterialCommunityIcons name="movie-open" size={16} color={colors.text} style={styles.lessonIcon} />
+                                            <MerakiText variant="body" style={styles.lessonTitle}>{lesson.title}</MerakiText>
+                                            <MerakiText variant="caption" style={styles.lessonDuration}>{lesson.duration_minutes}m</MerakiText>
                                         </TouchableOpacity>
                                     ))}
 
@@ -369,7 +369,7 @@ export function CourseEditorScreen() {
                                             courseId,
                                         })}
                                     >
-                                        <Text style={styles.addLessonText}>+ Add Lesson</Text>
+                                        <MerakiText variant="body" style={styles.addLessonText}>+ Add Lesson</MerakiText>
                                     </TouchableOpacity>
                                 </View>
                             ))}
@@ -386,7 +386,7 @@ export function CourseEditorScreen() {
                                     />
                                     <View style={styles.addChapterButtons}>
                                         <TouchableOpacity onPress={() => setShowAddChapter(false)}>
-                                            <Text style={styles.cancelText}>Cancel</Text>
+                                            <MerakiText variant="body" style={styles.cancelText}>Cancel</MerakiText>
                                         </TouchableOpacity>
                                         <Button title="Add" size="sm" onPress={addChapter} />
                                     </View>
@@ -396,7 +396,7 @@ export function CourseEditorScreen() {
                                     style={styles.addChapterBtn}
                                     onPress={() => setShowAddChapter(true)}
                                 >
-                                    <Text style={styles.addChapterText}>+ Add Chapter</Text>
+                                    <MerakiText variant="body" style={styles.addChapterText}>+ Add Chapter</MerakiText>
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -418,7 +418,7 @@ export function CourseEditorScreen() {
                     message="This will permanently delete the course and all its content."
                     confirmText="Delete"
                     confirmDestructive
-                    icon="🗑️"
+                    icon="delete"
                 />
             </SafeAreaView>
         </ScreenBackground>
@@ -437,9 +437,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
     },
-    backButton: { fontSize: 28, color: colors.text },
-    headerTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
-    deleteButton: { fontSize: 20 },
+    headerTitle: { fontWeight: '600', color: colors.text },
     content: { padding: spacing.lg, paddingBottom: 100 },
     coverPicker: {
         height: 180,
@@ -452,10 +450,8 @@ const styles = StyleSheet.create({
     },
     coverImage: { width: '100%', height: '100%' },
     coverPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
-    coverIcon: { fontSize: 32, marginBottom: spacing.sm },
-    coverText: { fontSize: 14, color: colors.textMuted },
     inputGroup: { marginBottom: spacing.md },
-    label: { fontSize: 12, fontWeight: '600', color: colors.textMuted, marginBottom: 6, textTransform: 'uppercase' },
+    label: { fontWeight: '600', color: colors.textMuted, marginBottom: 6, textTransform: 'uppercase' },
     input: {
         backgroundColor: colors.surface,
         borderRadius: 12,
@@ -477,10 +473,10 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
-    toggleLabel: { fontSize: 16, fontWeight: '600', color: colors.text },
-    toggleHint: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+    toggleLabel: { fontWeight: '600', color: colors.text },
+    toggleHint: { color: colors.textMuted, marginTop: 2 },
     curriculumSection: { marginTop: spacing.md },
-    sectionTitle: { fontSize: 14, fontWeight: '600', color: colors.textMuted, marginBottom: spacing.md, textTransform: 'uppercase' },
+    sectionTitle: { fontWeight: '600', color: colors.textMuted, marginBottom: spacing.md, textTransform: 'uppercase' },
     chapterCard: {
         backgroundColor: colors.surface,
         borderRadius: 12,
@@ -490,8 +486,7 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
     },
     chapterHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
-    chapterTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
-    deleteIcon: { fontSize: 16, color: colors.textMuted },
+    chapterTitle: { fontWeight: '600', color: colors.text },
     lessonRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -499,14 +494,14 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: colors.border,
     },
-    lessonIcon: { fontSize: 16, marginRight: spacing.sm },
-    lessonTitle: { flex: 1, fontSize: 14, color: colors.text },
-    lessonDuration: { fontSize: 12, color: colors.textMuted },
+    lessonIcon: { marginRight: spacing.sm },
+    lessonTitle: { flex: 1, color: colors.text },
+    lessonDuration: { color: colors.textMuted },
     addLessonBtn: { paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border },
-    addLessonText: { fontSize: 14, color: colors.primary, fontWeight: '500' },
+    addLessonText: { color: colors.primary, fontWeight: '500' },
     addChapterForm: { marginBottom: spacing.md },
     addChapterButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.md, marginTop: spacing.sm },
-    cancelText: { fontSize: 14, color: colors.textMuted, paddingVertical: spacing.sm },
+    cancelText: { color: colors.textMuted, paddingVertical: spacing.sm },
     addChapterBtn: {
         paddingVertical: spacing.md,
         borderRadius: 12,
@@ -515,7 +510,7 @@ const styles = StyleSheet.create({
         borderStyle: 'dashed',
         alignItems: 'center',
     },
-    addChapterText: { fontSize: 14, color: colors.primary, fontWeight: '600' },
+    addChapterText: { color: colors.primary, fontWeight: '600' },
     saveBtn: { marginTop: spacing.lg },
 });
 

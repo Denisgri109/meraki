@@ -3,6 +3,7 @@
     "name": "Merakí",
     "slug": "meraki-app",
     "version": "1.0.0",
+    "scheme": "meraki",
     "orientation": "portrait",
     "icon": "./public/logo512.png",
     "userInterfaceStyle": "dark",
@@ -14,7 +15,16 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.meraki.app"
+      "bundleIdentifier": "com.meraki.app",
+      "infoPlist": {
+        "NFCReaderUsageDescription": "This app uses NFC to pair loyalty stamp tags",
+        "LSApplicationQueriesSchemes": [
+          "meraki"
+        ]
+      },
+      "associatedDomains": [
+        "applinks:meraki.app"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -25,7 +35,24 @@
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.NFC"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "meraki",
+              "host": "loyalty"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
       ]
     },
     "web": {
@@ -53,7 +80,8 @@
           "sounds": []
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "react-native-nfc-manager"
     ],
     "extra": {
       "eas": {

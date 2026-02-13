@@ -1,13 +1,12 @@
 import React from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card } from '../../components/ui';
-import { ScreenBackground } from '../../components/ui';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 
 export function MasterScheduleScreen() {
@@ -21,7 +20,7 @@ export function MasterScheduleScreen() {
             <SafeAreaView style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.title}>Schedule</Text>
+                    <MerakiText variant="h1">Schedule</MerakiText>
                 </View>
 
                 {/* Week Navigation */}
@@ -37,12 +36,12 @@ export function MasterScheduleScreen() {
                                     key={day}
                                     style={[styles.dayCard, isToday && styles.dayCardActive]}
                                 >
-                                    <Text style={[styles.dayName, isToday && styles.dayTextActive]}>
+                                    <MerakiText variant="caption" color={isToday ? colors.primary : colors.textSecondary} style={styles.dayName}>
                                         {day}
-                                    </Text>
-                                    <Text style={[styles.dayNumber, isToday && styles.dayTextActive]}>
+                                    </MerakiText>
+                                    <MerakiText variant="body" color={isToday ? colors.primary : colors.text} style={styles.dayNumber}>
                                         {date.getDate()}
-                                    </Text>
+                                    </MerakiText>
                                 </View>
                             );
                         })}
@@ -52,11 +51,15 @@ export function MasterScheduleScreen() {
                 {/* Schedule */}
                 <ScrollView contentContainerStyle={styles.content}>
                     <Card variant="glass" style={styles.emptyCard}>
-                        <Text style={styles.emptyIcon}>📋</Text>
-                        <Text style={styles.emptyText}>No appointments scheduled</Text>
-                        <Text style={styles.emptySubtext}>
+                        <View style={styles.emptyIconBg}>
+                            <MaterialCommunityIcons name="clipboard-text-outline" size={40} color={colors.textMuted} />
+                        </View>
+                        <MerakiText variant="body" color={colors.text} style={styles.emptyText}>
+                            No appointments scheduled
+                        </MerakiText>
+                        <MerakiText variant="caption" color={colors.textSecondary}>
                             Your appointments will appear here
-                        </Text>
+                        </MerakiText>
                     </Card>
                 </ScrollView>
             </SafeAreaView>
@@ -72,11 +75,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
         paddingTop: spacing.lg,
         paddingBottom: spacing.md,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: '600',
-        color: colors.text,
     },
     weekNav: {
         paddingVertical: spacing.md,
@@ -94,17 +92,10 @@ const styles = StyleSheet.create({
         backgroundColor: colors.secondary,
     },
     dayName: {
-        fontSize: 12,
-        color: colors.textSecondary,
         marginBottom: spacing.xs,
     },
     dayNumber: {
-        fontSize: 18,
         fontWeight: '600',
-        color: colors.text,
-    },
-    dayTextActive: {
-        color: colors.primary,
     },
     content: {
         padding: spacing.lg,
@@ -114,20 +105,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: spacing.xl,
     },
-    emptyIcon: {
-        fontSize: 64,
-        marginBottom: spacing.lg,
-        opacity: 0.5,
+    emptyIconBg: {
+        width: 72,
+        height: 72,
+        borderRadius: 20,
+        backgroundColor: 'rgba(212,168,83,0.08)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing.md,
     },
     emptyText: {
-        fontSize: 18,
         fontWeight: '600',
-        color: colors.text,
         marginBottom: spacing.xs,
-    },
-    emptySubtext: {
-        fontSize: 14,
-        color: colors.textSecondary,
     },
 });
 

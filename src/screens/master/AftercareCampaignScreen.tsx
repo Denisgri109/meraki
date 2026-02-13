@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -6,10 +7,10 @@ import {
     ScrollView,
     TouchableOpacity,
     TextInput,
-    Alert,
     Modal,
     Switch,
 } from 'react-native';
+import { useModal } from '../../contexts/ModalContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -39,12 +40,13 @@ const CAMPAIGN_TYPES = [
     { value: 'announcement', label: 'Announcement', icon: '📢', description: 'General update for clients' },
 ];
 
-    const AFTERCARE_OPTIONS = [7, 14, 21, 30, 45, 60, 90];
-    const CUSTOM_OPTION = 'custom';
+const AFTERCARE_OPTIONS = [7, 14, 21, 30, 45, 60, 90];
+const CUSTOM_OPTION = 'custom';
 
 export function AftercareCampaignScreen() {
     const navigation = useNavigation<any>();
     const { user } = useAuth();
+    const { showAlert, showConfirm } = useModal();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -106,7 +108,7 @@ export function AftercareCampaignScreen() {
             setMessage(campaign.message);
             setCampaignType(campaign.campaign_type);
             setIsRecurring(campaign.is_recurring);
-            
+
             // Check if days_after_appointment is a preset value or custom
             const campaignDays = campaign.days_after_appointment || 30;
             if (AFTERCARE_OPTIONS.includes(campaignDays)) {
@@ -118,7 +120,7 @@ export function AftercareCampaignScreen() {
                 setCustomDays(campaignDays.toString());
                 setDaysAfter(campaignDays);
             }
-            
+
             setStartDate(campaign.start_date ? new Date(campaign.start_date) : null);
             setEndDate(campaign.end_date ? new Date(campaign.end_date) : null);
         } else {
@@ -130,7 +132,7 @@ export function AftercareCampaignScreen() {
     const handleSave = async () => {
         if (!user) return;
         if (!name.trim() || !message.trim()) {
-            Alert.alert('Error', 'Please fill in all required fields');
+            showAlert('Error', 'Please fill in all required fields', 'error');
             return;
         }
 
@@ -139,7 +141,7 @@ export function AftercareCampaignScreen() {
         if (isCustomDays) {
             const parsedCustomDays = parseInt(customDays, 10);
             if (isNaN(parsedCustomDays) || parsedCustomDays <= 0) {
-                Alert.alert('Error', 'Please enter a valid number of days');
+                showAlert('Error', 'Please enter a valid number of days', 'error');
                 return;
             }
             finalDaysAfter = parsedCustomDays;
@@ -161,6 +163,7 @@ export function AftercareCampaignScreen() {
                 is_active: true,
             };
 
+
             if (editingCampaign) {
                 const { error } = await (supabase as any)
                     .from('aftercare_campaigns')
@@ -177,9 +180,9 @@ export function AftercareCampaignScreen() {
             await loadCampaigns();
             setShowEditor(false);
             resetForm();
-            Alert.alert('Success', editingCampaign ? 'Campaign updated!' : 'Campaign created!');
+            showAlert('Success', editingCampaign ? 'Campaign updated!' : 'Campaign created!', 'success');
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to save campaign');
+            showAlert('Error', error.message || 'Failed to save campaign', 'error');
         } finally {
             setSaving(false);
         }
@@ -195,33 +198,31 @@ export function AftercareCampaignScreen() {
             if (error) throw error;
             await loadCampaigns();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         }
     };
 
     const deleteCampaign = (campaign: Campaign) => {
-        Alert.alert(
+        showConfirm(
             'Delete Campaign',
-            `Are you sure you want to delete "${campaign.name}"?`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const { error } = await (supabase as any)
-                                .from('aftercare_campaigns')
-                                .delete()
-                                .eq('id', campaign.id);
-                            if (error) throw error;
-                            await loadCampaigns();
-                        } catch (error: any) {
-                            Alert.alert('Error', error.message);
-                        }
-                    },
-                },
-            ]
+            `Are you sure you want to delete "${campaign.name}" ? `,
+            async () => {
+                try {
+                    const { error } = await (supabase as any)
+                        .from('aftercare_campaigns')
+                        .delete()
+                        .eq('id', campaign.id);
+                    if (error) throw error;
+                    await loadCampaigns();
+                } catch (error: any) {
+                    showAlert('Error', error.message, 'error');
+                }
+            },
+            {
+                type: 'warning',
+                confirmText: 'Delete',
+                cancelText: 'Cancel'
+            }
         );
     };
 
@@ -339,7 +340,7 @@ export function AftercareCampaignScreen() {
                                             </Text>
                                         </TouchableOpacity>
                                     </View>
-                                    
+
                                     {isCustomDays && (
                                         <View style={styles.customDaysContainer}>
                                             <TextInput
@@ -585,7 +586,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center', padding: spacing.md, borderRadius: 12,
         backgroundColor: colors.surface, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border,
     },
-    typeOptionSelected: { borderColor: colors.primary, backgroundColor: 'rgba(139, 92, 246, 0.1)' },
+    typeOptionSelected: { borderColor: colors.primary, backgroundColor: 'rgba(200, 160, 77, 0.1)' },
     typeIcon: { fontSize: 24, marginRight: spacing.md },
     typeInfo: { flex: 1 },
     typeLabel: { fontSize: 16, color: colors.text },
@@ -599,25 +600,25 @@ const styles = StyleSheet.create({
     daysOptionSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
     daysText: { fontSize: 14, fontWeight: '600', color: colors.text },
     daysTextSelected: { color: '#fff' },
-    customDaysContainer: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
+    customDaysContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginTop: spacing.md,
-        gap: spacing.sm 
+        gap: spacing.sm
     },
-    customDaysInput: { 
+    customDaysInput: {
         flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.05)', 
+        backgroundColor: 'rgba(255,255,255,0.05)',
         borderRadius: 8,
-        padding: spacing.md, 
-        fontSize: 16, 
+        padding: spacing.md,
+        fontSize: 16,
         color: colors.text,
-        borderWidth: 1, 
+        borderWidth: 1,
         borderColor: colors.primary,
         minWidth: 100,
     },
-    customDaysLabel: { 
-        fontSize: 14, 
+    customDaysLabel: {
+        fontSize: 14,
         color: colors.textSecondary,
         fontWeight: '500'
     },

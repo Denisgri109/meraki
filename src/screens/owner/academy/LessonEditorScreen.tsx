@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
@@ -12,11 +11,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../../lib/supabase';
-import { ScreenBackground, Button, ConfirmModal } from '../../../components/ui';
+import { ScreenBackground, Button, ConfirmModal, MerakiText } from '../../../components/ui';
 import { colors, spacing } from '../../../theme';
 
 // Helper function to format duration in seconds to a readable string
@@ -223,23 +223,23 @@ export function LessonEditorScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Text style={styles.backButton}>←</Text>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>{isNew ? 'New Lesson' : 'Edit Lesson'}</Text>
+                    <MerakiText variant="h3" style={styles.headerTitle}>{isNew ? 'New Lesson' : 'Edit Lesson'}</MerakiText>
                     {!isNew ? (
                         <TouchableOpacity onPress={() => setDeleteModalVisible(true)}>
-                            <Text style={styles.deleteButton}>🗑️</Text>
+                            <MaterialCommunityIcons name="delete" size={24} color={colors.error} />
                         </TouchableOpacity>
                     ) : (
-                        <View style={{ width: 40 }} />
+                        <View style={{ width: 24 }} />
                     )}
                 </View>
 
                 <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                     {/* Title */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Lesson Title</Text>
+                        <MerakiText variant="caption" style={styles.label}>Lesson Title</MerakiText>
                         <TextInput
                             style={styles.input}
                             value={title}
@@ -251,7 +251,7 @@ export function LessonEditorScreen() {
 
                     {/* Description */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Description</Text>
+                        <MerakiText variant="caption" style={styles.label}>Description</MerakiText>
                         <TextInput
                             style={[styles.input, styles.textArea]}
                             value={description}
@@ -265,7 +265,7 @@ export function LessonEditorScreen() {
 
                     {/* Video Section */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Video</Text>
+                        <MerakiText variant="caption" style={styles.label}>Video</MerakiText>
 
                         {/* Upload Button */}
                         <TouchableOpacity
@@ -276,19 +276,28 @@ export function LessonEditorScreen() {
                             {uploading ? (
                                 <ActivityIndicator size="small" color={colors.primary} />
                             ) : (
-                                <Text style={styles.uploadBtnText}>
-                                    {videoUrl && videoProvider === 'upload' ? '📹 Re-upload Video' : '📹 Upload Video'}
-                                </Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    <MaterialCommunityIcons name="video" size={20} color={colors.primary} />
+                                    <MerakiText variant="body" style={styles.uploadBtnText}>
+                                        {videoUrl && videoProvider === 'upload' ? 'Re-upload Video' : 'Upload Video'}
+                                    </MerakiText>
+                                </View>
                             )}
                         </TouchableOpacity>
 
                         {videoUrl && videoProvider === 'upload' && (
-                            <View>
-                                <Text style={styles.uploadedHint}>✅ Video uploaded</Text>
+                            <View style={{ marginTop: spacing.sm }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                                    <MaterialCommunityIcons name="check-circle" size={14} color="#22c55e" />
+                                    <MerakiText variant="caption" style={styles.uploadedHint}>Video uploaded</MerakiText>
+                                </View>
                                 {durationSeconds > 0 && (
-                                    <Text style={styles.durationText}>
-                                        ⏱️ Duration: {formatDuration(durationSeconds)}
-                                    </Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                        <MaterialCommunityIcons name="clock-outline" size={14} color={colors.textMuted} />
+                                        <MerakiText variant="caption" style={styles.durationText}>
+                                            Duration: {formatDuration(durationSeconds)}
+                                        </MerakiText>
+                                    </View>
                                 )}
                             </View>
                         )}
@@ -297,10 +306,10 @@ export function LessonEditorScreen() {
                     {/* Has Homework Toggle */}
                     <View style={styles.toggleRow}>
                         <View>
-                            <Text style={styles.toggleLabel}>Requires Homework</Text>
-                            <Text style={styles.toggleHint}>
+                            <MerakiText variant="body" style={styles.toggleLabel}>Requires Homework</MerakiText>
+                            <MerakiText variant="caption" style={styles.toggleHint}>
                                 Students must submit photo for review
-                            </Text>
+                            </MerakiText>
                         </View>
                         <Switch
                             value={hasHomework}
@@ -326,7 +335,7 @@ export function LessonEditorScreen() {
                     message="This will permanently delete this lesson."
                     confirmText="Delete"
                     confirmDestructive
-                    icon="🗑️"
+                    icon="delete"
                 />
             </SafeAreaView>
         </ScreenBackground>
@@ -345,12 +354,10 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
     },
-    backButton: { fontSize: 28, color: colors.text },
-    headerTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
-    deleteButton: { fontSize: 20 },
+    headerTitle: { fontWeight: '600', color: colors.text },
     content: { padding: spacing.lg, paddingBottom: 100 },
     inputGroup: { marginBottom: spacing.md },
-    label: { fontSize: 12, fontWeight: '600', color: colors.textMuted, marginBottom: 6, textTransform: 'uppercase' },
+    label: { fontWeight: '600', color: colors.textMuted, marginBottom: 6, textTransform: 'uppercase' },
     input: {
         backgroundColor: colors.surface,
         borderRadius: 12,
@@ -372,8 +379,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
-    toggleLabel: { fontSize: 16, fontWeight: '600', color: colors.text },
-    toggleHint: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+    toggleLabel: { fontWeight: '600', color: colors.text },
+    toggleHint: { color: colors.textMuted, marginTop: 2 },
     saveBtn: { marginTop: spacing.lg },
     uploadBtn: {
         backgroundColor: colors.surface,
@@ -386,9 +393,9 @@ const styles = StyleSheet.create({
         marginBottom: spacing.sm,
     },
     uploadBtnDisabled: { opacity: 0.5 },
-    uploadBtnText: { fontSize: 16, color: colors.primary, fontWeight: '600' },
-    uploadedHint: { fontSize: 12, color: '#22c55e', marginBottom: spacing.sm },
-    durationText: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.sm },
+    uploadBtnText: { color: colors.primary, fontWeight: '600' },
+    uploadedHint: { color: '#22c55e' },
+    durationText: { color: colors.textMuted },
 });
 
 export default LessonEditorScreen;

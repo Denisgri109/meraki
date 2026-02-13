@@ -9,6 +9,7 @@ import {
     Alert,
     TextInput,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -427,12 +428,12 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <ScrollView style={styles.scrollView}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
-                            <Text style={styles.backButton}>← Back</Text>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
                         </TouchableOpacity>
                         <Text style={styles.title}>Confirm Booking</Text>
                         <Text style={styles.subtitle}>Review your appointment details</Text>
@@ -460,7 +461,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
                         {/* Date */}
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailIcon}>📅</Text>
+                            <MaterialIcons name="event" size={16} color={colors.textSecondary} />
                             <View style={styles.detailInfo}>
                                 <Text style={styles.detailLabel}>Date</Text>
                                 <Text style={styles.detailValue}>
@@ -471,7 +472,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
                         {/* Time */}
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailIcon}>🕐</Text>
+                            <MaterialIcons name="schedule" size={16} color={colors.textSecondary} />
                             <View style={styles.detailInfo}>
                                 <Text style={styles.detailLabel}>Time</Text>
                                 <View style={styles.timeWithTimezone}>
@@ -487,7 +488,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
                         {/* Duration */}
                         <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                            <Text style={styles.detailIcon}>⏱️</Text>
+                            <MaterialIcons name="timer" size={16} color={colors.textSecondary} />
                             <View style={styles.detailInfo}>
                                 <Text style={styles.detailLabel}>Duration</Text>
                                 <Text style={styles.detailValue}>{service?.duration_minutes} minutes</Text>
@@ -529,7 +530,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                                             <Text style={styles.creditDesc}>{credit.description || credit.reward?.name}</Text>
                                         </View>
                                         <View style={[styles.creditCheck, isApplied && styles.creditCheckActive]}>
-                                            <Text style={styles.creditCheckText}>{isApplied ? '✓' : ''}</Text>
+                                            <Text style={styles.creditCheckText}>{isApplied ? "✓" : ""}</Text>
                                         </View>
                                     </TouchableOpacity>
                                 );
@@ -625,7 +626,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
                         {/* Payment Info */}
                         <View style={styles.paymentInfo}>
-                            <Text style={styles.paymentInfoIcon}>ℹ️</Text>
+                            <MaterialIcons name="info-outline" size={16} color={colors.textMuted} />
                             <Text style={styles.paymentInfoText}>
                                 {calculateDeposit().deposit > 0
                                     ? `You will be charged a deposit of €${calculateDeposit().deposit.toFixed(2)} now. The remaining balance is paid at the appointment.`
@@ -642,7 +643,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                         </View>
                         {appliedCredit && (
                             <View style={styles.priceRow}>
-                                <Text style={styles.discountLabel}>✨ Credit Applied</Text>
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}><MaterialIcons name="auto-awesome" size={14} color={colors.primary} /><Text style={styles.discountLabel}>Credit Applied</Text></View>
                                 <Text style={styles.discountValue}>-€{getDiscountAmount().toFixed(2)}</Text>
                             </View>
                         )}
@@ -703,9 +704,10 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
     },
     backButton: {
-        color: colors.textSecondary,
-        fontSize: 16,
-        marginBottom: spacing.md,
+        width: 40, height: 40, borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center', justifyContent: 'center',
     },
     title: {
         fontSize: 28,
@@ -841,7 +843,7 @@ const styles = StyleSheet.create({
     },
     paymentOptionSelected: {
         borderColor: colors.primary,
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        backgroundColor: 'rgba(200, 160, 77, 0.1)',
     },
     paymentOptionInfo: {
         flexDirection: 'row',
@@ -890,7 +892,7 @@ const styles = StyleSheet.create({
     paymentInfo: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        backgroundColor: 'rgba(200, 160, 77, 0.1)',
         padding: spacing.md,
         borderRadius: 12,
         marginTop: spacing.sm,
@@ -960,7 +962,7 @@ const styles = StyleSheet.create({
     timezoneTag: {
         fontSize: 10,
         color: colors.primary,
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        backgroundColor: 'rgba(200, 160, 77, 0.1)',
         paddingHorizontal: spacing.xs,
         paddingVertical: 2,
         borderRadius: 4,

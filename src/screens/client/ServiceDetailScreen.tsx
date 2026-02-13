@@ -9,11 +9,13 @@ import {
     Image,
     Alert,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { Button, Card, ScreenBackground } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 import { PreBookingQuestionnaireModal } from '../../components/booking';
 import { colors, spacing } from '../../theme';
 import { Service, Profile, BookingConsultation } from '../../types/database';
@@ -31,14 +33,10 @@ type ServiceDetailScreenProps = {
     route: RouteProp<BookingStackParamList, 'ServiceDetail'>;
 };
 
-// Extended service type to include requires_consultation
-interface ServiceWithConsultation extends Service {
-    requires_consultation?: boolean;
-}
-
 export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenProps) {
     const { serviceId } = route.params;
-    const [service, setService] = useState<ServiceWithConsultation | null>(null);
+    const { showAlert } = useModal();
+    const [service, setService] = useState<Service | null>(null);
     const [master, setMaster] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [checkingConsultation, setCheckingConsultation] = useState(false);
@@ -203,7 +201,7 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                 }
             } catch (error) {
                 console.error('Error checking consultation:', error);
-                Alert.alert('Error', 'Failed to check consultation status');
+                showAlert('Error', 'Failed to check consultation status', 'error');
             } finally {
                 setCheckingConsultation(false);
             }
@@ -269,12 +267,12 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <ScrollView style={styles.scrollView}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
-                            <Text style={styles.backButton}>← Back</Text>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
                         </TouchableOpacity>
                     </View>
 
@@ -298,7 +296,7 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                         {/* Consultation Required Badge */}
                         {service.requires_consultation && (
                             <View style={styles.consultationBadge}>
-                                <Text style={styles.consultationBadgeIcon}>📋</Text>
+                                <MaterialIcons name="description" size={16} color={colors.primary} />
                                 <Text style={styles.consultationBadgeText}>
                                     Consultation required before booking
                                 </Text>
@@ -326,7 +324,7 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                                     </Text>
                                     {((master as any).city || (master as any).country) && (
                                         <Text style={styles.masterLocation}>
-                                            📍 {[(master as any).city, (master as any).country].filter(Boolean).join(', ')}
+                                            <MaterialIcons name="location-on" size={12} color={colors.primary} /> {[(master as any).city, (master as any).country].filter(Boolean).join(', ')}
                                         </Text>
                                     )}
                                     {master.bio && (
@@ -392,8 +390,10 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
     },
     backButton: {
-        color: colors.textSecondary,
-        fontSize: 16,
+        width: 40, height: 40, borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center', justifyContent: 'center',
     },
     serviceSection: {
         padding: spacing.lg,

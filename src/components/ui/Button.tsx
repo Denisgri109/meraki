@@ -13,7 +13,7 @@ import { colors, gradients, layout, spacing } from '../../theme/colors';
 
 interface ButtonProps extends TouchableOpacityProps {
     title: string;
-    variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+    variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'glass' | 'gradient';
     size?: 'sm' | 'md' | 'lg';
     loading?: boolean;
     icon?: string;
@@ -35,13 +35,14 @@ export function Button({
     ...props
 }: ButtonProps) {
     const isPrimary = variant === 'primary';
+    const isGradient = variant === 'gradient';
     const isDisabled = disabled || loading;
     const containerStyle: ViewStyle = fullWidth ? { width: '100%' } : {};
 
     const content = (
         <>
             {loading ? (
-                <ActivityIndicator color={isPrimary ? '#FFF' : colors.primary} size="small" style={styles.loader} />
+                <ActivityIndicator color={isPrimary || isGradient ? colors.textInvert : colors.primary} size="small" style={styles.loader} />
             ) : icon ? (
                 <Text style={[styles.icon, getIconStyle(variant, isDisabled)]}>{icon}</Text>
             ) : null}
@@ -58,19 +59,41 @@ export function Button({
     if (isPrimary) {
         return (
             <TouchableOpacity
-                disabled={isDisabled}
-                style={[styles.container, containerStyle, style]}
+                onPress={props.onPress}
                 activeOpacity={0.8}
+                style={[
+                    styles.button,
+                    { backgroundColor: colors.primary },
+                    getSizeStyle(size),
+                    isDisabled && styles.disabled,
+                    style,
+                    containerStyle
+                ]}
+                disabled={isDisabled}
+                {...props}
+            >
+                {content}
+            </TouchableOpacity>
+        );
+    }
+
+    if (isGradient) {
+        return (
+            <TouchableOpacity
+                onPress={props.onPress}
+                activeOpacity={0.8}
+                disabled={isDisabled}
+                style={[containerStyle, isDisabled && styles.disabled, style]}
                 {...props}
             >
                 <LinearGradient
-                    colors={isDisabled ? [colors.surfaceLight, colors.surfaceLight] : [...gradients.primary]}
+                    colors={['#d48a82', '#E6C090']} // Gradient from design: #d48a82 -> #E6C090
                     start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
+                    end={{ x: 1, y: 1 }}
                     style={[
                         styles.button,
                         getSizeStyle(size),
-                        isDisabled && styles.disabled,
+                        { borderRadius: layout.borderRadius.full }
                     ]}
                 >
                     {content}
@@ -110,7 +133,7 @@ const styles = StyleSheet.create({
         borderRadius: layout.borderRadius.full,
     },
     text: {
-        fontWeight: '600',
+        fontFamily: 'Manrope-SemiBold',
         textAlign: 'center',
     },
     loader: {
@@ -137,9 +160,11 @@ function getVariantStyle(variant: string) {
                 borderWidth: 1,
                 borderColor: colors.borderLight,
             };
-        case 'ghost':
+        case 'glass':
             return {
-                backgroundColor: 'transparent',
+                backgroundColor: colors.surfaceGlass,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.15)',
             };
         default:
             return {};
@@ -169,8 +194,8 @@ function getSizeStyle(size: string) {
 function getTextStyle(variant: string, size: string, disabled: boolean) {
     const baseColor = disabled
         ? colors.textMuted
-        : variant === 'primary'
-            ? '#FFF'
+        : variant === 'primary' || variant === 'gradient'
+            ? colors.textInvert
             : colors.text;
 
     const fontSize = size === 'sm' ? 13 : size === 'lg' ? 17 : 15;
@@ -185,8 +210,8 @@ function getIconStyle(variant: string, disabled: boolean) {
     return {
         color: disabled
             ? colors.textMuted
-            : variant === 'primary'
-                ? '#FFF'
+            : variant === 'primary' || variant === 'gradient'
+                ? colors.textInvert
                 : colors.text
     };
 }

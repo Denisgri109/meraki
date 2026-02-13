@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ee2b5b",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0F0F13", // Deep warm black for Luxe feel
+                        "card-dark": "#1A1A20",
+                        "accent-rose": "#ee2b5b",
+                        "accent-champagne": "#F7E7CE"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .gradient-button {
+            background: linear-gradient(135deg, #ee2b5b 0%, #d4a373 100%);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col items-center">
+<!-- Phone Container Simulation -->
+<div class="w-full max-w-[430px] min-h-screen bg-background-light dark:bg-background-dark relative flex flex-col shadow-2xl">
+<!-- Sticky Header -->
+<header class="sticky top-0 z-50 glass px-6 py-4 flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors">
+<span class="material-icons-round text-2xl">chevron_left</span>
+</button>
+<h1 class="text-lg font-bold tracking-tight">Application: Sarah Jenkins</h1>
+</header>
+<!-- Scrollable Content -->
+<main class="flex-1 pb-32">
+<!-- Applicant Header Profile -->
+<section class="px-6 pt-6 pb-2 text-center">
+<div class="relative inline-block mb-4">
+<img alt="Sarah Jenkins" class="w-32 h-32 rounded-full object-cover ring-4 ring-primary/20" data-alt="Professional portrait of Sarah Jenkins" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCURnpIfhmKku8Ej-YQ3DsADKjdTUHaZmaFg0GX7hzpH_gOaoFo_fsq2iHJGe2cb3xSfghvTfFPkj6vxdaFVxq1X_eFBie1qq5-nBIryXIIv4rFIxzbXKL18X7xmuL6Mx64J87PKfXYN90pNuuxF6N-Njt6HNXvfmVxgWvrfZV7_Wm9q4ujCE6xBKOzPkbTH_Tu0QOgHBNGHhn_2jyfS8vgDvCCEBS-5PC_dPuD9BDOS4h9tq5CfTkl0wKjdELl7Db5ioPr5sONv5z4"/>
+<div class="absolute bottom-2 right-1 bg-primary w-4 h-4 rounded-full ring-2 ring-background-dark"></div>
+</div>
+<h2 class="text-2xl font-extrabold mb-1">Sarah Jenkins</h2>
+<p class="text-primary font-semibold text-sm tracking-widest uppercase">Lash Artist</p>
+<div class="mt-3 inline-flex items-center px-3 py-1 rounded-full bg-white/5 text-xs text-slate-400">
+<span class="material-icons-round text-xs mr-1">schedule</span>
+                    Applied 2 days ago
+                </div>
+</section>
+<!-- Tabs -->
+<section class="px-6 mt-8">
+<div class="flex border-b border-white/5">
+<button class="flex-1 py-4 text-sm font-bold border-b-2 border-primary text-primary transition-colors">Profile</button>
+<button class="flex-1 py-4 text-sm font-semibold text-slate-500 hover:text-slate-300 transition-colors">Portfolio</button>
+<button class="flex-1 py-4 text-sm font-semibold text-slate-500 hover:text-slate-300 transition-colors">Documents</button>
+</div>
+</section>
+<!-- Profile Data Section -->
+<section class="px-6 mt-8 space-y-8">
+<!-- Bio -->
+<div>
+<h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Professional Bio</h3>
+<p class="text-sm leading-relaxed text-slate-300">
+                        Expert lash technician with over 8 years of experience in luxury studio environments. Specialized in Russian Volume and hybrid techniques. Certified trainer and brand ambassador for Merakí Luxe since 2021.
+                    </p>
+</div>
+<!-- Location -->
+<div>
+<h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Studio Location</h3>
+<div class="flex items-center gap-3 p-4 rounded-xl glass">
+<div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+<span class="material-icons-round text-primary">location_on</span>
+</div>
+<div>
+<p class="text-sm font-bold">Main Studio Amsterdam</p>
+<p class="text-xs text-slate-500">Prinsengracht 12, 1015 DV Amsterdam</p>
+</div>
+</div>
+</div>
+<!-- Services -->
+<div>
+<h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Offered Services</h3>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-medium">Classic Lashes</span>
+<span class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-medium">Russian Volume</span>
+<span class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-medium">Mega Volume</span>
+<span class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-medium">Lash Lift</span>
+<span class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-medium">Brow Lamination</span>
+</div>
+</div>
+<!-- Documents Preview -->
+<div>
+<h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Required Documents</h3>
+<div class="grid grid-cols-2 gap-4">
+<div class="glass p-4 rounded-xl flex flex-col gap-3 group">
+<div class="w-full h-24 bg-white/5 rounded-lg flex items-center justify-center">
+<span class="material-icons-round text-3xl text-slate-600">article</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="overflow-hidden">
+<p class="text-xs font-bold truncate">License.pdf</p>
+<p class="text-[10px] text-slate-500 uppercase">Verified</p>
+</div>
+<button class="p-1 hover:text-primary transition-colors">
+<span class="material-icons-round text-lg">download</span>
+</button>
+</div>
+</div>
+<div class="glass p-4 rounded-xl flex flex-col gap-3">
+<div class="w-full h-24 bg-white/5 rounded-lg flex items-center justify-center">
+<span class="material-icons-round text-3xl text-slate-600">verified_user</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="overflow-hidden">
+<p class="text-xs font-bold truncate">Insurance.pdf</p>
+<p class="text-[10px] text-slate-500 uppercase">Pending</p>
+</div>
+<button class="p-1 hover:text-primary transition-colors">
+<span class="material-icons-round text-lg">download</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Portfolio Gallery -->
+<div>
+<h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Portfolio Work</h3>
+<div class="flex gap-4 overflow-x-auto hide-scrollbar pb-4 -mx-6 px-6">
+<img alt="Portfolio 1" class="w-48 h-64 object-cover rounded-xl flex-shrink-0" data-alt="Close up lash application detail work" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCfFz-LMN3iM52lJNg719Z-udiROQe8Nbg77l6RTtpQzMFwZjrpg_251otylQQ9yjq1h5BPwmG6CihulwKLuN1vlfBxHjfncR15cLrPkb_bZjeGNMXY16jfEzhrGt1Phq_j8OIYELwSMNecfh7bomqfGo8OrafTTy5xmFxR7pV0E1CGr6AJCht7-K9AaCPGmmS4JVRWV85wO74Zbhm57P3gVp4kn15MR9VVqzUwX6VxNg9oGUk2eeKdpHVjTz09lLRty-p6Dw0OiFR"/>
+<img alt="Portfolio 2" class="w-48 h-64 object-cover rounded-xl flex-shrink-0" data-alt="Lash extension volume technique example" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZ4l-2cuCTROIr_nYQfCaxKbZulN3QQMMUaBvlU65_YbgcoQI9R3ON5f-RkZGa_dS96Anjx4etSby6uFxThr7U_BvHKqbeTB3eFqasGCF0uI2vf7nEz481m3sh0ScytFpA0501_i0It4OMhMYzZh347OF7p647SCzLJeKbXA9Er0jMlLAXJIXEECIZI9L9kwJSTIXQx86yWyr2aLI7xwxXLzDh68YTd178AI6y9o1R558BbqjrOzbVGvB83eNJ0tOW9k0gKISHNLW7"/>
+<img alt="Portfolio 3" class="w-48 h-64 object-cover rounded-xl flex-shrink-0" data-alt="High end beauty salon environment preview" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZeyYgwaqCjRnNC4nwFN1zO0y5cwfcWxCJGncsp1akgNvr_6aFTdhWq_mKeByAoFAT9TeRKsiLRdFT3oU4QHK4-e9UZ5SSoKu12pmS8tE1NdtFcf0PjyBjEFeKk8uV4OxcR4nc-ixoEhfh2NPkn3h8sgj5keyhL76u5q9MEpLM3nG5kTK8zE3E2HEuzmZzLqPIZjnsaZG7E0Fhq391nbWIjic6wzyb8XHB67hJ50GPyo4k_6g8GUKRsJd4lrdWKFzC55n4A53BhEKO"/>
+</div>
+</div>
+</section>
+</main>
+<!-- Sticky Bottom Bar -->
+<footer class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-6 glass border-t border-white/10 flex items-center gap-3">
+<button class="h-14 px-6 font-bold text-red-500/80 text-sm hover:text-red-500 transition-colors uppercase tracking-tight">
+                Reject
+            </button>
+<button class="w-14 h-14 glass rounded-xl flex items-center justify-center group hover:border-primary/50 transition-all">
+<span class="material-icons-round text-slate-300 group-hover:text-primary">forum</span>
+</button>
+<button class="flex-1 h-14 gradient-button rounded-xl flex items-center justify-center gap-2 text-white font-extrabold shadow-lg shadow-primary/20 active:scale-[0.98] transition-all">
+<span>Approve Master</span>
+<span class="material-icons-round text-sm">auto_awesome</span>
+</button>
+</footer>
+<!-- iOS Home Indicator -->
+<div class="fixed bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full z-[60]"></div>
+</div>
+</body></html>

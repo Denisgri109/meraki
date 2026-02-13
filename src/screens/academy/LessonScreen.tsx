@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
@@ -10,13 +9,14 @@ import {
     Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { Video, ResizeMode } from 'expo-av';
 import { WebView } from 'react-native-webview';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { ScreenBackground, Button } from '../../components/ui';
-import { colors, spacing } from '../../theme';
+import { ScreenBackground, Button, MerakiText, Card } from '../../components/ui';
+import { colors, spacing, layout, gradients } from '../../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -44,16 +44,12 @@ type AcademyStackParamList = {
     };
 };
 
-// Helper to extract YouTube video ID from various URL formats
+// Helper tools for video extraction...
 const getYouTubeVideoId = (url: string): string | null => {
     const patterns = [
-        // Standard and mobile youtube URLs with watch?v=
         /(?:(?:www\.|m\.)?youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-        // Short youtu.be URLs
         /youtu\.be\/([a-zA-Z0-9_-]{11})/,
-        // Embed URLs
         /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-        // Shorts URLs
         /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
     ];
     for (const pattern of patterns) {
@@ -63,13 +59,11 @@ const getYouTubeVideoId = (url: string): string | null => {
     return null;
 };
 
-// Helper to extract Vimeo video ID
 const getVimeoVideoId = (url: string): string | null => {
     const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
     return match ? match[1] : null;
 };
 
-// Check if URL is a streaming platform (YouTube, Vimeo, Mux)
 const isStreamingUrl = (url: string): 'youtube' | 'vimeo' | 'mux' | null => {
     if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('m.youtube.com')) return 'youtube';
     if (url.includes('vimeo.com')) return 'vimeo';
@@ -77,40 +71,28 @@ const isStreamingUrl = (url: string): 'youtube' | 'vimeo' | 'mux' | null => {
     return null;
 };
 
-// Generate embed URL with provider fallback support
 const getEmbedUrl = (url: string, provider?: string | null): string | null => {
     let platform = isStreamingUrl(url);
-
-    // If auto-detection failed but we have a provider, use it
     if (!platform && provider) {
         if (['youtube', 'vimeo', 'mux'].includes(provider.toLowerCase())) {
             platform = provider.toLowerCase() as any;
         }
     }
-
     if (platform === 'youtube') {
         let videoId = getYouTubeVideoId(url);
-        // Allow raw ID if provider is explicitly YouTube
         if (!videoId && /^[a-zA-Z0-9_-]{11}$/.test(url)) videoId = url;
-
         if (videoId) return `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0&fs=1`;
     }
-
     if (platform === 'vimeo') {
         let videoId = getVimeoVideoId(url);
-        // Allow raw ID (digits) if provider is explicitly Vimeo
         if (!videoId && /^\d+$/.test(url)) videoId = url;
-
         if (videoId) return `https://player.vimeo.com/video/${videoId}?playsinline=1`;
     }
-
     if (platform === 'mux') {
         const match = url.match(/stream\.mux\.com\/([a-zA-Z0-9]+)/);
         if (match) return `https://stream.mux.com/${match[1]}.m3u8`;
-        // Allow raw Mux ID
         if (!match && /^[a-zA-Z0-9]+$/.test(url)) return `https://stream.mux.com/${url}.m3u8`;
     }
-
     return null;
 };
 
@@ -118,12 +100,10 @@ export function LessonScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<RouteProp<AcademyStackParamList, 'Lesson'>>();
     const { user } = useAuth();
-    const { lesson, courseId, instructorId, instructorName } = route.params;
+    const { lesson, instructorId, instructorName } = route.params;
 
     const videoRef = useRef<Video>(null);
-    const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
     const [videoDuration, setVideoDuration] = useState<number>(0);
     const [chatLoading, setChatLoading] = useState(false);
 
@@ -133,18 +113,14 @@ export function LessonScreen() {
 
     const loadProgress = async () => {
         if (!user) return;
-
         try {
             const { data } = await (supabase as any)
                 .from('lesson_progress')
-                .select('progress_percent, last_position_seconds')
+                .select('progress_percent')
                 .eq('user_id', user.id)
                 .eq('lesson_id', lesson.id)
                 .single();
-
-            if (data) {
-                setProgress(data.progress_percent);
-            }
+            if (data) setProgress(data.progress_percent);
         } catch (error) {
             console.error('Error loading progress:', error);
         }
@@ -152,7 +128,6 @@ export function LessonScreen() {
 
     const updateProgress = async (percent: number) => {
         if (!user) return;
-
         try {
             await (supabase as any)
                 .from('lesson_progress')
@@ -163,7 +138,6 @@ export function LessonScreen() {
                     completed_at: percent === 100 ? new Date().toISOString() : null,
                     updated_at: new Date().toISOString(),
                 }, { onConflict: 'user_id,lesson_id' });
-
             setProgress(percent);
         } catch (error) {
             console.error('Error updating progress:', error);
@@ -172,15 +146,9 @@ export function LessonScreen() {
 
     const handleVideoProgress = (status: any) => {
         if (status.isLoaded && status.durationMillis) {
-            // Set duration if not set yet
-            if (videoDuration === 0) {
-                setVideoDuration(status.durationMillis / 1000);
-            }
-
+            if (videoDuration === 0) setVideoDuration(status.durationMillis / 1000);
             const watchedPercent = Math.round((status.positionMillis / status.durationMillis) * 100);
-            if (watchedPercent > progress) {
-                updateProgress(Math.min(watchedPercent, 100));
-            }
+            if (watchedPercent > progress) updateProgress(Math.min(watchedPercent, 100));
         }
     };
 
@@ -194,107 +162,51 @@ export function LessonScreen() {
             Alert.alert('Unavailable', 'This course does not have an instructor assigned to chat with.');
             return;
         }
-
-        if (instructorId === user.id) {
-            Alert.alert('Note', 'You are the instructor of this course.');
-            return;
-        }
-
         setChatLoading(true);
         try {
-            // Check for existing conversation
-            // Client initiating chat with Master (Owner)
             const { data: existing } = await (supabase as any)
                 .from('conversations')
                 .select('id')
                 .eq('client_id', user.id)
                 .eq('master_id', instructorId)
                 .single();
-
             let conversationId = existing?.id;
-
-            // Create if not exists
             if (!conversationId) {
                 const { data: newConv, error } = await (supabase as any)
                     .from('conversations')
-                    .insert({
-                        client_id: user.id,
-                        master_id: instructorId,
-                    })
-                    .select()
-                    .single();
-
+                    .insert({ client_id: user.id, master_id: instructorId })
+                    .select().single();
                 if (error) throw error;
                 conversationId = newConv.id;
             }
-
-            navigation.navigate('Chat', {
-                conversationId,
-                otherUser: {
-                    full_name: instructorName || 'Instructor',
-                    avatar_url: null, // We might want to pass this if available
-                    id: instructorId
-                }
-            });
-
-        } catch (error: any) {
-            console.error('Error starting chat:', error);
+            navigation.dispatch(
+                CommonActions.navigate({
+                    name: 'Chat',
+                    params: {
+                        conversationId,
+                        otherUser: { full_name: instructorName || 'Instructor', avatar_url: null, id: instructorId }
+                    },
+                })
+            );
+        } catch (error) {
             Alert.alert('Error', 'Failed to start conversation');
         } finally {
             setChatLoading(false);
         }
     };
 
-    // Render video player based on URL type
     const renderVideoPlayer = () => {
         if (!lesson.video_url) {
             return (
                 <View style={styles.videoPlaceholder}>
-                    <Text style={styles.videoPlaceholderEmoji}>🎬</Text>
-                    <Text style={styles.videoPlaceholderText}>Video coming soon</Text>
+                    <MerakiText style={styles.videoPlaceholderEmoji}>🎬</MerakiText>
+                    <MerakiText variant="body" color={colors.textMuted}>Video coming soon</MerakiText>
                 </View>
             );
         }
-
-        // Try to get embed URL using auto-detection OR explicit provider
         const embedUrl = getEmbedUrl(lesson.video_url, lesson.video_provider);
-
-        // If we have an embed URL, it means it's a supported streaming platform (YouTube/Vimeo)
         if (embedUrl) {
-
-            console.log('Loading video embed URL:', embedUrl);
-
-            // Use HTML wrapper with full-size responsive iframe
-            const html = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                    <style>
-                        * { margin: 0; padding: 0; box-sizing: border-box; }
-                        html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
-                        .container { position: relative; width: 100%; height: 100%; }
-                        iframe { 
-                            position: absolute; 
-                            top: 0; left: 0; 
-                            width: 100%; height: 100%; 
-                            border: none; 
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <iframe 
-                            src="${embedUrl}"
-                            frameborder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowfullscreen
-                        ></iframe>
-                    </div>
-                </body>
-                </html>
-            `;
-
+            const html = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><style>* { margin: 0; padding: 0; box-sizing: border-box; } html, body { width: 100%; height: 100%; background: #000; overflow: hidden; } .container { position: relative; width: 100%; height: 100%; } iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }</style></head><body><div class="container"><iframe src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div></body></html>`;
             return (
                 <WebView
                     source={{ html }}
@@ -305,14 +217,10 @@ export function LessonScreen() {
                     javaScriptEnabled
                     domStorageEnabled
                     originWhitelist={['*']}
-                    mixedContentMode="compatibility"
-                    scalesPageToFit={true}
                     scrollEnabled={false}
                 />
             );
         }
-
-        // Use expo-av Video for direct video URLs (mp4, m3u8, etc.)
         return (
             <Video
                 ref={videoRef}
@@ -320,7 +228,6 @@ export function LessonScreen() {
                 style={styles.video}
                 useNativeControls
                 resizeMode={ResizeMode.CONTAIN}
-                isLooping={false}
                 onPlaybackStatusUpdate={handleVideoProgress}
             />
         );
@@ -328,84 +235,74 @@ export function LessonScreen() {
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
-                <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
-                            <Text style={styles.backButton}>← Back</Text>
-                        </TouchableOpacity>
-                    </View>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <MerakiText style={styles.backIcon}>←</MerakiText>
+                    </TouchableOpacity>
+                </View>
 
-                    {/* Video Player */}
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     <View style={styles.videoContainer}>
                         {renderVideoPlayer()}
                     </View>
 
-                    {/* Progress Bar */}
-                    <View style={styles.progressSection}>
-                        <View style={styles.progressRow}>
-                            <Text style={styles.progressLabel}>Progress</Text>
-                            <Text style={styles.progressPercent}>{progress}%</Text>
-                        </View>
-                        <View style={styles.progressBar}>
-                            <View style={[styles.progressFill, { width: `${progress}%` }]} />
-                        </View>
-                    </View>
+                    <View style={styles.contentPadding}>
+                        <Card variant="glass" style={styles.progressCard}>
+                            <View style={styles.progressRow}>
+                                <MerakiText variant="bodyBold">Lesson Progress</MerakiText>
+                                <MerakiText variant="body" color={colors.accent}>{progress}%</MerakiText>
+                            </View>
+                            <View style={styles.progressBar}>
+                                <LinearGradient
+                                    colors={gradients.accent as any}
+                                    style={[styles.progressFill, { width: `${progress}%` }]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                />
+                            </View>
+                        </Card>
 
-                    {/* Lesson Info */}
-                    <View style={styles.lessonInfo}>
-                        <Text style={styles.lessonTitle}>{lesson.title}</Text>
-
-                        {(videoDuration > 0 || !!lesson.duration_minutes) && (
-                            <Text style={styles.lessonDuration}>
-                                ⏱️ {videoDuration > 0
-                                    ? (videoDuration < 60
-                                        ? `${Math.round(videoDuration)} seconds`
-                                        : `${Math.ceil(videoDuration / 60)} minutes`)
-                                    : `${lesson.duration_minutes} minutes`
-                                }
-                            </Text>
-                        )}
-
-                        {lesson.description && (
-                            <Text style={styles.lessonDescription}>{lesson.description}</Text>
-                        )}
-                    </View>
-
-                    {/* Actions */}
-                    <View style={styles.actions}>
-                        {progress < 100 && (
-                            <Button
-                                title="Mark as Complete"
-                                onPress={markComplete}
-                                fullWidth
-                            />
-                        )}
-
-                        <TouchableOpacity
-                            style={styles.chatButton}
-                            onPress={handleChatOwner}
-                            disabled={chatLoading}
-                        >
-                            {chatLoading ? (
-                                <ActivityIndicator color={colors.primary} size="small" />
-                            ) : (
-                                <>
-                                    <Text style={styles.chatButtonIcon}>💬</Text>
-                                    <Text style={styles.chatButtonText}>Chat with Owner</Text>
-                                </>
+                        <View style={styles.lessonInfo}>
+                            <MerakiText variant="h2" style={styles.lessonTitle}>{lesson.title}</MerakiText>
+                            {(videoDuration > 0 || !!lesson.duration_minutes) && (
+                                <MerakiText variant="caption" color={colors.textMuted} style={styles.duration}>
+                                    ⏱️ {videoDuration > 0 ? (videoDuration < 60 ? `${Math.round(videoDuration)}s` : `${Math.ceil(videoDuration / 60)}m`) : `${lesson.duration_minutes}m`}
+                                </MerakiText>
                             )}
-                        </TouchableOpacity>
+                            {lesson.description && (
+                                <MerakiText variant="body" color={colors.textSecondary} style={styles.description}>
+                                    {lesson.description}
+                                </MerakiText>
+                            )}
+                        </View>
 
-                        {lesson.has_homework && (
-                            <TouchableOpacity
-                                style={styles.homeworkButton}
-                                onPress={() => navigation.navigate('Homework', { lessonId: lesson.id })}
-                            >
-                                <Text style={styles.homeworkButtonText}>📝 Submit Homework</Text>
+                        <View style={styles.actions}>
+                            {progress < 100 && (
+                                <Button title="Mark as Complete" onPress={markComplete} variant="primary" style={styles.actionBtn} />
+                            )}
+
+                            <TouchableOpacity style={styles.chatButton} onPress={handleChatOwner} disabled={chatLoading}>
+                                {chatLoading ? <ActivityIndicator color={colors.primary} /> : (
+                                    <>
+                                        <MerakiText style={styles.btnIcon}>💬</MerakiText>
+                                        <MerakiText variant="bodyBold">Discussion with Instructor</MerakiText>
+                                    </>
+                                )}
                             </TouchableOpacity>
-                        )}
+
+                            {lesson.has_homework && (
+                                <TouchableOpacity
+                                    style={styles.homeworkButton}
+                                    onPress={() => navigation.navigate('Homework', { lessonId: lesson.id })}
+                                >
+                                    <LinearGradient colors={gradients.accent as any} style={styles.homeworkGradient}>
+                                        <MerakiText style={styles.btnIcon}>📝</MerakiText>
+                                        <MerakiText variant="bodyBold" color="#FFF">Submit Homework</MerakiText>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
                 </ScrollView>
             </SafeAreaView>
@@ -415,13 +312,24 @@ export function LessonScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    content: { paddingBottom: 100 },
+    scrollContent: { paddingBottom: 100 },
     header: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-    backButton: { fontSize: 16, color: colors.textSecondary },
+    backButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.surfaceGlass,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    backIcon: { fontSize: 24 },
     videoContainer: {
         width: width,
-        height: width * 0.5625, // 16:9 ratio
+        height: width * 0.5625,
         backgroundColor: '#000',
+        marginBottom: spacing.lg,
     },
     video: { flex: 1 },
     videoPlaceholder: {
@@ -431,49 +339,36 @@ const styles = StyleSheet.create({
         backgroundColor: colors.surface,
     },
     videoPlaceholderEmoji: { fontSize: 48, marginBottom: spacing.md },
-    videoPlaceholderText: { fontSize: 14, color: colors.textMuted },
-    progressSection: { padding: spacing.lg },
+    contentPadding: { paddingHorizontal: spacing.lg },
+    progressCard: { padding: spacing.md, marginBottom: spacing.xl },
     progressRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
-    progressLabel: { fontSize: 14, color: colors.textSecondary },
-    progressPercent: { fontSize: 14, fontWeight: '600', color: colors.primary },
-    progressBar: {
-        height: 8,
-        backgroundColor: colors.surface,
-        borderRadius: 4,
-        overflow: 'hidden',
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: colors.primary,
-        borderRadius: 4,
-    },
-    lessonInfo: { paddingHorizontal: spacing.lg },
-    lessonTitle: { fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
-    lessonDuration: { fontSize: 14, color: colors.textMuted, marginBottom: spacing.md },
-    lessonDescription: { fontSize: 14, color: colors.textSecondary, lineHeight: 22 },
-    actions: { padding: spacing.lg, gap: spacing.md },
-    homeworkButton: {
-        backgroundColor: 'rgba(139,92,246,0.1)',
-        borderRadius: 12,
-        padding: spacing.lg,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(139,92,246,0.3)',
-    },
-    homeworkButtonText: { fontSize: 16, fontWeight: '600', color: colors.primary },
+    progressBar: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
+    progressFill: { height: '100%', borderRadius: 3 },
+    lessonInfo: { marginBottom: spacing.xl },
+    lessonTitle: { marginBottom: 4 },
+    duration: { marginBottom: spacing.md },
+    description: { lineHeight: 22 },
+    actions: { gap: spacing.md },
+    actionBtn: { marginBottom: spacing.sm },
     chatButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.surface,
-        borderRadius: 12,
+        backgroundColor: colors.surfaceGlass,
         padding: spacing.md,
+        borderRadius: layout.borderRadius.md,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: 'rgba(255,255,255,0.1)',
         gap: spacing.sm,
     },
-    chatButtonIcon: { fontSize: 18 },
-    chatButtonText: { fontSize: 16, fontWeight: '600', color: colors.text },
+    btnIcon: { fontSize: 18, marginRight: 8 },
+    homeworkButton: { borderRadius: layout.borderRadius.md, overflow: 'hidden' },
+    homeworkGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: spacing.md,
+    },
 });
 
 export default LessonScreen;

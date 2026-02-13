@@ -9,9 +9,12 @@ import {
     RefreshControl,
     Modal,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { CardField, useConfirmSetupIntent } from '../../utils/stripe';
+import { safeGoBack } from '../../navigation/navigationUtils';
+import { useMenuBackHandler } from '../../hooks/useMenuBackHandler';
 import { Card, Button, ScreenBackground, MerakiModal, MerakiModalProps } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
@@ -33,7 +36,8 @@ const CARD_ICONS: Record<string, string> = {
 };
 
 export function PaymentMethodsScreen() {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
+    const handleBack = useMenuBackHandler();
     const { user, profile } = useAuth();
     const { confirmSetupIntent } = useConfirmSetupIntent();
 
@@ -285,7 +289,7 @@ export function PaymentMethodsScreen() {
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <ScrollView
                     contentContainerStyle={styles.content}
                     refreshControl={
@@ -294,8 +298,8 @@ export function PaymentMethodsScreen() {
                 >
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
-                            <Text style={styles.backButton}>← Back</Text>
+                        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+                            <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
                         </TouchableOpacity>
                         <Text style={styles.title}>Payment Methods</Text>
                         <Text style={styles.subtitle}>Manage your saved cards</Text>
@@ -451,7 +455,12 @@ const styles = StyleSheet.create({
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     content: { padding: spacing.lg },
     header: { marginBottom: spacing.xl },
-    backButton: { color: colors.textSecondary, fontSize: 16, marginBottom: spacing.md },
+    backButton: {
+        width: 40, height: 40, borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center', justifyContent: 'center',
+    },
     title: { fontSize: 28, fontWeight: '600', color: colors.text },
     subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: spacing.xs },
     section: { marginBottom: spacing.xl },
@@ -487,7 +496,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         marginTop: spacing.lg,
         padding: spacing.md,
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        backgroundColor: 'rgba(200, 160, 77, 0.1)',
         borderRadius: 12,
     },
     securityIcon: { fontSize: 16, marginRight: spacing.sm, marginTop: 2 },

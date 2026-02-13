@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     TouchableOpacity,
     Alert,
@@ -15,8 +14,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useConfirmPayment, CardField } from '../../utils/stripe';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { ScreenBackground, Button } from '../../components/ui';
-import { colors, spacing } from '../../theme';
+import { ScreenBackground, Button, MerakiText, Card } from '../../components/ui';
+import { colors, spacing, layout, gradients } from '../../theme';
 import {
     createPaymentIntent,
     listPaymentMethods,
@@ -49,8 +48,6 @@ export function CoursePurchaseScreen() {
     const { confirmPayment } = useConfirmPayment();
 
     const [loading, setLoading] = useState(false);
-
-    // Payment state
     const [savedCards, setSavedCards] = useState<PaymentMethod[]>([]);
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
     const [showNewCard, setShowNewCard] = useState(false);
@@ -72,7 +69,6 @@ export function CoursePurchaseScreen() {
             const cards = await listPaymentMethods(profile.stripe_customer_id);
             setSavedCards(cards);
 
-            // Get default card from database
             const { data: dbMethods } = await (supabase as any)
                 .from('payment_methods')
                 .select('stripe_payment_method_id, is_default')
@@ -100,7 +96,6 @@ export function CoursePurchaseScreen() {
             return;
         }
 
-        // Validate payment method selection
         if (!showNewCard && !selectedCardId) {
             Alert.alert('Payment Required', 'Please select a payment method to continue.');
             return;
@@ -114,7 +109,6 @@ export function CoursePurchaseScreen() {
         setLoading(true);
 
         try {
-            // 1. Create Payment Intent
             const totalInCents = eurosToCents(course.price);
             const { clientSecret, paymentIntentId } = await createPaymentIntent({
                 amount: totalInCents,
@@ -123,7 +117,6 @@ export function CoursePurchaseScreen() {
                 captureMethod: 'automatic',
             });
 
-            // 2. Confirm Payment
             let paymentResult;
             if (showNewCard) {
                 paymentResult = await confirmPayment(clientSecret, {
@@ -142,7 +135,6 @@ export function CoursePurchaseScreen() {
                 throw new Error(paymentResult.error.message);
             }
 
-            // 3. Create Enrollment
             const { error: enrollError } = await (supabase as any)
                 .from('course_enrollments')
                 .insert({
@@ -154,7 +146,6 @@ export function CoursePurchaseScreen() {
 
             if (enrollError) throw enrollError;
 
-            // 4. Record Payment
             await (supabase as any)
                 .from('payments')
                 .insert({
@@ -170,18 +161,10 @@ export function CoursePurchaseScreen() {
             Alert.alert(
                 '🎉 Success!',
                 'You have successfully enrolled in the course.',
-                [
-                    {
-                        text: 'Start Learning',
-                        onPress: () => {
-                            navigation.replace('CourseDetail', { course });
-                        },
-                    },
-                ]
+                [{ text: 'Start Learning', onPress: () => navigation.replace('CourseDetail', { course }) }]
             );
 
         } catch (error: any) {
-            console.error('Purchase error:', error);
             Alert.alert('Purchase Failed', error.message || 'Something went wrong');
         } finally {
             setLoading(false);
@@ -190,144 +173,116 @@ export function CoursePurchaseScreen() {
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Text style={styles.backButton}>←</Text>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <MerakiText style={styles.backIcon}>←</MerakiText>
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Unlock Course</Text>
-                    <View style={{ width: 40 }} />
+                    <MerakiText variant="h3">Course Checkout</MerakiText>
+                    <View style={{ width: 44 }} />
                 </View>
 
-                <ScrollView contentContainerStyle={styles.content}>
-                    {/* Course Preview Card */}
-                    <View style={styles.card}>
+                <ScrollView
+                    style={{ flex: 1 }}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {/* Course Summary Card */}
+                    <Card variant="glass" style={styles.courseCard} noPadding>
                         <View style={styles.thumbnailContainer}>
-                            {course.thumbnail_url && course.thumbnail_url.startsWith('http') ? (
-                                <Image
-                                    source={{ uri: course.thumbnail_url }}
-                                    style={styles.thumbnailImage}
-                                    resizeMode="cover"
-                                />
+                            {course.thumbnail_url ? (
+                                <Image source={{ uri: course.thumbnail_url }} style={styles.thumbnail} resizeMode="cover" />
                             ) : (
-                                <LinearGradient
-                                    colors={['#4F46E5', '#9333EA']}
-                                    style={styles.thumbnailGradient}
-                                >
-                                    <Text style={styles.thumbnailIcon}>🎓</Text>
+                                <LinearGradient colors={gradients.primary as any} style={styles.thumbnailPlaceholder}>
+                                    <MerakiText style={styles.thumbnailEmoji}>🎓</MerakiText>
                                 </LinearGradient>
                             )}
                         </View>
-
-                        <View style={styles.cardContent}>
-                            <Text style={styles.courseTitle}>{course.title}</Text>
-                            <Text style={styles.instructor}>
-                                By {course.instructor?.full_name || 'Merakí Expert'}
-                            </Text>
+                        <View style={styles.cardInfo}>
+                            <MerakiText variant="h3" style={styles.courseTitle}>{course.title}</MerakiText>
+                            <MerakiText variant="caption" color={colors.textSecondary}>
+                                instructor: {course.instructor?.full_name || 'Merakí Academy'}
+                            </MerakiText>
 
                             <View style={styles.divider} />
 
-                            <View style={styles.row}>
-                                <Text style={styles.label}>Lessons</Text>
-                                <Text style={styles.value}>{course.lesson_count || 'Multiple'}</Text>
+                            <View style={styles.summaryRow}>
+                                <MerakiText variant="caption" color={colors.textMuted}>Lessons</MerakiText>
+                                <MerakiText variant="caption" color={colors.text}>{course.lesson_count || '8'}</MerakiText>
                             </View>
-                            <View style={styles.row}>
-                                <Text style={styles.label}>Duration</Text>
-                                <Text style={styles.value}>{course.duration || 'Self-paced'}</Text>
-                            </View>
-                            <View style={styles.row}>
-                                <Text style={styles.label}>Access</Text>
-                                <Text style={styles.value}>Lifetime</Text>
+                            <View style={styles.summaryRow}>
+                                <MerakiText variant="caption" color={colors.textMuted}>Access</MerakiText>
+                                <MerakiText variant="caption" color={colors.text}>Lifetime</MerakiText>
                             </View>
                         </View>
+                    </Card>
+
+                    {/* Pricing */}
+                    <View style={styles.priceSection}>
+                        <MerakiText variant="label" color={colors.textMuted} align="center">INVESTMENT</MerakiText>
+                        <MerakiText variant="h1" color={colors.accent} align="center" style={styles.priceText}>
+                            €{course.price.toFixed(2)}
+                        </MerakiText>
                     </View>
 
-                    {/* Price Section */}
-                    <View style={styles.priceContainer}>
-                        <Text style={styles.totalLabel}>Total Price</Text>
-                        <Text style={styles.price}>€{course.price.toFixed(2)}</Text>
-                    </View>
-
-                    {/* Payment Method Section */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Payment Method</Text>
-
+                    {/* Payment Selection */}
+                    <View style={styles.paymentSection}>
+                        <MerakiText variant="h3" style={styles.sectionTitle}>Payment Details</MerakiText>
                         {loadingCards ? (
-                            <ActivityIndicator size="small" color={colors.primary} />
+                            <ActivityIndicator color={colors.primary} />
                         ) : (
                             <>
-                                {/* Saved Cards */}
                                 {savedCards.map((card) => (
                                     <TouchableOpacity
                                         key={card.id}
-                                        style={[
-                                            styles.paymentOption,
-                                            selectedCardId === card.id && !showNewCard && styles.paymentOptionSelected
-                                        ]}
-                                        onPress={() => {
-                                            setSelectedCardId(card.id);
-                                            setShowNewCard(false);
-                                        }}
+                                        activeOpacity={0.8}
+                                        onPress={() => { setSelectedCardId(card.id); setShowNewCard(false); }}
                                     >
-                                        <View style={styles.paymentOptionInfo}>
-                                            <Text style={styles.paymentOptionIcon}>💳</Text>
-                                            <View>
-                                                <Text style={styles.paymentOptionTitle}>
-                                                    {formatCardBrand(card.brand)} •••• {card.last4}
-                                                </Text>
-                                                <Text style={styles.paymentOptionSubtitle}>
-                                                    Expires {card.expMonth}/{card.expYear}
-                                                </Text>
+                                        <Card
+                                            variant="glass"
+                                            style={[styles.paymentCard, selectedCardId === card.id && !showNewCard && styles.selectedCard]}
+                                        >
+                                            <View style={styles.cardRow}>
+                                                <MerakiText style={styles.cardIcon}>💳</MerakiText>
+                                                <View style={{ flex: 1 }}>
+                                                    <MerakiText variant="bodyBold">
+                                                        {formatCardBrand(card.brand)} •••• {card.last4}
+                                                    </MerakiText>
+                                                    <MerakiText variant="caption" color={colors.textMuted}>
+                                                        Expires {card.expMonth}/{card.expYear}
+                                                    </MerakiText>
+                                                </View>
+                                                <View style={[styles.radio, selectedCardId === card.id && !showNewCard && styles.radioActive]}>
+                                                    {selectedCardId === card.id && !showNewCard && <View style={styles.radioInner} />}
+                                                </View>
                                             </View>
-                                        </View>
-                                        <View style={[
-                                            styles.radioOuter,
-                                            selectedCardId === card.id && !showNewCard && styles.radioOuterSelected
-                                        ]}>
-                                            {selectedCardId === card.id && !showNewCard && (
-                                                <View style={styles.radioInner} />
-                                            )}
-                                        </View>
+                                        </Card>
                                     </TouchableOpacity>
                                 ))}
 
-                                {/* Add New Card Option */}
-                                <TouchableOpacity
-                                    style={[
-                                        styles.paymentOption,
-                                        showNewCard && styles.paymentOptionSelected
-                                    ]}
-                                    onPress={() => setShowNewCard(true)}
-                                >
-                                    <View style={styles.paymentOptionInfo}>
-                                        <Text style={styles.paymentOptionIcon}>➕</Text>
-                                        <Text style={styles.paymentOptionTitle}>Use a new card</Text>
-                                    </View>
-                                    <View style={[styles.radioOuter, showNewCard && styles.radioOuterSelected]}>
-                                        {showNewCard && <View style={styles.radioInner} />}
-                                    </View>
+                                <TouchableOpacity activeOpacity={0.8} onPress={() => setShowNewCard(true)}>
+                                    <Card variant="glass" style={[styles.paymentCard, showNewCard && styles.selectedCard]}>
+                                        <View style={styles.cardRow}>
+                                            <MerakiText style={styles.cardIcon}>➕</MerakiText>
+                                            <MerakiText variant="bodyBold" style={{ flex: 1 }}>Pay with new card</MerakiText>
+                                            <View style={[styles.radio, showNewCard && styles.radioActive]}>
+                                                {showNewCard && <View style={styles.radioInner} />}
+                                            </View>
+                                        </View>
+                                    </Card>
                                 </TouchableOpacity>
 
-                                {/* New Card Input */}
                                 {showNewCard && (
-                                    <View style={styles.newCardContainer}>
+                                    <View style={styles.cardFieldWrapper}>
                                         <CardField
                                             postalCodeEnabled={false}
-                                            placeholders={{
-                                                number: '4242 4242 4242 4242',
-                                            }}
                                             cardStyle={{
-                                                backgroundColor: colors.surface,
+                                                backgroundColor: 'rgba(255,255,255,0.05)',
                                                 textColor: colors.text,
                                                 placeholderColor: colors.textMuted,
-                                                borderWidth: 1,
-                                                borderColor: colors.border,
-                                                borderRadius: 12,
                                             }}
                                             style={styles.cardField}
-                                            onCardChange={(cardDetails: { complete: boolean }) => {
-                                                setNewCardComplete(cardDetails.complete);
-                                            }}
+                                            onCardChange={(details: any) => setNewCardComplete(details.complete)}
                                         />
                                     </View>
                                 )}
@@ -335,24 +290,23 @@ export function CoursePurchaseScreen() {
                         )}
                     </View>
 
-                    <View style={styles.guaranteeBox}>
-                        <Text style={styles.guaranteeIcon}>🛡️</Text>
-                        <Text style={styles.guaranteeText}>
-                            Secure payment via Stripe. Instant access upon purchase.
-                        </Text>
+                    <View style={styles.securityNote}>
+                        <MerakiText style={styles.shieldIcon}>🛡️</MerakiText>
+                        <MerakiText variant="caption" color={colors.success} style={{ flex: 1 }}>
+                            Secure encrypted checkout provided by Stripe inc.
+                        </MerakiText>
                     </View>
-
                 </ScrollView>
 
                 <View style={styles.footer}>
                     <Button
-                        title={loading ? 'Processing...' : `Pay €${course.price.toFixed(2)} & Enroll`}
+                        title={loading ? 'Enrolling...' : `Pay & Unlock Course`}
                         onPress={handlePurchase}
+                        variant="primary"
                         fullWidth
                         loading={loading}
                     />
                 </View>
-
             </SafeAreaView>
         </ScreenBackground>
     );
@@ -360,176 +314,44 @@ export function CoursePurchaseScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.md,
-    },
-    backButton: { fontSize: 24, color: colors.text },
-    headerTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
-    content: { padding: spacing.lg, paddingBottom: 100 },
-    card: {
-        backgroundColor: colors.surface,
-        borderRadius: 20,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: colors.border,
-        marginBottom: spacing.xl,
-    },
-    thumbnailContainer: {
-        height: 180,
-    },
-    thumbnailImage: {
-        width: '100%',
-        height: '100%',
-    },
-    thumbnailGradient: {
-        width: '100%',
-        height: '100%',
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg },
+    backButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.surfaceGlass,
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    thumbnailIcon: { fontSize: 60 },
-    cardContent: {
-        padding: spacing.lg,
-    },
-    courseTitle: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: colors.text,
-        marginBottom: 8,
-    },
-    instructor: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        marginBottom: spacing.lg,
-    },
-    divider: {
-        height: 1,
-        backgroundColor: colors.border,
-        marginBottom: spacing.md,
-    },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: spacing.sm,
-    },
-    label: {
-        color: colors.textMuted,
-        fontSize: 14,
-    },
-    value: {
-        color: colors.text,
-        fontWeight: '600',
-        fontSize: 14,
-    },
-    priceContainer: {
-        alignItems: 'center',
-        marginBottom: spacing.lg,
-    },
-    totalLabel: {
-        fontSize: 14,
-        color: colors.textMuted,
-        marginBottom: 4,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    price: {
-        fontSize: 36,
-        fontWeight: '800',
-        color: colors.primary,
-    },
-    section: {
-        marginBottom: spacing.xl,
-    },
-    sectionTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.textSecondary,
-        marginBottom: spacing.md,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    paymentOption: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: colors.surface,
-        borderRadius: 12,
-        padding: spacing.md,
-        marginBottom: spacing.sm,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
-    paymentOptionSelected: {
-        borderColor: colors.primary,
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    },
-    paymentOptionInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    paymentOptionIcon: {
-        fontSize: 20,
-        marginRight: spacing.md,
-    },
-    paymentOptionTitle: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: colors.text,
-    },
-    paymentOptionSubtitle: {
-        fontSize: 12,
-        color: colors.textSecondary,
-        marginTop: 2,
-    },
-    radioOuter: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        borderWidth: 2,
-        borderColor: colors.border,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    radioOuterSelected: {
-        borderColor: colors.primary,
-    },
-    radioInner: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: colors.primary,
-    },
-    newCardContainer: {
-        marginTop: spacing.sm,
-    },
-    cardField: {
-        width: '100%',
-        height: 50,
-    },
-    guaranteeBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(52, 211, 153, 0.1)',
-        padding: spacing.md,
-        borderRadius: 12,
-        gap: spacing.md,
-    },
-    guaranteeIcon: { fontSize: 20 },
-    guaranteeText: {
-        flex: 1,
-        color: colors.success,
-        fontSize: 12,
-        fontWeight: '500',
-    },
-    footer: {
-        padding: spacing.lg,
-        borderTopWidth: 1,
-        borderTopColor: colors.border,
-        backgroundColor: colors.surface,
-    },
+    backIcon: { fontSize: 24 },
+    scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: 20 },
+    courseCard: { borderRadius: layout.borderRadius.lg, marginBottom: spacing.xl },
+    thumbnailContainer: { height: 160, width: '100%', backgroundColor: colors.surfaceLight },
+    thumbnail: { width: '100%', height: '100%' },
+    thumbnailPlaceholder: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+    thumbnailEmoji: { fontSize: 50 },
+    cardInfo: { padding: spacing.lg },
+    courseTitle: { marginBottom: 4 },
+    divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: spacing.md },
+    summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+    priceSection: { marginBottom: spacing.xl },
+    priceText: { marginTop: 4 },
+    paymentSection: { gap: spacing.md, marginBottom: spacing.xl },
+    sectionTitle: { marginBottom: spacing.sm },
+    paymentCard: { marginBottom: spacing.sm },
+    selectedCard: { borderColor: colors.accent, borderWidth: 1 },
+    cardRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+    cardIcon: { fontSize: 24 },
+    radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+    radioActive: { borderColor: colors.accent },
+    radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.accent },
+    cardFieldWrapper: { marginTop: spacing.sm, paddingHorizontal: 4 },
+    cardField: { width: '100%', height: 50 },
+    securityNote: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.05)', padding: spacing.md, borderRadius: layout.borderRadius.md, gap: spacing.md },
+    shieldIcon: { fontSize: 24 },
+    footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
 });
+
+export default CoursePurchaseScreen;

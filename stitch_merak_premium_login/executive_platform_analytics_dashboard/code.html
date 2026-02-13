@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merakí Executive Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ee2b3b",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0F0F13",
+                        "luxe-gold": "#E5C185",
+                        "luxe-rose": "#D4A5A5",
+                        "card-dark": "#1A1A22",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen pb-32">
+<!-- Header & Date Picker -->
+<header class="sticky top-0 z-40 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-6 pt-14 pb-4">
+<div class="flex items-center justify-between mb-4">
+<div>
+<p class="text-[10px] uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 font-bold mb-1">Executive Dashboard</p>
+<h1 class="text-2xl font-extrabold tracking-tight">Platform Analytics</h1>
+</div>
+<div class="w-10 h-10 rounded-full border border-primary/20 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Executive profile portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRFMV3tP9mJAvu9iTTm_jiB5-oSzRsRrPMpLcAzi8q677zKxPuLU3dTi5oahQXHiyz8wzm4YAlHQUbBsphIJ3feYS3tsOWQSL6VWizXQQgl2K2uNuA7uyXcLxAfz3SJvXcdrQ7PsXPqUHdVjYxdJGimk46-qNDO5zOa4492YA0eq93TOaefsDmJV_yr-9TFvCAHi1LiaMe4AH9fVD2m2UnvqLyQyJbYnlP6fdx7ZMywMAHtPay9CdoS8f9da45QK9axGiBvtRn1ukb"/>
+</div>
+</div>
+<!-- Glassmorphic Date Picker -->
+<div class="flex items-center gap-2 p-1 bg-white/10 dark:bg-white/5 rounded-xl border border-white/10 backdrop-blur-md">
+<button class="flex-1 py-2 text-xs font-semibold rounded-lg bg-primary text-white shadow-lg shadow-primary/20">Last 30 Days</button>
+<button class="flex-1 py-2 text-xs font-semibold rounded-lg hover:bg-white/5 transition-colors">Quarterly</button>
+<button class="flex-1 py-2 text-xs font-semibold rounded-lg hover:bg-white/5 transition-colors">Yearly</button>
+<button class="p-2 rounded-lg bg-white/5">
+<span class="material-icons-round text-sm">calendar_today</span>
+</button>
+</div>
+</header>
+<main class="px-6 space-y-8 mt-6">
+<!-- KPI Row (Horizontal Scroll) -->
+<section class="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-6 px-6">
+<!-- Gross Volume -->
+<div class="min-w-[160px] flex-shrink-0 p-5 bg-card-dark rounded-2xl border border-white/5 relative overflow-hidden">
+<div class="absolute -right-2 -top-2 w-16 h-16 bg-primary/10 rounded-full blur-2xl"></div>
+<p class="text-xs text-slate-400 mb-2">Gross Volume</p>
+<h3 class="text-xl font-bold text-luxe-gold mb-1">€45,280</h3>
+<div class="flex items-center gap-1 text-[10px] text-emerald-400">
+<span class="material-icons-round text-xs">trending_up</span>
+<span>12.5%</span>
+</div>
+</div>
+<!-- Net Revenue -->
+<div class="min-w-[160px] flex-shrink-0 p-5 bg-card-dark rounded-2xl border border-white/5">
+<p class="text-xs text-slate-400 mb-2">Net Revenue</p>
+<h3 class="text-xl font-bold text-luxe-gold mb-1">€4,510</h3>
+<div class="flex items-center gap-1 text-[10px] text-emerald-400">
+<span class="material-icons-round text-xs">trending_up</span>
+<span>8.2%</span>
+</div>
+</div>
+<!-- Bookings -->
+<div class="min-w-[160px] flex-shrink-0 p-5 bg-card-dark rounded-2xl border border-white/5">
+<p class="text-xs text-slate-400 mb-2">Bookings</p>
+<h3 class="text-xl font-bold text-luxe-gold mb-1">1,240</h3>
+<div class="flex items-center gap-1 text-[10px] text-slate-400">
+<span class="material-icons-round text-xs">remove</span>
+<span>Stable</span>
+</div>
+</div>
+<!-- Avg Order Value -->
+<div class="min-w-[160px] flex-shrink-0 p-5 bg-card-dark rounded-2xl border border-white/5">
+<p class="text-xs text-slate-400 mb-2">Avg Order Value</p>
+<h3 class="text-xl font-bold text-luxe-gold mb-1">€85.00</h3>
+<div class="flex items-center gap-1 text-[10px] text-emerald-400">
+<span class="material-icons-round text-xs">trending_up</span>
+<span>4.1%</span>
+</div>
+</div>
+</section>
+<!-- Revenue Over Time Line Chart -->
+<section class="bg-card-dark rounded-3xl p-6 border border-white/5">
+<div class="flex justify-between items-end mb-8">
+<div>
+<h2 class="text-lg font-bold">Revenue Over Time</h2>
+<p class="text-xs text-slate-400">Monthly performance tracking</p>
+</div>
+<div class="text-right">
+<p class="text-2xl font-extrabold text-luxe-rose">€12.4k</p>
+<p class="text-[10px] text-slate-500">Current Week Peak</p>
+</div>
+</div>
+<div class="relative h-48 w-full">
+<!-- Mock Line Chart Visualization -->
+<svg class="w-full h-full" viewbox="0 0 400 150">
+<defs>
+<lineargradient id="gradient" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#D4A5A5;stop-opacity:0.3"></stop>
+<stop offset="100%" style="stop-color:#D4A5A5;stop-opacity:0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,120 Q50,110 80,80 T150,90 T230,40 T310,70 T400,20 L400,150 L0,150 Z" fill="url(#gradient)"></path>
+<path d="M0,120 Q50,110 80,80 T150,90 T230,40 T310,70 T400,20" fill="none" stroke="#D4A5A5" stroke-linecap="round" stroke-width="3"></path>
+<circle cx="230" cy="40" fill="#ee2b3b" r="4"></circle>
+</svg>
+<!-- Labels -->
+<div class="flex justify-between mt-4 px-1">
+<span class="text-[10px] text-slate-500">Mon</span>
+<span class="text-[10px] text-slate-500">Wed</span>
+<span class="text-[10px] text-slate-500">Fri</span>
+<span class="text-[10px] text-slate-500">Sun</span>
+</div>
+</div>
+</section>
+<!-- Charts Grid -->
+<div class="grid grid-cols-2 gap-4">
+<!-- Top Services (Pie) -->
+<div class="bg-card-dark p-5 rounded-2xl border border-white/5">
+<h4 class="text-xs font-bold mb-4">Top Services</h4>
+<div class="relative flex justify-center items-center py-4">
+<!-- Donut Mockup -->
+<div class="w-20 h-20 rounded-full border-8 border-primary/20 flex items-center justify-center">
+<div class="w-20 h-20 absolute rounded-full border-8 border-luxe-gold border-t-transparent border-r-transparent rotate-45"></div>
+<span class="text-[10px] font-bold">Lashes</span>
+</div>
+</div>
+<div class="space-y-2 mt-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-luxe-gold"></div>
+<span class="text-[9px] text-slate-400">Lashes</span>
+</div>
+<span class="text-[9px] font-bold">42%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-white/20"></div>
+<span class="text-[9px] text-slate-400">Nails</span>
+</div>
+<span class="text-[9px] font-bold">28%</span>
+</div>
+</div>
+</div>
+<!-- Customer Retention (Bar) -->
+<div class="bg-card-dark p-5 rounded-2xl border border-white/5">
+<h4 class="text-xs font-bold mb-4">Retention</h4>
+<div class="flex items-end justify-between h-20 gap-2 mb-4">
+<div class="flex flex-col items-center gap-1 w-full">
+<div class="w-full bg-white/5 rounded-t-sm h-12"></div>
+<div class="w-full bg-primary/40 rounded-t-sm h-16"></div>
+</div>
+<div class="flex flex-col items-center gap-1 w-full">
+<div class="w-full bg-white/5 rounded-t-sm h-8"></div>
+<div class="w-full bg-primary/40 rounded-t-sm h-12"></div>
+</div>
+<div class="flex flex-col items-center gap-1 w-full">
+<div class="w-full bg-white/5 rounded-t-sm h-10"></div>
+<div class="w-full bg-primary/40 rounded-t-sm h-14"></div>
+</div>
+</div>
+<div class="flex justify-between">
+<div class="flex items-center gap-1">
+<div class="w-1.5 h-1.5 rounded-sm bg-white/5"></div>
+<span class="text-[8px] text-slate-500 uppercase">New</span>
+</div>
+<div class="flex items-center gap-1">
+<div class="w-1.5 h-1.5 rounded-sm bg-primary/40"></div>
+<span class="text-[8px] text-slate-500 uppercase">Ret.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Busy Hours Heatmap -->
+<section class="bg-card-dark p-6 rounded-3xl border border-white/5">
+<h2 class="text-sm font-bold mb-6 flex items-center justify-between">
+                Peak Booking Hours
+                <span class="text-[10px] font-normal text-slate-500">Real-time usage</span>
+</h2>
+<div class="grid grid-cols-12 gap-1.5">
+<!-- 12 Hours x 5 Days visualization -->
+<!-- Monday Row Mock -->
+<div class="h-4 bg-primary/10 rounded-sm"></div>
+<div class="h-4 bg-primary/20 rounded-sm"></div>
+<div class="h-4 bg-primary/40 rounded-sm"></div>
+<div class="h-4 bg-primary/60 rounded-sm"></div>
+<div class="h-4 bg-primary rounded-sm"></div>
+<div class="h-4 bg-primary rounded-sm"></div>
+<div class="h-4 bg-primary/80 rounded-sm"></div>
+<div class="h-4 bg-primary/40 rounded-sm"></div>
+<div class="h-4 bg-primary/20 rounded-sm"></div>
+<div class="h-4 bg-primary/10 rounded-sm"></div>
+<div class="h-4 bg-white/5 rounded-sm"></div>
+<div class="h-4 bg-white/5 rounded-sm"></div>
+<!-- Tuesday Row Mock -->
+<div class="h-4 bg-white/5 rounded-sm"></div>
+<div class="h-4 bg-primary/10 rounded-sm"></div>
+<div class="h-4 bg-primary/30 rounded-sm"></div>
+<div class="h-4 bg-primary/50 rounded-sm"></div>
+<div class="h-4 bg-primary/80 rounded-sm"></div>
+<div class="h-4 bg-primary rounded-sm"></div>
+<div class="h-4 bg-primary rounded-sm"></div>
+<div class="h-4 bg-primary/60 rounded-sm"></div>
+<div class="h-4 bg-primary/30 rounded-sm"></div>
+<div class="h-4 bg-primary/10 rounded-sm"></div>
+<div class="h-4 bg-white/5 rounded-sm"></div>
+<div class="h-4 bg-white/5 rounded-sm"></div>
+</div>
+<div class="flex justify-between mt-2 text-[8px] text-slate-600 uppercase font-bold tracking-widest">
+<span>08:00</span>
+<span>12:00</span>
+<span>16:00</span>
+<span>20:00</span>
+</div>
+</section>
+<!-- Top Performing Masters Leaderboard -->
+<section>
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-lg font-bold">Top Masters</h2>
+<button class="text-xs text-primary font-bold">View All</button>
+</div>
+<div class="space-y-3">
+<!-- Master 1 -->
+<div class="flex items-center justify-between p-4 bg-card-dark rounded-2xl border border-white/5">
+<div class="flex items-center gap-3">
+<div class="relative">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Female master stylist profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-980284rnshbLgqLk96tKQvxfE6fWBt5DZc3KSma1HjKdSfXA0sj1k7ysiNj2olTIYUOqFc5moeoqT_isJIzDjyA7TbFl2yVHz7ylsbij53VUHFQCy8D1hoWNzDspbBfB3nLP1N98Ue9gpmCXb7T0JeGssuNKkZJl4M6ImAI2B9yDDLINHvWhXjRwcTpYVoCPifh0ZHJnnvr-9_tKfccMYgtH-Samub6kfOfMznepyZP7ZUin02egMTF3g8MRQH4tIYf-Zwk3-D77"/>
+<div class="absolute -top-1 -right-1 w-4 h-4 bg-luxe-gold rounded-full flex items-center justify-center border-2 border-card-dark">
+<span class="text-[8px] text-background-dark font-black">1</span>
+</div>
+</div>
+<div>
+<p class="text-sm font-bold">Elena Vance</p>
+<p class="text-[10px] text-slate-500">Lash Extension Specialist</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-luxe-gold">€8,420</p>
+<p class="text-[10px] text-emerald-400">+14%</p>
+</div>
+</div>
+<!-- Master 2 -->
+<div class="flex items-center justify-between p-4 bg-card-dark rounded-2xl border border-white/5">
+<div class="flex items-center gap-3">
+<div class="relative">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Male master stylist profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-bK2jaAUJFOt-ZsAXVWwPOZ9dTg7vDnNWPIGw3fIcLovapPCs1NALGbK1JiSGxr4xpxQo_i1hJ8AbtEVjAI52z83glJYoZ8sbkXkJn4GLGahzxq5VyF5J2u6gyUnUbBwSfnwYr12UlCqg0HmoaN7j3-_AHyvjYc3iNQs4SzR2IrUIPYEuBEF0celxl_jWkZ4IIuui63oMhqhMD3dhLkYNNuInx5FnpD8DoFshXR0DuXQzfQUuhfX6xWDNeY73oruI15qqtvEqsJl3"/>
+<div class="absolute -top-1 -right-1 w-4 h-4 bg-slate-400 rounded-full flex items-center justify-center border-2 border-card-dark">
+<span class="text-[8px] text-background-dark font-black">2</span>
+</div>
+</div>
+<div>
+<p class="text-sm font-bold">Marco Rossi</p>
+<p class="text-[10px] text-slate-500">Premium Grooming</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-luxe-gold">€6,150</p>
+<p class="text-[10px] text-emerald-400">+5%</p>
+</div>
+</div>
+<!-- Master 3 -->
+<div class="flex items-center justify-between p-4 bg-card-dark rounded-2xl border border-white/5">
+<div class="flex items-center gap-3">
+<div class="relative">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Female nail master profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFt-CkZjkb2D2jyNDP4Nep4oVEHzEeDMRe19S9fGa6lyNe3ls6CrYj5FmGmLOR8zBUOrZZWRfNwN7zw0MCjQ2wxK9pB6ePc4ulPE8Aro95vtyEggs8anXSWJEKkz3c18gEJdFLiY96AtCSuImV4Fw334vkL_obtrmUK_oNVMQD8X1GK6j7i121D8meFcnROjcxBCFOCkgjI_CIhzS3eeNyHs-0-yZTMkYz-cle9GY2rBfi6onP54OG3SisttibeD8VbNILlflpBCAH"/>
+<div class="absolute -top-1 -right-1 w-4 h-4 bg-orange-700 rounded-full flex items-center justify-center border-2 border-card-dark">
+<span class="text-[8px] text-background-dark font-black">3</span>
+</div>
+</div>
+<div>
+<p class="text-sm font-bold">Sofia Chen</p>
+<p class="text-[10px] text-slate-500">Advanced Aesthetics</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-luxe-gold">€5,890</p>
+<p class="text-[10px] text-slate-500">0%</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Export Button -->
+<div class="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-48px)] z-50">
+<button class="w-full bg-gradient-to-r from-luxe-rose to-luxe-gold py-4 rounded-2xl shadow-2xl shadow-primary/20 flex items-center justify-center gap-3 active:scale-95 transition-transform">
+<span class="material-icons-round text-background-dark">file_download</span>
+<span class="text-background-dark font-extrabold uppercase tracking-widest text-xs">Export Executive Report</span>
+</button>
+</div>
+<!-- Admin Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-background-light/90 dark:bg-card-dark/80 backdrop-blur-2xl border-t border-white/5 px-8 pt-4 pb-8 flex items-center justify-between z-40">
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-icons-round text-2xl">insights</span>
+<span class="text-[10px] font-bold">Stats</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round text-2xl">storefront</span>
+<span class="text-[10px] font-bold">Stores</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round text-2xl">people_alt</span>
+<span class="text-[10px] font-bold">Team</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round text-2xl">settings</span>
+<span class="text-[10px] font-bold">Admin</span>
+</button>
+</nav>
+<!-- Custom Style to hide scrollbars -->
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</body></html>

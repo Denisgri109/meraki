@@ -1,25 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     FlatList,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
     RefreshControl,
 } from 'react-native';
+import { useModal } from '../../contexts/ModalContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { ScreenBackground, Card } from '../../components/ui';
+import { ScreenBackground, Card, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { OwnerSupply } from '../../types/database';
 
 export function OwnerSuppliesScreen() {
     const navigation = useNavigation();
     const { user } = useAuth();
+    const { showAlert, showConfirm } = useModal();
     const [supplies, setSupplies] = useState<OwnerSupply[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -65,7 +66,7 @@ export function OwnerSuppliesScreen() {
             setSupplies(data || []);
         } catch (error: any) {
             console.error('Error fetching supplies:', error);
-            Alert.alert('Error', 'Failed to load supplies');
+            showAlert('Error', 'Failed to load supplies', 'error');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -78,31 +79,29 @@ export function OwnerSuppliesScreen() {
     };
 
     const handleDeleteSupply = (supply: OwnerSupply) => {
-        Alert.alert(
+        showConfirm(
             'Delete Supply',
             `Are you sure you want to delete "${supply.name}"? This action cannot be undone.`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const { error } = await supabase
-                                .from('owner_supplies')
-                                .delete()
-                                .eq('id', supply.id);
+            async () => {
+                try {
+                    const { error } = await supabase
+                        .from('owner_supplies')
+                        .delete()
+                        .eq('id', supply.id);
 
-                            if (error) throw error;
+                    if (error) throw error;
 
-                            // Remove from local state
-                            setSupplies(supplies.filter(s => s.id !== supply.id));
-                        } catch (error: any) {
-                            Alert.alert('Error', 'Failed to delete supply');
-                        }
-                    }
+                    // Remove from local state
+                    setSupplies(supplies.filter(s => s.id !== supply.id));
+                } catch (error: any) {
+                    showAlert('Error', 'Failed to delete supply', 'error');
                 }
-            ]
+            },
+            {
+                type: 'warning',
+                confirmText: 'Delete',
+                cancelText: 'Cancel'
+            }
         );
     };
 
@@ -125,32 +124,32 @@ export function OwnerSuppliesScreen() {
                 >
                     <View style={styles.supplyHeader}>
                         <View style={styles.supplyInfo}>
-                            <Text style={styles.supplyName}>{item.name}</Text>
+                            <MerakiText variant="h3" style={styles.supplyName}>{item.name}</MerakiText>
                             {item.description && (
-                                <Text style={styles.supplyDescription} numberOfLines={2}>
+                                <MerakiText variant="caption" style={styles.supplyDescription} numberOfLines={2}>
                                     {item.description}
-                                </Text>
+                                </MerakiText>
                             )}
                         </View>
                         <View style={[styles.statusBadge, { backgroundColor: stockStatus.color + '20' }]}>
                             <View style={[styles.statusDot, { backgroundColor: stockStatus.color }]} />
-                            <Text style={[styles.statusText, { color: stockStatus.color }]}>
+                            <MerakiText variant="caption" style={[styles.statusText, { color: stockStatus.color }]}>
                                 {stockStatus.label}
-                            </Text>
+                            </MerakiText>
                         </View>
                     </View>
 
                     <View style={styles.quantityRow}>
                         <View style={styles.quantityContainer}>
-                            <Text style={styles.quantityValue}>{item.quantity}</Text>
-                            <Text style={styles.quantityUnit}>{item.unit}</Text>
+                            <MerakiText variant="h2" style={styles.quantityValue}>{item.quantity}</MerakiText>
+                            <MerakiText variant="body" style={styles.quantityUnit}>{item.unit}</MerakiText>
                         </View>
 
                         <View style={styles.thresholdContainer}>
-                            <Text style={styles.thresholdLabel}>Low stock at:</Text>
-                            <Text style={styles.thresholdValue}>
+                            <MerakiText variant="caption" style={styles.thresholdLabel}>Low stock at:</MerakiText>
+                            <MerakiText variant="caption" style={styles.thresholdValue}>
                                 {item.low_stock_threshold || globalThreshold} {item.unit}
-                            </Text>
+                            </MerakiText>
                         </View>
                     </View>
                 </TouchableOpacity>
@@ -168,23 +167,27 @@ export function OwnerSuppliesScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← Back</Text>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+                        <MerakiText variant="body" color={colors.text} style={{ marginLeft: 4 }}>Back</MerakiText>
                     </TouchableOpacity>
-                    <Text style={styles.title}>My Supplies</Text>
+                    <MerakiText variant="h3" style={styles.title}>My Supplies</MerakiText>
                     <TouchableOpacity
                         style={styles.addButton}
                         onPress={() => (navigation as any).navigate('AddOwnerSupply')}
                     >
-                        <Text style={styles.addButtonText}>+ Add</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <MaterialCommunityIcons name="plus" size={16} color={colors.text} />
+                            <MerakiText variant="caption" style={styles.addButtonText}>Add</MerakiText>
+                        </View>
                     </TouchableOpacity>
                 </View>
 
                 {lowStockCount > 0 && (
                     <View style={styles.alertBanner}>
-                        <Text style={styles.alertIcon}>⚠️</Text>
-                        <Text style={styles.alertText}>
+                        <MaterialCommunityIcons name="alert" size={20} color="#f59e0b" style={{ marginRight: spacing.sm }} />
+                        <MerakiText variant="body" style={styles.alertText}>
                             {lowStockCount} item{lowStockCount !== 1 ? 's' : ''} running low
-                        </Text>
+                        </MerakiText>
                     </View>
                 )}
 
@@ -192,17 +195,17 @@ export function OwnerSuppliesScreen() {
                     <ActivityIndicator style={styles.loader} color={colors.primary} />
                 ) : supplies.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <Text style={styles.emptyIcon}>📦</Text>
-                        <Text style={styles.emptyTitle}>No Supplies Yet</Text>
-                        <Text style={styles.emptyDescription}>
+                        <MaterialCommunityIcons name="package-variant" size={64} color={colors.textMuted} style={styles.emptyIcon} />
+                        <MerakiText variant="h3" style={styles.emptyTitle}>No Supplies Yet</MerakiText>
+                        <MerakiText variant="body" style={styles.emptyDescription}>
                             Add your first supply to start tracking inventory.{'\n'}
                             Keep track of your personal stock and get notified when running low.
-                        </Text>
+                        </MerakiText>
                         <TouchableOpacity
                             style={styles.emptyButton}
                             onPress={() => (navigation as any).navigate('AddOwnerSupply')}
                         >
-                            <Text style={styles.emptyButtonText}>Add Your First Supply</Text>
+                            <MerakiText variant="body" style={styles.emptyButtonText}>Add Your First Supply</MerakiText>
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -212,7 +215,7 @@ export function OwnerSuppliesScreen() {
                         keyExtractor={item => item.id}
                         contentContainerStyle={styles.list}
                         refreshControl={
-                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
                         }
                     />
                 )}
@@ -233,16 +236,10 @@ const styles = StyleSheet.create({
         paddingBottom: spacing.md,
     },
     backButton: {
-        padding: spacing.xs,
-        marginRight: spacing.sm,
-    },
-    backButtonText: {
-        color: colors.text,
-        fontSize: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     title: {
-        fontSize: 20,
-        fontWeight: '700',
         color: colors.text,
     },
     addButton: {
@@ -253,7 +250,6 @@ const styles = StyleSheet.create({
     },
     addButtonText: {
         color: colors.text,
-        fontSize: 14,
         fontWeight: '600',
     },
     alertBanner: {
@@ -267,12 +263,7 @@ const styles = StyleSheet.create({
         borderLeftWidth: 4,
         borderLeftColor: '#f59e0b',
     },
-    alertIcon: {
-        fontSize: 20,
-        marginRight: spacing.sm,
-    },
     alertText: {
-        fontSize: 14,
         color: '#f59e0b',
         fontWeight: '600',
     },
@@ -295,15 +286,11 @@ const styles = StyleSheet.create({
         marginRight: spacing.md,
     },
     supplyName: {
-        fontSize: 18,
-        fontWeight: '600',
         color: colors.text,
         marginBottom: 4,
     },
     supplyDescription: {
-        fontSize: 14,
         color: colors.textSecondary,
-        lineHeight: 20,
     },
     statusBadge: {
         flexDirection: 'row',
@@ -319,7 +306,6 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     statusText: {
-        fontSize: 12,
         fontWeight: '600',
     },
     quantityRow: {
@@ -336,12 +322,9 @@ const styles = StyleSheet.create({
         gap: spacing.xs,
     },
     quantityValue: {
-        fontSize: 24,
-        fontWeight: '700',
         color: colors.text,
     },
     quantityUnit: {
-        fontSize: 14,
         color: colors.textSecondary,
     },
     thresholdContainer: {
@@ -350,11 +333,9 @@ const styles = StyleSheet.create({
         gap: spacing.xs,
     },
     thresholdLabel: {
-        fontSize: 12,
         color: colors.textMuted,
     },
     thresholdValue: {
-        fontSize: 12,
         color: colors.textSecondary,
         fontWeight: '500',
     },
@@ -368,17 +349,13 @@ const styles = StyleSheet.create({
         padding: spacing.xl,
     },
     emptyIcon: {
-        fontSize: 64,
         marginBottom: spacing.lg,
     },
     emptyTitle: {
-        fontSize: 24,
-        fontWeight: '600',
         color: colors.text,
         marginBottom: spacing.sm,
     },
     emptyDescription: {
-        fontSize: 14,
         color: colors.textSecondary,
         textAlign: 'center',
         lineHeight: 22,
@@ -392,7 +369,6 @@ const styles = StyleSheet.create({
     },
     emptyButtonText: {
         color: colors.text,
-        fontSize: 16,
         fontWeight: '600',
     },
 });

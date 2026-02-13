@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merakí - Professional Daily Agenda</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ee2b3b",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0F0F13",
+                        "dusty-rose": "#D4A3A3",
+                        "lavender-luxe": "#B2A4D4",
+                        "rose-gold": "#E5B0A3",
+                        "champagne": "#F3E5D8",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen antialiased">
+<!-- Header Section -->
+<header class="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md pt-12 pb-4 px-6 border-b border-white/5">
+<div class="flex items-center justify-between mb-6">
+<h1 class="text-2xl font-bold tracking-tight">My Schedule</h1>
+<div class="flex bg-zinc-200 dark:bg-zinc-800/50 p-1 rounded-lg">
+<button class="px-4 py-1.5 text-xs font-semibold rounded-md bg-white dark:bg-zinc-700 shadow-sm">Day</button>
+<button class="px-4 py-1.5 text-xs font-semibold rounded-md text-zinc-500">Week</button>
+</div>
+</div>
+<!-- Horizontal Calendar -->
+<div class="flex overflow-x-auto hide-scrollbar gap-4 pb-2">
+<div class="flex flex-col items-center min-w-[3.5rem] py-3 rounded-xl bg-primary/10 border border-primary/20">
+<span class="text-[10px] uppercase tracking-widest font-bold text-primary">Mon</span>
+<span class="text-lg font-extrabold text-primary">24</span>
+</div>
+<div class="flex flex-col items-center min-w-[3.5rem] py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+<span class="text-[10px] uppercase tracking-widest font-medium text-zinc-400">Tue</span>
+<span class="text-lg font-bold">25</span>
+</div>
+<div class="flex flex-col items-center min-w-[3.5rem] py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+<span class="text-[10px] uppercase tracking-widest font-medium text-zinc-400">Wed</span>
+<span class="text-lg font-bold">26</span>
+</div>
+<div class="flex flex-col items-center min-w-[3.5rem] py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+<span class="text-[10px] uppercase tracking-widest font-medium text-zinc-400">Thu</span>
+<span class="text-lg font-bold">27</span>
+</div>
+<div class="flex flex-col items-center min-w-[3.5rem] py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+<span class="text-[10px] uppercase tracking-widest font-medium text-zinc-400">Fri</span>
+<span class="text-lg font-bold">28</span>
+</div>
+<div class="flex flex-col items-center min-w-[3.5rem] py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+<span class="text-[10px] uppercase tracking-widest font-medium text-zinc-400">Sat</span>
+<span class="text-lg font-bold">29</span>
+</div>
+</div>
+</header>
+<!-- Metrics Bar -->
+<div class="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-zinc-500 dark:text-zinc-400">5 Appts</span>
+<span class="w-1 h-1 rounded-full bg-zinc-400"></span>
+<span class="text-sm font-medium text-zinc-500 dark:text-zinc-400">6.5 Hours</span>
+<span class="w-1 h-1 rounded-full bg-zinc-400"></span>
+<span class="text-sm font-bold text-primary dark:text-primary">€450 Est.</span>
+</div>
+<button class="text-zinc-400 hover:text-primary transition-colors">
+<span class="material-icons-round text-lg">tune</span>
+</button>
+</div>
+<!-- Timeline Content -->
+<main class="relative px-6 py-8 pb-32">
+<div class="absolute left-16 top-0 bottom-0 w-[1px] bg-zinc-200 dark:bg-zinc-800/50"></div>
+<!-- Current Time Indicator -->
+<div class="absolute left-0 right-0 z-20 flex items-center pointer-events-none" style="top: 240px;">
+<div class="w-16 pr-2 text-right">
+<span class="text-[10px] font-black text-rose-gold leading-none">NOW</span>
+</div>
+<div class="flex-grow h-[2px] bg-gradient-to-r from-rose-gold to-transparent relative">
+<div class="absolute -left-1 -top-1 w-2.5 h-2.5 rounded-full bg-rose-gold shadow-[0_0_10px_rgba(229,176,163,0.8)]"></div>
+</div>
+</div>
+<div class="space-y-16">
+<!-- 8:00 AM -->
+<div class="relative flex items-start gap-6">
+<span class="w-10 text-[11px] font-bold text-zinc-400 dark:text-zinc-600 mt-0.5">08:00</span>
+<div class="flex-grow h-[1px] bg-transparent"></div>
+</div>
+<!-- 9:00 AM - Sarah J. Block -->
+<div class="relative flex items-start gap-6">
+<span class="w-10 text-[11px] font-bold text-zinc-400 dark:text-zinc-600 mt-0.5">09:00</span>
+<div class="flex-grow relative min-h-[140px]">
+<div class="absolute inset-0 rounded-xl glass-card overflow-hidden border-l-4 border-l-dusty-rose bg-dusty-rose/10 p-4">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-sm font-extrabold text-slate-900 dark:text-white mb-1">Sarah J. - Full Set Lashes</h3>
+<div class="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+<span class="material-icons-round text-[14px]">schedule</span>
+<span>9:00 AM — 10:30 AM</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-white/20 overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Client profile photo of Sarah J" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjXXnJbNN-M8j1WPPgWHRXp8pwKwcKj2N4ThwY2h7lz2YM-bkDo7sK3WQLRjjNDyLiDAOOAoW0ssdrY3-_Dhx70SojQqxEThLrKMS9pBx1Ufzrhrtqmllh2aS-tjkWtp2YY99dlCHUeY2vc68uYaE2_MP8tou_WgcjkJmSaKBRwjRrHz8y3-7etUlZ1A_y92drZG59pGDki709qSZoydGYb0iYaTM71Tkr8N8bc-ExRxWaVP28zyKyvZGCq8c9mTo955uAMlrLXuXG"/>
+</div>
+</div>
+<div class="mt-4 flex gap-2">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-dusty-rose/20 text-dusty-rose uppercase tracking-wider">Premium</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-zinc-400 uppercase tracking-wider">€120</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 10:00 AM -->
+<div class="relative flex items-start gap-6">
+<span class="w-10 text-[11px] font-bold text-zinc-400 dark:text-zinc-600 mt-0.5">10:00</span>
+<div class="flex-grow h-[1px]"></div>
+</div>
+<!-- 11:00 AM - Break Block -->
+<div class="relative flex items-start gap-6">
+<span class="w-10 text-[11px] font-bold text-zinc-400 dark:text-zinc-600 mt-0.5">11:00</span>
+<div class="flex-grow relative min-h-[60px]">
+<div class="absolute inset-0 rounded-xl glass-card border-l-4 border-l-zinc-500 bg-zinc-500/5 p-3 flex items-center">
+<span class="material-icons-round text-zinc-500 mr-2 text-lg">coffee</span>
+<span class="text-xs font-bold text-zinc-500 uppercase tracking-widest">Coffee Break</span>
+<span class="ml-auto text-[10px] text-zinc-500 font-medium">30 MIN</span>
+</div>
+</div>
+</div>
+<!-- 12:00 PM - Consultation Block -->
+<div class="relative flex items-start gap-6">
+<span class="w-10 text-[11px] font-bold text-zinc-400 dark:text-zinc-600 mt-0.5">12:00</span>
+<div class="flex-grow relative min-h-[100px]">
+<div class="absolute inset-0 rounded-xl glass-card border-l-4 border-l-lavender-luxe bg-lavender-luxe/10 p-4">
+<h3 class="text-sm font-extrabold text-slate-900 dark:text-white mb-1">Consultation</h3>
+<p class="text-[11px] text-lavender-luxe font-semibold uppercase tracking-wider">New Client Intake</p>
+<div class="mt-2 flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+<span class="material-icons-round text-[14px]">videocam</span>
+<span>Remote Video Session</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 1:00 PM -->
+<div class="relative flex items-start gap-6">
+<span class="w-10 text-[11px] font-bold text-zinc-400 dark:text-zinc-600 mt-0.5">13:00</span>
+<div class="flex-grow border-t border-dashed border-white/5"></div>
+</div>
+<!-- 2:00 PM -->
+<div class="relative flex items-start gap-6">
+<span class="w-10 text-[11px] font-bold text-zinc-400 dark:text-zinc-600 mt-0.5">14:00</span>
+<div class="flex-grow h-[1px]"></div>
+</div>
+</div>
+</main>
+<!-- Floating Action Button -->
+<div class="fixed bottom-24 right-6 z-40">
+<button class="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-gold to-primary shadow-[0_8px_25px_rgba(238,43,59,0.4)] flex items-center justify-center text-white active:scale-95 transition-transform">
+<span class="material-icons-round text-3xl">add</span>
+</button>
+</div>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 inset-x-0 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-xl border-t border-white/5 px-6 pb-8 pt-4 flex justify-between items-center z-50">
+<div class="flex flex-col items-center gap-1 group">
+<span class="material-icons-round text-primary">calendar_today</span>
+<span class="text-[10px] font-bold text-primary">Schedule</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-zinc-500 group">
+<span class="material-icons-round">groups</span>
+<span class="text-[10px] font-medium">Clients</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-zinc-500 group">
+<span class="material-icons-round">insights</span>
+<span class="text-[10px] font-medium">Earnings</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-zinc-500 group">
+<div class="w-6 h-6 rounded-full overflow-hidden border border-white/10">
+<img class="w-full h-full object-cover" data-alt="Professional user profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHFzcnVA15t3EYkm3gbjizcZttqL23gx1dPZYvVgpT2gc2w-b5n7mWfAxGL0pmX70JiktjcOBU8s5LbZFLnOkOVFzrge3cn3Sb8UNwqmzg8kIBobuMOl1RdVqmVotKzSUFOGOkfS1KCs2a31I1HgPgeIs9aSIFHUqafilSPpaA5sMWxygMbmu58PTpGy1hUxhWyYKGMA7_093MGUh9dbzKWzup11QbUpFKtCdKmc33E_rG1pAAoV4xsAeSyhSMhRn_7n2SqdM0af_A"/>
+</div>
+<span class="text-[10px] font-medium">Profile</span>
+</div>
+</nav>
+</body></html>

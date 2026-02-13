@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merakí - Master's Client CRM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ef3966",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0F0F13",
+                        "champagne": "#D4AF37",
+                        "lavender": "#A78BFA",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-dark {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-800 dark:text-slate-100 min-h-screen">
+<!-- iOS Status Bar Placeholder -->
+<div class="h-12 w-full flex items-center justify-between px-8 text-xs font-semibold">
+<span>9:41</span>
+<div class="flex gap-1.5">
+<span class="material-icons-round text-sm">signal_cellular_alt</span>
+<span class="material-icons-round text-sm">wifi</span>
+<span class="material-icons-round text-sm">battery_full</span>
+</div>
+</div>
+<!-- Header Section -->
+<header class="sticky top-0 z-50 px-5 pt-2 pb-4 glass-dark">
+<div class="flex justify-between items-center mb-6">
+<h1 class="text-3xl font-extrabold tracking-tight">My Clients</h1>
+<div class="w-10 h-10 rounded-full flex items-center justify-center bg-primary/10 border border-primary/20">
+<span class="material-icons-round text-primary">add</span>
+</div>
+</div>
+<div class="flex gap-3 items-center">
+<div class="relative flex-1 group">
+<span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
+<input class="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-slate-500" placeholder="Search by name or phone..." type="text"/>
+</div>
+<button class="w-11 h-11 rounded-xl glass flex items-center justify-center text-slate-300">
+<span class="material-icons-round">tune</span>
+</button>
+</div>
+</header>
+<main class="px-5 pb-32">
+<!-- Stats Row -->
+<div class="flex gap-4 my-6">
+<div class="flex-1 glass p-4 rounded-2xl">
+<p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Total Clients</p>
+<div class="flex items-end gap-2">
+<span class="text-2xl font-bold">142</span>
+<span class="text-[10px] text-emerald-400 mb-1 flex items-center"><span class="material-icons-round text-[12px]">trending_up</span>+12%</span>
+</div>
+</div>
+<div class="flex-1 glass p-4 rounded-2xl">
+<p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">New this month</p>
+<div class="flex items-end gap-2">
+<span class="text-2xl font-bold">8</span>
+<span class="text-[10px] text-primary mb-1 font-semibold flex items-center underline">Target: 10</span>
+</div>
+</div>
+</div>
+<!-- Client List -->
+<div class="space-y-4 relative">
+<!-- Client Card 1 -->
+<div class="glass p-4 rounded-2xl relative overflow-hidden group active:scale-[0.98] transition-transform">
+<div class="flex items-start gap-4">
+<img alt="Alexandra Wright" class="w-14 h-14 rounded-full object-cover border-2 border-champagne/30" data-alt="Portrait of a smiling professional woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIRGTUVXVIdR_MNfTK15ibxNMIaLBsvrMw3BqhDC7IPTMYPZVaeTHutGt7V1AGN380ZpzGjL24ct0ddmmlmrE4qxlrZ6AQxzKOXd6MOmJhV5sfHdNKBtR5MXcq3QZ9HpjjFnfUkq1Ql8uXlwAXdILt2NB6Fq-jirY2OGcyb4juQJaBpqdNlahOqTW7jzMqDtpK3BCtuORXuotSNgu8zd5eVZgVAxgY9yUVZxizi3Wd6TUrbLLGhF78tF1oj5VeH6s6XxqsKU5BrLeg"/>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-lg">Alexandra Wright</h3>
+<span class="px-2 py-0.5 rounded bg-champagne/20 text-champagne text-[10px] font-bold uppercase tracking-wider border border-champagne/30">VIP</span>
+</div>
+<p class="text-xs text-slate-400 mt-0.5">Last visit: Oct 12, 2023</p>
+<div class="mt-2 flex items-center gap-1">
+<span class="text-xs text-slate-500">Total Spent:</span>
+<span class="text-sm font-bold text-champagne">$2,450.00</span>
+</div>
+</div>
+</div>
+<div class="flex gap-2 mt-4 pt-4 border-t border-white/5">
+<button class="flex-1 py-2 glass rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+<span class="material-icons-round text-base text-primary">chat_bubble</span> Message
+                    </button>
+<button class="flex-1 py-2 glass rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+<span class="material-icons-round text-base text-slate-400">sticky_note_2</span> Note
+                    </button>
+<button class="px-4 py-2 bg-primary rounded-lg text-xs font-bold flex items-center justify-center gap-2 text-white">
+                        Profile
+                    </button>
+</div>
+</div>
+<!-- Client Card 2 -->
+<div class="glass p-4 rounded-2xl relative overflow-hidden active:scale-[0.98] transition-transform">
+<div class="flex items-start gap-4">
+<img alt="Julian Marcus" class="w-14 h-14 rounded-full object-cover border-2 border-primary/20" data-alt="Portrait of a young stylish man" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCf_Ibr1u3MfBZS8pwTZ7a3oyCovmSrPdn_C8Qg2dRzFE3fKlrfI03m3ysWfzKwyELeaf4JIPid0NEG2BFIv0zUsQhs87MJH62jXXq8062Gouo9SFZVrwu_ITjfmUTysPQoo8zsVXDAY1lnk0s5_Gdgo0ihdWVZAzNV3DAto7z60cHiU6Kk1kko-iz4rQrbs11oOmRmcuYKL-nLhELLVXiTNboxxzj0OErht6PiigE43WsL-Lhsy4u_P7kLjEUTM5D6Ujmjjn-63lJt"/>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-lg">Julian Marcus</h3>
+<span class="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider border border-primary/30">New</span>
+</div>
+<p class="text-xs text-slate-400 mt-0.5">Last visit: Oct 28, 2023</p>
+<div class="mt-2 flex items-center gap-1">
+<span class="text-xs text-slate-500">Total Spent:</span>
+<span class="text-sm font-bold text-champagne">$180.00</span>
+</div>
+</div>
+</div>
+<div class="flex gap-2 mt-4 pt-4 border-t border-white/5">
+<button class="flex-1 py-2 glass rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+<span class="material-icons-round text-base text-primary">chat_bubble</span> Message
+                    </button>
+<button class="flex-1 py-2 glass rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+<span class="material-icons-round text-base text-slate-400">sticky_note_2</span> Note
+                    </button>
+<button class="px-4 py-2 bg-primary rounded-lg text-xs font-bold flex items-center justify-center gap-2 text-white">
+                        Profile
+                    </button>
+</div>
+</div>
+<!-- Client Card 3 -->
+<div class="glass p-4 rounded-2xl relative overflow-hidden active:scale-[0.98] transition-transform">
+<div class="flex items-start gap-4">
+<div class="w-14 h-14 rounded-full bg-slate-800 border-2 border-lavender/30 flex items-center justify-center">
+<span class="text-lg font-bold text-lavender">SM</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-lg">Sienna Miller</h3>
+<span class="px-2 py-0.5 rounded bg-lavender/20 text-lavender text-[10px] font-bold uppercase tracking-wider border border-lavender/30">No-Show Risk</span>
+</div>
+<p class="text-xs text-slate-400 mt-0.5">Last visit: Aug 15, 2023</p>
+<div class="mt-2 flex items-center gap-1">
+<span class="text-xs text-slate-500">Total Spent:</span>
+<span class="text-sm font-bold text-champagne">$890.00</span>
+</div>
+</div>
+</div>
+<div class="flex gap-2 mt-4 pt-4 border-t border-white/5">
+<button class="flex-1 py-2 glass rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+<span class="material-icons-round text-base text-primary">chat_bubble</span> Message
+                    </button>
+<button class="flex-1 py-2 glass rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+<span class="material-icons-round text-base text-slate-400">sticky_note_2</span> Note
+                    </button>
+<button class="px-4 py-2 bg-primary rounded-lg text-xs font-bold flex items-center justify-center gap-2 text-white">
+                        Profile
+                    </button>
+</div>
+</div>
+<!-- Client Card 4 -->
+<div class="glass p-4 rounded-2xl relative overflow-hidden active:scale-[0.98] transition-transform">
+<div class="flex items-start gap-4">
+<img alt="Thomas Reed" class="w-14 h-14 rounded-full object-cover border-2 border-white/10" data-alt="Portrait of a bearded man smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWnn-hq5V9xE8XfTHCBcE451ve7kBnzwD9n0psrNmmlrPQ8ZSakE81RMBjWJx5rv7OcfLHHa9AiY3C8hhlet2n_35Q4va83qwdIt0eNmxuFoadYosEZoHJr9rb9TbaeA3EAlrP6b0p_4Y8uK7ibJV1h-zKQmIyj5lWul64SHFtxmfo4qmft4lF6mUhYVrS7-slroM5Ds1hQ2uS2_bo1a4dTHerrYsS72vT8GwBACzszAu9DBZOEYg_aoA2Aj20PZtJEOjw7eSANBpC"/>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-lg">Thomas Reed</h3>
+<span class="px-2 py-0.5 rounded bg-white/10 text-slate-300 text-[10px] font-bold uppercase tracking-wider border border-white/10">Regular</span>
+</div>
+<p class="text-xs text-slate-400 mt-0.5">Last visit: Sep 30, 2023</p>
+<div class="mt-2 flex items-center gap-1">
+<span class="text-xs text-slate-500">Total Spent:</span>
+<span class="text-sm font-bold text-champagne">$1,120.00</span>
+</div>
+</div>
+</div>
+<div class="flex gap-2 mt-4 pt-4 border-t border-white/5">
+<button class="flex-1 py-2 glass rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+<span class="material-icons-round text-base text-primary">chat_bubble</span> Message
+                    </button>
+<button class="flex-1 py-2 glass rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+<span class="material-icons-round text-base text-slate-400">sticky_note_2</span> Note
+                    </button>
+<button class="px-4 py-2 bg-primary rounded-lg text-xs font-bold flex items-center justify-center gap-2 text-white">
+                        Profile
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- Alphabetical Sidebar -->
+<div class="fixed right-1 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5 z-40 pr-1">
+<span class="text-[8px] font-black text-primary mb-1">A</span>
+<span class="text-[8px] font-bold text-slate-600">B</span>
+<span class="text-[8px] font-bold text-slate-600">C</span>
+<span class="text-[8px] font-bold text-slate-600">D</span>
+<span class="text-[8px] font-bold text-slate-600">E</span>
+<span class="text-[8px] font-bold text-slate-600">F</span>
+<span class="text-[8px] font-bold text-slate-600">G</span>
+<span class="text-[8px] font-bold text-slate-600">H</span>
+<span class="text-[8px] font-bold text-slate-600">I</span>
+<span class="text-[8px] font-bold text-slate-600">J</span>
+<span class="text-[8px] font-bold text-slate-600">K</span>
+<span class="text-[8px] font-bold text-slate-600">L</span>
+<span class="text-[8px] font-bold text-slate-600">M</span>
+<span class="text-[8px] font-bold text-slate-600">N</span>
+<span class="text-[8px] font-bold text-slate-600">O</span>
+<span class="text-[8px] font-bold text-slate-600">P</span>
+<span class="text-[8px] font-bold text-slate-600">Q</span>
+<span class="text-[8px] font-bold text-slate-600">R</span>
+<span class="text-[8px] font-bold text-slate-600">S</span>
+<span class="text-[8px] font-bold text-slate-600">T</span>
+<span class="text-[8px] font-bold text-slate-600">U</span>
+<span class="text-[8px] font-bold text-slate-600">V</span>
+<span class="text-[8px] font-bold text-slate-600">W</span>
+<span class="text-[8px] font-bold text-slate-600">X</span>
+<span class="text-[8px] font-bold text-slate-600">Y</span>
+<span class="text-[8px] font-bold text-slate-600">Z</span>
+</div>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 glass-dark border-t border-white/5 px-6 pb-8 pt-4 z-50">
+<div class="max-w-md mx-auto flex justify-between items-center">
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round text-2xl">grid_view</span>
+<span class="text-[10px] font-bold">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round text-2xl">calendar_today</span>
+<span class="text-[10px] font-bold">Schedule</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-icons-round text-2xl">groups</span>
+<span class="text-[10px] font-bold">Clients</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round text-2xl">account_balance_wallet</span>
+<span class="text-[10px] font-bold">Wallet</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round text-2xl">person_outline</span>
+<span class="text-[10px] font-bold">Profile</span>
+</button>
+</div>
+<!-- iOS Home Indicator -->
+<div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full"></div>
+</nav>
+</body></html>

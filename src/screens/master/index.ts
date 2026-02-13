@@ -1,4 +1,4 @@
-export { MasterDashboardScreen } from './DashboardScreen';
+export { MasterDashboardScreen } from './MasterDashboardScreen';
 export { MasterScheduleScreen } from './ScheduleScreen';
 export { MasterAppointmentsScreen } from './AppointmentsScreen';
 export { MasterAvailabilityScreen } from './AvailabilityScreen';
@@ -17,5 +17,6 @@ export { SuppliesScreen } from './SuppliesScreen';
 export { AddSupplyScreen } from './AddSupplyScreen';
 export { ServiceSuppliesScreen } from './ServiceSuppliesScreen';
 export { BookingConsultationReviewScreen } from './BookingConsultationReviewScreen';
+export { ManageRewardsScreen } from './ManageRewardsScreen';
 
 

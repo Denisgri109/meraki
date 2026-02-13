@@ -1,27 +1,30 @@
 import React from 'react';
-import { View, StyleSheet, ViewProps } from 'react-native';
+import { StyleSheet, Dimensions, ViewProps } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../../theme/colors';
+import { gradients } from '../../theme';
 
 interface ScreenBackgroundProps extends ViewProps {
     children: React.ReactNode;
 }
 
+const { width, height } = Dimensions.get('window');
+
 export const ScreenBackground: React.FC<ScreenBackgroundProps> = ({ children, style, ...props }) => {
     return (
-        <View style={[styles.container, style]} {...props}>
-            <LinearGradient
-                colors={[colors.background, colors.backgroundSecondary]}
-                style={StyleSheet.absoluteFill}
-            />
+        <LinearGradient
+            colors={gradients.backgroundDeepPurple}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.container, style]}
+            {...props}
+        >
             {children}
-        </View>
+        </LinearGradient>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
     },
 });

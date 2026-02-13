@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merakí - Account Registration</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#e8305e",
+                        "champagne": "#f3d2c1",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0F0F13",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .active-card {
+            background: rgba(232, 48, 94, 0.08);
+            border-color: #e8305e;
+            box-shadow: 0 0 20px rgba(232, 48, 94, 0.15);
+        }
+        .form-input-glass {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+        .form-input-glass:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #e8305e;
+            box-shadow: 0 0 15px rgba(232, 48, 94, 0.1);
+            outline: none;
+        }
+        .bg-gradient-premium {
+            background: linear-gradient(135deg, #e8305e 0%, #f3d2c1 100%);
+        }
+        .mesh-gradient {
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(232, 48, 94, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(243, 210, 193, 0.1) 0px, transparent 50%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-800 dark:text-rose-50 min-h-screen selection:bg-primary/30">
+<div class="relative min-h-screen flex flex-col max-w-md mx-auto overflow-hidden mesh-gradient">
+<!-- Header -->
+<header class="px-8 pt-12 pb-6 flex flex-col gap-6">
+<button class="w-10 h-10 rounded-full glass-card flex items-center justify-center text-rose-100/80 hover:text-white transition-colors">
+<span class="material-icons-round">arrow_back_ios_new</span>
+</button>
+<div class="space-y-1">
+<h1 class="text-4xl font-extrabold tracking-tight text-white">Create Account</h1>
+<p class="text-rose-100/60 font-medium">Join the Merakí community</p>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 px-8 pb-12 overflow-y-auto">
+<!-- Role Selection -->
+<div class="grid grid-cols-2 gap-4 mb-10">
+<button class="active-card glass-card rounded-xl p-5 flex flex-col items-center text-center gap-3 transition-all">
+<div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+<span class="material-icons-round text-primary">person_outline</span>
+</div>
+<span class="text-sm font-semibold text-white leading-tight">I'm a<br/>Client</span>
+</button>
+<button class="glass-card rounded-xl p-5 flex flex-col items-center text-center gap-3 transition-all group hover:bg-white/5">
+<div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10">
+<span class="material-icons-round text-rose-100/50">content_cut</span>
+</div>
+<span class="text-sm font-semibold text-rose-100/50 leading-tight">I'm a Beauty<br/>Professional</span>
+</button>
+</div>
+<!-- Registration Form -->
+<form class="space-y-5" onsubmit="return false;">
+<!-- Full Name -->
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-rose-100/40 ml-4">Full Name</label>
+<div class="relative">
+<span class="material-icons-round absolute left-5 top-1/2 -translate-y-1/2 text-rose-100/30 text-xl">person</span>
+<input class="w-full py-4 pl-14 pr-6 rounded-full form-input-glass text-white placeholder:text-rose-100/20" placeholder="Julianne Moore" type="text"/>
+</div>
+</div>
+<!-- Email -->
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-rose-100/40 ml-4">Email Address</label>
+<div class="relative">
+<span class="material-icons-round absolute left-5 top-1/2 -translate-y-1/2 text-rose-100/30 text-xl">alternate_email</span>
+<input class="w-full py-4 pl-14 pr-6 rounded-full form-input-glass text-white placeholder:text-rose-100/20" placeholder="julianne@meraki.com" type="email"/>
+</div>
+</div>
+<!-- Password -->
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-rose-100/40 ml-4">Password</label>
+<div class="relative">
+<span class="material-icons-round absolute left-5 top-1/2 -translate-y-1/2 text-rose-100/30 text-xl">lock_open</span>
+<input class="w-full py-4 pl-14 pr-14 rounded-full form-input-glass text-white placeholder:text-rose-100/20" placeholder="••••••••••••" type="password"/>
+<button class="absolute right-5 top-1/2 -translate-y-1/2 text-rose-100/30 hover:text-rose-100/60" type="button">
+<span class="material-icons-round text-xl">visibility_off</span>
+</button>
+</div>
+<!-- Password Strength Meter -->
+<div class="px-4 flex gap-1 mt-3">
+<div class="h-1 flex-1 rounded-full bg-primary shadow-[0_0_8px_rgba(232,48,94,0.4)]"></div>
+<div class="h-1 flex-1 rounded-full bg-primary shadow-[0_0_8px_rgba(232,48,94,0.4)]"></div>
+<div class="h-1 flex-1 rounded-full bg-primary shadow-[0_0_8px_rgba(232,48,94,0.4)]"></div>
+<div class="h-1 flex-1 rounded-full bg-white/10"></div>
+<div class="h-1 flex-1 rounded-full bg-white/10"></div>
+<span class="text-[10px] font-bold text-primary ml-2 -mt-1 uppercase tracking-tighter">Strong</span>
+</div>
+</div>
+<!-- Confirm Password -->
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-rose-100/40 ml-4">Confirm Password</label>
+<div class="relative">
+<span class="material-icons-round absolute left-5 top-1/2 -translate-y-1/2 text-rose-100/30 text-xl">verified_user</span>
+<input class="w-full py-4 pl-14 pr-6 rounded-full form-input-glass text-white placeholder:text-rose-100/20" placeholder="••••••••••••" type="password"/>
+</div>
+</div>
+<!-- Terms -->
+<div class="flex items-center gap-3 px-2 py-2">
+<div class="relative flex items-center">
+<input class="peer h-6 w-6 rounded-full border-2 border-white/20 bg-transparent checked:bg-primary checked:border-primary focus:ring-offset-background-dark focus:ring-primary appearance-none transition-all cursor-pointer" id="terms" type="checkbox"/>
+<span class="material-icons-round absolute text-white scale-0 peer-checked:scale-75 transition-transform pointer-events-none text-xl left-0.5">check</span>
+</div>
+<label class="text-sm text-rose-100/60 font-medium cursor-pointer" for="terms">
+                        I agree to <span class="text-rose-100 border-b border-rose-100/30">Terms</span> &amp; <span class="text-rose-100 border-b border-rose-100/30">Privacy Policy</span>
+</label>
+</div>
+<!-- Submit Button -->
+<button class="w-full bg-gradient-premium py-5 rounded-full text-white font-bold text-lg shadow-[0_10px_30px_rgba(232,48,94,0.3)] hover:shadow-[0_15px_35px_rgba(232,48,94,0.4)] active:scale-[0.98] transition-all mt-6" type="submit">
+                    Create Account
+                </button>
+</form>
+<!-- Footer -->
+<div class="mt-10 text-center">
+<p class="text-rose-100/40 font-medium">
+                    Already have an account? 
+                    <a class="text-primary font-bold ml-1 hover:underline underline-offset-4 decoration-2" href="#">Sign In</a>
+</p>
+</div>
+</main>
+<!-- Decorative Element -->
+<div class="absolute -bottom-24 -left-24 w-64 h-64 bg-primary/20 rounded-full blur-[100px] pointer-events-none"></div>
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-champagne/10 rounded-full blur-[100px] pointer-events-none"></div>
+</div>
+</body></html>

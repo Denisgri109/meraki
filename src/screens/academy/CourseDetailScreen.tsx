@@ -1,25 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
+    Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { ScreenBackground, Button } from '../../components/ui';
-import { colors, spacing } from '../../theme';
+import { ScreenBackground, MerakiText, Card, Button } from '../../components/ui';
+import { colors, spacing, layout, gradients } from '../../theme';
 
 interface Course {
     id: string;
     title: string;
     description: string | null;
     price: number;
+    thumbnail_url?: string | null;
     instructor_id?: string | null;
     instructor?: { full_name: string } | null;
 }
@@ -61,7 +62,6 @@ export function CourseDetailScreen() {
 
     const fetchLessons = async () => {
         try {
-            // Get lessons
             const { data: lessonsData, error } = await (supabase as any)
                 .from('lessons')
                 .select('*')
@@ -70,7 +70,6 @@ export function CourseDetailScreen() {
 
             if (error) throw error;
 
-            // Get progress for each lesson
             if (user) {
                 const { data: progressData } = await (supabase as any)
                     .from('lesson_progress')
@@ -105,109 +104,150 @@ export function CourseDetailScreen() {
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
-                <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
-                            <Text style={styles.backButton}>←</Text>
-                        </TouchableOpacity>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+                {/* Header Overlay */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <MerakiText style={styles.backIcon}>←</MerakiText>
+                    </TouchableOpacity>
+                </View>
+
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    {/* Hero Section */}
+                    <View style={styles.heroSection}>
+                        <Card variant="glass" style={styles.heroCard} noPadding>
+                            <View style={styles.imageContainer}>
+                                {course.thumbnail_url ? (
+                                    <Image source={{ uri: course.thumbnail_url }} style={styles.heroImage} resizeMode="cover" />
+                                ) : (
+                                    <LinearGradient
+                                        colors={gradients.primary as any}
+                                        style={styles.heroImagePlaceholder}
+                                    >
+                                        <MerakiText style={styles.heroEmoji}>🎓</MerakiText>
+                                    </LinearGradient>
+                                )}
+                                <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={styles.imageOverlay} />
+                                <View style={styles.heroContent}>
+                                    <MerakiText variant="h1" color="#FFF" style={styles.heroTitle}>{course.title}</MerakiText>
+                                    <View style={styles.instructorBadge}>
+                                        <MerakiText variant="caption" color="rgba(255,255,255,0.9)">
+                                            by {course.instructor?.full_name || 'Merakí Expert'}
+                                        </MerakiText>
+                                    </View>
+                                </View>
+                            </View>
+                        </Card>
                     </View>
 
-                    {/* Course Hero */}
-                    <LinearGradient
-                        colors={['rgba(139,92,246,0.2)', 'rgba(59,130,246,0.2)']}
-                        style={styles.hero}
-                    >
-                        <Text style={styles.heroEmoji}>📖</Text>
-                    </LinearGradient>
+                    {/* Stats & Progress Overview */}
+                    <View style={styles.overviewSection}>
+                        <View style={styles.statsContainer}>
+                            <Card variant="glass" style={styles.statCard}>
+                                <MerakiText variant="h2" align="center">{lessons.length}</MerakiText>
+                                <MerakiText variant="caption" align="center" color={colors.textMuted}>Lessons</MerakiText>
+                            </Card>
+                            <Card variant="glass" style={styles.statCard}>
+                                <MerakiText variant="h2" align="center">{getTotalDuration()}</MerakiText>
+                                <MerakiText variant="caption" align="center" color={colors.textMuted}>Min</MerakiText>
+                            </Card>
+                            <Card variant="glass" style={styles.statCard}>
+                                <MerakiText variant="h2" align="center">{getOverallProgress()}%</MerakiText>
+                                <MerakiText variant="caption" align="center" color={colors.textMuted}>Done</MerakiText>
+                            </Card>
+                        </View>
 
-                    {/* Course Info */}
-                    <View style={styles.courseInfo}>
-                        <Text style={styles.courseTitle}>{course.title}</Text>
-                        <Text style={styles.courseInstructor}>
-                            by {course.instructor?.full_name || 'Merakí Academy'}
-                        </Text>
+                        {/* Progress Tracker */}
+                        <Card variant="glass" style={styles.progressCard}>
+                            <View style={styles.progressHeader}>
+                                <MerakiText variant="bodyBold">Overall Progress</MerakiText>
+                                <MerakiText variant="body" color={colors.accent}>{getOverallProgress()}%</MerakiText>
+                            </View>
+                            <View style={styles.progressBar}>
+                                <LinearGradient
+                                    colors={gradients.accent as any}
+                                    style={[styles.progressFill, { width: `${getOverallProgress()}%` }]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                />
+                            </View>
+                        </Card>
 
                         {course.description && (
-                            <Text style={styles.courseDescription}>{course.description}</Text>
+                            <View style={styles.descriptionSection}>
+                                <MerakiText variant="h3" style={styles.sectionTitle}>About Course</MerakiText>
+                                <MerakiText variant="body" color={colors.textSecondary} style={styles.description}>
+                                    {course.description}
+                                </MerakiText>
+                            </View>
                         )}
-
-                        {/* Stats */}
-                        <View style={styles.statsRow}>
-                            <View style={styles.stat}>
-                                <Text style={styles.statValue}>{lessons.length}</Text>
-                                <Text style={styles.statLabel}>Lessons</Text>
-                            </View>
-                            <View style={styles.stat}>
-                                <Text style={styles.statValue}>{getTotalDuration()}</Text>
-                                <Text style={styles.statLabel}>Minutes</Text>
-                            </View>
-                            <View style={styles.stat}>
-                                <Text style={styles.statValue}>{getOverallProgress()}%</Text>
-                                <Text style={styles.statLabel}>Complete</Text>
-                            </View>
-                        </View>
-
-                        {/* Progress Bar */}
-                        <View style={styles.progressContainer}>
-                            <View style={styles.progressBar}>
-                                <View style={[styles.progressFill, { width: `${getOverallProgress()}%` }]} />
-                            </View>
-                        </View>
                     </View>
 
                     {/* Lessons List */}
-                    <Text style={styles.sectionTitle}>Course Content</Text>
+                    <View style={styles.lessonsSection}>
+                        <MerakiText variant="h3" style={[styles.sectionTitle, { paddingHorizontal: spacing.lg }]}>
+                            Course Curriculum
+                        </MerakiText>
 
-                    {loading ? (
-                        <ActivityIndicator size="large" color={colors.text} style={{ marginTop: spacing.xl }} />
-                    ) : (
-                        <View style={styles.lessonsList}>
-                            {lessons.map((lesson, index) => {
-                                const lessonProgress = progress[lesson.id] || 0;
-                                const isCompleted = lessonProgress === 100;
+                        {loading ? (
+                            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
+                        ) : (
+                            <View style={styles.lessonsList}>
+                                {lessons.map((lesson, index) => {
+                                    const lessonProgress = progress[lesson.id] || 0;
+                                    const isCompleted = lessonProgress === 100;
 
-                                return (
-                                    <TouchableOpacity
-                                        key={lesson.id}
-                                        style={styles.lessonCard}
-                                        onPress={() => navigation.navigate('Lesson', {
-                                            lesson,
-                                            courseId: course.id,
-                                            instructorId: course.instructor_id,
-                                            instructorName: course.instructor?.full_name
-                                        })}
-                                    >
-                                        <View style={[
-                                            styles.lessonNumber,
-                                            isCompleted && styles.lessonNumberCompleted
-                                        ]}>
-                                            {isCompleted ? (
-                                                <Text style={styles.lessonCheckmark}>✓</Text>
-                                            ) : (
-                                                <Text style={styles.lessonNumberText}>{index + 1}</Text>
-                                            )}
-                                        </View>
-                                        <View style={styles.lessonInfo}>
-                                            <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                                            <View style={styles.lessonMeta}>
-                                                {!!lesson.duration_minutes && (
-                                                    <Text style={styles.lessonDuration}>
-                                                        ⏱️ {lesson.duration_minutes} min
-                                                    </Text>
-                                                )}
-                                                {lesson.has_homework && (
-                                                    <Text style={styles.lessonHomework}>📝 Homework</Text>
-                                                )}
-                                            </View>
-                                        </View>
-                                        <Text style={styles.lessonArrow}>›</Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-                    )}
+                                    return (
+                                        <TouchableOpacity
+                                            key={lesson.id}
+                                            activeOpacity={0.8}
+                                            onPress={() => navigation.navigate('Lesson', {
+                                                lesson,
+                                                courseId: course.id,
+                                                instructorId: course.instructor_id,
+                                                instructorName: course.instructor?.full_name
+                                            })}
+                                        >
+                                            <Card variant="glass" style={styles.lessonCard} noPadding>
+                                                <View style={styles.lessonRow}>
+                                                    <View style={[
+                                                        styles.lessonNumber,
+                                                        isCompleted ? styles.completedCircle : styles.pendingCircle
+                                                    ]}>
+                                                        {isCompleted ? (
+                                                            <MerakiText style={styles.checkmark}>✓</MerakiText>
+                                                        ) : (
+                                                            <MerakiText variant="bodyBold" color={colors.primary}>
+                                                                {index + 1}
+                                                            </MerakiText>
+                                                        )}
+                                                    </View>
+                                                    <View style={styles.lessonInfo}>
+                                                        <MerakiText variant="bodyBold" numberOfLines={1}>
+                                                            {lesson.title}
+                                                        </MerakiText>
+                                                        <View style={styles.lessonMeta}>
+                                                            {!!lesson.duration_minutes && (
+                                                                <MerakiText variant="caption" color={colors.textMuted}>
+                                                                    ⏱️ {lesson.duration_minutes} min
+                                                                </MerakiText>
+                                                            )}
+                                                            {lesson.has_homework && (
+                                                                <MerakiText variant="caption" color={colors.accent}>
+                                                                    📝 Homework
+                                                                </MerakiText>
+                                                            )}
+                                                        </View>
+                                                    </View>
+                                                    <MerakiText style={styles.arrowIcon}>›</MerakiText>
+                                                </View>
+                                            </Card>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        )}
+                    </View>
                 </ScrollView>
             </SafeAreaView>
         </ScreenBackground>
@@ -215,76 +255,171 @@ export function CourseDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    content: { paddingBottom: 100 },
-    header: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-    backButton: { fontSize: 28, color: colors.text },
-    hero: {
-        height: 200,
-        marginHorizontal: spacing.lg,
-        borderRadius: 20,
+    container: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingBottom: 120,
+    },
+    header: {
+        position: 'absolute',
+        top: 60,
+        left: spacing.lg,
+        zIndex: 10,
+    },
+    backButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.surfaceGlass,
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    backIcon: {
+        fontSize: 24,
+        color: colors.text,
+    },
+
+    // Hero
+    heroSection: {
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.md,
         marginBottom: spacing.lg,
     },
-    heroEmoji: { fontSize: 80 },
-    courseInfo: { paddingHorizontal: spacing.lg, marginBottom: spacing.xl },
-    courseTitle: { fontSize: 28, fontWeight: '700', color: colors.text, marginBottom: 4 },
-    courseInstructor: { fontSize: 14, color: colors.primary, marginBottom: spacing.md },
-    courseDescription: { fontSize: 14, color: colors.textSecondary, lineHeight: 22 },
-    statsRow: { flexDirection: 'row', marginTop: spacing.lg, gap: spacing.lg },
-    stat: { flex: 1, alignItems: 'center' },
-    statValue: { fontSize: 24, fontWeight: '700', color: colors.text },
-    statLabel: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-    progressContainer: { marginTop: spacing.lg },
+    heroCard: {
+        borderRadius: layout.borderRadius.xl,
+        overflow: 'hidden',
+    },
+    imageContainer: {
+        height: 300,
+        width: '100%',
+    },
+    heroImage: {
+        width: '100%',
+        height: '100%',
+    },
+    heroImagePlaceholder: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    heroEmoji: {
+        fontSize: 80,
+    },
+    imageOverlay: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    heroContent: {
+        position: 'absolute',
+        bottom: spacing.lg,
+        left: spacing.lg,
+        right: spacing.lg,
+    },
+    heroTitle: {
+        marginBottom: 8,
+    },
+    instructorBadge: {
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 4,
+        borderRadius: layout.borderRadius.sm,
+        alignSelf: 'flex-start',
+    },
+
+    // Overview
+    overviewSection: {
+        paddingHorizontal: spacing.lg,
+    },
+    statsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: spacing.lg,
+    },
+    statCard: {
+        flex: 0.3,
+        padding: spacing.md,
+    },
+    progressCard: { padding: spacing.md, marginBottom: spacing.xl },
+    progressHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: spacing.sm,
+    },
     progressBar: {
         height: 8,
-        backgroundColor: colors.surface,
+        backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 4,
         overflow: 'hidden',
     },
     progressFill: {
         height: '100%',
-        backgroundColor: colors.primary,
         borderRadius: 4,
     },
-    sectionTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.textSecondary,
-        marginHorizontal: spacing.lg,
-        marginBottom: spacing.md,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+    descriptionSection: {
+        marginBottom: spacing.xxl,
     },
-    lessonsList: { paddingHorizontal: spacing.lg },
+    sectionTitle: {
+        marginBottom: spacing.md,
+        color: colors.text,
+    },
+    description: {
+        lineHeight: 22,
+    },
+
+    // Lessons
+    lessonsSection: {
+        marginTop: spacing.md,
+    },
+    lessonsList: {
+        paddingHorizontal: spacing.lg,
+    },
     lessonCard: {
+        marginBottom: spacing.md,
+        borderRadius: layout.borderRadius.md,
+    },
+    lessonRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.surface,
-        borderRadius: 12,
         padding: spacing.md,
-        marginBottom: spacing.sm,
-        borderWidth: 1,
-        borderColor: colors.border,
     },
     lessonNumber: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(139,92,246,0.1)',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 2,
     },
-    lessonNumberCompleted: { backgroundColor: colors.success },
-    lessonNumberText: { color: colors.primary, fontWeight: '600' },
-    lessonCheckmark: { color: colors.text, fontWeight: '700' },
-    lessonInfo: { flex: 1, marginLeft: spacing.md },
-    lessonTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
-    lessonMeta: { flexDirection: 'row', marginTop: 4, gap: spacing.md },
-    lessonDuration: { fontSize: 12, color: colors.textMuted },
-    lessonHomework: { fontSize: 12, color: colors.primary },
-    lessonArrow: { fontSize: 20, color: colors.textMuted },
+    pendingCircle: {
+        backgroundColor: 'rgba(139,92,246,0.1)',
+        borderColor: 'rgba(139,92,246,0.2)',
+    },
+    completedCircle: {
+        backgroundColor: colors.success,
+        borderColor: colors.success,
+    },
+    checkmark: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    lessonInfo: {
+        flex: 1,
+        marginLeft: spacing.md,
+    },
+    lessonMeta: {
+        flexDirection: 'row',
+        marginTop: 4,
+        gap: spacing.md,
+    },
+    arrowIcon: {
+        fontSize: 24,
+        color: colors.textMuted,
+        marginLeft: spacing.sm,
+    },
 });
 
 export default CourseDetailScreen;

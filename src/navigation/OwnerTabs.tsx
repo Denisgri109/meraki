@@ -2,16 +2,18 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CommonActions } from '@react-navigation/native';
-import { Text, StyleSheet } from 'react-native';
+import { Text, Platform, StyleSheet, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { colors, spacing } from '../theme';
 import {
     OwnerDashboardScreen,
-    MasterListScreen,
-    MasterFormScreen,
     ServiceListScreen,
     ServiceFormScreen,
     InventoryScreen,
     OwnerSuppliesScreen,
     AddOwnerSupplyScreen,
+    PlatformAnalyticsScreen,
 } from '../screens/owner';
 import {
     ManageAcademyScreen,
@@ -32,6 +34,7 @@ import {
     LoyaltyCardBuilderScreen,
     AftercareCampaignScreen,
     BookingConsultationReviewScreen,
+    ManageRewardsScreen,
 } from '../screens/master';
 import {
     ProfileScreen,
@@ -41,14 +44,12 @@ import {
     NotificationsScreen,
 } from '../screens/client';
 import { ShopScreen, ProductDetailScreen } from '../screens/shop';
-import { ChatListScreen, ChatScreen } from '../screens/chat';
-import { colors } from '../theme';
+import { ChatListScreen } from '../screens/chat';
+
 
 // Dashboard Stack (with management access)
 export type OwnerDashboardStackParamList = {
     DashboardMain: undefined;
-    Masters: undefined;
-    MasterForm: { master?: any } | undefined;
     Services: undefined;
     ServiceForm: { service?: any } | undefined;
     Inventory: undefined;
@@ -66,6 +67,8 @@ export type OwnerDashboardStackParamList = {
     LoyaltyCardBuilder: undefined;
     AftercareCampaigns: undefined;
     BookingConsultations: undefined;
+    ManageRewards: undefined;
+    PlatformAnalytics: undefined;
 };
 
 const DashboardStack = createNativeStackNavigator<OwnerDashboardStackParamList>();
@@ -74,8 +77,6 @@ function DashboardStackNavigator() {
     return (
         <DashboardStack.Navigator screenOptions={{ headerShown: false }}>
             <DashboardStack.Screen name="DashboardMain" component={OwnerDashboardScreen} />
-            <DashboardStack.Screen name="Masters" component={MasterListScreen} />
-            <DashboardStack.Screen name="MasterForm" component={MasterFormScreen} />
             <DashboardStack.Screen name="Services" component={ServiceListScreen} />
             <DashboardStack.Screen name="ServiceForm" component={ServiceFormScreen} />
             <DashboardStack.Screen name="Inventory" component={InventoryScreen} />
@@ -92,6 +93,8 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
             <DashboardStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />
             <DashboardStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
+            <DashboardStack.Screen name="ManageRewards" component={ManageRewardsScreen} />
+            <DashboardStack.Screen name="PlatformAnalytics" component={PlatformAnalyticsScreen} />
         </DashboardStack.Navigator>
     );
 }
@@ -99,7 +102,7 @@ function DashboardStackNavigator() {
 // Messages Stack
 export type MessagesStackParamList = {
     ChatList: undefined;
-    Chat: { conversationId: string; otherUser: any };
+
 };
 
 const MessagesStack = createNativeStackNavigator<MessagesStackParamList>();
@@ -108,7 +111,7 @@ function MessagesStackNavigator() {
     return (
         <MessagesStack.Navigator screenOptions={{ headerShown: false }}>
             <MessagesStack.Screen name="ChatList" component={ChatListScreen} />
-            <MessagesStack.Screen name="Chat" component={ChatScreen} />
+
         </MessagesStack.Navigator>
     );
 }
@@ -192,16 +195,26 @@ export function OwnerTabs() {
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: styles.tabBar,
-                tabBarActiveTintColor: colors.text,
-                tabBarInactiveTintColor: colors.textMuted,
+                tabBarActiveTintColor: colors.primary,
+                tabBarInactiveTintColor: 'rgba(139, 148, 158, 0.55)',
                 tabBarLabelStyle: styles.tabLabel,
+                tabBarShowLabel: true,
+                tabBarBackground: () => (
+                    <BlurView
+                        tint="dark"
+                        intensity={80}
+                        style={StyleSheet.absoluteFill}
+                    />
+                ),
             }}
         >
             <Tab.Screen
                 name="Dashboard"
                 component={DashboardStackNavigator}
                 options={{
-                    tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>📊</Text>,
+                    tabBarIcon: ({ color }: { color: string }) => (
+                        <MaterialIcons name="dashboard" size={22} color={color} />
+                    ),
                 } as any}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
@@ -219,7 +232,9 @@ export function OwnerTabs() {
                 name="Academy"
                 component={AcademyStackNavigator}
                 options={{
-                    tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>🎓</Text>,
+                    tabBarIcon: ({ color }: { color: string }) => (
+                        <MaterialIcons name="school" size={22} color={color} />
+                    ),
                 } as any}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
@@ -237,7 +252,9 @@ export function OwnerTabs() {
                 name="Appointments"
                 component={MasterAppointmentsScreen}
                 options={{
-                    tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>📅</Text>,
+                    tabBarIcon: ({ color }: { color: string }) => (
+                        <MaterialIcons name="event-note" size={22} color={color} />
+                    ),
                 } as any}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
@@ -255,7 +272,9 @@ export function OwnerTabs() {
                 name="Messages"
                 component={MessagesStackNavigator}
                 options={{
-                    tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>💬</Text>,
+                    tabBarIcon: ({ color }: { color: string }) => (
+                        <MaterialIcons name="forum" size={22} color={color} />
+                    ),
                 } as any}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
@@ -273,7 +292,9 @@ export function OwnerTabs() {
                 name="Profile"
                 component={ProfileStackNavigator}
                 options={{
-                    tabBarIcon: ({ color }: { color: string }) => <Text style={[styles.icon, { color }]}>👤</Text>,
+                    tabBarIcon: ({ color }: { color: string }) => (
+                        <MaterialIcons name="person-outline" size={22} color={color} />
+                    ),
                 } as any}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
@@ -293,20 +314,29 @@ export function OwnerTabs() {
 
 const styles = StyleSheet.create({
     tabBar: {
-        backgroundColor: colors.surface,
-        borderTopColor: colors.border,
-        borderTopWidth: 1,
+        position: 'absolute',
+        bottom: Platform.OS === 'ios' ? 24 : 12,
+        left: 20,
+        right: 20,
+        backgroundColor: 'rgba(22, 27, 34, 0.96)',
+        borderTopWidth: 0,
+        borderRadius: 32,
+        height: 70,
+        paddingBottom: Platform.OS === 'ios' ? 0 : 8,
         paddingTop: 8,
-        paddingBottom: 24,
-        height: 80,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(48, 54, 61, 0.50)',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
     },
     tabLabel: {
         fontSize: 10,
-        fontWeight: '500',
-        marginTop: 4,
-    },
-    icon: {
-        fontSize: 24,
+        fontWeight: '600',
+        marginBottom: 8,
     },
 });
 

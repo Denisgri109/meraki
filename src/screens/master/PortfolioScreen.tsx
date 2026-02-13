@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     FlatList,
     Image,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
     RefreshControl,
     Dimensions,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,7 +17,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { ScreenBackground, Button } from '../../components/ui';
+import { Card, ScreenBackground, Button, MerakiText } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 import { Portfolio } from '../../types/database';
 
@@ -29,6 +29,7 @@ const ITEM_SIZE = (SCREEN_WIDTH - spacing.lg * 3) / COLUMN_COUNT;
 export function PortfolioScreen() {
     const navigation = useNavigation();
     const { user } = useAuth();
+    const { showAlert, showConfirm } = useModal();
     const [images, setImages] = useState<Portfolio[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -52,7 +53,7 @@ export function PortfolioScreen() {
             setImages(data || []);
         } catch (error: any) {
             console.error('Error fetching portfolio:', error);
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -67,7 +68,7 @@ export function PortfolioScreen() {
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission needed', 'Please grant gallery access to upload photos.');
+            showAlert('Permission needed', 'Please grant gallery access to upload photos.', 'error');
             return;
         }
 
@@ -83,7 +84,7 @@ export function PortfolioScreen() {
                 uploadImage(result.assets[0]);
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to pick image');
+            showAlert('Error', 'Failed to pick image', 'error');
         }
     };
 
@@ -98,7 +99,6 @@ export function PortfolioScreen() {
                 encoding: 'base64',
             });
 
-            // 1. Upload to Storage
             const { error: uploadError } = await supabase.storage
                 .from('portfolios')
                 .upload(fileName, decode(base64), {
@@ -107,69 +107,59 @@ export function PortfolioScreen() {
                 });
 
             if (uploadError) {
-                // If bucket doesn't exist, try 'public' or warn user
                 if (uploadError.message.includes('Bucket not found')) {
                     throw new Error('Storage bucket "portfolios" does not exist. Please contact admin.');
                 }
                 throw uploadError;
             }
 
-            // 2. Get Public URL
             const { data: urlData } = supabase.storage
                 .from('portfolios')
                 .getPublicUrl(fileName);
 
-            // 3. Insert into Database
             const { error: dbError } = await supabase
                 .from('portfolios')
                 .insert({
                     master_id: user.id,
                     image_url: urlData.publicUrl,
-                    description: '', // Optional description logic can be added later
+                    description: '',
                 });
 
             if (dbError) throw dbError;
 
-            Alert.alert('Success', 'Image added to portfolio');
+            showAlert('Success', 'Image added to portfolio', 'success');
             fetchPortfolio();
 
         } catch (error: any) {
             console.error('Upload error:', error);
-            Alert.alert('Error', error.message || 'Failed to upload image');
+            showAlert('Error', error.message || 'Failed to upload image', 'error');
         } finally {
             setUploading(false);
         }
     };
 
     const deleteImage = (item: Portfolio) => {
-        Alert.alert(
+        showConfirm(
             'Delete Image',
             'Are you sure you want to remove this image from your portfolio?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const { error } = await supabase
-                                .from('portfolios')
-                                .delete()
-                                .eq('id', item.id);
+            async () => {
+                try {
+                    const { error } = await supabase
+                        .from('portfolios')
+                        .delete()
+                        .eq('id', item.id);
 
-                            if (error) throw error;
-
-                            // Optional: Delete from storage too if possible
-                            // const path = item.image_url.split('/').pop(); 
-                            // if (path) supabase.storage.from('portfolios').remove([`${user!.id}/${path}`]);
-
-                            setImages(prev => prev.filter(img => img.id !== item.id));
-                        } catch (error: any) {
-                            Alert.alert('Error', 'Failed to delete image');
-                        }
-                    }
+                    if (error) throw error;
+                    setImages(prev => prev.filter(img => img.id !== item.id));
+                } catch (error: any) {
+                    showAlert('Error', 'Failed to delete image', 'error');
                 }
-            ]
+            },
+            {
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                type: 'error'
+            }
         );
     };
 
@@ -185,7 +175,7 @@ export function PortfolioScreen() {
                 resizeMode="cover"
             />
             <View style={styles.deleteOverlay}>
-                <Text style={styles.deleteIcon}>🗑️</Text>
+                <MaterialCommunityIcons name="trash-can-outline" size={14} color="#FFF" />
             </View>
         </TouchableOpacity>
     );
@@ -193,17 +183,28 @@ export function PortfolioScreen() {
     return (
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
+                {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← Back</Text>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
-                    <Text style={styles.title}>Portfolio</Text>
-                    <View style={{ width: 60 }} />
+                    <MerakiText variant="h2">Portfolio</MerakiText>
+                    <View style={{ width: 40 }} />
+                </View>
+
+                {/* Stats Bar */}
+                <View style={styles.statsBar}>
+                    <Card variant="glass" style={styles.statPill} noPadding>
+                        <MaterialCommunityIcons name="image-multiple" size={16} color={colors.accent} />
+                        <MerakiText variant="label" color={colors.accent} style={{ marginLeft: 6 }}>
+                            {images.length} {images.length === 1 ? 'Photo' : 'Photos'}
+                        </MerakiText>
+                    </Card>
                 </View>
 
                 {loading ? (
                     <View style={styles.center}>
-                        <ActivityIndicator size="large" color={colors.primary} />
+                        <ActivityIndicator size="large" color={colors.accent} />
                     </View>
                 ) : (
                     <FlatList
@@ -213,17 +214,25 @@ export function PortfolioScreen() {
                         numColumns={COLUMN_COUNT}
                         contentContainerStyle={styles.listContent}
                         refreshControl={
-                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textMuted} />
+                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
                         }
                         ListEmptyComponent={
                             <View style={styles.emptyContainer}>
-                                <Text style={styles.emptyText}>No images in your portfolio yet.</Text>
-                                <Text style={styles.emptySubtext}>Add photos to showcase your work!</Text>
+                                <View style={styles.emptyIconBg}>
+                                    <MaterialCommunityIcons name="image-plus" size={40} color={colors.textMuted} />
+                                </View>
+                                <MerakiText variant="body" color={colors.text} style={styles.emptyTitle}>
+                                    No images yet
+                                </MerakiText>
+                                <MerakiText variant="caption" color={colors.textMuted}>
+                                    Add photos to showcase your work!
+                                </MerakiText>
                             </View>
                         }
                     />
                 )}
 
+                {/* Footer CTA */}
                 <View style={styles.footer}>
                     <Button
                         title={uploading ? "Uploading..." : "Add Photo"}
@@ -237,27 +246,32 @@ export function PortfolioScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+    container: { flex: 1 },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: spacing.md,
+        paddingHorizontal: spacing.lg,
         paddingVertical: spacing.md,
     },
     backButton: {
-        padding: spacing.xs,
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: colors.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    backButtonText: {
-        fontSize: 16,
-        color: colors.text,
+    statsBar: {
+        paddingHorizontal: spacing.lg,
+        marginBottom: spacing.sm,
     },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: colors.text,
+    statPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
     },
     center: {
         flex: 1,
@@ -265,14 +279,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     listContent: {
-        padding: spacing.md,
+        padding: spacing.lg,
     },
     itemContainer: {
         width: ITEM_SIZE,
-        height: ITEM_SIZE * 1.25, // 4:5 aspect ratio roughly
+        height: ITEM_SIZE * 1.25,
         marginBottom: spacing.md,
         marginRight: spacing.md,
-        borderRadius: 12,
+        borderRadius: 14,
         overflow: 'hidden',
         position: 'relative',
         backgroundColor: colors.surface,
@@ -287,32 +301,35 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 8,
         right: 8,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        borderRadius: 12,
-        padding: 4,
-    },
-    deleteIcon: {
-        fontSize: 12,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        borderRadius: 10,
+        width: 28,
+        height: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     emptyContainer: {
         alignItems: 'center',
-        marginTop: spacing.xl * 2,
+        marginTop: spacing.xl * 3,
     },
-    emptyText: {
-        fontSize: 18,
-        color: colors.text,
+    emptyIconBg: {
+        width: 72,
+        height: 72,
+        borderRadius: 20,
+        backgroundColor: 'rgba(212,168,83,0.08)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing.md,
+    },
+    emptyTitle: {
         fontWeight: '600',
-        marginBottom: spacing.sm,
-    },
-    emptySubtext: {
-        fontSize: 14,
-        color: colors.textMuted,
+        marginBottom: spacing.xs,
     },
     footer: {
         padding: spacing.lg,
         borderTopWidth: 1,
         borderTopColor: colors.border,
-        backgroundColor: 'rgba(5,5,5,0.9)',
+        backgroundColor: colors.surface,
     },
 });
 

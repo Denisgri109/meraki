@@ -10,170 +10,121 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { colors, spacing } from '../../theme';
-import { ScreenBackground } from '../../components/ui';
+import { colors, spacing, gradients } from '../../theme';
+import { ScreenBackground, MerakiText } from '../../components/ui';
 import { safeGoBack } from '../../navigation/navigationUtils';
 
 const { width } = Dimensions.get('window');
-const CARD_SIZE = (width - spacing.lg * 3) / 2;
-
-type MenuItemProps = {
-    icon: string;
-    label: string;
-    description?: string;
-    onPress: () => void;
-    variant?: 'default' | 'primary' | 'danger';
-};
-
-const MenuItem = ({ icon, label, description, onPress, variant = 'default' }: MenuItemProps) => (
-    <TouchableOpacity
-        style={[styles.menuCard, variant === 'danger' && styles.menuCardDanger]}
-        onPress={onPress}
-        activeOpacity={0.8}
-    >
-        <View style={[styles.iconContainer, variant === 'primary' && styles.iconContainerPrimary]}>
-            <Text style={styles.icon}>{icon}</Text>
-        </View>
-        <Text style={[styles.menuLabel, variant === 'danger' && styles.menuLabelDanger]}>{label}</Text>
-        {description && <Text style={styles.menuDescription}>{description}</Text>}
-    </TouchableOpacity>
-);
-
-type SectionProps = {
-    title: string;
-    children: React.ReactNode;
-};
-
-const Section = ({ title, children }: SectionProps) => (
-    <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>{children}</View>
-    </View>
-);
 
 export function MenuScreen() {
     const navigation = useNavigation<any>();
     const { profile, signOut } = useAuth();
 
     const handleNavigate = (screen: string) => {
-        navigation.navigate('Home', { screen });
-    };
-
-    const handleSignOut = () => {
-        signOut();
+        navigation.navigate('Home', { screen, params: { from: 'Menu' } });
     };
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.contentSafeArea} edges={['top']}>
+            <SafeAreaView style={styles.safeArea} edges={['top']}>
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity style={styles.closeButton} onPress={() => safeGoBack(navigation, 'Home') }>
-                            <Text style={styles.closeIcon}>✕</Text>
+                        <TouchableOpacity style={styles.backBtn} onPress={() => safeGoBack(navigation, 'Home')}>
+                            <MaterialIcons name="close" size={20} color="rgba(255,255,255,0.7)" />
                         </TouchableOpacity>
-                        <Text style={styles.title}>Menu</Text>
+                        <MerakiText style={styles.headerTitle}>Menu</MerakiText>
                         <View style={{ width: 40 }} />
                     </View>
 
                     {/* Profile Card */}
-                    <LinearGradient
-                        colors={[colors.primary, colors.secondary]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+                    <TouchableOpacity
                         style={styles.profileCard}
+                        onPress={() => handleNavigate('Profile')}
+                        activeOpacity={0.8}
                     >
-                        <View style={styles.profileAvatar}>
-                            <Text style={styles.profileAvatarText}>
-                                {profile?.full_name?.[0] || 'U'}
-                            </Text>
-                        </View>
-                        <View style={styles.profileInfo}>
-                            <Text style={styles.profileName}>{profile?.full_name || 'Guest'}</Text>
-                            <Text style={styles.profileRole}>
-                                {profile?.role === 'admin' ? 'Owner' : profile?.role === 'master' ? 'Beauty Master' : 'Client'}
-                            </Text>
-                        </View>
-                        <TouchableOpacity
-                            style={styles.editButton}
-                            onPress={() => handleNavigate('Profile')}
+                        <LinearGradient
+                            colors={[...gradients.primary]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.profileGradient}
                         >
-                            <Text style={styles.editButtonText}>Edit</Text>
-                        </TouchableOpacity>
-                    </LinearGradient>
+                            <View style={styles.profileAvatar}>
+                                <Text style={styles.profileInitial}>
+                                    {profile?.full_name?.[0] || 'U'}
+                                </Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <MerakiText style={styles.profileName}>{profile?.full_name || 'Guest'}</MerakiText>
+                                <MerakiText style={styles.profileRole}>
+                                    {profile?.role === 'owner' ? 'Owner' : profile?.role === 'master' ? 'Beauty Master' : 'Client'}
+                                </MerakiText>
+                            </View>
+                            <View style={styles.editBadge}>
+                                <MaterialIcons name="edit" size={14} color="#fff" />
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacity>
 
                     {/* Quick Actions */}
-                    <Section title="Quick Actions">
-                        <View style={styles.grid}>
-                            <MenuItem
-                                icon="📅"
-                                label="My Orders"
-                                description="View appointments"
-                                onPress={() => handleNavigate('Orders')}
-                                variant="primary"
-                            />
-                            <MenuItem
-                                icon="🔔"
-                                label="Notifications"
-                                description="Stay updated"
-                                onPress={() => handleNavigate('Notifications')}
-                            />
-                            <MenuItem
-                                icon="⭐"
-                                label="Loyalty Points"
-                                description="Earn rewards"
-                                onPress={() => handleNavigate('LoyaltyPoints')}
-                            />
-                            <MenuItem
-                                icon="💳"
-                                label="Payment"
-                                description="Manage cards"
-                                onPress={() => handleNavigate('PaymentMethods')}
-                            />
-                            <MenuItem
-                                icon="📊"
-                                label="History"
-                                description="Payment history"
-                                onPress={() => handleNavigate('PaymentHistory')}
-                            />
-                        </View>
-                    </Section>
-
-                    {/* Support */}
-                    <Section title="Support">
-                        <View style={styles.listSection}>
-                            <TouchableOpacity style={styles.listItem} onPress={() => handleNavigate('HelpSupport')}>
-                                <Text style={styles.listIcon}>❓</Text>
-                                <Text style={styles.listLabel}>Help & Support</Text>
-                                <Text style={styles.listChevron}>›</Text>
+                    <MerakiText style={styles.sectionLabel}>QUICK ACTIONS</MerakiText>
+                    <View style={styles.quickGrid}>
+                        {[
+                            { icon: 'receipt-long', label: 'My Orders', desc: 'View appointments', route: 'Orders' },
+                            { icon: 'notifications-none', label: 'Notifications', desc: 'Stay updated', route: 'Notifications' },
+                            { icon: 'star-outline', label: 'Loyalty', desc: 'Earn rewards', route: 'LoyaltyPoints' },
+                            { icon: 'credit-card', label: 'Payment', desc: 'Manage cards', route: 'PaymentMethods' },
+                            { icon: 'history', label: 'History', desc: 'Payment history', route: 'PaymentHistory' },
+                        ].map((item) => (
+                            <TouchableOpacity
+                                key={item.label}
+                                style={styles.quickCard}
+                                onPress={() => handleNavigate(item.route)}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.quickIconWrap}>
+                                    <MaterialIcons name={item.icon as any} size={22} color={colors.primary} />
+                                </View>
+                                <MerakiText style={styles.quickLabel}>{item.label}</MerakiText>
+                                <MerakiText style={styles.quickDesc}>{item.desc}</MerakiText>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.listItem} onPress={() => handleNavigate('TermsOfService')}>
-                                <Text style={styles.listIcon}>📜</Text>
-                                <Text style={styles.listLabel}>Terms of Service</Text>
-                                <Text style={styles.listChevron}>›</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.listItem} onPress={() => handleNavigate('PrivacyPolicy')}>
-                                <Text style={styles.listIcon}>🔒</Text>
-                                <Text style={styles.listLabel}>Privacy Policy</Text>
-                                <Text style={styles.listChevron}>›</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </Section>
-
-                    {/* Sign Out */}
-                    <View style={styles.signOutSection}>
-                        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-                            <Text style={styles.signOutIcon}>🚪</Text>
-                            <Text style={styles.signOutText}>Sign Out</Text>
-                        </TouchableOpacity>
+                        ))}
                     </View>
 
-                    {/* App Version */}
-                    <Text style={styles.versionText}>Merakí App v1.2.0 • Build 42</Text>
+                    {/* Support Section */}
+                    <MerakiText style={styles.sectionLabel}>SUPPORT</MerakiText>
+                    <View style={styles.listGroup}>
+                        {[
+                            { icon: 'help-outline', label: 'Help & Support', route: 'HelpSupport' },
+                            { icon: 'description', label: 'Terms of Service', route: 'TermsOfService' },
+                            { icon: 'shield', label: 'Privacy Policy', route: 'PrivacyPolicy' },
+                        ].map((item, index) => (
+                            <TouchableOpacity
+                                key={item.label}
+                                style={[styles.listItem, index === 2 && { borderBottomWidth: 0 }]}
+                                onPress={() => handleNavigate(item.route)}
+                            >
+                                <View style={styles.listIconWrap}>
+                                    <MaterialIcons name={item.icon as any} size={20} color="rgba(255,255,255,0.5)" />
+                                </View>
+                                <MerakiText style={styles.listLabel}>{item.label}</MerakiText>
+                                <MaterialIcons name="chevron-right" size={20} color="rgba(255,255,255,0.2)" />
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    {/* Sign Out */}
+                    <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.7}>
+                        <MaterialIcons name="logout" size={20} color="#EF4444" />
+                        <MerakiText style={styles.signOutText}>Sign Out</MerakiText>
+                    </TouchableOpacity>
+
+                    <MerakiText style={styles.versionText}>Merakí App v1.2.0 • Build 42</MerakiText>
                 </ScrollView>
             </SafeAreaView>
         </ScreenBackground>
@@ -181,196 +132,90 @@ export function MenuScreen() {
 }
 
 const styles = StyleSheet.create({
-    contentSafeArea: {
-        flex: 1,
-    },
-    scrollContent: {
-        padding: spacing.lg,
-        paddingBottom: 40,
-    },
+    safeArea: { flex: 1 },
+    scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: spacing.lg,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingVertical: 16,
     },
-    closeButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: colors.surface,
-        alignItems: 'center',
-        justifyContent: 'center',
+    backBtn: {
+        width: 40, height: 40, borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center', justifyContent: 'center',
     },
-    closeIcon: {
-        fontSize: 16,
-        color: colors.text,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: colors.text,
-    },
-    profileCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: spacing.lg,
-        borderRadius: 20,
-        marginBottom: spacing.xl,
+    headerTitle: { fontSize: 17, fontWeight: '600', color: '#fff' },
+
+    // Profile Card
+    profileCard: { marginBottom: 28, borderRadius: 20, overflow: 'hidden' },
+    profileGradient: {
+        flexDirection: 'row', alignItems: 'center', padding: 20, gap: 14,
     },
     profileAvatar: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 52, height: 52, borderRadius: 26,
         backgroundColor: 'rgba(255,255,255,0.2)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: spacing.md,
+        alignItems: 'center', justifyContent: 'center',
     },
-    profileAvatarText: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: colors.text,
-    },
-    profileInfo: {
-        flex: 1,
-    },
-    profileName: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: colors.text,
-        marginBottom: 2,
-    },
-    profileRole: {
-        fontSize: 13,
-        color: 'rgba(255,255,255,0.8)',
-        fontWeight: '500',
-    },
-    editButton: {
+    profileInitial: { fontSize: 22, fontWeight: '700', color: '#fff' },
+    profileName: { fontSize: 18, fontWeight: '700', color: '#fff' },
+    profileRole: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+    editBadge: {
+        width: 32, height: 32, borderRadius: 16,
         backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.3)',
+        alignItems: 'center', justifyContent: 'center',
     },
-    editButtonText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: colors.text,
+
+    // Section Label
+    sectionLabel: {
+        fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.3)',
+        letterSpacing: 1.5, marginBottom: 12,
     },
-    section: {
-        marginBottom: spacing.xl,
+
+    // Quick Actions Grid
+    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 28 },
+    quickCard: {
+        width: (width - 50) / 2,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        padding: 16,
     },
-    sectionTitle: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: colors.textMuted,
-        textTransform: 'uppercase',
-        letterSpacing: 1.5,
-        marginBottom: spacing.md,
+    quickIconWrap: {
+        width: 40, height: 40, borderRadius: 12,
+        backgroundColor: 'rgba(200, 160, 77, 0.1)',
+        alignItems: 'center', justifyContent: 'center', marginBottom: 10,
     },
-    sectionContent: {},
-    grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: spacing.md,
-    },
-    menuCard: {
-        width: CARD_SIZE,
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: spacing.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    menuCardDanger: {
-        borderColor: 'rgba(239, 68, 68, 0.3)',
-    },
-    iconContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: spacing.sm,
-    },
-    iconContainerPrimary: {
-        backgroundColor: colors.primary,
-    },
-    icon: {
-        fontSize: 22,
-    },
-    menuLabel: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: colors.text,
-        marginBottom: 2,
-    },
-    menuLabelDanger: {
-        color: '#EF4444',
-    },
-    menuDescription: {
-        fontSize: 12,
-        color: colors.textMuted,
-    },
-    listSection: {
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        overflow: 'hidden',
+    quickLabel: { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 2 },
+    quickDesc: { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
+
+    // List Group
+    listGroup: {
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        marginBottom: 28, overflow: 'hidden',
     },
     listItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
+        flexDirection: 'row', alignItems: 'center',
+        padding: 16, gap: 14,
+        borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
     },
-    listIcon: {
-        fontSize: 18,
-        marginRight: spacing.md,
+    listIconWrap: {
+        width: 36, height: 36, borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center', justifyContent: 'center',
     },
-    listLabel: {
-        flex: 1,
-        fontSize: 15,
-        color: colors.text,
-        fontWeight: '500',
+    listLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: '#fff' },
+
+    // Sign Out
+    signOutBtn: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        backgroundColor: 'rgba(239, 68, 68, 0.08)',
+        borderRadius: 14, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)',
+        padding: 16, gap: 10, marginBottom: 20,
     },
-    listChevron: {
-        fontSize: 20,
-        color: colors.textMuted,
-    },
-    signOutSection: {
-        marginTop: spacing.md,
-        marginBottom: spacing.lg,
-    },
-    signOutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        padding: spacing.md,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(239, 68, 68, 0.3)',
-    },
-    signOutIcon: {
-        fontSize: 18,
-        marginRight: spacing.sm,
-    },
-    signOutText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#EF4444',
-    },
-    versionText: {
-        textAlign: 'center',
-        fontSize: 12,
-        color: colors.textMuted,
-    },
+    signOutText: { fontSize: 15, fontWeight: '600', color: '#EF4444' },
+
+    versionText: { textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.2)' },
 });
 
 export default MenuScreen;

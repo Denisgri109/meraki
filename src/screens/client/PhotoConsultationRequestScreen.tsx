@@ -10,11 +10,13 @@ import {
     Image,
     Platform,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
 import { Button, ScreenBackground } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 import { PhotoConsultation } from '../../types/database';
 
@@ -30,6 +32,7 @@ const SERVICE_TYPES = [
 export function PhotoConsultationRequestScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<RouteProp<{ params: { masterId?: string } }, 'params'>>();
+    const { showAlert, showModal, hideModal } = useModal();
     const preselectedMasterId = route.params?.masterId;
 
     const [loading, setLoading] = useState(false);
@@ -77,7 +80,7 @@ export function PhotoConsultationRequestScreen() {
 
                 for (const asset of result.assets) {
                     const fileName = `consultations/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-                    
+
                     const response = await fetch(asset.uri);
                     const blob = await response.blob();
 
@@ -101,11 +104,16 @@ export function PhotoConsultationRequestScreen() {
                     photos: [...prev.photos, ...uploadedUrls].slice(0, 5)
                 }));
 
-                Alert.alert('Success', `Uploaded ${uploadedUrls.length} photo(s)`);
+                setFormData(prev => ({
+                    ...prev,
+                    photos: [...prev.photos, ...uploadedUrls].slice(0, 5)
+                }));
+
+                showAlert('Success', `Uploaded ${uploadedUrls.length} photo(s)`, 'success');
             }
         } catch (error: any) {
             console.error('Error uploading photos:', error);
-            Alert.alert('Error', 'Failed to upload photos. Please try again.');
+            showAlert('Error', 'Failed to upload photos. Please try again.', 'error');
         } finally {
             setLoading(false);
         }
@@ -120,19 +128,19 @@ export function PhotoConsultationRequestScreen() {
 
     const handleSubmit = async () => {
         if (!formData.title.trim()) {
-            Alert.alert('Error', 'Please provide a title for your consultation');
+            showAlert('Error', 'Please provide a title for your consultation', 'error');
             return;
         }
         if (!formData.description.trim() || formData.description.length < 20) {
-            Alert.alert('Error', 'Please provide a detailed description (at least 20 characters)');
+            showAlert('Error', 'Please provide a detailed description (at least 20 characters)', 'error');
             return;
         }
         if (!formData.serviceType) {
-            Alert.alert('Error', 'Please select the service type you\'re interested in');
+            showAlert('Error', 'Please select the service type you\'re interested in', 'error');
             return;
         }
         if (formData.photos.length === 0) {
-            Alert.alert('Error', 'Please upload at least one photo');
+            showAlert('Error', 'Please upload at least one photo', 'error');
             return;
         }
 
@@ -155,19 +163,19 @@ export function PhotoConsultationRequestScreen() {
 
             if (error) throw error;
 
-            Alert.alert(
-                'Consultation Submitted!',
-                'Your consultation request has been submitted. You will receive a professional response within 24-48 hours.',
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => navigation.goBack()
-                    }
-                ]
-            );
+            showModal({
+                title: 'Consultation Submitted!',
+                message: 'Your consultation request has been submitted. You will receive a professional response within 24-48 hours.',
+                confirmText: 'OK',
+                hideCancel: true,
+                onConfirm: () => {
+                    hideModal();
+                    navigation.goBack();
+                }
+            });
         } catch (error: any) {
             console.error('Error submitting consultation:', error);
-            Alert.alert('Error', error.message || 'Failed to submit consultation');
+            showAlert('Error', error.message || 'Failed to submit consultation', 'error');
         } finally {
             setLoading(false);
         }
@@ -178,8 +186,8 @@ export function PhotoConsultationRequestScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Text style={styles.backButton}>← Back</Text>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Photo Consultation</Text>
                     <View style={{ width: 50 }} />
@@ -194,7 +202,7 @@ export function PhotoConsultationRequestScreen() {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Select Professional (Optional)</Text>
                         <Text style={styles.hintText}>Leave empty for any available professional to respond</Text>
-                        
+
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.masterScroll}>
                             <TouchableOpacity
                                 style={[
@@ -295,7 +303,7 @@ export function PhotoConsultationRequestScreen() {
                             {formData.photos.map((url, index) => (
                                 <View key={index} style={styles.photoContainer}>
                                     <Image source={{ uri: url }} style={styles.photo} />
-                                    <TouchableOpacity 
+                                    <TouchableOpacity
                                         style={styles.removePhotoButton}
                                         onPress={() => removePhoto(url)}
                                     >
@@ -304,7 +312,7 @@ export function PhotoConsultationRequestScreen() {
                                 </View>
                             ))}
                         </View>
-                        
+
                         <Text style={styles.photoCount}>
                             {formData.photos.length}/5 photos
                         </Text>
@@ -341,8 +349,14 @@ const styles = StyleSheet.create({
         borderBottomColor: colors.border,
     },
     backButton: {
-        fontSize: 16,
-        color: colors.primary,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        alignItems: 'center' as const,
+        justifyContent: 'center' as const,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     headerTitle: {
         fontSize: 18,

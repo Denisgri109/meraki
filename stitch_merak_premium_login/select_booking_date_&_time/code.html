@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Select Booking Date &amp; Time - Merakí</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f4256a",
+                        "background-light": "#f8f5f6",
+                        "background-dark": "#0F0F13",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-active {
+            background: rgba(244, 37, 106, 0.15);
+            border: 1px solid rgba(244, 37, 106, 0.4);
+        }
+        .rose-gold-gradient {
+            background: linear-gradient(135deg, #f4256a 0%, #ffcfd1 100%);
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex justify-center">
+<!-- Mobile Container (iPhone Pro Max Width) -->
+<main class="w-full max-w-[430px] min-h-screen relative flex flex-col bg-background-light dark:bg-background-dark shadow-2xl overflow-x-hidden">
+<!-- Header -->
+<header class="px-6 pt-12 pb-6 flex items-center justify-between sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md z-50">
+<button class="w-10 h-10 flex items-center justify-center rounded-full glass">
+<span class="material-icons text-xl">arrow_back_ios_new</span>
+</button>
+<div class="text-center">
+<h1 class="text-lg font-bold tracking-tight">Select Date &amp; Time</h1>
+<p class="text-xs opacity-60 uppercase tracking-widest font-semibold mt-0.5">Lash Extensions</p>
+</div>
+<div class="w-10"></div> <!-- Spacer -->
+</header>
+<!-- Main Content -->
+<div class="flex-1 px-6 pb-48 space-y-8">
+<!-- Service Mini Card (Glassmorphic) -->
+<section>
+<div class="glass p-4 rounded-lg flex items-center gap-4">
+<div class="w-16 h-16 rounded-lg overflow-hidden shrink-0">
+<img alt="Lash Extension Service" class="w-full h-full object-cover" data-alt="Close up of long luxury eyelash extensions" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRH7CC0WyP6PNDkxS870e1Q20qsiLobN52ucHyAqeFajNlKsl4axfoT_OL2ow_iUcDG4zAeVFM5S-28cnH269vzxmVymnPj9CDBx1ImITNABB17wSeCvcm-6swfLRwieDWvDFWN4KJN9slpBsRBNd5ht89L5sF6RA-RhZ8vq2sX51rvuiNwV92hgZGywazncpIy5vt5zbpbYqUFu210HeudAz__U1DBzqe1h8vh4gcD1MH6AvozYs_QSEa1tbP8MuGzLrV5sW8NJR9"/>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-base">Lash Extensions</h3>
+<div class="flex items-center gap-3 mt-1 opacity-70 text-sm">
+<span class="flex items-center gap-1"><span class="material-icons text-sm">schedule</span> 90 min</span>
+<span class="w-1 h-1 rounded-full bg-primary/40"></span>
+<span class="font-semibold text-primary">€120</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Calendar Section -->
+<section class="space-y-4">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-xl font-bold">November 2024</h2>
+<div class="flex gap-2">
+<button class="w-8 h-8 flex items-center justify-center rounded-full glass"><span class="material-icons text-sm">chevron_left</span></button>
+<button class="w-8 h-8 flex items-center justify-center rounded-full glass"><span class="material-icons text-sm">chevron_right</span></button>
+</div>
+</div>
+<div class="grid grid-cols-7 text-center text-[10px] font-bold opacity-40 uppercase tracking-widest mb-2">
+<div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+</div>
+<div class="grid grid-cols-7 gap-y-3 text-center">
+<!-- Previous Month Days -->
+<div class="h-10 flex items-center justify-center opacity-10 text-sm">28</div>
+<div class="h-10 flex items-center justify-center opacity-10 text-sm">29</div>
+<div class="h-10 flex items-center justify-center opacity-10 text-sm">30</div>
+<div class="h-10 flex items-center justify-center opacity-10 text-sm">31</div>
+<!-- Current Month Available -->
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">1</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">2</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-20">3</div> <!-- Unavailable -->
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">4</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">5</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">6</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">7</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">8</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">9</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-20">10</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">11</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">12</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">13</div>
+<!-- SELECTED DATE -->
+<div class="h-10 flex items-center justify-center text-sm font-bold relative">
+<span class="z-10 text-white">14</span>
+<div class="absolute inset-1 bg-primary rounded-full shadow-lg shadow-primary/40"></div>
+</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">15</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">16</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-20">17</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">18</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">19</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">20</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">21</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">22</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-100">23</div>
+<div class="h-10 flex items-center justify-center text-sm font-medium opacity-20">24</div>
+</div>
+</section>
+<!-- Time Slots Section -->
+<section class="space-y-6">
+<div>
+<h2 class="text-xl font-bold mb-4">Available Slots</h2>
+<div class="space-y-6">
+<!-- Morning -->
+<div>
+<p class="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-3">Morning</p>
+<div class="grid grid-cols-3 gap-3">
+<button class="glass py-3 rounded-full text-sm font-medium">09:00 AM</button>
+<button class="glass py-3 rounded-full text-sm font-medium opacity-30 cursor-not-allowed">09:30 AM</button>
+<button class="rose-gold-gradient py-3 rounded-full text-sm font-bold shadow-lg shadow-primary/20">10:30 AM</button>
+</div>
+</div>
+<!-- Afternoon -->
+<div>
+<p class="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-3">Afternoon</p>
+<div class="grid grid-cols-3 gap-3">
+<button class="glass py-3 rounded-full text-sm font-medium">01:00 PM</button>
+<button class="glass py-3 rounded-full text-sm font-medium">02:30 PM</button>
+<button class="glass py-3 rounded-full text-sm font-medium">04:00 PM</button>
+</div>
+</div>
+<!-- Evening -->
+<div>
+<p class="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-3">Evening</p>
+<div class="grid grid-cols-3 gap-3">
+<button class="glass py-3 rounded-full text-sm font-medium">05:30 PM</button>
+<button class="glass py-3 rounded-full text-sm font-medium">06:00 PM</button>
+<button class="glass py-3 rounded-full text-sm font-medium opacity-30 cursor-not-allowed">07:30 PM</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Master Summary & Footer Button (Fixed Bottom) -->
+<div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-6 pt-8 pb-10 rounded-t-xl bg-background-light dark:bg-[#15151b] border-t border-white/5 z-[60] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+<!-- Professional & Appointment Summary -->
+<div class="flex items-center gap-4 mb-6">
+<div class="relative">
+<img alt="Specialist" class="w-12 h-12 rounded-full object-cover ring-2 ring-primary/20" data-alt="Portrait of a smiling professional beauty specialist" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBx08jHDrHu7ymY-kZoNFrzA-uwv9Imskjrt5a0SaRKpYVuaUyy6lZaLMIEld2K8cc_KCeW0UusKivvu96jGLloXnEsVDch0YyURYTGS4zlvC63yYYoeTjZtxfCX0SCwmwA9Oj85YNmLRiPpwWfl-dn9DxTQnV3BGWnQbCC03nYk0Jb55mBUMGEDV1fvPfYvs5u6C8qbM7uAHpHVaRGEpW01R9Rguul-jjgMP1CqS1Twdm6bFC-GxHT5K_c2KayM8_XxanG-GKQm04Y"/>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#15151b]"></div>
+</div>
+<div>
+<h4 class="font-bold text-sm">Elena Rossi</h4>
+<p class="text-xs opacity-60">Lash Extensions • Nov 14 @ 10:30 AM</p>
+</div>
+</div>
+<!-- CTA Button -->
+<button class="w-full rose-gold-gradient py-5 rounded-full text-white font-bold text-lg shadow-xl shadow-primary/30 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+                Continue Booking
+                <span class="material-icons">arrow_forward</span>
+</button>
+</div>
+</main>
+</body></html>

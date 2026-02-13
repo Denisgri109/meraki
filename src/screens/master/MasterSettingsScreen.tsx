@@ -6,15 +6,16 @@ import {
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
-    Alert,
     TextInput,
     Modal,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card, Button, ScreenBackground } from '../../components/ui';
+import { Card, Button, ScreenBackground, MerakiText } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 import {
     COMMON_TIMEZONES,
@@ -27,6 +28,7 @@ type PickerType = 'timezone' | 'currency' | 'country' | null;
 export function MasterSettingsScreen() {
     const navigation = useNavigation();
     const { user, profile, refreshProfile } = useAuth();
+    const { showAlert, showConfirm } = useModal();
 
     const [timezone, setTimezone] = useState(profile?.timezone || 'Europe/London');
     const [currency, setCurrency] = useState(profile?.currency || 'EUR');
@@ -113,9 +115,9 @@ export function MasterSettingsScreen() {
             if (depositError) throw depositError;
 
             await refreshProfile();
-            Alert.alert('Success', 'Your settings have been saved');
+            showAlert('Success', 'Your settings have been saved', 'success');
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setSaving(false);
         }
@@ -188,9 +190,9 @@ export function MasterSettingsScreen() {
                 >
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{title}</Text>
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>{title}</MerakiText>
                             <TouchableOpacity onPress={() => setPickerVisible(null)}>
-                                <Text style={styles.modalClose}>✕</Text>
+                                <MaterialCommunityIcons name="close" size={22} color={colors.textMuted} />
                             </TouchableOpacity>
                         </View>
                         <ScrollView style={styles.optionsScroll}>
@@ -212,7 +214,7 @@ export function MasterSettingsScreen() {
                                             {item.label}
                                         </Text>
                                         {isSelected && (
-                                            <Text style={styles.checkmark}>✓</Text>
+                                            <MaterialCommunityIcons name="check" size={18} color={colors.primary} />
                                         )}
                                     </TouchableOpacity>
                                 );
@@ -229,51 +231,60 @@ export function MasterSettingsScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← Back</Text>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <View>
-                        <Text style={styles.title}>Settings</Text>
-                        <Text style={styles.subtitle}>Configure your global marketplace settings</Text>
+                        <MerakiText variant="h1">Settings</MerakiText>
+                        <MerakiText variant="caption" color={colors.textSecondary}>Configure your global marketplace settings</MerakiText>
                     </View>
                 </View>
 
                 <ScrollView contentContainerStyle={styles.content}>
                     {/* Timezone Section */}
                     <Card style={styles.section}>
-                        <Text style={styles.sectionTitle}>🌍 Time Zone</Text>
-                        <Text style={styles.sectionDescription}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="earth" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Time Zone</MerakiText>
+                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
                             Set your local timezone. Clients will see availability in their local time.
-                        </Text>
+                        </MerakiText>
                         <TouchableOpacity
                             style={styles.selector}
                             onPress={() => setPickerVisible('timezone')}
                         >
                             <Text style={styles.selectorText}>{getSelectedTimezoneLabel()}</Text>
-                            <Text style={styles.selectorArrow}>›</Text>
+                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
                         </TouchableOpacity>
                     </Card>
 
                     {/* Currency Section */}
                     <Card style={styles.section}>
-                        <Text style={styles.sectionTitle}>💰 Currency</Text>
-                        <Text style={styles.sectionDescription}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="currency-usd" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Currency</MerakiText>
+                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
                             Your preferred currency for service pricing and payouts.
-                        </Text>
+                        </MerakiText>
                         <TouchableOpacity
                             style={styles.selector}
                             onPress={() => setPickerVisible('currency')}
                         >
                             <Text style={styles.selectorText}>{getSelectedCurrencyLabel()}</Text>
-                            <Text style={styles.selectorArrow}>›</Text>
+                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
                         </TouchableOpacity>
                     </Card>
 
                     {/* Location Section */}
                     <Card style={styles.section}>
-                        <Text style={styles.sectionTitle}>📍 Location</Text>
-                        <Text style={styles.sectionDescription}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="map-marker" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Location</MerakiText>
+                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
                             Your city and country will be shown to clients so they know where you're based.
-                        </Text>
+                        </MerakiText>
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.inputLabel}>City</Text>
@@ -298,17 +309,20 @@ export function MasterSettingsScreen() {
                                 ]}>
                                     {getSelectedCountryLabel()}
                                 </Text>
-                                <Text style={styles.selectorArrow}>›</Text>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
                             </TouchableOpacity>
                         </View>
                     </Card>
 
                     {/* Deposit Settings */}
                     <Card style={styles.section}>
-                        <Text style={styles.sectionTitle}>💵 Deposit Settings</Text>
-                        <Text style={styles.sectionDescription}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="cash-multiple" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Deposit Settings</MerakiText>
+                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
                             Collect a deposit upfront to protect against no-shows. This amount is charged when clients book.
-                        </Text>
+                        </MerakiText>
 
                         {/* Deposit Type Toggle */}
                         <View style={styles.depositToggleContainer}>
@@ -366,7 +380,10 @@ export function MasterSettingsScreen() {
 
                     {/* Stripe Connect Status (Read-only for now) */}
                     <Card style={styles.section}>
-                        <Text style={styles.sectionTitle}>💳 Payment Setup</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="credit-card-outline" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Payment Setup</MerakiText>
+                        </View>
                         <View style={styles.statusRow}>
                             <View style={[styles.statusBadge, styles.statusPending]}>
                                 <Text style={styles.statusBadgeText}>Coming Soon</Text>
@@ -540,7 +557,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.xs,
     },
     optionItemSelected: {
-        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+        backgroundColor: 'rgba(200, 160, 77, 0.2)',
     },
     optionText: {
         fontSize: 16,

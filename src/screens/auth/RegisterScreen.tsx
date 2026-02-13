@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     KeyboardAvoidingView,
     Platform,
     TouchableOpacity,
-    Alert,
     ScrollView,
+    Dimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
+import { useModal } from '../../contexts/ModalContext';
 import { supabase } from '../../lib/supabase';
-import { Button, Input, ScreenBackground } from '../../components/ui';
-import { colors, spacing } from '../../theme';
+import { Button, Input, MerakiText } from '../../components/ui';
+import { colors, spacing, layout } from '../../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import {
     validateIrishPhone,
     formatIrishPhone,
@@ -37,8 +39,11 @@ type RegisterScreenProps = {
     navigation: NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 };
 
+const { width } = Dimensions.get('window');
+
 export function RegisterScreen({ navigation }: RegisterScreenProps) {
     const { signUp } = useAuth();
+    const { showAlert } = useModal();
     const [fullName, setFullName] = useState('');
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
@@ -47,6 +52,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     const [selectedRole, setSelectedRole] = useState<'client' | 'master'>('client');
     const [tosAccepted, setTosAccepted] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [errors, setErrors] = useState<{
         fullName?: string;
         phone?: string;
@@ -57,119 +63,62 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
     const validate = () => {
         const newErrors: typeof errors = {};
-
-        // Full name validation
         const nameValidation = validateFullName(fullName);
         if (!nameValidation.valid) newErrors.fullName = nameValidation.error;
-
-        // Phone validation (optional but must be valid if provided)
         if (phone.trim()) {
             const phoneValidation = validateIrishPhone(phone);
             if (!phoneValidation.valid) newErrors.phone = phoneValidation.error;
         }
-
-        // Email validation
         const emailValidation = validateEmail(email);
         if (!emailValidation.valid) newErrors.email = emailValidation.error;
-
-        // Password validation
         const passwordValidation = validatePassword(password);
         if (!passwordValidation.valid) newErrors.password = passwordValidation.error;
-
-        // Confirm password
         if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handlePhoneChange = (text: string) => {
-        // Allow user to type freely, we'll format on blur
         setPhone(text);
-        // Clear error when typing
-        if (errors.phone) {
-            setErrors({ ...errors, phone: undefined });
-        }
+        if (errors.phone) setErrors({ ...errors, phone: undefined });
     };
 
     const handlePhoneBlur = () => {
-        // Format phone on blur if valid
         if (phone.trim()) {
             const validation = validateIrishPhone(phone);
-            if (validation.valid) {
-                setPhone(formatIrishPhone(phone));
-            }
+            if (validation.valid) setPhone(formatIrishPhone(phone));
         }
     };
 
     const handleRegister = async () => {
         if (!validate()) return;
-
         if (!tosAccepted) {
-            Alert.alert('Terms Required', 'Please accept the Terms of Service to continue.');
+            showAlert('Terms Required', 'Please accept the Terms of Service to continue.', 'warning');
             return;
         }
 
         setLoading(true);
         try {
-            console.log('=== REGISTRATION START ===');
-            console.log('Selected role:', selectedRole);
-            console.log('Email:', email.trim().toLowerCase());
-            console.log('Full name:', fullName.trim());
-
-            // Normalize phone for storage
             const normalizedPhone = phone.trim() ? normalizeIrishPhone(phone) : null;
-            console.log('Phone:', normalizedPhone);
-
-            // Use AuthContext signUp which handles role properly
-            console.log('Calling AuthContext signUp with role:', selectedRole);
             const { error: signUpError } = await signUp(
                 email.trim().toLowerCase(),
                 password,
                 fullName.trim(),
                 selectedRole,
                 tosAccepted,
-                '1.0' // Current TOS version
+                '1.0'
             );
 
-            if (signUpError) {
-                console.error('SignUp error:', signUpError);
-                throw signUpError;
-            }
+            if (signUpError) throw signUpError;
 
-            console.log('SignUp successful!');
-
-            // Now send OTP for email verification
-            console.log('Sending OTP for email verification...');
             const { error: otpError } = await supabase.auth.resend({
                 type: 'signup',
                 email: email.trim().toLowerCase(),
             });
 
-            if (otpError) {
-                console.error('OTP send error:', otpError);
-                // Don't throw - user can request resend later
-                console.log('OTP send failed but continuing...');
-            } else {
-                console.log('OTP sent successfully!');
-            }
-
-            console.log('=== REGISTRATION COMPLETE ===');
-            console.log('Role selected:', selectedRole);
-            console.log('Navigating to VerifyOtp screen...');
-
-            // Navigate to OTP verification screen
             navigation.navigate('VerifyOtp', { email: email.trim().toLowerCase() });
-
         } catch (error: any) {
-            console.error('=== REGISTRATION ERROR ===', error);
-            console.error('Error name:', error.name);
-            console.error('Error code:', error.code);
-            console.error('Error status:', error.status);
-
             let errorMessage = error.message || 'An error occurred during registration.';
-
-            // Provide more helpful error messages
             if (error.message?.includes('Database error')) {
                 errorMessage = 'Database error creating account. Please try again or contact support.';
             } else if (error.message?.includes('already registered') || error.message?.includes('already exists')) {
@@ -179,16 +128,43 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             } else if (error.message?.includes('valid')) {
                 errorMessage = 'Please check your email format and try again.';
             }
-
-            Alert.alert('Registration Failed', errorMessage);
+            showAlert('Registration Failed', errorMessage, 'error');
         } finally {
             setLoading(false);
         }
     };
 
+    // Password strength
+    const getPasswordStrength = () => {
+        if (!password) return 0;
+        let strength = 0;
+        if (password.length >= 6) strength++;
+        if (password.length >= 8) strength++;
+        if (/[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^A-Za-z0-9]/.test(password)) strength++;
+        return strength;
+    };
+
+    const strength = getPasswordStrength();
+
     return (
-        <ScreenBackground>
-            <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
+            <StatusBar style="light" />
+
+            {/* Background Gradient */}
+            <LinearGradient
+                colors={['#1E1E24', '#0F0F13']}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 1, y: 0 }}
+                end={{ x: 0, y: 1 }}
+            />
+
+            {/* Decorative Glow Elements */}
+            <View style={[styles.glowBlob, styles.glowTopLeft]} />
+            <View style={[styles.glowBlob, styles.glowBottomRight]} />
+
+            <SafeAreaView style={styles.safeArea}>
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.keyboardView}
@@ -199,166 +175,209 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                     >
                         {/* Header */}
                         <View style={styles.header}>
-                            <Text style={styles.logo}>Merakí</Text>
-                            <Text style={styles.title}>Create Account</Text>
-                            <Text style={styles.subtitle}>
-                                Choose your account type and get started
-                            </Text>
+                            <TouchableOpacity
+                                style={styles.backButton}
+                                onPress={() => navigation.goBack()}
+                            >
+                                <MaterialIcons name="arrow-back-ios-new" size={20} color={colors.roseWhite} />
+                            </TouchableOpacity>
+                            <View style={styles.headerTexts}>
+                                <MerakiText variant="h2" style={styles.title}>Create Account</MerakiText>
+                                <MerakiText style={styles.subtitle}>Join the Merakí community</MerakiText>
+                            </View>
                         </View>
 
-                        {/* Account Type Selection */}
-                        <View style={styles.roleSection}>
-                            <Text style={styles.roleLabel}>I want to join as a:</Text>
-                            <View style={styles.roleButtons}>
+                        {/* Role Selection */}
+                        <View style={styles.roleContainer}>
+                            <MerakiText style={styles.sectionLabel}>I AM A...</MerakiText>
+                            <View style={styles.roleRow}>
                                 <TouchableOpacity
-                                    style={[
-                                        styles.roleButton,
-                                        selectedRole === 'client' && styles.roleButtonActive
-                                    ]}
-                                    onPress={() => {
-                                        console.log('Role changed to: client');
-                                        setSelectedRole('client');
-                                    }}
+                                    style={[styles.roleCard, selectedRole === 'client' && styles.roleCardActive]}
+                                    onPress={() => setSelectedRole('client')}
+                                    activeOpacity={0.8}
                                 >
-                                    <Text style={styles.roleIcon}>👤</Text>
-                                    <Text style={[
-                                        styles.roleButtonText,
-                                        selectedRole === 'client' && styles.roleButtonTextActive
-                                    ]}>
+                                    <View style={[styles.roleIconBox, selectedRole === 'client' && styles.roleIconBoxActive]}>
+                                        <MaterialIcons
+                                            name="person-outline"
+                                            size={24}
+                                            color={selectedRole === 'client' ? colors.primary : 'rgba(255,255,255,0.4)'}
+                                        />
+                                    </View>
+                                    <MerakiText style={[styles.roleText, selectedRole === 'client' && styles.roleTextActive]}>
                                         Client
-                                    </Text>
-                                    <Text style={styles.roleDescription}>
-                                        Book services, shop, learn
-                                    </Text>
+                                    </MerakiText>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
-                                    style={[
-                                        styles.roleButton,
-                                        selectedRole === 'master' && styles.roleButtonActive
-                                    ]}
-                                    onPress={() => {
-                                        console.log('Role changed to: master');
-                                        setSelectedRole('master');
-                                    }}
+                                    style={[styles.roleCard, selectedRole === 'master' && styles.roleCardActive]}
+                                    onPress={() => setSelectedRole('master')}
+                                    activeOpacity={0.8}
                                 >
-                                    <Text style={styles.roleIcon}>💇</Text>
-                                    <Text style={[
-                                        styles.roleButtonText,
-                                        selectedRole === 'master' && styles.roleButtonTextActive
-                                    ]}>
-                                        Master
-                                    </Text>
-                                    <Text style={styles.roleDescription}>
-                                        Provide services, manage bookings
-                                    </Text>
+                                    <View style={[styles.roleIconBox, selectedRole === 'master' && styles.roleIconBoxActive]}>
+                                        <MaterialIcons
+                                            name="content-cut"
+                                            size={24}
+                                            color={selectedRole === 'master' ? colors.primary : 'rgba(255,255,255,0.4)'}
+                                        />
+                                    </View>
+                                    <MerakiText style={[styles.roleText, selectedRole === 'master' && styles.roleTextActive]}>
+                                        Professional
+                                    </MerakiText>
                                 </TouchableOpacity>
                             </View>
                         </View>
 
                         {/* Form */}
                         <View style={styles.form}>
-                            <Input
-                                label="Full Name"
-                                value={fullName}
-                                onChangeText={setFullName}
-                                autoCapitalize="words"
-                                placeholder="Your full name"
-                                error={errors.fullName}
-                            />
-
-                            <View>
+                            <View style={styles.inputGroup}>
+                                <MerakiText style={styles.inputLabel}>FULL NAME</MerakiText>
                                 <Input
-                                    label="Phone Number (Ireland)"
+                                    value={fullName}
+                                    onChangeText={setFullName}
+                                    autoCapitalize="words"
+                                    placeholder="Julianne Moore"
+                                    error={errors.fullName}
+                                    variant="glass"
+                                    leftIcon={<MaterialIcons name="person-outline" size={20} color="rgba(255,255,255,0.3)" />}
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <MerakiText style={styles.inputLabel}>PHONE NUMBER</MerakiText>
+                                <Input
                                     value={phone}
                                     onChangeText={handlePhoneChange}
                                     onBlur={handlePhoneBlur}
                                     keyboardType="phone-pad"
                                     placeholder="+353 87 123 4567"
                                     error={errors.phone}
+                                    variant="glass"
+                                    leftIcon={<MaterialIcons name="phone-iphone" size={20} color="rgba(255,255,255,0.3)" />}
                                 />
-                                <Text style={styles.phoneHint}>
-                                    Enter your Irish mobile number (e.g., 087 123 4567)
-                                </Text>
                             </View>
 
-                            <Input
-                                label="Email"
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                autoComplete="email"
-                                placeholder="your@email.com"
-                                error={errors.email}
-                            />
+                            <View style={styles.inputGroup}>
+                                <MerakiText style={styles.inputLabel}>EMAIL ADDRESS</MerakiText>
+                                <Input
+                                    value={email}
+                                    onChangeText={setEmail}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    autoComplete="email"
+                                    placeholder="name@example.com"
+                                    error={errors.email}
+                                    variant="glass"
+                                    leftIcon={<MaterialIcons name="alternate-email" size={20} color="rgba(255,255,255,0.3)" />}
+                                />
+                            </View>
 
-                            <Input
-                                label="Password"
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry
-                                autoCapitalize="none"
-                                placeholder="••••••••"
-                                error={errors.password}
-                            />
+                            <View style={styles.inputGroup}>
+                                <MerakiText style={styles.inputLabel}>PASSWORD</MerakiText>
+                                <Input
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    secureTextEntry={!showPassword}
+                                    autoCapitalize="none"
+                                    placeholder="••••••••"
+                                    error={errors.password}
+                                    variant="glass"
+                                    leftIcon={<MaterialIcons name="lock-outline" size={20} color="rgba(255,255,255,0.3)" />}
+                                    rightIcon={
+                                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                            <MaterialIcons
+                                                name={showPassword ? 'visibility' : 'visibility-off'}
+                                                size={20}
+                                                color="rgba(255,255,255,0.3)"
+                                            />
+                                        </TouchableOpacity>
+                                    }
+                                />
+                            </View>
 
-                            <Input
-                                label="Confirm Password"
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                                secureTextEntry
-                                autoCapitalize="none"
-                                placeholder="••••••••"
-                                error={errors.confirmPassword}
-                            />
+                            {/* Password Strength Meter */}
+                            {password.length > 0 && (
+                                <View style={styles.strengthContainer}>
+                                    <View style={styles.strengthBarsRow}>
+                                        {[1, 2, 3, 4, 5].map((i) => (
+                                            <View
+                                                key={i}
+                                                style={[
+                                                    styles.strengthBar,
+                                                    i <= strength && styles.strengthBarActive,
+                                                    i <= strength && { backgroundColor: strength <= 2 ? '#EF4444' : strength <= 3 ? '#F59E0B' : '#10B981' }
+                                                ]}
+                                            />
+                                        ))}
+                                    </View>
+                                    <MerakiText style={[
+                                        styles.strengthLabel,
+                                        { color: strength <= 2 ? '#EF4444' : strength <= 3 ? '#F59E0B' : '#10B981' }
+                                    ]}>
+                                        {strength <= 2 ? 'Weak' : strength <= 3 ? 'Medium' : 'Strong'}
+                                    </MerakiText>
+                                </View>
+                            )}
 
-                            <Button
-                                title="Create Account"
-                                onPress={handleRegister}
-                                loading={loading}
-                                fullWidth
-                                style={styles.button}
-                            />
+                            <View style={styles.inputGroup}>
+                                <MerakiText style={styles.inputLabel}>CONFIRM PASSWORD</MerakiText>
+                                <Input
+                                    value={confirmPassword}
+                                    onChangeText={setConfirmPassword}
+                                    secureTextEntry
+                                    autoCapitalize="none"
+                                    placeholder="••••••••"
+                                    error={errors.confirmPassword}
+                                    variant="glass"
+                                    leftIcon={<MaterialIcons name="verified-user" size={20} color="rgba(255,255,255,0.3)" />}
+                                />
+                            </View>
                         </View>
 
                         {/* Terms */}
-                        {/* Terms */}
-                        <View style={styles.termsContainer}>
-                            <TouchableOpacity
-                                style={[styles.checkbox, tosAccepted && styles.checkboxChecked]}
-                                onPress={() => setTosAccepted(!tosAccepted)}
-                            >
-                                {tosAccepted && <Ionicons name="checkmark" size={16} color="white" />}
-                            </TouchableOpacity>
-                            <Text style={styles.termsText} onPress={() => setTosAccepted(!tosAccepted)}>
-                                I agree to the{' '}
-                                <Text style={styles.termsLink} onPress={() => navigation.navigate('Terms')}>
-                                    Terms of Service
-                                </Text>
-                                {' '}and{' '}
-                                <Text style={styles.termsLink} onPress={() => navigation.navigate('Terms')}>
-                                    Privacy Policy
-                                </Text>
-                            </Text>
-                        </View>
+                        <TouchableOpacity
+                            style={styles.termsContainer}
+                            onPress={() => setTosAccepted(!tosAccepted)}
+                            activeOpacity={0.7}
+                        >
+                            <View style={[styles.checkbox, tosAccepted && styles.checkboxChecked]}>
+                                {tosAccepted && <MaterialIcons name="check" size={14} color="#000" />}
+                            </View>
+                            <MerakiText style={styles.termsText}>
+                                I agree to <MerakiText style={styles.linkText} onPress={() => navigation.navigate('Terms')}>Terms of Service</MerakiText> & <MerakiText style={styles.linkText} onPress={() => navigation.navigate('Terms')}>Privacy Policy</MerakiText>
+                            </MerakiText>
+                        </TouchableOpacity>
 
-                        {/* Login Link */}
+                        {/* Submit */}
+                        <Button
+                            title="CREATE ACCOUNT"
+                            onPress={handleRegister}
+                            loading={loading}
+                            fullWidth
+                            variant="gradient"
+                            style={styles.submitButton}
+                            textStyle={styles.submitButtonText}
+                        />
+
+                        {/* Footer */}
                         <View style={styles.footer}>
-                            <Text style={styles.footerText}>Already have an account? </Text>
+                            <MerakiText style={styles.footerText}>Already have an account? </MerakiText>
                             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                                <Text style={styles.linkText}>Sign In</Text>
+                                <MerakiText style={styles.footerLink}>Sign In</MerakiText>
                             </TouchableOpacity>
                         </View>
                     </ScrollView>
                 </KeyboardAvoidingView>
             </SafeAreaView>
-        </ScreenBackground>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
+        backgroundColor: colors.background,
+    },
+    safeArea: {
         flex: 1,
     },
     keyboardView: {
@@ -366,129 +385,191 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        justifyContent: 'center',
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.xl,
+        paddingHorizontal: 24,
+        paddingBottom: 40,
+    },
+    glowBlob: {
+        position: 'absolute',
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        opacity: 0.5,
+    },
+    glowTopLeft: {
+        top: -100,
+        left: -100,
+        backgroundColor: 'rgba(212, 138, 130, 0.08)',
+    },
+    glowBottomRight: {
+        bottom: -50,
+        right: -50,
+        backgroundColor: 'rgba(230, 192, 144, 0.05)',
     },
     header: {
-        alignItems: 'center',
-        marginBottom: spacing.xl,
+        marginTop: 20,
+        marginBottom: 40,
     },
-    logo: {
-        fontSize: 42,
-        fontWeight: '300',
-        color: colors.text,
-        letterSpacing: 6,
-        marginBottom: spacing.lg,
-        fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif-light',
-        textShadowColor: colors.primary,
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
+    backButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 24,
+    },
+    headerTexts: {
+        gap: 8,
     },
     title: {
-        fontSize: 28,
-        fontWeight: '600',
-        color: colors.text,
-        letterSpacing: 0.5,
+        fontSize: 32,
+        fontFamily: 'PlayfairDisplay-Regular', // Consistent with Design System
+        color: colors.roseWhite,
     },
     subtitle: {
         fontSize: 14,
-        color: colors.textSecondary,
-        marginTop: spacing.sm,
-        textAlign: 'center',
+        color: 'rgba(255, 255, 255, 0.5)',
+        letterSpacing: 0.5,
     },
-    roleSection: {
-        marginBottom: spacing.lg,
+    roleContainer: {
+        marginBottom: 32,
     },
-    roleLabel: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: colors.text,
-        marginBottom: spacing.md,
+    sectionLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: 'rgba(255, 255, 255, 0.4)',
+        letterSpacing: 1.5,
+        marginBottom: 16,
     },
-    roleButtons: {
+    roleRow: {
         flexDirection: 'row',
-        gap: spacing.md,
+        gap: 16,
     },
-    roleButton: {
+    roleCard: {
         flex: 1,
-        backgroundColor: colors.surface,
-        borderWidth: 2,
-        borderColor: colors.border,
-        borderRadius: 16,
-        padding: spacing.md,
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: layout.borderRadius.xl,
+        padding: 20,
         alignItems: 'center',
+        gap: 12,
     },
-    roleButtonActive: {
+    roleCardActive: {
+        backgroundColor: 'rgba(212, 168, 83, 0.1)',
         borderColor: colors.primary,
-        backgroundColor: 'rgba(139,92,246,0.1)',
     },
-    roleIcon: {
-        fontSize: 32,
-        marginBottom: spacing.sm,
+    roleIconBox: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    roleButtonText: {
-        fontSize: 16,
+    roleIconBoxActive: {
+        backgroundColor: 'rgba(212, 168, 83, 0.2)',
+    },
+    roleText: {
+        fontSize: 14,
         fontWeight: '600',
-        color: colors.text,
-        marginBottom: spacing.xs,
+        color: 'rgba(255, 255, 255, 0.6)',
     },
-    roleButtonTextActive: {
+    roleTextActive: {
         color: colors.primary,
-    },
-    roleDescription: {
-        fontSize: 12,
-        color: colors.textSecondary,
-        textAlign: 'center',
+        fontWeight: '700',
     },
     form: {
-        marginBottom: spacing.lg,
+        marginBottom: 24,
     },
-    button: {
-        marginTop: spacing.md,
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+    inputGroup: {
+        marginBottom: 20,
     },
-    termsLink: {
-        color: colors.primary,
-        textDecorationLine: 'underline',
+    inputLabel: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: 'rgba(255, 255, 255, 0.4)',
+        marginLeft: 16,
+        marginBottom: 8,
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+    },
+    strengthContainer: {
+        marginTop: -12,
+        marginBottom: 24,
+        paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    strengthBarsRow: {
+        flex: 1,
+        flexDirection: 'row',
+        gap: 4,
+    },
+    strengthBar: {
+        height: 4,
+        flex: 1,
+        borderRadius: 2,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    strengthBarActive: {
+        // dynamic color handled inline
+    },
+    strengthLabel: {
+        fontSize: 11,
+        fontWeight: '600',
+        width: 50,
+        textAlign: 'right',
+        textTransform: 'uppercase',
     },
     termsContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: spacing.xl,
-        paddingHorizontal: spacing.sm,
+        alignItems: 'flex-start',
+        marginBottom: 32,
     },
     checkbox: {
-        width: 24,
-        height: 24,
+        width: 20,
+        height: 20,
         borderRadius: 6,
-        borderWidth: 2,
-        borderColor: colors.border,
-        marginRight: spacing.md,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        marginRight: 12,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.surface,
+        marginTop: 2,
     },
     checkboxChecked: {
         backgroundColor: colors.primary,
         borderColor: colors.primary,
     },
     termsText: {
-        fontSize: 14,
-        color: colors.textSecondary,
         flex: 1,
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.6)',
         lineHeight: 20,
     },
-    phoneHint: {
-        fontSize: 12,
-        color: colors.textMuted,
-        marginTop: -spacing.sm,
-        marginBottom: spacing.md,
-        marginLeft: spacing.xs,
+    linkText: {
+        color: colors.primary,
+        fontWeight: '600',
+        textDecorationLine: 'underline',
+    },
+    submitButton: {
+        height: 56,
+        borderRadius: 28,
+        shadowColor: 'rgba(212, 138, 130, 0.2)',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 1,
+        shadowRadius: 10,
+        elevation: 5,
+        marginBottom: 40,
+    },
+    submitButtonText: {
+        fontSize: 14,
+        fontWeight: '700',
+        letterSpacing: 0.5,
     },
     footer: {
         flexDirection: 'row',
@@ -496,13 +577,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     footerText: {
-        color: colors.textSecondary,
         fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.4)',
     },
-    linkText: {
-        color: colors.primary,
+    footerLink: {
         fontSize: 14,
-        fontWeight: '600',
+        color: colors.primary,
+        fontWeight: '700',
+        textDecorationLine: 'underline',
     },
 });
 

@@ -6,6 +6,7 @@ import {
     ScrollView,
     TouchableOpacity,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenBackground } from '../../components/ui';
@@ -20,8 +21,8 @@ export function TermsOfServiceScreen() {
                 <ScrollView contentContainerStyle={styles.content}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
-                            <Text style={styles.backButton}>← Back</Text>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
                         </TouchableOpacity>
                         <Text style={styles.title}>Terms of Service</Text>
                         <Text style={styles.lastUpdated}>Last updated: January 2026</Text>
@@ -99,7 +100,12 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     content: { padding: spacing.lg, paddingBottom: spacing.xxxl },
     header: { marginBottom: spacing.xl },
-    backButton: { color: colors.textSecondary, fontSize: 16, marginBottom: spacing.md },
+    backButton: {
+        width: 40, height: 40, borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center', justifyContent: 'center',
+    },
     title: { fontSize: 28, fontWeight: '600', color: colors.text },
     lastUpdated: { fontSize: 12, color: colors.textMuted, marginTop: spacing.xs },
     section: { marginBottom: spacing.lg },

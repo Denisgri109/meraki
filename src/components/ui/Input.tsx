@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     TextInput,
@@ -7,7 +7,8 @@ import {
     TextInputProps,
     ViewStyle,
 } from 'react-native';
-import { colors, spacing } from '../../theme';
+import { colors, layout } from '../../theme/colors';
+import { spacing } from '../../theme/spacing';
 
 interface InputProps extends TextInputProps {
     label?: string;
@@ -15,83 +16,115 @@ interface InputProps extends TextInputProps {
     containerStyle?: ViewStyle;
     leftIcon?: React.ReactNode;
     rightIcon?: React.ReactNode;
+    variant?: 'default' | 'glass';
 }
 
-export const Input = forwardRef<TextInput, InputProps>(
-    ({ label, error, containerStyle, leftIcon, rightIcon, style, ...props }, ref) => {
-        return (
-            <View style={[styles.container, containerStyle]}>
-                {label && <Text style={styles.label}>{label}</Text>}
-                <View style={[styles.inputContainer, error && styles.inputError]}>
-                    {leftIcon && <View style={styles.iconLeft}>{leftIcon}</View>}
-                    <TextInput
-                        ref={ref}
-                        style={[
-                            styles.input,
-                            leftIcon ? styles.inputWithLeftIcon : undefined,
-                            rightIcon ? styles.inputWithRightIcon : undefined,
-                            style,
-                        ].filter(Boolean)}
-                        placeholderTextColor={colors.textMuted}
-                        {...props}
-                    />
-                    {rightIcon && <View style={styles.iconRight}>{rightIcon}</View>}
-                </View>
-                {error && <Text style={styles.errorText}>{error}</Text>}
-            </View>
-        );
-    }
-);
+export function Input({
+    label,
+    error,
+    containerStyle,
+    leftIcon,
+    rightIcon,
+    style,
+    variant = 'default',
+    ...props
+}: InputProps) {
+    const [isFocused, setIsFocused] = useState(false);
 
-Input.displayName = 'Input';
+    return (
+        <View style={[styles.container, containerStyle]}>
+            {label && <Text style={styles.label}>{label}</Text>}
+
+            <View
+                style={[
+                    styles.inputWrapper,
+                    variant === 'glass' && styles.inputWrapperGlass,
+                    isFocused && styles.inputWrapperFocused,
+                    error ? styles.inputWrapperError : null,
+                ]}
+            >
+                {leftIcon && <View style={styles.iconLeft}>{leftIcon}</View>}
+                <TextInput
+                    style={[
+                        styles.input,
+                        leftIcon ? { paddingLeft: 0 } : null,
+                        rightIcon ? { paddingRight: 0 } : null,
+                        style,
+                    ]}
+                    placeholderTextColor={colors.textMuted}
+                    selectionColor={colors.primary}
+                    onFocus={(e) => {
+                        setIsFocused(true);
+                        props.onFocus?.(e);
+                    }}
+                    onBlur={(e) => {
+                        setIsFocused(false);
+                        props.onBlur?.(e);
+                    }}
+                    {...props}
+                />
+                {rightIcon && <View style={styles.iconRight}>{rightIcon}</View>}
+            </View>
+
+            {error && <Text style={styles.error}>{error}</Text>}
+        </View>
+    );
+}
 
 const styles = StyleSheet.create({
     container: {
         marginBottom: spacing.md,
     },
     label: {
+        fontSize: 13,
+        fontWeight: '600',
         color: colors.textSecondary,
-        fontSize: 12,
-        fontWeight: '500',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
         marginBottom: spacing.xs,
+        letterSpacing: 0.3,
+        textTransform: 'uppercase',
     },
-    inputContainer: {
+    inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.surface,
-        borderRadius: 12,
+        backgroundColor: colors.inputBackground,
+        borderRadius: layout.borderRadius.md,
         borderWidth: 1,
         borderColor: colors.border,
+        overflow: 'hidden',
     },
-    inputError: {
+    inputWrapperGlass: {
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        borderRadius: layout.borderRadius.full,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    inputWrapperFocused: {
+        borderColor: colors.primary,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    inputWrapperError: {
         borderColor: colors.error,
     },
     input: {
         flex: 1,
-        color: colors.text,
-        fontSize: 16,
         paddingVertical: 14,
-        paddingHorizontal: 16,
-    },
-    inputWithLeftIcon: {
-        paddingLeft: 8,
-    },
-    inputWithRightIcon: {
-        paddingRight: 8,
+        paddingHorizontal: spacing.md,
+        fontSize: 15,
+        color: colors.text,
     },
     iconLeft: {
-        paddingLeft: 16,
+        paddingLeft: spacing.md,
     },
     iconRight: {
-        paddingRight: 16,
+        paddingRight: spacing.md,
     },
-    errorText: {
-        color: colors.error,
+    error: {
         fontSize: 12,
+        color: colors.error,
         marginTop: spacing.xs,
     },
 });
-
-export default Input;

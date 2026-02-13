@@ -19,8 +19,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
-import { Card, Button, ScreenBackground } from '../../components/ui';
-import { colors, spacing } from '../../theme';
+import { Card, Button, ScreenBackground, MerakiText } from '../../components/ui';
+import { colors, spacing, layout, gradients } from '../../theme';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 
 const { width } = Dimensions.get('window');
@@ -76,19 +76,20 @@ export function ShopScreen() {
 
     const fetchProducts = async () => {
         try {
-            const productPromise = (supabase as any)
-                .from('products')
-                .select('*')
-                .eq('is_active', true)
-                .order('name');
-
-            const { data, error } = await safeSupabaseFetch(productPromise, {
-                timeout: 10000,
-                errorMessage: 'Failed to load products'
-            });
+            const { data, error } = await safeSupabaseFetch(
+                supabase
+                    .from('products')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('name') as any,
+                {
+                    timeout: 10000,
+                    errorMessage: 'Failed to load products'
+                }
+            );
 
             if (error) throw error;
-            setProducts((data as any) || []);
+            setProducts((data as Product[]) || []);
         } catch (error) {
             console.error('Error fetching products:', error);
             setProducts([]);
@@ -111,7 +112,7 @@ export function ShopScreen() {
 
         setSaving(true);
         try {
-            const { error } = await (supabase as any).from('products').insert({
+            const { error } = await supabase.from('products').insert({
                 name: newProduct.name,
                 description: newProduct.description || null,
                 retail_price: parseFloat(newProduct.retail_price),
@@ -169,13 +170,13 @@ export function ShopScreen() {
         return (isMaster || isAdmin) ? product.wholesale_price : product.retail_price;
     };
 
-    const getCategoryGradient = (category: string | null): [string, string] => {
+    const getCategoryGradient = (category: string | null): string[] => {
         switch (category) {
-            case 'Nails': return ['#D48A82', '#B8756D'];
-            case 'Lashes': return ['#C0A0E0', '#8B5CF6'];
-            case 'Brows': return ['#E6C090', '#D4A574'];
-            case 'Equipment': return ['#6B7280', '#4B5563'];
-            default: return ['#8B5CF6', '#6366F1'];
+            case 'Nails': return [colors.primary, colors.primaryDark];
+            case 'Lashes': return [colors.secondary, '#8B5CF6'];
+            case 'Brows': return [colors.accent, colors.gold];
+            case 'Equipment': return [colors.textMuted, colors.borderLight];
+            default: return gradients.primary as unknown as string[];
         }
     };
 
@@ -197,7 +198,7 @@ export function ShopScreen() {
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
                     }
                     showsVerticalScrollIndicator={false}
                 >
@@ -205,10 +206,10 @@ export function ShopScreen() {
                     <View style={styles.headerContainer}>
                         <View style={styles.headerRow}>
                             <View style={styles.headerLeft}>
-                                <Text style={styles.headerTitle}>Shop</Text>
-                                <Text style={styles.headerSubtitle}>
+                                <MerakiText variant="h1" style={styles.headerTitle}>Shop</MerakiText>
+                                <MerakiText variant="caption" style={styles.headerSubtitle}>
                                     {(isMaster || isAdmin) ? 'Wholesale Prices' : 'Premium Beauty Products'}
-                                </Text>
+                                </MerakiText>
                             </View>
                             <View style={styles.headerRight}>
                                 {isAdmin && (
@@ -216,19 +217,19 @@ export function ShopScreen() {
                                         style={styles.addButton}
                                         onPress={() => setShowAddModal(true)}
                                     >
-                                        <Text style={styles.addButtonText}>+</Text>
+                                        <MerakiText style={styles.addButtonText}>+</MerakiText>
                                     </TouchableOpacity>
                                 )}
                                 <TouchableOpacity
                                     style={styles.cartButton}
                                     onPress={() => navigation.navigate('Cart')}
                                 >
-                                    <Text style={styles.cartIcon}>🛍️</Text>
+                                    <MerakiText style={styles.cartIcon}>🛍️</MerakiText>
                                     {cartItemCount > 0 && (
                                         <View style={styles.cartBadge}>
-                                            <Text style={styles.cartBadgeText}>
+                                            <MerakiText style={styles.cartBadgeText}>
                                                 {cartItemCount > 99 ? '99+' : cartItemCount}
-                                            </Text>
+                                            </MerakiText>
                                         </View>
                                     )}
                                 </TouchableOpacity>
@@ -236,21 +237,23 @@ export function ShopScreen() {
                         </View>
 
                         {/* Sleek Search Bar */}
-                        <View style={styles.searchContainer}>
-                            <Text style={styles.searchIcon}>🔍</Text>
-                            <TextInput
-                                style={styles.searchInput}
-                                placeholder="Search products..."
-                                placeholderTextColor={colors.textMuted}
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                            />
-                            {searchQuery.length > 0 && (
-                                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                    <Text style={styles.clearSearch}>✕</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
+                        <Card variant="glass" style={styles.searchContainer} noPadding>
+                            <View style={styles.searchInner}>
+                                <MerakiText style={styles.searchIconSymbol}>🔍</MerakiText>
+                                <TextInput
+                                    style={styles.searchInput}
+                                    placeholder="Search products..."
+                                    placeholderTextColor={colors.textMuted}
+                                    value={searchQuery}
+                                    onChangeText={setSearchQuery}
+                                />
+                                {searchQuery.length > 0 && (
+                                    <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                        <MerakiText style={styles.clearSearch}>✕</MerakiText>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        </Card>
                     </View>
 
                     {/* Modern Category Pills */}
@@ -268,19 +271,21 @@ export function ShopScreen() {
                             >
                                 {selectedCategory === cat.label ? (
                                     <LinearGradient
-                                        colors={['#D48A82', '#C0A0E0']}
+                                        colors={[colors.primary, colors.champagne]}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 0 }}
                                         style={styles.categoryChipActive}
                                     >
-                                        <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                                        <Text style={styles.categoryTextActive}>{cat.label}</Text>
+                                        <MerakiText style={styles.categoryIcon}>{cat.icon}</MerakiText>
+                                        <MerakiText variant="bodyBold" style={styles.categoryTextActive}>{cat.label}</MerakiText>
                                     </LinearGradient>
                                 ) : (
-                                    <View style={styles.categoryChip}>
-                                        <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                                        <Text style={styles.categoryText}>{cat.label}</Text>
-                                    </View>
+                                    <Card variant="glass" style={styles.categoryChip} noPadding>
+                                        <View style={styles.categoryChipInner}>
+                                            <MerakiText style={styles.categoryIcon}>{cat.icon}</MerakiText>
+                                            <MerakiText variant="body" style={styles.categoryText}>{cat.label}</MerakiText>
+                                        </View>
+                                    </Card>
                                 )}
                             </TouchableOpacity>
                         ))}
@@ -288,101 +293,115 @@ export function ShopScreen() {
 
                     {/* Products Grid */}
                     <View style={styles.productsSection}>
-                        <Text style={styles.resultsText}>
+                        <MerakiText variant="caption" style={styles.resultsText}>
                             {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
-                        </Text>
+                        </MerakiText>
 
                         {filteredProducts.length > 0 ? (
                             <View style={styles.productsGrid}>
                                 {filteredProducts.map((product) => (
                                     <TouchableOpacity
                                         key={product.id}
-                                        style={styles.productCard}
+                                        style={styles.productCardWrapper}
                                         onPress={() => navigation.navigate('ProductDetail', { productId: product.id, product })}
                                         activeOpacity={0.9}
                                     >
-                                        {/* Product Image Container */}
-                                        <View style={styles.productImageWrapper}>
-                                            {product.image_url ? (
-                                                <Image
-                                                    source={{ uri: product.image_url }}
-                                                    style={styles.productImage}
-                                                    resizeMode="cover"
-                                                />
-                                            ) : (
-                                                <LinearGradient
-                                                    colors={getCategoryGradient(product.category)}
-                                                    style={styles.productImagePlaceholder}
-                                                    start={{ x: 0, y: 0 }}
-                                                    end={{ x: 1, y: 1 }}
-                                                >
-                                                    <View style={styles.productIconContainer}>
-                                                        <Text style={styles.productCategoryLabel}>
+                                        <Card variant="glass" style={styles.productCard} noPadding>
+                                            {/* Product Image Container */}
+                                            <View style={styles.productImageWrapper}>
+                                                {product.image_url ? (
+                                                    <Image
+                                                        source={{ uri: product.image_url }}
+                                                        style={styles.productImage}
+                                                        resizeMode="cover"
+                                                    />
+                                                ) : (
+                                                    <LinearGradient
+                                                        colors={getCategoryGradient(product.category) as any}
+                                                        style={styles.productImagePlaceholder}
+                                                        start={{ x: 0, y: 0 }}
+                                                        end={{ x: 1, y: 1 }}
+                                                    >
+                                                        <MerakiText style={styles.productCategoryLabel}>
                                                             {product.category || 'Product'}
-                                                        </Text>
+                                                        </MerakiText>
+                                                    </LinearGradient>
+                                                )}
+
+                                                {/* Stock Badge */}
+                                                {product.stock_count < 10 && (
+                                                    <View style={[
+                                                        styles.stockBadge,
+                                                        product.stock_count === 0 && styles.outOfStockBadge
+                                                    ]}>
+                                                        <MerakiText variant="caption" style={styles.stockBadgeText}>
+                                                            {product.stock_count === 0 ? 'Sold Out' : `${product.stock_count} left`}
+                                                        </MerakiText>
                                                     </View>
-                                                </LinearGradient>
-                                            )}
-
-                                            {/* Stock Badge */}
-                                            {product.stock_count < 10 && (
-                                                <View style={[
-                                                    styles.stockBadge,
-                                                    product.stock_count === 0 && styles.outOfStockBadge
-                                                ]}>
-                                                    <Text style={styles.stockBadgeText}>
-                                                        {product.stock_count === 0 ? 'Sold Out' : `${product.stock_count} left`}
-                                                    </Text>
-                                                </View>
-                                            )}
-                                        </View>
-
-                                        {/* Product Info */}
-                                        <View style={styles.productInfo}>
-                                            <Text style={styles.productName} numberOfLines={2}>
-                                                {product.name}
-                                            </Text>
-
-                                            <View style={styles.priceRow}>
-                                                <View style={styles.priceContainer}>
-                                                    <Text style={styles.productPrice}>
-                                                        €{getPrice(product).toFixed(2)}
-                                                    </Text>
-                                                    {(isMaster || isAdmin) && (
-                                                        <Text style={styles.retailPrice}>
-                                                            €{product.retail_price.toFixed(2)}
-                                                        </Text>
-                                                    )}
-                                                </View>
-
-                                                {/* Add to Cart Button */}
-                                                <TouchableOpacity
-                                                    style={[
-                                                        styles.addToCartButton,
-                                                        product.stock_count === 0 && styles.addToCartDisabled
-                                                    ]}
-                                                    onPress={(e) => {
-                                                        e.stopPropagation();
-                                                        handleQuickAddToCart(product);
-                                                    }}
-                                                    disabled={product.stock_count === 0}
-                                                >
-                                                    <Text style={styles.addToCartIcon}>+</Text>
-                                                </TouchableOpacity>
+                                                )}
                                             </View>
-                                        </View>
+
+                                            {/* Product Info */}
+                                            <View style={styles.productInfo}>
+                                                <MerakiText variant="bodyBold" style={styles.productName} numberOfLines={2}>
+                                                    {product.name}
+                                                </MerakiText>
+
+                                                <View style={styles.priceRow}>
+                                                    <View style={styles.priceContainer}>
+                                                        <MerakiText variant="bodyBold" style={styles.productPrice}>
+                                                            €{getPrice(product).toFixed(2)}
+                                                        </MerakiText>
+                                                        {(isMaster || isAdmin) && (
+                                                            <MerakiText variant="caption" style={styles.retailPrice}>
+                                                                €{product.retail_price.toFixed(2)}
+                                                            </MerakiText>
+                                                        )}
+                                                    </View>
+
+                                                    {/* Add to Cart Button */}
+                                                    <TouchableOpacity
+                                                        style={[
+                                                            styles.addToCartButton,
+                                                            product.stock_count === 0 && styles.addToCartDisabled
+                                                        ]}
+                                                        onPress={(e) => {
+                                                            e.stopPropagation();
+                                                            handleQuickAddToCart(product);
+                                                        }}
+                                                        disabled={product.stock_count === 0}
+                                                    >
+                                                        <LinearGradient
+                                                            colors={(product.stock_count === 0 ? [colors.surfaceLight, colors.surfaceLight] : [colors.primary, colors.champagne]) as any}
+                                                            style={styles.addToCartGradient}
+                                                        >
+                                                            <MerakiText style={styles.addToCartIcon}>+</MerakiText>
+                                                        </LinearGradient>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        </Card>
                                     </TouchableOpacity>
                                 ))}
                             </View>
                         ) : (
                             <View style={styles.emptyState}>
-                                <View style={styles.emptyIconContainer}>
-                                    <Text style={styles.emptyIcon}>🛍️</Text>
-                                </View>
-                                <Text style={styles.emptyText}>No products found</Text>
-                                <Text style={styles.emptySubtext}>
+                                <Card variant="glass" style={styles.emptyIconCard}>
+                                    <MerakiText style={styles.emptyIcon}>🛍️</MerakiText>
+                                </Card>
+                                <MerakiText variant="h2" style={styles.emptyText}>No products found</MerakiText>
+                                <MerakiText variant="body" style={styles.emptySubtext}>
                                     {searchQuery ? 'Try a different search term' : 'Check back soon for new arrivals!'}
-                                </Text>
+                                </MerakiText>
+                                <Button
+                                    title="Clear Filter"
+                                    variant="outline"
+                                    style={{ marginTop: spacing.lg }}
+                                    onPress={() => {
+                                        setSelectedCategory('All');
+                                        setSearchQuery('');
+                                    }}
+                                />
                             </View>
                         )}
                     </View>
@@ -395,109 +414,115 @@ export function ShopScreen() {
                     presentationStyle="pageSheet"
                     onRequestClose={() => setShowAddModal(false)}
                 >
-                    <SafeAreaView style={styles.modalContainer}>
-                        <View style={styles.modalHeader}>
-                            <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                                <Text style={styles.modalCancel}>Cancel</Text>
-                            </TouchableOpacity>
-                            <Text style={styles.modalTitle}>Add Product</Text>
-                            <View style={{ width: 60 }} />
-                        </View>
-
-                        <ScrollView style={styles.modalContent}>
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>Name *</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={newProduct.name}
-                                    onChangeText={(text) => setNewProduct({ ...newProduct, name: text })}
-                                    placeholder="Product name"
-                                    placeholderTextColor={colors.textMuted}
-                                />
+                    <ScreenBackground>
+                        <SafeAreaView style={styles.modalContainer}>
+                            <View style={styles.modalHeader}>
+                                <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                                    <MerakiText style={styles.modalCancel}>Cancel</MerakiText>
+                                </TouchableOpacity>
+                                <MerakiText variant="h3" style={styles.modalTitle}>Add Product</MerakiText>
+                                <View style={{ width: 60 }} />
                             </View>
 
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>Description</Text>
-                                <TextInput
-                                    style={[styles.input, styles.textArea]}
-                                    value={newProduct.description}
-                                    onChangeText={(text) => setNewProduct({ ...newProduct, description: text })}
-                                    placeholder="Product description"
-                                    placeholderTextColor={colors.textMuted}
-                                    multiline
-                                    numberOfLines={3}
-                                />
-                            </View>
-
-                            <View style={styles.inputRow}>
-                                <View style={[styles.inputGroup, { flex: 1 }]}>
-                                    <Text style={styles.inputLabel}>Retail Price *</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        value={newProduct.retail_price}
-                                        onChangeText={(text) => setNewProduct({ ...newProduct, retail_price: text })}
-                                        placeholder="0.00"
-                                        placeholderTextColor={colors.textMuted}
-                                        keyboardType="decimal-pad"
-                                    />
-                                </View>
-                                <View style={[styles.inputGroup, { flex: 1, marginLeft: spacing.md }]}>
-                                    <Text style={styles.inputLabel}>Wholesale *</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        value={newProduct.wholesale_price}
-                                        onChangeText={(text) => setNewProduct({ ...newProduct, wholesale_price: text })}
-                                        placeholder="0.00"
-                                        placeholderTextColor={colors.textMuted}
-                                        keyboardType="decimal-pad"
-                                    />
-                                </View>
-                            </View>
-
-                            <View style={styles.inputRow}>
-                                <View style={[styles.inputGroup, { flex: 1 }]}>
-                                    <Text style={styles.inputLabel}>Stock Count</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        value={newProduct.stock_count}
-                                        onChangeText={(text) => setNewProduct({ ...newProduct, stock_count: text })}
-                                        placeholder="0"
-                                        placeholderTextColor={colors.textMuted}
-                                        keyboardType="number-pad"
-                                    />
-                                </View>
-                                <View style={[styles.inputGroup, { flex: 1, marginLeft: spacing.md }]}>
-                                    <Text style={styles.inputLabel}>Category</Text>
-                                    <View style={styles.categoryPicker}>
-                                        {['Nails', 'Lashes', 'Brows', 'Equipment'].map((cat) => (
-                                            <TouchableOpacity
-                                                key={cat}
-                                                style={[
-                                                    styles.categoryOption,
-                                                    newProduct.category === cat && styles.categoryOptionActive,
-                                                ]}
-                                                onPress={() => setNewProduct({ ...newProduct, category: cat })}
-                                            >
-                                                <Text style={[
-                                                    styles.categoryOptionText,
-                                                    newProduct.category === cat && styles.categoryOptionTextActive,
-                                                ]}>
-                                                    {cat}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
+                            <ScrollView style={styles.modalContent}>
+                                <Card variant="glass" style={styles.formCard}>
+                                    <View style={styles.inputGroup}>
+                                        <MerakiText variant="caption" style={styles.inputLabel}>Name *</MerakiText>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={newProduct.name}
+                                            onChangeText={(text) => setNewProduct({ ...newProduct, name: text })}
+                                            placeholder="Product name"
+                                            placeholderTextColor={colors.textMuted}
+                                        />
                                     </View>
-                                </View>
-                            </View>
 
-                            <Button
-                                title={saving ? 'Adding...' : 'Add Product'}
-                                onPress={handleAddProduct}
-                                fullWidth
-                                disabled={saving}
-                            />
-                        </ScrollView>
-                    </SafeAreaView>
+                                    <View style={styles.inputGroup}>
+                                        <MerakiText variant="caption" style={styles.inputLabel}>Description</MerakiText>
+                                        <TextInput
+                                            style={[styles.input, styles.textArea]}
+                                            value={newProduct.description}
+                                            onChangeText={(text) => setNewProduct({ ...newProduct, description: text })}
+                                            placeholder="Product description"
+                                            placeholderTextColor={colors.textMuted}
+                                            multiline
+                                            numberOfLines={3}
+                                        />
+                                    </View>
+
+                                    <View style={styles.inputRow}>
+                                        <View style={[styles.inputGroup, { flex: 1 }]}>
+                                            <MerakiText variant="caption" style={styles.inputLabel}>Retail Price *</MerakiText>
+                                            <TextInput
+                                                style={styles.input}
+                                                value={newProduct.retail_price}
+                                                onChangeText={(text) => setNewProduct({ ...newProduct, retail_price: text })}
+                                                placeholder="0.00"
+                                                placeholderTextColor={colors.textMuted}
+                                                keyboardType="decimal-pad"
+                                            />
+                                        </View>
+                                        <View style={[styles.inputGroup, { flex: 1, marginLeft: spacing.md }]}>
+                                            <MerakiText variant="caption" style={styles.inputLabel}>Wholesale *</MerakiText>
+                                            <TextInput
+                                                style={styles.input}
+                                                value={newProduct.wholesale_price}
+                                                onChangeText={(text) => setNewProduct({ ...newProduct, wholesale_price: text })}
+                                                placeholder="0.00"
+                                                placeholderTextColor={colors.textMuted}
+                                                keyboardType="decimal-pad"
+                                            />
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.inputRow}>
+                                        <View style={[styles.inputGroup, { flex: 1 }]}>
+                                            <MerakiText variant="caption" style={styles.inputLabel}>Stock Count</MerakiText>
+                                            <TextInput
+                                                style={styles.input}
+                                                value={newProduct.stock_count}
+                                                onChangeText={(text) => setNewProduct({ ...newProduct, stock_count: text })}
+                                                placeholder="0"
+                                                placeholderTextColor={colors.textMuted}
+                                                keyboardType="number-pad"
+                                            />
+                                        </View>
+                                        <View style={[styles.inputGroup, { flex: 1, marginLeft: spacing.md }]}>
+                                            <MerakiText variant="caption" style={styles.inputLabel}>Category</MerakiText>
+                                            <View style={styles.categoryPicker}>
+                                                {['Nails', 'Lashes', 'Brows', 'Equipment'].map((cat) => (
+                                                    <TouchableOpacity
+                                                        key={cat}
+                                                        style={[
+                                                            styles.categoryOption,
+                                                            newProduct.category === cat && styles.categoryOptionActive,
+                                                        ]}
+                                                        onPress={() => setNewProduct({ ...newProduct, category: cat })}
+                                                    >
+                                                        <MerakiText style={[
+                                                            styles.categoryOptionText,
+                                                            newProduct.category === cat && styles.categoryOptionTextActive,
+                                                        ]}>
+                                                            {cat}
+                                                        </MerakiText>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
+                                        </View>
+                                    </View>
+
+                                    <Button
+                                        title={saving ? 'Adding...' : 'Add Product'}
+                                        onPress={handleAddProduct}
+                                        variant="primary"
+                                        fullWidth
+                                        disabled={saving}
+                                        style={{ marginTop: spacing.md }}
+                                    />
+                                </Card>
+                            </ScrollView>
+                        </SafeAreaView>
+                    </ScreenBackground>
                 </Modal>
             </SafeAreaView>
         </ScreenBackground>
@@ -514,7 +539,7 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     scrollContent: {
-        paddingBottom: 100
+        paddingBottom: 120
     },
 
     // Header Styles
@@ -526,25 +551,18 @@ const styles = StyleSheet.create({
     headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         marginBottom: spacing.lg,
     },
     headerLeft: {
         flex: 1,
     },
     headerTitle: {
-        fontSize: 28,
-        fontWeight: '700',
         color: colors.text,
-        letterSpacing: -0.5,
     },
     headerSubtitle: {
-        fontSize: 12,
         color: colors.textMuted,
         marginTop: 2,
-        fontWeight: '400',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
     },
     headerRight: {
         flexDirection: 'row',
@@ -552,27 +570,26 @@ const styles = StyleSheet.create({
         gap: spacing.sm,
     },
     addButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: colors.surface,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.surfaceGlass,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: 'rgba(255,255,255,0.1)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     addButtonText: {
         color: colors.text,
-        fontSize: 18,
-        fontWeight: '500'
+        fontSize: 24,
     },
     cartButton: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: colors.surface,
+        backgroundColor: colors.surfaceGlass,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: 'rgba(255,255,255,0.1)',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
@@ -591,34 +608,35 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 4,
+        borderWidth: 2,
+        borderColor: colors.background,
     },
     cartBadgeText: {
-        fontSize: 11,
-        fontWeight: '700',
+        fontSize: 10,
+        fontWeight: '800',
         color: colors.text,
     },
 
     // Search Styles
     searchContainer: {
+        marginBottom: spacing.sm,
+    },
+    searchInner: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.surface,
-        borderRadius: 12,
         paddingHorizontal: spacing.md,
-        height: 44,
-        borderWidth: 1,
-        borderColor: colors.border,
+        height: 48,
     },
-    searchIcon: {
-        fontSize: 14,
+    searchIconSymbol: {
+        fontSize: 16,
         marginRight: spacing.sm,
         opacity: 0.5
     },
     searchInput: {
         flex: 1,
-        fontSize: 15,
+        fontSize: 16,
         color: colors.text,
-        fontWeight: '400',
+        fontFamily: 'Manrope-Regular',
     },
     clearSearch: {
         fontSize: 14,
@@ -628,22 +646,21 @@ const styles = StyleSheet.create({
 
     // Categories Styles
     categoriesScroll: {
-        marginTop: spacing.sm
+        marginTop: spacing.sm,
     },
     categories: {
         paddingHorizontal: spacing.lg,
-        gap: spacing.sm
+        gap: spacing.md,
     },
     categoryChip: {
+        borderRadius: 20,
+    },
+    categoryChipInner: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
-        borderRadius: 20,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
-        gap: 6,
+        gap: 8,
     },
     categoryChipActive: {
         flexDirection: 'row',
@@ -651,20 +668,16 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
         borderRadius: 20,
-        gap: 6,
+        gap: 8,
     },
     categoryIcon: {
-        fontSize: 12
+        fontSize: 14
     },
     categoryText: {
-        fontSize: 13,
         color: colors.textSecondary,
-        fontWeight: '500'
     },
     categoryTextActive: {
-        fontSize: 13,
         color: colors.text,
-        fontWeight: '600'
     },
 
     // Products Section
@@ -672,11 +685,8 @@ const styles = StyleSheet.create({
         padding: spacing.lg
     },
     resultsText: {
-        fontSize: 12,
         color: colors.textMuted,
         marginBottom: spacing.md,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
     },
     productsGrid: {
         flexDirection: 'row',
@@ -685,17 +695,15 @@ const styles = StyleSheet.create({
     },
 
     // Product Card Styles
-    productCard: {
+    productCardWrapper: {
         width: CARD_WIDTH,
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: colors.border,
+    },
+    productCard: {
+        borderRadius: layout.borderRadius.lg,
     },
     productImageWrapper: {
         position: 'relative',
-        height: 140,
+        height: 160,
     },
     productImage: {
         width: '100%',
@@ -707,44 +715,39 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    productIconContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     productCategoryLabel: {
         fontSize: 12,
-        fontWeight: '600',
-        color: 'rgba(255,255,255,0.9)',
+        fontWeight: '800',
+        color: 'rgba(255,255,255,0.8)',
         textTransform: 'uppercase',
-        letterSpacing: 1,
+        letterSpacing: 2,
     },
     stockBadge: {
         position: 'absolute',
         top: spacing.sm,
         left: spacing.sm,
-        backgroundColor: 'rgba(245, 158, 11, 0.9)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
         paddingHorizontal: spacing.sm,
-        paddingVertical: 3,
-        borderRadius: 6,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     outOfStockBadge: {
-        backgroundColor: 'rgba(239, 68, 68, 0.9)'
+        backgroundColor: colors.error,
     },
     stockBadgeText: {
-        fontSize: 10,
+        color: colors.text,
         fontWeight: '600',
-        color: '#FFF'
     },
     productInfo: {
-        padding: spacing.md
+        padding: spacing.md,
     },
     productName: {
-        fontSize: 14,
-        fontWeight: '600',
         color: colors.text,
         marginBottom: spacing.sm,
-        lineHeight: 18,
-        minHeight: 36,
+        lineHeight: 20,
+        minHeight: 40,
     },
     priceRow: {
         flexDirection: 'row',
@@ -755,33 +758,30 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
     },
     productPrice: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: colors.primary
+        color: colors.accent,
     },
     retailPrice: {
-        fontSize: 11,
         color: colors.textMuted,
         textDecorationLine: 'line-through',
-        marginTop: 2,
     },
     addToCartButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: colors.primary,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        overflow: 'hidden',
+    },
+    addToCartGradient: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
     },
     addToCartDisabled: {
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
+        opacity: 0.5,
     },
     addToCartIcon: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 20,
         color: colors.text,
+        fontWeight: '300',
     },
 
     // Empty State
@@ -789,107 +789,97 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: spacing.xxxl
     },
-    emptyIconContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: colors.surface,
+    emptyIconCard: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: spacing.lg,
+        marginBottom: spacing.xl,
     },
     emptyIcon: {
-        fontSize: 36,
-        opacity: 0.6
+        fontSize: 40,
     },
     emptyText: {
-        fontSize: 17,
-        fontWeight: '600',
         color: colors.text,
-        marginBottom: spacing.xs
+        marginBottom: spacing.sm
     },
     emptySubtext: {
-        fontSize: 14,
         color: colors.textSecondary,
         textAlign: 'center',
+        paddingHorizontal: spacing.xl,
     },
 
     // Modal styles
     modalContainer: {
         flex: 1,
-        backgroundColor: colors.background
     },
     modalHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: spacing.lg,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border
     },
     modalCancel: {
-        color: colors.textSecondary,
+        color: colors.textMuted,
         fontSize: 16
     },
     modalTitle: {
-        fontSize: 17,
-        fontWeight: '600',
-        color: colors.text
+        color: colors.text,
     },
     modalContent: {
         padding: spacing.lg
+    },
+    formCard: {
+        padding: spacing.lg,
     },
     inputGroup: {
         marginBottom: spacing.lg
     },
     inputLabel: {
-        fontSize: 13,
-        fontWeight: '500',
-        color: colors.textSecondary,
+        color: colors.textMuted,
         marginBottom: spacing.sm,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        letterSpacing: 1,
     },
     input: {
-        backgroundColor: colors.surface,
+        backgroundColor: 'rgba(255,255,255,0.03)',
         borderRadius: 12,
-        padding: spacing.md,
+        paddingHorizontal: spacing.md,
+        height: 50,
         color: colors.text,
-        fontSize: 15,
         borderWidth: 1,
-        borderColor: colors.border
+        borderColor: 'rgba(255,255,255,0.05)',
+        fontFamily: 'Manrope-Regular',
     },
     textArea: {
-        minHeight: 80,
-        textAlignVertical: 'top'
+        height: 100,
+        paddingTop: spacing.md,
+        textAlignVertical: 'top',
     },
     inputRow: {
-        flexDirection: 'row'
+        flexDirection: 'row',
     },
     categoryPicker: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: spacing.xs
+        gap: spacing.xs,
     },
     categoryOption: {
         paddingHorizontal: spacing.sm,
-        paddingVertical: spacing.xs,
-        borderRadius: 6,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border
+        paddingVertical: 6,
+        borderRadius: 8,
+        backgroundColor: 'rgba(255,255,255,0.05)',
     },
     categoryOptionActive: {
         backgroundColor: colors.primary,
-        borderColor: colors.primary
     },
     categoryOptionText: {
         fontSize: 12,
-        color: colors.textSecondary
+        color: colors.textSecondary,
     },
     categoryOptionTextActive: {
         color: colors.text,
-        fontWeight: '500',
+        fontWeight: '700',
     },
 });
 

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merakí - Professional Service Editor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#e8305e",
+                        "champagne": "#f3e5d8",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0F0F13",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .gradient-primary {
+            background: linear-gradient(135deg, #e8305e 0%, #f3e5d8 100%);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen">
+<!-- iOS Status Bar Placeholder -->
+<div class="h-12 w-full bg-transparent"></div>
+<!-- Main Container (Phone Form Factor) -->
+<div class="max-w-md mx-auto pb-32">
+<!-- Header -->
+<header class="flex items-center justify-between px-6 py-4 sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<h1 class="text-xl font-bold tracking-tight">Add New Service</h1>
+<button class="p-2 rounded-full hover:bg-white/10 transition-colors">
+<span class="material-icons-round">close</span>
+</button>
+</header>
+<main class="px-6 space-y-8">
+<!-- Service Photo Upload -->
+<section>
+<div class="glass w-full aspect-video rounded-lg flex flex-col items-center justify-center border-dashed border-2 border-white/10 hover:border-primary/50 transition-all cursor-pointer group">
+<div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+<span class="material-icons-round text-primary text-3xl">photo_camera</span>
+</div>
+<span class="text-sm font-medium text-white/60">Add Cover Photo</span>
+</div>
+</section>
+<!-- Form Fields -->
+<section class="space-y-5">
+<!-- Service Name -->
+<div class="space-y-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-white/40 ml-1">Service Name</label>
+<input class="w-full glass bg-transparent px-5 py-4 rounded-full outline-none focus:border-primary transition-colors text-white placeholder:text-white/20" placeholder="e.g. Balayage &amp; Styling" type="text"/>
+</div>
+<!-- Category -->
+<div class="space-y-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-white/40 ml-1">Category</label>
+<div class="relative">
+<select class="w-full glass bg-transparent px-5 py-4 rounded-full appearance-none outline-none focus:border-primary transition-colors text-white">
+<option class="bg-background-dark">Hair Styling</option>
+<option class="bg-background-dark">Facial Treatments</option>
+<option class="bg-background-dark">Nail Art</option>
+<option class="bg-background-dark">Massage Therapy</option>
+</select>
+<span class="material-icons-round absolute right-5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none">expand_more</span>
+</div>
+</div>
+<!-- Description -->
+<div class="space-y-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-white/40 ml-1">Description</label>
+<textarea class="w-full glass bg-transparent px-5 py-4 rounded-[20px] outline-none focus:border-primary transition-colors text-white placeholder:text-white/20 resize-none" placeholder="Describe the luxury experience..." rows="3"></textarea>
+</div>
+<!-- Price and Deposit -->
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-white/40 ml-1">Price (€)</label>
+<input class="w-full glass bg-transparent px-5 py-4 rounded-full outline-none focus:border-primary transition-colors text-white placeholder:text-white/20" placeholder="0.00" type="number"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-white/40 ml-1">Deposit %</label>
+<input class="w-full glass bg-transparent px-5 py-4 rounded-full outline-none focus:border-primary transition-colors text-white placeholder:text-white/20" placeholder="20" type="number"/>
+</div>
+</div>
+<!-- Duration Picker -->
+<div class="space-y-3">
+<label class="text-xs font-semibold uppercase tracking-wider text-white/40 ml-1">Duration</label>
+<div class="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
+<button class="px-5 py-3 rounded-full glass whitespace-nowrap text-sm font-medium hover:bg-primary/20 transition-colors">30m</button>
+<button class="px-5 py-3 rounded-full bg-primary text-white whitespace-nowrap text-sm font-medium shadow-lg shadow-primary/20">45m</button>
+<button class="px-5 py-3 rounded-full glass whitespace-nowrap text-sm font-medium hover:bg-primary/20 transition-colors">1h</button>
+<button class="px-5 py-3 rounded-full glass whitespace-nowrap text-sm font-medium hover:bg-primary/20 transition-colors">1.5h</button>
+<button class="px-5 py-3 rounded-full glass whitespace-nowrap text-sm font-medium hover:bg-primary/20 transition-colors">2h</button>
+</div>
+</div>
+</section>
+<!-- Variations Section -->
+<section>
+<div class="flex items-center justify-between mb-3">
+<label class="text-xs font-semibold uppercase tracking-wider text-white/40 ml-1">Service Variations</label>
+<button class="text-primary text-xs font-bold flex items-center gap-1">
+<span class="material-icons-round text-sm">add</span> ADD NEW
+                    </button>
+</div>
+<div class="glass rounded-lg p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
+<span class="material-icons-round text-white/40">layers</span>
+</div>
+<div>
+<p class="text-sm font-medium">Standard Treatment</p>
+<p class="text-xs text-white/40">Default setting</p>
+</div>
+</div>
+<span class="material-icons-round text-white/20">chevron_right</span>
+</div>
+</section>
+<!-- Preview Card -->
+<section class="pt-4">
+<label class="text-xs font-semibold uppercase tracking-wider text-white/40 ml-1 block mb-4">Client View Preview</label>
+<div class="glass p-4 rounded-lg flex items-center gap-4 relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none"></div>
+<img alt="Professional Profile" class="w-14 h-14 rounded-full object-cover border-2 border-primary/30" data-alt="Portrait of a professional beauty stylist" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXnCK8i2D3g0xuWwJMNAwmR-eRgpMK2LogOEY9NUcFu1yWTxHYM1FHzNEqY3Ur8VXLvLmceIA2SOA8RYdATXasB48Z3UmM4aqn9ohu0qwgtmNnwoXLiOGUnGMdEmTECZ8l4GMGgJrBqJq615LDD7sb1wXv-yDpM3_zN8UhyQszRbMNNXabnluVd8kVyjCofH_aDo3FxxG8H2SDbG_P97mO9VHgbmlkUH38AP-4b5YLLY55FqUKYtQ1hNyfnp9zR3zaZD4XiDOzxGRA"/>
+<div class="flex-1">
+<h4 class="text-sm font-bold text-white">Balayage &amp; Styling</h4>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-xs text-white/60">45 mins</span>
+<span class="w-1 h-1 rounded-full bg-white/20"></span>
+<span class="text-xs font-bold text-primary">€120.00</span>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+<span class="material-icons-round text-sm text-white/40">bookmark_border</span>
+</div>
+</div>
+</section>
+<!-- Delete Button (Secondary) -->
+<section class="pt-4 flex justify-center">
+<button class="text-red-500/60 hover:text-red-500 text-sm font-medium flex items-center gap-2 transition-colors">
+<span class="material-icons-round text-lg">delete_outline</span>
+                    Delete Service
+                </button>
+</section>
+</main>
+<!-- Bottom Actions -->
+<div class="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background-dark via-background-dark to-transparent">
+<div class="max-w-md mx-auto">
+<button class="w-full gradient-primary text-white font-bold py-5 rounded-full shadow-2xl shadow-primary/30 active:scale-95 transition-all text-lg tracking-wide uppercase">
+                    Save Service
+                </button>
+<div class="h-4"></div> <!-- Home Indicator Space -->
+</div>
+</div>
+</div>
+</body></html>

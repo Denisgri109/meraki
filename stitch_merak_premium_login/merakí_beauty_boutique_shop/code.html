@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merakí Beauty Boutique Shop</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#e6194c",
+                        "champagne": "#D4AF37",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0F0F13",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .gradient-rose {
+            background: linear-gradient(135deg, #e6194c 0%, #ff5c8d 100%);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen pb-24">
+<!-- Header Section -->
+<header class="sticky top-0 z-50 px-6 pt-12 pb-4 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="flex items-center justify-between">
+<button class="w-10 h-10 flex items-center justify-start text-slate-800 dark:text-white">
+<span class="material-icons-round text-2xl">arrow_back_ios</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight">Shop</h1>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center text-slate-800 dark:text-white">
+<span class="material-icons-round">search</span>
+</button>
+<button class="relative w-10 h-10 flex items-center justify-center text-slate-800 dark:text-white">
+<span class="material-icons-round">shopping_bag</span>
+<span class="absolute top-1 right-1 bg-primary text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full ring-2 ring-background-light dark:ring-background-dark">3</span>
+</button>
+</div>
+</div>
+</header>
+<main class="px-6 space-y-8">
+<!-- Search Bar -->
+<section>
+<div class="glass rounded-full px-5 py-3 flex items-center gap-3 border border-white/10">
+<span class="material-icons-round text-slate-400 text-xl">search</span>
+<input class="bg-transparent border-none focus:ring-0 p-0 text-sm w-full placeholder:text-slate-500" placeholder="Search products..." type="text"/>
+</div>
+</section>
+<!-- Category Filters -->
+<section class="overflow-x-auto hide-scrollbar -mx-6 px-6">
+<div class="flex gap-3 whitespace-nowrap">
+<button class="gradient-rose px-6 py-2.5 rounded-full text-white text-sm font-medium shadow-lg shadow-primary/20">All</button>
+<button class="glass px-6 py-2.5 rounded-full text-slate-300 text-sm font-medium">Lash Care</button>
+<button class="glass px-6 py-2.5 rounded-full text-slate-300 text-sm font-medium">Nail Care</button>
+<button class="glass px-6 py-2.5 rounded-full text-slate-300 text-sm font-medium">Skincare</button>
+<button class="glass px-6 py-2.5 rounded-full text-slate-300 text-sm font-medium">Wellness</button>
+</div>
+</section>
+<!-- Featured Banner -->
+<section>
+<div class="relative w-full h-48 rounded-xl overflow-hidden group">
+<img class="w-full h-full object-cover" data-alt="Luxury skincare products with elegant aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAln9TEZbWX8DrR69haar779iDk-PfMCFPR-dVS6gW-uktEoyQVmSBeDBgUA_ueOKJ7COgPYv_qUL11t0jrvF_RqugyMfuUHZ4um3O0P0QSWskxa5iawTdD__9vOPaMZepOXQhgmIHvSn0LU_1u5gV_NoCskjhOidQS_zb79QHfM5GawGcT99oHQ5WcBa4VYnNItxL8-iRXXQl-ZWBFVUc2C8nSeUxzpUqZq1y_E066bdBi3kzZwHSSErK3drgpvHJg4bBBYRtvRU0d"/>
+<div class="absolute inset-0 bg-gradient-to-r from-background-dark/80 via-background-dark/40 to-transparent flex flex-col justify-center px-8">
+<span class="text-primary text-xs font-bold uppercase tracking-widest mb-1">Seasonal Selection</span>
+<h2 class="text-2xl font-bold text-white mb-3 leading-tight">Summer<br/>Skincare</h2>
+<button class="bg-white text-background-dark text-xs font-bold px-4 py-2 rounded-full w-fit">SHOP NOW</button>
+</div>
+</div>
+</section>
+<!-- Products Grid -->
+<section class="pb-10">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-lg font-semibold">New Arrivals</h3>
+<button class="text-primary text-xs font-bold">SEE ALL</button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<!-- Product Card 1 -->
+<div class="space-y-3">
+<div class="glass relative rounded-xl aspect-[4/5] overflow-hidden flex items-center justify-center p-4">
+<img class="max-w-full max-h-full object-contain" data-alt="Premium glass bottle of facial serum" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsYJc99mFqCpBrwMteultzDgSBQTZ4Pzgs6JYJgpOoBWf1933SJIvDAfJ3sFMTzM2ltFiWTQuQNGUQUW6n59xey8EYDvlTAV0dbrgK6zlNz1Gpo5alJz75usl3WRIzQSTTLR_MNAJf0DI0z2F-GISRHBivb5rSBuTeSsM_bt5lP4VGAeHGlPkT5bbPZvPakK1-wcgt7CjJqtCA3-cdsHOvXxqoWGpXyT5K_qPp3QXM6vP_kXtOMYLoR-t4fgnTV2hbugn1ogFJgXSX"/>
+<button class="absolute bottom-3 right-3 bg-primary w-8 h-8 rounded-full flex items-center justify-center shadow-lg text-white">
+<span class="material-icons-round text-lg">add</span>
+</button>
+</div>
+<div>
+<h4 class="text-sm font-medium text-slate-300 line-clamp-1">Rose Gold Lash Serum</h4>
+<p class="text-champagne font-bold">€35.00</p>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="space-y-3">
+<div class="glass relative rounded-xl aspect-[4/5] overflow-hidden flex items-center justify-center p-4">
+<img class="max-w-full max-h-full object-contain" data-alt="Luxury face oil in a gold tinted bottle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCV4xRq_X8I72l09Rc3ggRlB6msv_CdOaoLdcrNrE56h5jDu17taRPrg_kNg5PiYuIH327QcE1m9abVhzTe4Bj_5pwH6CRn2JD6iNNh6_Klev2L0OfERMerAhVoDMiiqMmisyqI58ZWfi4JMAL5_oeYt27C2cXAJDPKpzJ9DBxJtKX6BfhR1AH7UEPAOkBfg1aMNaFDbD8KLrqW3x5mPz7s5DdZNI3RDGD9CN0M5oj1vfCRx0xjtorsDzZ37vQimR_R6cmj0BWh9nDq"/>
+<button class="absolute bottom-3 right-3 bg-primary w-8 h-8 rounded-full flex items-center justify-center shadow-lg text-white">
+<span class="material-icons-round text-lg">add</span>
+</button>
+</div>
+<div>
+<h4 class="text-sm font-medium text-slate-300 line-clamp-1">Hydra-Luxe Face Oil</h4>
+<p class="text-champagne font-bold">€48.00</p>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="space-y-3">
+<div class="glass relative rounded-xl aspect-[4/5] overflow-hidden flex items-center justify-center p-4">
+<img class="max-w-full max-h-full object-contain" data-alt="Matte glass cosmetic jar with white cream" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJI77h5Eg5IPMRT2rc363y_LSDvn_qDLk-jCGNgL7GAHPT1P1GX24x5HNXJ57ifKurB2hvA1sOUKQsGbdMF_Z3eCewolyDCTmffv4ylRCbOUiQll-syvOAMD3glusvS2qWj-hvvjpy94m06594J3DQmnNXJjlQ0H5tBsTIp8qhdyTF3lFvA42kjfssG7CnvyBiUuyYWtK08_ml5EnHekfH2tGrtlkb1sHm3hAnQYkellBj_RqFlIqH5BIPMeLmO9PgcvG00QzHZAdO"/>
+<button class="absolute bottom-3 right-3 bg-primary w-8 h-8 rounded-full flex items-center justify-center shadow-lg text-white">
+<span class="material-icons-round text-lg">add</span>
+</button>
+</div>
+<div>
+<h4 class="text-sm font-medium text-slate-300 line-clamp-1">Velvet Night Mask</h4>
+<p class="text-champagne font-bold">€42.00</p>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="space-y-3">
+<div class="glass relative rounded-xl aspect-[4/5] overflow-hidden flex items-center justify-center p-4">
+<img class="max-w-full max-h-full object-contain" data-alt="Sleek black mascara tube with gold accents" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZhp_y0M_p8C9JBKMTS9nIdpkeAl8WDyO4B363orgfwYR7bMkmlCqOM5y5jUN5tNMD4yPZ6Seh7wa1xnW4a4LlSnFKtqdl22-75Cb4F9wUuGSPoClATDGiSVqWiAOAf96N4YCZIC5inB0ZSV70vQPI0R3UVTOYz0kYMzizK-WQbJcuhZYWq5-lTNkYV1_nsoOFykk0_b6lMjJMUF5d-0881Qww6I1UauDlRDQAbxgn5VWQeXLFf9EChSfoNzF996M8gsBztFHErwNM"/>
+<button class="absolute bottom-3 right-3 bg-primary w-8 h-8 rounded-full flex items-center justify-center shadow-lg text-white">
+<span class="material-icons-round text-lg">add</span>
+</button>
+</div>
+<div>
+<h4 class="text-sm font-medium text-slate-300 line-clamp-1">Pro-Definition Mascara</h4>
+<p class="text-champagne font-bold">€29.00</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-background-dark/80 backdrop-blur-xl border-t border-white/5 px-8 pt-4 pb-8 flex items-center justify-between z-50">
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-icons-round">local_mall</span>
+<span class="text-[10px] font-medium">Shop</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round">calendar_today</span>
+<span class="text-[10px] font-medium">Book</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round">favorite_border</span>
+<span class="text-[10px] font-medium">Luxe</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round">person_outline</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</nav>
+</body></html>

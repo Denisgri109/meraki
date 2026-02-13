@@ -128,7 +128,7 @@ export function HomeworkScreen() {
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                     {/* Header */}
                     <View style={styles.header}>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merakí - Messages</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#f4256a",
+                "background-light": "#f8f5f6",
+                "background-dark": "#0F0F13",
+                "glass": "rgba(255, 255, 255, 0.03)",
+                "glass-border": "rgba(255, 255, 255, 0.1)",
+              },
+              fontFamily: {
+                "display": ["Plus Jakarta Sans", "sans-serif"]
+              },
+              borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .rose-gold-ring {
+            box-shadow: 0 0 0 2px #f4256a;
+        }
+        .status-glow {
+            box-shadow: 0 0 8px #22c55e;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen font-display pb-24">
+<!-- Header Section -->
+<header class="sticky top-0 z-50 px-6 pt-12 pb-6 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="flex justify-between items-center mb-6">
+<h1 class="text-3xl font-extrabold tracking-tight">Messages</h1>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+<span class="material-icons text-2xl">search</span>
+</button>
+<button class="text-sm font-semibold text-primary px-4 py-2 rounded-full border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all">
+                    Contact a Master
+                </button>
+</div>
+</div>
+<!-- Search Bar -->
+<div class="relative">
+<input class="w-full h-12 pl-12 pr-6 rounded-full glassmorphism focus:ring-1 focus:ring-primary focus:border-primary border-none text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500" placeholder="Search conversations..." type="text"/>
+<span class="material-icons absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+</div>
+</header>
+<!-- Conversations List -->
+<main class="px-6 space-y-4">
+<!-- Chat Item 1 (Unread) -->
+<div class="glassmorphism p-4 rounded-xl flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all group">
+<div class="relative flex-shrink-0">
+<div class="w-14 h-14 rounded-full overflow-hidden p-0.5 bg-gradient-to-tr from-primary to-rose-300">
+<img alt="Master Isabella" class="w-full h-full object-cover rounded-full border-2 border-background-dark" data-alt="Close up portrait of a female hair stylist" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBz3ByqD--oTqswrDoaVkc5x1eo21XJ5FZ6_iviTavJ9cgfi3eyL6EdUGf7l4L21jRhZBuD-nocGO_DZ1pROUH8eLIPHIrVHz9PtIUvxfCDJfEdxS6rDrDq20I6QzCgQNCtaj_OLuE0W6VcGtbHIRuIaRfTQ4sDod_m8kZueUj1Umm91qERe-47Cf2lkxQBzgFywfm7UAgdgkIunASTpH7RG3PFzBgJ4YMNN6mVdBFxV7oa_VPFaX3prVX5gzdgF4OMY1CpA1yJIFl-"/>
+</div>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-background-dark rounded-full status-glow"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-bold text-base truncate">Master Isabella</h3>
+<span class="text-[10px] font-medium text-primary">2m ago</span>
+</div>
+<p class="text-[11px] font-semibold text-primary uppercase tracking-wider mb-1">Elite Colorist</p>
+<p class="text-sm text-slate-400 truncate font-medium">Your Balayage session is confirmed for tomorrow...</p>
+</div>
+<div class="flex flex-col items-end gap-2">
+<div class="w-5 h-5 bg-primary text-white text-[10px] flex items-center justify-center rounded-full font-bold">2</div>
+</div>
+</div>
+<!-- Chat Item 2 -->
+<div class="glassmorphism p-4 rounded-xl flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all opacity-90">
+<div class="relative flex-shrink-0">
+<div class="w-14 h-14 rounded-full overflow-hidden p-0.5 bg-slate-700">
+<img alt="Master Julian" class="w-full h-full object-cover rounded-full" data-alt="Professional male aesthetic doctor in portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLlap0HDE1_IQkxLJ0hUS2tCxS6V5WV_4x2406quaeNFUsWOjkjg_uwdOTWmLkl9wlq4DDZUIoQi0ELcO5NpB5_ecQ1bF-b8gqjjkQgKvLMftqw42_o8wxQG9X5X8-yg0Thg46TVCTv8q8-cR2mAFfHM3-p0YxQKYBDnTYppMSZu3WstXnJyCZEpLo4SCrXhvPNVtOONtA-WYoF2PxXbH4QEzxlSxKbHJOH_BNPPDbFXrYZ-hOXV7PaPl1uEBXgT3ad9fouPaDXyiY"/>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-bold text-base truncate">Master Julian</h3>
+<span class="text-[10px] text-slate-500">1h ago</span>
+</div>
+<p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Dermal Specialist</p>
+<p class="text-sm text-slate-500 truncate">I've sent the post-treatment guide to your...</p>
+</div>
+</div>
+<!-- Chat Item 3 -->
+<div class="glassmorphism p-4 rounded-xl flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all opacity-90">
+<div class="relative flex-shrink-0">
+<div class="w-14 h-14 rounded-full overflow-hidden p-0.5 bg-slate-700">
+<img alt="Master Elena" class="w-full h-full object-cover rounded-full" data-alt="Female massage therapist smiling at camera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQtiZn6Y4aDp4FYwlcfqDbSz8PJiDGPaywToIMKfXYu-6_ZY56K1g6VBemK3WK9bgHzmL2nQJAxYwPFKxhYAcLCGeUmEj9K-ITdRnOweUCFT5KMknoVsb3UEXqRZ1T7DywWOaG_AS89tJ2pqQiybSPUsRS-Bgi7tqT5kJbojrwyVJfZnMUWFphFiYiJ901bb39EGCA7YB807tcPjIt4kDwAeusT4N12jHFnbMcwZSBiIH7lyxRnrwL_7vgUGBdJGqtGW4xSmS7Cmwg"/>
+</div>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-background-dark rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-bold text-base truncate">Master Elena</h3>
+<span class="text-[10px] text-slate-500">3h ago</span>
+</div>
+<p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Wellness Expert</p>
+<p class="text-sm text-slate-500 truncate">The organic oils we discussed are now in stock...</p>
+</div>
+</div>
+<!-- Chat Item 4 -->
+<div class="glassmorphism p-4 rounded-xl flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all opacity-90">
+<div class="relative flex-shrink-0">
+<div class="w-14 h-14 rounded-full overflow-hidden p-0.5 bg-slate-700">
+<img alt="Master Marcus" class="w-full h-full object-cover rounded-full" data-alt="Male barber with tattoos and beard" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAF-7C9hkHZYVNlNM2wXltY-CM4io8kEM2r3xs8etRp6E5O7ZfUaHWDV5fE1lb4TWnA-wwvBIcjHG0nBeroLrz0gXQkFceJ0ygiienu2npnDNtgQ2GWUu0Uk-Xvy5AYLMAmD5Ph9Q4ouuvf8ogm5AAGtJXE99DQCILV98vrTMhEtXsPsE7UHQvdUId4h-xay_ewX2d_FMCk2MSNjUrB3imel4kNH5rfgV2sXptaEkB_xZxvj6HM52C2TIP0YrJu5W1wfOec-AoBkbls"/>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-bold text-base truncate">Master Marcus</h3>
+<span class="text-[10px] text-slate-500">Yesterday</span>
+</div>
+<p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Executive Grooming</p>
+<p class="text-sm text-slate-500 truncate">See you at 4:00 PM on Friday for your beard trim.</p>
+</div>
+</div>
+<!-- Chat Item 5 -->
+<div class="glassmorphism p-4 rounded-xl flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all opacity-90">
+<div class="relative flex-shrink-0">
+<div class="w-14 h-14 rounded-full overflow-hidden p-0.5 bg-slate-700">
+<img alt="Master Chloe" class="w-full h-full object-cover rounded-full" data-alt="Young female makeup artist with creative eyeliner" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBu_BJM9w_3IqdoN-wGTh4lmCAdC31TQOCPat-Jc6pDRvDCA7YJpoX3Z1FNLJu3vbhyHncuPwwt-EktoJzJCxra35lzNgRAhbpnMxJ6bdGO5ufGtVO62VOH7LaRuQ6U4TK82fHzlwwDW_SxN4PAtwU_gfq4uh4NwuiFCqsnpoHrnGYgj0yUDhyW9-F73Ts_y2MH9qnuU1feE3a2e5viLm1tLbSnhHwCE3b2-BGxLd9h8Uld7LEmA9xm9Pwb3CjDWs5hF8EaEnaQj7Eo"/>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-bold text-base truncate">Master Chloe</h3>
+<span class="text-[10px] text-slate-500">Tuesday</span>
+</div>
+<p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">MUA Master</p>
+<p class="text-sm text-slate-500 truncate">I've added some inspiration looks to our shared board.</p>
+</div>
+</div>
+</main>
+<!-- Floating Action Button -->
+<button class="fixed right-6 bottom-24 w-14 h-14 rounded-full bg-gradient-to-tr from-primary to-rose-400 flex items-center justify-center shadow-lg shadow-primary/30 active:scale-95 transition-transform z-40">
+<span class="material-icons text-white text-3xl">add</span>
+</button>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 right-0 glassmorphism rounded-t-lg border-t-0 px-8 py-4 flex justify-between items-center z-50">
+<button class="flex flex-col items-center gap-1 text-slate-400 transition-colors">
+<span class="material-icons">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 transition-colors">
+<span class="material-icons">calendar_today</span>
+<span class="text-[10px] font-medium">Bookings</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary transition-colors">
+<div class="relative">
+<span class="material-icons">chat_bubble</span>
+<div class="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full ring-2 ring-background-dark"></div>
+</div>
+<span class="text-[10px] font-bold">Messages</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 transition-colors">
+<span class="material-icons">explore</span>
+<span class="text-[10px] font-medium">Discover</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 transition-colors">
+<span class="material-icons">person_outline</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</nav>
+</body></html>

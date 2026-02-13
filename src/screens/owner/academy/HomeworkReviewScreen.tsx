@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
@@ -14,8 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { format } from 'date-fns';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
-import { ScreenBackground, Button } from '../../../components/ui';
+import { ScreenBackground, Button, MerakiText } from '../../../components/ui';
 import { colors, spacing } from '../../../theme';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -131,7 +131,7 @@ export function HomeworkReviewScreen() {
         return (
             <ScreenBackground>
                 <View style={styles.loadingContainer}>
-                    <Text style={styles.errorText}>Submission not found</Text>
+                    <MerakiText variant="body" style={styles.errorText}>Submission not found</MerakiText>
                 </View>
             </ScreenBackground>
         );
@@ -141,11 +141,12 @@ export function HomeworkReviewScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Text style={styles.backButton}>←</Text>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+                        <MerakiText variant="body" color={colors.text} style={{ marginLeft: 4 }}>Back</MerakiText>
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Review Homework</Text>
-                    <View style={{ width: 40 }} />
+                    <MerakiText variant="h3" style={styles.headerTitle}>Review Homework</MerakiText>
+                    <View style={{ width: 60 }} />
                 </View>
 
                 <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -155,19 +156,19 @@ export function HomeworkReviewScreen() {
                             {submission.student?.avatar_url ? (
                                 <Image source={{ uri: submission.student.avatar_url }} style={styles.avatarImage} />
                             ) : (
-                                <Text style={styles.avatarText}>
+                                <MerakiText variant="h3" color={colors.primary}>
                                     {submission.student?.full_name?.[0] || '?'}
-                                </Text>
+                                </MerakiText>
                             )}
                         </View>
                         <View>
-                            <Text style={styles.studentName}>{submission.student?.full_name}</Text>
-                            <Text style={styles.lessonName}>
+                            <MerakiText variant="body" style={styles.studentName}>{submission.student?.full_name}</MerakiText>
+                            <MerakiText variant="caption" style={styles.lessonName}>
                                 {submission.lesson?.course?.title} • {submission.lesson?.title}
-                            </Text>
-                            <Text style={styles.timestamp}>
+                            </MerakiText>
+                            <MerakiText variant="caption" style={styles.timestamp}>
                                 Submitted {format(new Date(submission.created_at), 'MMM d, yyyy h:mm a')}
-                            </Text>
+                            </MerakiText>
                         </View>
                     </View>
 
@@ -183,14 +184,14 @@ export function HomeworkReviewScreen() {
                     {/* Student Notes */}
                     {submission.notes && (
                         <View style={styles.notesCard}>
-                            <Text style={styles.notesLabel}>Student Notes</Text>
-                            <Text style={styles.notesText}>{submission.notes}</Text>
+                            <MerakiText variant="caption" style={styles.notesLabel}>Student Notes</MerakiText>
+                            <MerakiText variant="body" style={styles.notesText}>{submission.notes}</MerakiText>
                         </View>
                     )}
 
                     {/* Feedback Input */}
                     <View style={styles.feedbackSection}>
-                        <Text style={styles.feedbackLabel}>Your Feedback</Text>
+                        <MerakiText variant="caption" style={styles.feedbackLabel}>Your Feedback</MerakiText>
                         <TextInput
                             style={styles.feedbackInput}
                             value={feedback}
@@ -210,14 +211,20 @@ export function HomeworkReviewScreen() {
                                 onPress={() => handleAction('needs_revision')}
                                 disabled={saving}
                             >
-                                <Text style={styles.rejectBtnText}>🔄 Request Changes</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                    <MaterialCommunityIcons name="refresh" size={18} color="#F59E0B" />
+                                    <MerakiText variant="body" style={styles.rejectBtnText}>Request Changes</MerakiText>
+                                </View>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.actionBtn, styles.approveBtn]}
                                 onPress={() => handleAction('approved')}
                                 disabled={saving}
                             >
-                                <Text style={styles.approveBtnText}>✅ Approve</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                    <MaterialCommunityIcons name="check" size={18} color="#fff" />
+                                    <MerakiText variant="body" style={styles.approveBtnText}>Approve</MerakiText>
+                                </View>
                             </TouchableOpacity>
                         </View>
                     )}
@@ -227,9 +234,16 @@ export function HomeworkReviewScreen() {
                             styles.statusBanner,
                             submission.status === 'approved' ? styles.approvedBanner : styles.rejectedBanner,
                         ]}>
-                            <Text style={styles.statusBannerText}>
-                                {submission.status === 'approved' ? '✅ Approved' : '🔄 Changes Requested'}
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <MaterialCommunityIcons
+                                    name={submission.status === 'approved' ? "check-circle" : "refresh"}
+                                    size={20}
+                                    color={colors.text}
+                                />
+                                <MerakiText variant="body" style={styles.statusBannerText}>
+                                    {submission.status === 'approved' ? 'Approved' : 'Changes Requested'}
+                                </MerakiText>
+                            </View>
                         </View>
                     )}
                 </ScrollView>
@@ -241,7 +255,7 @@ export function HomeworkReviewScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    errorText: { fontSize: 16, color: colors.textMuted },
+    errorText: { color: colors.textMuted },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -251,8 +265,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
     },
-    backButton: { fontSize: 28, color: colors.text },
-    headerTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
+    headerTitle: { fontWeight: '600', color: colors.text },
     content: { padding: spacing.lg, paddingBottom: 100 },
     studentCard: {
         flexDirection: 'row',
@@ -274,10 +287,9 @@ const styles = StyleSheet.create({
         marginRight: spacing.md,
     },
     avatarImage: { width: 50, height: 50, borderRadius: 25 },
-    avatarText: { fontSize: 20, fontWeight: '600', color: colors.primary },
-    studentName: { fontSize: 16, fontWeight: '600', color: colors.text },
-    lessonName: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
-    timestamp: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+    studentName: { fontWeight: '600', color: colors.text },
+    lessonName: { color: colors.textSecondary, marginTop: 2 },
+    timestamp: { color: colors.textMuted, marginTop: 2 },
     photoContainer: {
         borderRadius: 16,
         overflow: 'hidden',
@@ -296,10 +308,10 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
-    notesLabel: { fontSize: 12, fontWeight: '600', color: colors.textMuted, marginBottom: 6 },
-    notesText: { fontSize: 14, color: colors.text, lineHeight: 20 },
+    notesLabel: { fontWeight: '600', color: colors.textMuted, marginBottom: 6 },
+    notesText: { color: colors.text, lineHeight: 20 },
     feedbackSection: { marginBottom: spacing.lg },
-    feedbackLabel: { fontSize: 12, fontWeight: '600', color: colors.textMuted, marginBottom: 6, textTransform: 'uppercase' },
+    feedbackLabel: { fontWeight: '600', color: colors.textMuted, marginBottom: 6, textTransform: 'uppercase' },
     feedbackInput: {
         backgroundColor: colors.surface,
         borderRadius: 12,
@@ -322,9 +334,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     rejectBtn: { backgroundColor: 'rgba(245,158,11,0.1)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)' },
-    rejectBtnText: { fontSize: 14, fontWeight: '600', color: '#F59E0B' },
+    rejectBtnText: { fontWeight: '600', color: '#F59E0B' },
     approveBtn: { backgroundColor: colors.success },
-    approveBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+    approveBtnText: { fontWeight: '600', color: '#fff' },
     statusBanner: {
         paddingVertical: spacing.md,
         borderRadius: 12,
@@ -332,7 +344,7 @@ const styles = StyleSheet.create({
     },
     approvedBanner: { backgroundColor: 'rgba(34,197,94,0.1)' },
     rejectedBanner: { backgroundColor: 'rgba(245,158,11,0.1)' },
-    statusBannerText: { fontSize: 14, fontWeight: '600', color: colors.text },
+    statusBannerText: { fontWeight: '600', color: colors.text },
 });
 
 export default HomeworkReviewScreen;

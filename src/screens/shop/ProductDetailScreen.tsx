@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
@@ -9,17 +8,21 @@ import {
     Modal,
     TextInput,
     Image,
+    Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
-import { Card, Button, ScreenBackground } from '../../components/ui';
-import { colors, spacing } from '../../theme';
+import { Card, Button, ScreenBackground, MerakiText } from '../../components/ui';
+import { colors, spacing, layout, gradients } from '../../theme';
+
+const { width } = Dimensions.get('window');
 
 type Product = {
     id: string;
@@ -43,7 +46,7 @@ export function ProductDetailScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<RouteProp<ShopStackParamList, 'ProductDetail'>>();
     const { profile } = useAuth();
-    const { addToCart, getItemCount } = useCart();
+    const { addToCart } = useCart();
     const { product } = route.params;
     const [quantity, setQuantity] = useState(1);
 
@@ -63,21 +66,29 @@ export function ProductDetailScreen() {
     const [uploading, setUploading] = useState(false);
 
     const isMaster = profile?.is_master || profile?.role === 'master';
+    const isAdmin = (profile?.role as string) === 'admin' || profile?.role === 'owner';
     const isOwner = profile?.role === 'owner';
-    const price = (isMaster || isOwner) ? product.wholesale_price : product.retail_price;
+
+    const currentPrice = (isMaster || isAdmin) ? product.wholesale_price : product.retail_price;
     const savings = product.retail_price - product.wholesale_price;
 
     const handleAddToCart = () => {
+        if (product.stock_count === 0) {
+            Alert.alert('Out of Stock', 'This product is currently unavailable.');
+            return;
+        }
+
         for (let i = 0; i < quantity; i++) {
             addToCart({
                 id: product.id,
                 name: product.name,
-                price: price,
+                price: currentPrice,
                 quantity: 1,
                 image_url: product.image_url,
                 stock_count: product.stock_count,
             });
         }
+
         Alert.alert(
             '✅ Added to Cart',
             `${quantity}x ${product.name} added to your cart`,
@@ -99,7 +110,7 @@ export function ProductDetailScreen() {
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'] as any,
                 allowsEditing: true,
-                aspect: [1, 1], // Square aspect for products
+                aspect: [1, 1],
                 quality: 0.8,
             });
 
@@ -120,7 +131,6 @@ export function ProductDetailScreen() {
                 encoding: 'base64',
             });
 
-            // 1. Upload to Storage
             const { error: uploadError } = await supabase.storage
                 .from('products')
                 .upload(fileName, decode(base64), {
@@ -128,14 +138,8 @@ export function ProductDetailScreen() {
                     upsert: false,
                 });
 
-            if (uploadError) {
-                if (uploadError.message.includes('Bucket not found')) {
-                    throw new Error('Storage bucket "products" does not exist.');
-                }
-                throw uploadError;
-            }
+            if (uploadError) throw uploadError;
 
-            // 2. Get Public URL
             const { data: urlData } = supabase.storage
                 .from('products')
                 .getPublicUrl(fileName);
@@ -177,12 +181,11 @@ export function ProductDetailScreen() {
 
             if (error) throw error;
 
-            // Trigger low stock alert if needed
             if (newStockCount < newThreshold) {
                 try {
-                    await supabase.functions.invoke('low-stock-alert');
+                    await (supabase as any).functions.invoke('low-stock-alert');
                 } catch (e) {
-                    console.log('Low stock alert:', e);
+                    console.log('Low stock alert error:', e);
                 }
             }
 
@@ -224,233 +227,294 @@ export function ProductDetailScreen() {
         );
     };
 
+    const getCategoryGradient = (category: string): readonly [string, string, ...string[]] => {
+        switch (category) {
+            case 'Nails': return [colors.primary, colors.primaryDark] as const;
+            case 'Lashes': return [colors.secondary, '#8B5CF6'] as const;
+            case 'Brows': return [colors.accent, colors.gold] as const;
+            case 'Equipment': return [colors.textMuted, colors.borderLight] as const;
+            default: return gradients.primary;
+        }
+    };
+
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
-                <ScrollView contentContainerStyle={styles.content}>
-                    {/* Header */}
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {/* Glass Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
-                            <Text style={styles.backButton}>← Back</Text>
+                        <TouchableOpacity
+                            onPress={() => navigation.goBack()}
+                            style={styles.backButton}
+                        >
+                            <MerakiText style={styles.backIcon}>←</MerakiText>
                         </TouchableOpacity>
+
                         {isOwner && (
-                            <TouchableOpacity onPress={() => setShowEditModal(true)} style={styles.editButton}>
-                                <Text style={styles.editButtonText}>✏️ Edit</Text>
+                            <TouchableOpacity
+                                onPress={() => setShowEditModal(true)}
+                                style={styles.editButton}
+                            >
+                                <MerakiText variant="bodyBold" style={styles.editButtonText}>Edit</MerakiText>
                             </TouchableOpacity>
                         )}
                     </View>
 
-                    {/* Product Image */}
-                    <View style={styles.imageSection}>
-                        <View style={styles.productImage}>
-                            <Text style={styles.productEmoji}>
-                                {product.category === 'Nails' ? '💅' :
-                                    product.category === 'Lashes' ? '👁️' :
-                                        product.category === 'Brows' ? '✨' : '🔧'}
-                            </Text>
-                        </View>
-                    </View>
+                    {/* Product Hero Section */}
+                    <View style={styles.heroSection}>
+                        <Card variant="glass" style={styles.heroCard} noPadding>
+                            <View style={styles.imageContainer}>
+                                {product.image_url ? (
+                                    <Image
+                                        source={{ uri: product.image_url }}
+                                        style={styles.mainImage}
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <LinearGradient
+                                        colors={getCategoryGradient(product.category)}
+                                        style={styles.imagePlaceholder}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <MerakiText style={styles.emojiIcon}>
+                                            {product.category === 'Nails' ? '💅' :
+                                                product.category === 'Lashes' ? '👁️' :
+                                                    product.category === 'Brows' ? '✨' : '🔧'}
+                                        </MerakiText>
+                                    </LinearGradient>
+                                )}
 
-                    {/* Product Info */}
-                    <View style={styles.infoSection}>
-                        <Text style={styles.productName}>{product.name}</Text>
-                        <Text style={styles.category}>{product.category}</Text>
-
-                        <View style={styles.priceSection}>
-                            <Text style={styles.price}>€{price.toFixed(2)}</Text>
-                            {isMaster && (
-                                <View style={styles.savingsRow}>
-                                    <Text style={styles.retailPrice}>
-                                        Retail: €{product.retail_price.toFixed(2)}
-                                    </Text>
-                                    <View style={styles.savingsBadge}>
-                                        <Text style={styles.savingsText}>
-                                            You save €{savings.toFixed(2)}
-                                        </Text>
-                                    </View>
+                                {/* Category Badge Overlays */}
+                                <LinearGradient
+                                    colors={['transparent', 'rgba(0,0,0,0.6)']}
+                                    style={styles.imageOverlay}
+                                />
+                                <View style={styles.categoryBadge}>
+                                    <MerakiText variant="label" color={colors.text}>{product.category}</MerakiText>
                                 </View>
-                            )}
-                        </View>
-
-                        <Text style={styles.description}>{product.description}</Text>
-
-                        {/* Stock Status */}
-                        <Card style={styles.stockCard} variant="glass">
-                            <View style={[
-                                styles.stockDot,
-                                product.stock_count > 10 ? styles.inStock : styles.lowStock
-                            ]} />
-                            <Text style={styles.stockText}>
-                                {product.stock_count > 10
-                                    ? 'In Stock'
-                                    : `Only ${product.stock_count} left`}
-                            </Text>
+                            </View>
                         </Card>
                     </View>
 
-                    {/* Quantity Selector */}
-                    <View style={styles.quantitySection}>
-                        <Text style={styles.quantityLabel}>Quantity</Text>
-                        <View style={styles.quantityControls}>
-                            <TouchableOpacity
-                                style={styles.quantityButton}
-                                onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                            >
-                                <Text style={styles.quantityButtonText}>−</Text>
-                            </TouchableOpacity>
-                            <Text style={styles.quantityValue}>{quantity}</Text>
-                            <TouchableOpacity
-                                style={styles.quantityButton}
-                                onPress={() => setQuantity(Math.min(product.stock_count, quantity + 1))}
-                            >
-                                <Text style={styles.quantityButtonText}>+</Text>
-                            </TouchableOpacity>
+                    {/* Detailed Info Section */}
+                    <View style={styles.infoSection}>
+                        <View style={styles.titleRow}>
+                            <MerakiText variant="h1" style={styles.productName}>{product.name}</MerakiText>
+                        </View>
+
+                        <View style={styles.priceSection}>
+                            <View style={styles.priceContainer}>
+                                <MerakiText variant="h1" style={styles.mainPrice}>
+                                    €{currentPrice.toFixed(2)}
+                                </MerakiText>
+                                {(isMaster || isAdmin) && (
+                                    <View style={styles.wholesaleContainer}>
+                                        <MerakiText variant="caption" style={styles.wholesaleLabel}>Wholesale Price</MerakiText>
+                                        <MerakiText variant="body" style={styles.retailCompare}>
+                                            Retail: €{product.retail_price.toFixed(2)}
+                                        </MerakiText>
+                                    </View>
+                                )}
+                            </View>
+
+                            {(isMaster || isAdmin) && savings > 0 && (
+                                <LinearGradient
+                                    colors={['#4ade80', '#22c55e']}
+                                    style={styles.savingsBadge}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                >
+                                    <MerakiText variant="label" color={colors.text}>Save €{savings.toFixed(2)}</MerakiText>
+                                </LinearGradient>
+                            )}
+                        </View>
+
+                        <MerakiText variant="body" style={styles.description}>
+                            {product.description || 'No description available for this premium Merakí product.'}
+                        </MerakiText>
+
+                        {/* Stock & Quality Indicators */}
+                        <View style={styles.metaInfoRow}>
+                            <Card variant="glass" style={styles.metaCard}>
+                                <View style={[
+                                    styles.stockDot,
+                                    product.stock_count > 10 ? styles.inStock : styles.lowStock
+                                ]} />
+                                <MerakiText variant="bodyBold" style={styles.metaText}>
+                                    {product.stock_count > 10 ? 'In Stock' :
+                                        product.stock_count === 0 ? 'Out of Stock' :
+                                            `Only ${product.stock_count} left`}
+                                </MerakiText>
+                            </Card>
+
+                            <Card variant="glass" style={styles.metaCard}>
+                                <MerakiText style={styles.metaIcon}>✨</MerakiText>
+                                <MerakiText variant="bodyBold" style={styles.metaText}>Premium Quality</MerakiText>
+                            </Card>
                         </View>
                     </View>
 
-                    {/* Total */}
-                    <Card style={styles.totalCard} variant="elevated">
-                        <Text style={styles.totalLabel}>Total</Text>
-                        <Text style={styles.totalValue}>€{(price * quantity).toFixed(2)}</Text>
-                    </Card>
+                    {/* Interactable Controls */}
+                    <View style={styles.controlsSection}>
+                        <View style={styles.quantityRow}>
+                            <MerakiText variant="bodyBold" style={styles.controlLabel}>Select Quantity</MerakiText>
+                            <View style={styles.quantityControls}>
+                                <TouchableOpacity
+                                    style={styles.quantityBtn}
+                                    onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                                    disabled={product.stock_count === 0}
+                                >
+                                    <MerakiText style={styles.quantityBtnText}>−</MerakiText>
+                                </TouchableOpacity>
 
-                    {/* Add to Cart */}
-                    <Button
-                        title="Add to Cart"
-                        onPress={handleAddToCart}
-                        fullWidth
-                        disabled={product.stock_count === 0}
-                    />
+                                <View style={styles.quantityValueBox}>
+                                    <MerakiText variant="h3" style={styles.quantityValue}>{quantity}</MerakiText>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.quantityBtn}
+                                    onPress={() => setQuantity(Math.min(product.stock_count, quantity + 1))}
+                                    disabled={product.stock_count === 0 || quantity >= product.stock_count}
+                                >
+                                    <MerakiText style={styles.quantityBtnText}>+</MerakiText>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* Total Summary */}
+                        <Card variant="glass" style={styles.totalRow}>
+                            <View>
+                                <MerakiText variant="caption" color={colors.textMuted}>Total Amount</MerakiText>
+                                <MerakiText variant="h2" color={colors.accent}>€{(currentPrice * quantity).toFixed(2)}</MerakiText>
+                            </View>
+                            <Button
+                                title="Add to Cart"
+                                variant="primary"
+                                onPress={handleAddToCart}
+                                disabled={product.stock_count === 0}
+                                style={styles.cartBtn}
+                            />
+                        </Card>
+                    </View>
                 </ScrollView>
 
-                {/* Edit Product Modal (Owners only) */}
-                <Modal visible={showEditModal} animationType="slide" transparent>
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContent}>
-                            <Text style={styles.modalTitle}>Edit Product</Text>
+                {/* Refined Edit Modal */}
+                <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet">
+                    <ScreenBackground>
+                        <SafeAreaView style={styles.modalContainer}>
+                            <View style={styles.modalHeader}>
+                                <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                                    <MerakiText style={styles.modalCancel}>Cancel</MerakiText>
+                                </TouchableOpacity>
+                                <MerakiText variant="h3" style={styles.modalTitle}>Edit Product</MerakiText>
+                                <TouchableOpacity onPress={handleSaveProduct} disabled={saving}>
+                                    <MerakiText variant="bodyBold" style={styles.modalSave}>
+                                        {saving ? '...' : 'Save'}
+                                    </MerakiText>
+                                </TouchableOpacity>
+                            </View>
 
-                            <View style={styles.imageUploadContainer}>
-                                <TouchableOpacity
-                                    style={styles.imagePreviewButton}
-                                    onPress={pickImage}
-                                    disabled={uploading}
-                                >
-                                    {editProduct.image_url ? (
-                                        <Image source={{ uri: editProduct.image_url }} style={styles.uploadedImage} />
-                                    ) : (
-                                        <View style={styles.imagePlaceholder}>
-                                            <Text style={styles.imagePlaceholderIcon}>📷</Text>
+                            <ScrollView style={styles.modalContent}>
+                                <View style={styles.imageUploadWrapper}>
+                                    <TouchableOpacity
+                                        style={styles.imageEditBtn}
+                                        onPress={pickImage}
+                                        disabled={uploading}
+                                    >
+                                        {editProduct.image_url ? (
+                                            <Image source={{ uri: editProduct.image_url }} style={styles.editImage} />
+                                        ) : (
+                                            <View style={styles.editImagePlaceholder}>
+                                                <MerakiText style={styles.placeholderIcon}>📷</MerakiText>
+                                            </View>
+                                        )}
+                                        <View style={styles.editIconBadge}>
+                                            <MerakiText style={styles.editIconSmall}>✏️</MerakiText>
                                         </View>
-                                    )}
-                                    <View style={styles.editIconOverlay}>
-                                        <Text style={styles.editIconText}>✏️</Text>
+                                    </TouchableOpacity>
+                                    {uploading && <MerakiText variant="caption" style={styles.uploadingMsg}>Uploading...</MerakiText>}
+                                </View>
+
+                                <Card variant="glass" style={styles.formCard}>
+                                    <View style={styles.inputGroup}>
+                                        <MerakiText variant="caption" style={styles.inputLabel}>Product Name</MerakiText>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={editProduct.name}
+                                            onChangeText={(text) => setEditProduct({ ...editProduct, name: text })}
+                                            placeholderTextColor={colors.textMuted}
+                                        />
                                     </View>
-                                </TouchableOpacity>
-                                {uploading && <Text style={styles.uploadingText}>Uploading...</Text>}
-                            </View>
 
-                            <TextInput
-                                style={styles.modalInput}
-                                value={editProduct.name}
-                                onChangeText={(text) => setEditProduct({ ...editProduct, name: text })}
-                                placeholder="Product Name"
-                                placeholderTextColor={colors.textMuted}
-                            />
-
-                            <TextInput
-                                style={[styles.modalInput, styles.textArea]}
-                                value={editProduct.description}
-                                onChangeText={(text) => setEditProduct({ ...editProduct, description: text })}
-                                placeholder="Description"
-                                placeholderTextColor={colors.textMuted}
-                                multiline
-                            />
-
-                            <View style={styles.priceRow}>
-                                <View style={styles.priceInputContainer}>
-                                    <Text style={styles.inputLabel}>Retail €</Text>
-                                    <TextInput
-                                        style={styles.modalInput}
-                                        value={editProduct.retail_price}
-                                        onChangeText={(text) => setEditProduct({ ...editProduct, retail_price: text })}
-                                        keyboardType="decimal-pad"
-                                        placeholderTextColor={colors.textMuted}
-                                    />
-                                </View>
-                                <View style={styles.priceInputContainer}>
-                                    <Text style={styles.inputLabel}>Wholesale €</Text>
-                                    <TextInput
-                                        style={styles.modalInput}
-                                        value={editProduct.wholesale_price}
-                                        onChangeText={(text) => setEditProduct({ ...editProduct, wholesale_price: text })}
-                                        keyboardType="decimal-pad"
-                                        placeholderTextColor={colors.textMuted}
-                                    />
-                                </View>
-                            </View>
-
-                            <View style={styles.priceRow}>
-                                <View style={styles.priceInputContainer}>
-                                    <Text style={styles.inputLabel}>Stock Count</Text>
-                                    <TextInput
-                                        style={styles.modalInput}
-                                        value={editProduct.stock_count}
-                                        onChangeText={(text) => setEditProduct({ ...editProduct, stock_count: text })}
-                                        keyboardType="number-pad"
-                                        placeholderTextColor={colors.textMuted}
-                                    />
-                                </View>
-                                <View style={styles.priceInputContainer}>
-                                    <Text style={styles.inputLabel}>Low Stock Alert</Text>
-                                    <TextInput
-                                        style={styles.modalInput}
-                                        value={editProduct.low_stock_threshold}
-                                        onChangeText={(text) => setEditProduct({ ...editProduct, low_stock_threshold: text })}
-                                        keyboardType="number-pad"
-                                        placeholderTextColor={colors.textMuted}
-                                    />
-                                </View>
-                            </View>
-
-                            <View style={styles.priceRow}>
-                                <View style={styles.priceInputContainer}>
-                                    <Text style={styles.inputLabel}>Category</Text>
-                                    <View style={styles.categoryRow}>
-                                        {['Nails', 'Lashes', 'Brows', 'Equipment'].map((cat) => (
-                                            <TouchableOpacity
-                                                key={cat}
-                                                style={[
-                                                    styles.categoryPill,
-                                                    editProduct.category === cat && styles.categoryPillActive,
-                                                ]}
-                                                onPress={() => setEditProduct({ ...editProduct, category: cat })}
-                                            >
-                                                <Text style={[
-                                                    styles.categoryPillText,
-                                                    editProduct.category === cat && styles.categoryPillTextActive,
-                                                ]}>
-                                                    {cat}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
+                                    <View style={styles.inputGroup}>
+                                        <MerakiText variant="caption" style={styles.inputLabel}>Description</MerakiText>
+                                        <TextInput
+                                            style={[styles.input, styles.textArea]}
+                                            value={editProduct.description}
+                                            onChangeText={(text) => setEditProduct({ ...editProduct, description: text })}
+                                            multiline
+                                            numberOfLines={4}
+                                            placeholderTextColor={colors.textMuted}
+                                        />
                                     </View>
-                                </View>
-                            </View>
 
-                            <View style={styles.modalButtons}>
-                                <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteProduct}>
-                                    <Text style={styles.deleteBtnText}>Delete</Text>
+                                    <View style={styles.inputRow}>
+                                        <View style={styles.inputHalf}>
+                                            <MerakiText variant="caption" style={styles.inputLabel}>Retail €</MerakiText>
+                                            <TextInput
+                                                style={styles.input}
+                                                value={editProduct.retail_price}
+                                                onChangeText={(text) => setEditProduct({ ...editProduct, retail_price: text })}
+                                                keyboardType="decimal-pad"
+                                            />
+                                        </View>
+                                        <View style={styles.inputHalf}>
+                                            <MerakiText variant="caption" style={styles.inputLabel}>Wholesale €</MerakiText>
+                                            <TextInput
+                                                style={styles.input}
+                                                value={editProduct.wholesale_price}
+                                                onChangeText={(text) => setEditProduct({ ...editProduct, wholesale_price: text })}
+                                                keyboardType="decimal-pad"
+                                            />
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.inputRow}>
+                                        <View style={styles.inputHalf}>
+                                            <MerakiText variant="caption" style={styles.inputLabel}>In Stock</MerakiText>
+                                            <TextInput
+                                                style={styles.input}
+                                                value={editProduct.stock_count}
+                                                onChangeText={(text) => setEditProduct({ ...editProduct, stock_count: text })}
+                                                keyboardType="number-pad"
+                                            />
+                                        </View>
+                                        <View style={styles.inputHalf}>
+                                            <MerakiText variant="caption" style={styles.inputLabel}>Alert Threshold</MerakiText>
+                                            <TextInput
+                                                style={styles.input}
+                                                value={editProduct.low_stock_threshold}
+                                                onChangeText={(text) => setEditProduct({ ...editProduct, low_stock_threshold: text })}
+                                                keyboardType="number-pad"
+                                            />
+                                        </View>
+                                    </View>
+                                </Card>
+
+                                <TouchableOpacity
+                                    style={styles.dangerButton}
+                                    onPress={handleDeleteProduct}
+                                >
+                                    <MerakiText style={styles.dangerText}>Delete Product</MerakiText>
                                 </TouchableOpacity>
-                                <View style={styles.modalButtonsSpacer} />
-                                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEditModal(false)}>
-                                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProduct} disabled={saving}>
-                                    <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save'}</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
+                                <View style={{ height: 40 }} />
+                            </ScrollView>
+                        </SafeAreaView>
+                    </ScreenBackground>
                 </Modal>
             </SafeAreaView>
         </ScreenBackground>
@@ -458,70 +522,272 @@ export function ProductDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    content: { padding: spacing.lg },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },
-    backButton: { color: colors.textSecondary, fontSize: 16 },
-    editButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
-    editButtonText: { color: colors.primary, fontSize: 16, fontWeight: '500' },
-    imageSection: { marginBottom: spacing.xl },
-    productImage: { aspectRatio: 1, backgroundColor: colors.surface, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-    productEmoji: { fontSize: 120 },
-    infoSection: { marginBottom: spacing.xl },
-    productName: { fontSize: 32, fontWeight: '700', color: colors.text, marginBottom: spacing.xs },
-    category: { fontSize: 16, color: colors.primary, marginBottom: spacing.lg, fontWeight: '500' },
-    priceSection: { marginBottom: spacing.lg },
-    price: { fontSize: 36, fontWeight: '700', color: colors.text },
-    savingsRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm, gap: spacing.md },
-    retailPrice: { fontSize: 16, color: colors.textMuted, textDecorationLine: 'line-through' },
-    savingsBadge: { backgroundColor: colors.success, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: 4 },
-    savingsText: { color: colors.text, fontSize: 12, fontWeight: '600' },
-    description: { fontSize: 16, color: colors.textSecondary, lineHeight: 24 },
-    stockCard: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg, padding: spacing.md },
-    stockDot: { width: 8, height: 8, borderRadius: 4, marginRight: spacing.sm },
-    inStock: { backgroundColor: colors.success },
-    lowStock: { backgroundColor: colors.warning },
-    stockText: { fontSize: 14, color: colors.text, fontWeight: '500' },
-    quantitySection: { marginBottom: spacing.lg },
-    quantityLabel: { fontSize: 14, fontWeight: '500', color: colors.text, marginBottom: spacing.sm },
-    quantityControls: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-    quantityButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-    quantityButtonText: { fontSize: 24, color: colors.text, lineHeight: 24 },
-    quantityValue: { fontSize: 24, fontWeight: '600', color: colors.text, minWidth: 40, textAlign: 'center' },
-    totalCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg, borderRadius: 16 },
-    totalLabel: { fontSize: 18, color: colors.textSecondary },
-    totalValue: { fontSize: 28, fontWeight: '700', color: colors.primary },
-    // Modal styles
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: spacing.lg },
-    modalContent: { backgroundColor: colors.surface, borderRadius: 16, padding: spacing.lg, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: colors.border },
-    modalTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: spacing.lg, textAlign: 'center' },
-    modalInput: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: spacing.md, color: colors.text, fontSize: 16, marginBottom: spacing.md, borderWidth: 1, borderColor: colors.border },
-    textArea: { minHeight: 80, textAlignVertical: 'top' },
-    priceRow: { flexDirection: 'row', gap: spacing.md },
-    priceInputContainer: { flex: 1 },
-    inputLabel: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.xs },
-    modalButtons: { flexDirection: 'row', marginTop: spacing.md, gap: spacing.sm },
-    modalButtonsSpacer: { flex: 1 },
-    deleteBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 8, borderWidth: 1, borderColor: colors.error },
-    deleteBtnText: { color: colors.error, fontWeight: '600' },
-    cancelBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.1)' },
-    cancelBtnText: { color: colors.textSecondary, fontWeight: '600' },
-    saveBtn: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: 8, backgroundColor: colors.primary },
-    saveBtnText: { color: colors.text, fontWeight: '600' },
-    // Category picker styles
-    categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
-    categoryPill: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: colors.border },
-    categoryPillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-    categoryPillText: { fontSize: 11, color: colors.textMuted, fontWeight: '500' },
-    categoryPillTextActive: { color: colors.text },
+    container: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingBottom: spacing.xxxl,
+    },
 
-    // Image Upload Styles
-    imageUploadContainer: { alignItems: 'center', marginBottom: spacing.md },
-    imagePreviewButton: {
-        width: 100,
+    // Header
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        zIndex: 10,
+    },
+    backButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.surfaceGlass,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    backIcon: {
+        fontSize: 22,
+        color: colors.text,
+        marginLeft: -2,
+    },
+    editButton: {
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        borderRadius: 20,
+        backgroundColor: colors.surfaceGlass,
+        borderWidth: 1,
+        borderColor: colors.primary,
+    },
+    editButtonText: {
+        color: colors.primary,
+    },
+
+    // Hero Section
+    heroSection: {
+        paddingHorizontal: spacing.lg,
+        marginTop: spacing.sm,
+    },
+    heroCard: {
+        borderRadius: layout.borderRadius.lg,
+        overflow: 'hidden',
+    },
+    imageContainer: {
+        width: '100%',
+        aspectRatio: 1,
+        position: 'relative',
+    },
+    mainImage: {
+        width: '100%',
+        height: '100%',
+    },
+    imagePlaceholder: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emojiIcon: {
+        fontSize: 100,
+    },
+    imageOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
         height: 100,
-        borderRadius: 50,
-        backgroundColor: colors.surface,
+    },
+    categoryBadge: {
+        position: 'absolute',
+        top: spacing.md,
+        right: spacing.md,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.xs,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+
+    // Info Section
+    infoSection: {
+        paddingHorizontal: spacing.lg,
+        marginTop: spacing.xl,
+    },
+    titleRow: {
+        marginBottom: spacing.md,
+    },
+    productName: {
+        color: colors.text,
+        lineHeight: 38,
+    },
+    priceSection: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: spacing.lg,
+    },
+    priceContainer: {
+        flex: 1,
+    },
+    mainPrice: {
+        color: colors.accent,
+        marginBottom: 4,
+    },
+    wholesaleContainer: {
+        marginTop: 4,
+    },
+    wholesaleLabel: {
+        color: colors.primary,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        fontSize: 10,
+    },
+    retailCompare: {
+        color: colors.textMuted,
+        textDecorationLine: 'line-through',
+    },
+    savingsBadge: {
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.xs,
+        borderRadius: layout.borderRadius.sm,
+    },
+    description: {
+        color: colors.textSecondary,
+        lineHeight: 24,
+        marginBottom: spacing.xl,
+    },
+    metaInfoRow: {
+        flexDirection: 'row',
+        gap: spacing.md,
+    },
+    metaCard: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        borderRadius: 16,
+    },
+    stockDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: spacing.sm,
+    },
+    inStock: {
+        backgroundColor: '#4ade80',
+        shadowColor: '#4ade80',
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    lowStock: {
+        backgroundColor: colors.warning,
+        shadowColor: colors.warning,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    metaIcon: {
+        fontSize: 16,
+        marginRight: spacing.sm,
+    },
+    metaText: {
+        fontSize: 12,
+        color: colors.text,
+    },
+
+    // Controls Section
+    controlsSection: {
+        paddingHorizontal: spacing.lg,
+        marginTop: spacing.xxl,
+    },
+    quantityRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: spacing.xl,
+    },
+    controlLabel: {
+        color: colors.text,
+    },
+    quantityControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.surfaceGlass,
+        borderRadius: 25,
+        padding: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    quantityBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    quantityBtnText: {
+        fontSize: 22,
+        color: colors.text,
+        fontWeight: '300',
+    },
+    quantityValueBox: {
+        width: 50,
+        alignItems: 'center',
+    },
+    quantityValue: {
+        color: colors.text,
+    },
+    totalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderRadius: 24,
+        padding: spacing.md,
+    },
+    cartBtn: {
+        width: '60%',
+    },
+
+    // Modal Styles
+    modalContainer: {
+        flex: 1,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: spacing.lg,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.05)',
+    },
+    modalTitle: {
+        color: colors.text,
+    },
+    modalCancel: {
+        color: colors.textMuted,
+        fontSize: 16,
+    },
+    modalSave: {
+        color: colors.primary,
+        fontSize: 16,
+    },
+    modalContent: {
+        padding: spacing.lg,
+    },
+    imageUploadWrapper: {
+        alignItems: 'center',
+        marginBottom: spacing.xl,
+    },
+    imageEditBtn: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: colors.surfaceLight,
         borderWidth: 1,
         borderColor: colors.border,
         overflow: 'hidden',
@@ -529,24 +795,84 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         position: 'relative',
     },
-    uploadedImage: { width: '100%', height: '100%' },
-    imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
-    imagePlaceholderIcon: { fontSize: 32, opacity: 0.5 },
-    editIconOverlay: {
+    editImage: {
+        width: '100%',
+        height: '100%',
+    },
+    editImagePlaceholder: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    placeholderIcon: {
+        fontSize: 32,
+        opacity: 0.5,
+    },
+    editIconBadge: {
         position: 'absolute',
-        bottom: 0,
-        right: 0,
+        bottom: 8,
+        right: 8,
         backgroundColor: colors.primary,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 2,
-        borderColor: colors.surface,
+        borderColor: colors.background,
     },
-    editIconText: { fontSize: 12 },
-    uploadingText: { fontSize: 12, color: colors.textSecondary, marginTop: spacing.xs },
+    editIconSmall: {
+        fontSize: 14,
+    },
+    uploadingMsg: {
+        marginTop: 8,
+        color: colors.primary,
+    },
+    formCard: {
+        borderRadius: 20,
+        padding: spacing.md,
+    },
+    inputGroup: {
+        marginBottom: spacing.md,
+    },
+    inputLabel: {
+        color: colors.textMuted,
+        marginBottom: 6,
+        marginLeft: 4,
+    },
+    input: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 12,
+        paddingHorizontal: spacing.md,
+        paddingVertical: 12,
+        color: colors.text,
+        fontSize: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    textArea: {
+        height: 100,
+        textAlignVertical: 'top',
+    },
+    inputRow: {
+        flexDirection: 'row',
+        gap: spacing.md,
+        marginBottom: spacing.md,
+    },
+    inputHalf: {
+        flex: 1,
+    },
+    dangerButton: {
+        marginTop: spacing.xl,
+        padding: spacing.md,
+        borderRadius: 12,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(254, 164, 175, 0.3)',
+    },
+    dangerText: {
+        color: colors.error,
+        fontWeight: '600',
+    },
 });
 
 export default ProductDetailScreen;

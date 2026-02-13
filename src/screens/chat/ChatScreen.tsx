@@ -12,6 +12,8 @@ import {
     Image,
     Modal,
     Dimensions,
+    ScrollView,
+    KeyboardAvoidingView,
 } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,13 +23,15 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 import * as Clipboard from 'expo-clipboard';
+import { LinearGradient } from 'expo-linear-gradient';
+
 import { supabase } from '../../lib/supabase';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { useAuth } from '../../contexts/AuthContext';
-import { colors, spacing } from '../../theme';
-import { ScreenBackground } from '../../components/ui';
+import { ScreenBackground, MerakiText } from '../../components/ui';
 import { SwipeableMessage } from '../../components/chat/SwipeableMessage';
 import { MessageContextMenu } from '../../components/chat/MessageContextMenu';
+import { colors, spacing, gradients, layout } from '../../theme';
 
 type Message = {
     id: string;
@@ -66,6 +70,11 @@ export function ChatScreen() {
     // Context Menu State
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
     const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+
+    // Bookings Modal State
+    const [showBookingsModal, setShowBookingsModal] = useState(false);
+    const [bookings, setBookings] = useState<any[]>([]);
+    const [bookingsLoading, setBookingsLoading] = useState(false);
 
     useEffect(() => {
         fetchMessages();
@@ -244,6 +253,60 @@ export function ChatScreen() {
         }
     };
 
+    const fetchBookings = async () => {
+        setBookingsLoading(true);
+        setShowBookingsModal(true);
+        try {
+            // Get the conversation to find both participant IDs
+            const { data: conv, error: convError } = await (supabase as any)
+                .from('conversations')
+                .select('client_id, master_id')
+                .eq('id', conversationId)
+                .single();
+
+            if (convError || !conv) {
+                Alert.alert('Error', 'Could not load conversation details');
+                setShowBookingsModal(false);
+                return;
+            }
+
+            const { data, error } = await (supabase as any)
+                .from('appointments')
+                .select(`
+                    id,
+                    start_time,
+                    end_time,
+                    status,
+                    price,
+                    notes,
+                    service:services(name, duration_minutes)
+                `)
+                .eq('client_id', conv.client_id)
+                .eq('master_id', conv.master_id)
+                .order('start_time', { ascending: false })
+                .limit(20);
+
+            if (error) throw error;
+            setBookings(data || []);
+        } catch (error: any) {
+            Alert.alert('Error', 'Failed to load bookings: ' + error.message);
+            setShowBookingsModal(false);
+        } finally {
+            setBookingsLoading(false);
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'confirmed': return '#4CAF50';
+            case 'completed': return '#8B5CF6';
+            case 'cancelled': return '#EF4444';
+            case 'pending': return '#F59E0B';
+            case 'reschedule_pending': return '#F97316';
+            default: return 'rgba(255,255,255,0.5)';
+        }
+    };
+
     const handleLongPress = (message: Message) => {
         if (message.is_deleted) return;
         setSelectedMessage(message);
@@ -301,66 +364,122 @@ export function ChatScreen() {
             <TouchableOpacity
                 activeOpacity={0.8}
                 onLongPress={() => handleLongPress(item)}
-                style={[
-                    styles.messageBubble,
-                    hasMedia && styles.mediaBubble,
-                    isMe ? styles.bubbleRight : styles.bubbleLeft,
-                    isOptimistic && styles.bubbleOptimistic,
-                    isDeleted && styles.bubbleDeleted
-                ]}
             >
-                {isDeleted ? (
-                    <Text style={[styles.messageText, { fontStyle: 'italic', color: colors.textMuted }]}>
-                        This message was deleted
-                    </Text>
-                ) : (
-                    <>
-                        {replyMessage && (
-                            <View style={styles.replyContainer}>
-                                <View style={styles.replyBar} />
-                                <View style={styles.replyContent}>
-                                    <Text style={styles.replySender}>
-                                        {replyMessage.sender_id === user?.id ? 'You' : (otherUser?.full_name || 'User')}
-                                    </Text>
-                                    <Text numberOfLines={1} style={styles.replyText}>
-                                        {replyMessage.is_deleted ? 'Message deleted' : (replyMessage.content || (replyMessage.media_url ? '📷 Media' : '...'))}
-                                    </Text>
-                                </View>
+                {isMe ? (
+                    <LinearGradient
+                        colors={['#f4256a', '#d4145a']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={[
+                            styles.messageBubble,
+                            styles.bubbleGradient,
+                            isOptimistic && styles.bubbleOptimistic,
+                            isDeleted && styles.bubbleDeleted,
+                            hasMedia && { padding: 0 }
+                        ]}
+                    >
+                        {/* Reply Content */}
+                        {replyMessage && !isDeleted && (
+                            <View style={[styles.replyContainer, { borderLeftColor: 'rgba(255,255,255,0.5)' }]}>
+                                <MerakiText style={[styles.replySender, { color: 'white' }]}>
+                                    {replyMessage.sender_id === user?.id ? 'You' : (otherUser?.full_name || 'User')}
+                                </MerakiText>
+                                <MerakiText numberOfLines={1} style={[styles.replyText, { color: 'rgba(255,255,255,0.8)' }]}>
+                                    {replyMessage.is_deleted ? 'Message deleted' : (replyMessage.content || (replyMessage.media_url ? '📷 Media' : '...'))}
+                                </MerakiText>
                             </View>
                         )}
 
-                        {item.media_url && item.media_type === 'video' ? (
-                            <TouchableOpacity onPress={openPreview} activeOpacity={0.9}>
-                                <Video
-                                    source={{ uri: item.media_url }}
-                                    style={styles.mediaVideo}
-                                    useNativeControls
-                                    resizeMode={ResizeMode.CONTAIN}
-                                    isLooping={false}
-                                />
-                            </TouchableOpacity>
-                        ) : item.media_url ? (
-                            <TouchableOpacity onPress={openPreview} activeOpacity={0.9}>
-                                <Image source={{ uri: item.media_url }} style={styles.mediaImage} resizeMode="cover" />
-                            </TouchableOpacity>
-                        ) : null}
-
-                        {item.content && (
-                            <Text style={[styles.messageText, isMe && styles.messageTextRight]}>
-                                {item.content}
-                            </Text>
+                        {isDeleted ? (
+                            <MerakiText style={[styles.messageText, { fontStyle: 'italic', color: 'rgba(255,255,255,0.7)' }]}>
+                                This message was deleted
+                            </MerakiText>
+                        ) : (
+                            <>
+                                {item.media_url && (
+                                    <TouchableOpacity onPress={openPreview} activeOpacity={0.9} style={{ marginBottom: item.content ? 8 : 0 }}>
+                                        {item.media_type === 'video' ? (
+                                            <Video
+                                                source={{ uri: item.media_url }}
+                                                style={styles.mediaVideo}
+                                                useNativeControls={false}
+                                                resizeMode={ResizeMode.COVER}
+                                            />
+                                        ) : (
+                                            <Image source={{ uri: item.media_url }} style={styles.mediaImage} resizeMode="cover" />
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                                {item.content && (
+                                    <MerakiText style={[styles.messageText, styles.messageTextRight]}>
+                                        {item.content}
+                                    </MerakiText>
+                                )}
+                            </>
                         )}
-                    </>
-                )}
+                        <MerakiText style={[styles.messageTime, styles.messageTimeRight]}>
+                            {isOptimistic ? 'Sending...' : format(new Date(item.created_at), 'HH:mm')}
+                        </MerakiText>
+                    </LinearGradient>
+                ) : (
+                    <View style={[
+                        styles.messageBubble,
+                        styles.bubbleGlass,
+                        isDeleted && styles.bubbleDeleted,
+                        hasMedia && { padding: 4 }
+                    ]}>
+                        {/* Reply Content */}
+                        {replyMessage && !isDeleted && (
+                            <View style={styles.replyContainer}>
+                                <MerakiText style={styles.replySender}>
+                                    {replyMessage.sender_id === user?.id ? 'You' : (otherUser?.full_name || 'User')}
+                                </MerakiText>
+                                <MerakiText numberOfLines={1} style={styles.replyText}>
+                                    {replyMessage.is_deleted ? 'Message deleted' : (replyMessage.content || (replyMessage.media_url ? '📷 Media' : '...'))}
+                                </MerakiText>
+                            </View>
+                        )}
 
-                <Text style={[styles.messageTime, isMe && styles.messageTimeRight]}>
-                    {isOptimistic ? 'Sending...' : format(new Date(item.created_at), 'HH:mm')}
-                </Text>
+                        {isDeleted ? (
+                            <MerakiText style={[styles.messageText, { fontStyle: 'italic', color: colors.textMuted }]}>
+                                This message was deleted
+                            </MerakiText>
+                        ) : (
+                            <>
+                                {item.media_url && (
+                                    <TouchableOpacity onPress={openPreview} activeOpacity={0.9} style={{ marginBottom: item.content ? 8 : 0 }}>
+                                        {item.media_type === 'video' ? (
+                                            <Video
+                                                source={{ uri: item.media_url }}
+                                                style={styles.mediaVideo}
+                                                useNativeControls={false}
+                                                resizeMode={ResizeMode.COVER}
+                                            />
+                                        ) : (
+                                            <Image source={{ uri: item.media_url }} style={styles.mediaImage} resizeMode="cover" />
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                                {item.content && (
+                                    <MerakiText style={styles.messageText}>
+                                        {item.content}
+                                    </MerakiText>
+                                )}
+                            </>
+                        )}
+                        <MerakiText style={styles.messageTime}>
+                            {format(new Date(item.created_at), 'HH:mm')}
+                        </MerakiText>
+                    </View>
+                )}
             </TouchableOpacity>
         );
 
         return (
-            <View style={[styles.messageContainer, isMe ? styles.messageRight : styles.messageLeft]}>
+            <View style={[
+                styles.messageContainer,
+                isMe ? styles.messageRight : styles.messageLeft
+            ]}>
                 {!isDeleted ? (
                     <SwipeableMessage
                         onReply={() => handleReplyMessage(item)}
@@ -377,102 +496,158 @@ export function ChatScreen() {
 
     if (loading) {
         return (
-            <SafeAreaView style={styles.container} edges={['top']}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.text} />
-                </View>
-            </SafeAreaView>
+            <ScreenBackground>
+                <SafeAreaView style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </SafeAreaView>
+            </ScreenBackground>
         );
     }
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
-                {/* Header - Fixed */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <Text style={styles.backButton}>←</Text>
-                    </TouchableOpacity>
-                    {otherUser?.avatar_url ? (
-                        <Image source={{ uri: otherUser.avatar_url }} style={styles.headerAvatarImage} />
-                    ) : (
-                        <View style={styles.headerAvatar}>
-                            <Text style={styles.headerAvatarText}>
-                                {otherUser?.full_name?.[0] || '?'}
-                            </Text>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    style={{ flex: 1 }}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                >
+                    {/* Luxury Header */}
+                    <View style={styles.headerContainer}>
+                        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                            <MerakiText style={styles.backIcon}>{"<"}</MerakiText>
+                        </TouchableOpacity>
+
+                        <View style={styles.headerAvatarContainer}>
+                            {otherUser?.avatar_url ? (
+                                <Image source={{ uri: otherUser.avatar_url }} style={styles.headerAvatar} />
+                            ) : (
+                                <View style={styles.headerAvatarPlaceholder}>
+                                    <MerakiText style={styles.headerAvatarText}>
+                                        {otherUser?.full_name?.charAt(0) || '?'}
+                                    </MerakiText>
+                                </View>
+                            )}
+                            <View style={styles.headerAvatarRing} />
+                            <View style={styles.headerStatusDot} />
                         </View>
-                    )}
-                    <Text style={styles.headerTitle} numberOfLines={1}>{otherUser?.full_name || 'Chat'}</Text>
-                </View>
 
-                {/* Messages - Flexible */}
-                <FlatList
-                    ref={flatListRef}
-                    data={messages}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderMessage}
-                    contentContainerStyle={styles.messagesList}
-                    inverted
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="interactive"
-                    style={styles.flatList}
-                />
+                        <View style={styles.headerInfo}>
+                            <MerakiText style={styles.headerName}>{otherUser?.full_name || 'Chat'}</MerakiText>
+                            <MerakiText style={styles.headerStatus}>Specialist • Online</MerakiText>
+                        </View>
+                    </View>
 
-                {/* Input - Fixed at bottom */}
-                <View style={styles.footer}>
-                    {replyingTo && (
-                        <View style={styles.replyPreviewBar}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.replyPreviewHeader}>
-                                    Replying to {replyingTo.sender_id === user?.id ? 'Yourself' : (otherUser?.full_name || 'User')}
-                                </Text>
-                                <Text numberOfLines={1} style={styles.replyPreviewText}>
-                                    {replyingTo.is_deleted ? 'Message deleted' : (replyingTo.content || (replyingTo.media_url ? '📷 Media' : '...'))}
-                                </Text>
+                    {/* Messages */}
+                    <FlatList
+                        ref={flatListRef}
+                        data={messages}
+                        keyExtractor={(item) => item.id}
+                        renderItem={renderMessage}
+                        contentContainerStyle={styles.messagesList}
+                        inverted
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode="interactive"
+                        style={styles.flatList}
+                        ListFooterComponent={() => (
+                            <View style={styles.dateDivider}>
+                                <View style={styles.datePill}>
+                                    <MerakiText style={styles.dateText}>Today</MerakiText>
+                                </View>
                             </View>
-                            <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                <Text style={styles.closeReply}>✕</Text>
+                        )}
+                    />
+
+                    {/* Footer Input */}
+                    <View style={styles.footerContainer}>
+                        {/* Quick Actions (Pills) */}
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.quickActionsContainer}
+                            contentContainerStyle={styles.quickActionsContent}
+                        >
+                            <TouchableOpacity style={styles.quickActionPill} onPress={pickMedia}>
+                                <MerakiText style={{ fontSize: 18 }}>📷</MerakiText>
+                                <MerakiText style={styles.quickActionText}>Send Photos for Consultation</MerakiText>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.quickActionPill} onPress={fetchBookings}>
+                                <MerakiText style={{ fontSize: 18 }}>📅</MerakiText>
+                                <MerakiText style={styles.quickActionText}>View Booking</MerakiText>
+                            </TouchableOpacity>
+                        </ScrollView>
+
+                        {/* Reply Preview */}
+                        {replyingTo && (
+                            <View style={styles.replyPreviewBar}>
+                                <View style={{ flex: 1 }}>
+                                    <MerakiText style={styles.replyPreviewHeader}>
+                                        Replying to {replyingTo.sender_id === user?.id ? 'Yourself' : (otherUser?.full_name || 'User')}
+                                    </MerakiText>
+                                    <MerakiText numberOfLines={1} style={styles.replyPreviewText}>
+                                        {replyingTo.is_deleted ? 'Message deleted' : (replyingTo.content || (replyingTo.media_url ? '📷 Media' : '...'))}
+                                    </MerakiText>
+                                </View>
+                                <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                    <MerakiText style={styles.closeReply}>✕</MerakiText>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {/* Glass Input Bar */}
+                        <View style={styles.inputContainer}>
+                            <View style={styles.inputLeftActions}>
+                                <TouchableOpacity style={styles.inputActionButton} onPress={pickMedia} disabled={sending}>
+                                    <MerakiText style={styles.inputActionIcon}>📷</MerakiText>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.inputActionButton} disabled={sending}>
+                                    <MerakiText style={styles.inputActionIcon}>📎</MerakiText>
+                                </TouchableOpacity>
+                            </View>
+
+                            <TextInput
+                                style={styles.input}
+                                value={newMessage}
+                                onChangeText={setNewMessage}
+                                placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
+                                placeholderTextColor="rgba(255,255,255,0.3)"
+                                multiline
+                                maxLength={1000}
+                                textAlignVertical="center"
+                            />
+
+                            <TouchableOpacity
+                                disabled={!newMessage.trim() || sending}
+                                onPress={sendMessage}
+                            >
+                                <LinearGradient
+                                    colors={!newMessage.trim() || sending ? ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)'] : ['#f4256a', '#d4145a']}
+                                    style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
+                                >
+                                    <MerakiText style={[styles.sendButtonText, { color: 'white' }]}>
+                                        {sending ? '...' : '→'}
+                                    </MerakiText>
+                                </LinearGradient>
                             </TouchableOpacity>
                         </View>
-                    )}
-                    <View style={styles.inputContainer}>
-                        <TouchableOpacity style={styles.mediaButton} onPress={pickMedia} disabled={sending}>
-                            <Text style={styles.mediaButtonText}>📷</Text>
-                        </TouchableOpacity>
-                        <TextInput
-                            style={styles.input}
-                            value={newMessage}
-                            onChangeText={setNewMessage}
-                            placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
-                            placeholderTextColor={colors.textMuted}
-                            multiline
-                            maxLength={1000}
-                        />
-                        <TouchableOpacity
-                            style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
-                            onPress={sendMessage}
-                            disabled={!newMessage.trim() || sending}
-                        >
-                            <Text style={styles.sendButtonText}>{sending ? '...' : '→'}</Text>
-                        </TouchableOpacity>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </SafeAreaView>
 
-            {/* Fullscreen Media Preview Modal */}
+            {/* Custom Context Menu & Modals */}
             <Modal visible={!!previewMedia} animationType="fade" transparent statusBarTranslucent>
                 <View style={styles.previewOverlay}>
                     <SafeAreaView style={styles.previewContainer}>
                         <TouchableOpacity style={styles.previewBackButton} onPress={() => setPreviewMedia(null)}>
-                            <Text style={styles.previewBackText}>← Back</Text>
+                            <MerakiText style={styles.previewBackText}>← Back</MerakiText>
                         </TouchableOpacity>
 
                         {previewMedia?.type === 'video' ? (
                             <Video
                                 source={{ uri: previewMedia.url }}
                                 style={styles.previewVideo}
-                                useNativeControls
+                                useNativeControls={true}
                                 resizeMode={ResizeMode.CONTAIN}
                                 shouldPlay
                             />
@@ -487,7 +662,85 @@ export function ChatScreen() {
                 </View>
             </Modal>
 
-            {/* Custom Context Menu */}
+            {/* Bookings Modal */}
+            <Modal visible={showBookingsModal} animationType="slide" transparent statusBarTranslucent>
+                <View style={styles.bookingsOverlay}>
+                    <SafeAreaView style={styles.bookingsModalContainer}>
+                        <View style={styles.bookingsHeader}>
+                            <MerakiText style={styles.bookingsTitle}>
+                                Bookings with {otherUser?.full_name || 'User'}
+                            </MerakiText>
+                            <TouchableOpacity onPress={() => setShowBookingsModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                <MerakiText style={styles.bookingsCloseText}>✕</MerakiText>
+                            </TouchableOpacity>
+                        </View>
+
+                        {bookingsLoading ? (
+                            <View style={styles.bookingsLoadingContainer}>
+                                <ActivityIndicator size="large" color={colors.primary} />
+                                <MerakiText style={{ color: 'rgba(255,255,255,0.5)', marginTop: 12 }}>Loading bookings...</MerakiText>
+                            </View>
+                        ) : bookings.length === 0 ? (
+                            <View style={styles.bookingsEmptyContainer}>
+                                <MerakiText style={{ fontSize: 48 }}>📅</MerakiText>
+                                <MerakiText style={styles.bookingsEmptyText}>No bookings found</MerakiText>
+                                <MerakiText style={styles.bookingsEmptySubtext}>
+                                    You don't have any appointments with {otherUser?.full_name || 'this user'} yet.
+                                </MerakiText>
+                            </View>
+                        ) : (
+                            <FlatList
+                                data={bookings}
+                                keyExtractor={(item) => item.id}
+                                showsVerticalScrollIndicator={false}
+                                contentContainerStyle={{ paddingBottom: 20 }}
+                                renderItem={({ item }) => (
+                                    <View style={styles.bookingCard}>
+                                        <View style={styles.bookingCardHeader}>
+                                            <MerakiText style={styles.bookingServiceName}>
+                                                {item.service?.name || 'Service'}
+                                            </MerakiText>
+                                            <View style={[styles.bookingStatusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+                                                <MerakiText style={[styles.bookingStatusText, { color: getStatusColor(item.status) }]}>
+                                                    {item.status?.replace('_', ' ').toUpperCase()}
+                                                </MerakiText>
+                                            </View>
+                                        </View>
+
+                                        <View style={styles.bookingDetailRow}>
+                                            <MerakiText style={styles.bookingDetailIcon}>📅</MerakiText>
+                                            <MerakiText style={styles.bookingDetailText}>
+                                                {format(new Date(item.start_time), 'MMM dd, yyyy')}
+                                            </MerakiText>
+                                        </View>
+                                        <View style={styles.bookingDetailRow}>
+                                            <MerakiText style={styles.bookingDetailIcon}>🕐</MerakiText>
+                                            <MerakiText style={styles.bookingDetailText}>
+                                                {format(new Date(item.start_time), 'HH:mm')} — {format(new Date(item.end_time), 'HH:mm')}
+                                            </MerakiText>
+                                        </View>
+                                        <View style={styles.bookingDetailRow}>
+                                            <MerakiText style={styles.bookingDetailIcon}>💰</MerakiText>
+                                            <MerakiText style={styles.bookingDetailText}>
+                                                €{item.price?.toFixed(2)}
+                                            </MerakiText>
+                                        </View>
+                                        {item.notes && (
+                                            <View style={styles.bookingDetailRow}>
+                                                <MerakiText style={styles.bookingDetailIcon}>📝</MerakiText>
+                                                <MerakiText style={styles.bookingDetailText} numberOfLines={2}>
+                                                    {item.notes}
+                                                </MerakiText>
+                                            </View>
+                                        )}
+                                    </View>
+                                )}
+                            />
+                        )}
+                    </SafeAreaView>
+                </View>
+            </Modal>
+
             <MessageContextMenu
                 visible={contextMenuVisible}
                 onClose={() => setContextMenuVisible(false)}
@@ -506,119 +759,517 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: {
+
+    // Header
+    headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
+        paddingVertical: spacing.md,
+        paddingTop: Platform.OS === 'android' ? spacing.xl : spacing.md,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.1)',
-        backgroundColor: 'rgba(0,0,0,0.2)',
+        borderBottomColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(20,20,25,0.8)', // Darker, slightly translucent
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 10,
+        zIndex: 100,
     },
-    backBtn: { padding: spacing.xs },
-    backButton: { fontSize: 24, color: colors.text },
+    backButton: {
+        padding: spacing.xs,
+        marginRight: spacing.sm,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+    backIcon: {
+        fontSize: 18,
+        color: '#E0B0B0', // Rose gold from CSS
+    },
+    headerAvatarContainer: {
+        position: 'relative',
+        marginRight: spacing.sm,
+    },
     headerAvatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        borderWidth: 2,
+        borderColor: colors.background,
+    },
+    headerAvatarRing: {
+        position: 'absolute',
+        top: -2,
+        left: -2,
+        right: -2,
+        bottom: -2,
+        borderRadius: 24,
+        borderWidth: 2,
+        borderColor: '#f4256a', // Exact primary from CSS
+        opacity: 0.8,
+    },
+    headerStatusDot: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: 12,
+        height: 12,
+        backgroundColor: '#3FB950',
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: '#0F0F13', // Deep background
+    },
+    headerAvatarPlaceholder: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.surfaceLight,
         alignItems: 'center',
         justifyContent: 'center',
-        marginLeft: spacing.sm,
-        marginRight: spacing.sm,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 2,
+        borderColor: colors.background,
     },
-    headerAvatarText: { fontSize: 14, fontWeight: '600', color: colors.text },
-    headerAvatarImage: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        marginLeft: spacing.sm,
-        marginRight: spacing.sm,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+    headerAvatarText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: colors.text,
     },
-    headerTitle: { fontSize: 16, fontWeight: '600', color: colors.text, flex: 1 },
+    headerInfo: {
+        flex: 1,
+    },
+    headerName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.text,
+        letterSpacing: -0.5,
+    },
+    headerStatus: {
+        fontSize: 10,
+        color: '#E0B0B0', // Rose gold from CSS
+        opacity: 0.7,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        gap: spacing.xs,
+    },
+    headerActionButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+
+    // Date Divider
+    dateDivider: {
+        alignItems: 'center',
+        marginVertical: spacing.md,
+        paddingBottom: spacing.sm,
+    },
+    datePill: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    dateText: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.4)',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 2,
+    },
+
+    // Messages
     flatList: {
         flex: 1,
     },
     messagesList: {
-        padding: spacing.md,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.lg,
+        paddingBottom: 20,
     },
-    messageContainer: { marginBottom: spacing.sm },
-    messageRight: { alignItems: 'flex-end' },
-    messageLeft: { alignItems: 'flex-start' },
-    messageBubble: { maxWidth: '100%', padding: spacing.md, borderRadius: 20 },
-    mediaBubble: { padding: spacing.xs, paddingBottom: 0 },
-    bubbleRight: { backgroundColor: colors.primary, borderBottomRightRadius: 4 },
-    bubbleLeft: { backgroundColor: 'rgba(255,255,255,0.1)', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    bubbleOptimistic: { opacity: 0.7 },
-    messageText: { fontSize: 15, color: colors.text, lineHeight: 22 },
-    messageTextRight: { color: colors.text },
-    messageTime: { fontSize: 11, color: colors.textMuted, marginTop: spacing.xs, alignSelf: 'flex-end', paddingHorizontal: spacing.xs, paddingBottom: spacing.xs },
-    messageTimeRight: { color: 'rgba(255,255,255,0.7)' },
-    mediaImage: { width: 240, height: 280, borderRadius: 16 },
-    mediaVideo: { width: 240, height: 180, borderRadius: 16 },
+    messageContainer: {
+        marginBottom: spacing.md,
+        maxWidth: '85%',
+    },
+    messageRight: {
+        alignSelf: 'flex-end',
+        alignItems: 'flex-end',
+    },
+    messageLeft: {
+        alignSelf: 'flex-start',
+        alignItems: 'flex-start',
+    },
+
+    // Bubbles
+    messageBubble: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        overflow: 'hidden',
+        maxWidth: '85%',
+    },
+    bubbleGradient: {
+        borderBottomRightRadius: 4,
+        shadowColor: '#d4145a',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    bubbleGlass: {
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderBottomLeftRadius: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+    },
+    bubbleDeleted: {
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderStyle: 'dashed',
+    },
+    bubbleOptimistic: {
+        opacity: 0.7,
+    },
+
+    // Message Content
+    messageText: {
+        fontSize: 16,
+        lineHeight: 24,
+        color: colors.text,
+        fontFamily: 'Manrope-Regular',
+        letterSpacing: 0.3,
+    },
+    messageTextRight: {
+        color: '#FFFFFF',
+    },
+    messageTime: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.4)',
+        marginTop: 4,
+        alignSelf: 'flex-end',
+        fontWeight: '500',
+    },
+    messageTimeRight: {
+        color: 'rgba(255,255,255,0.8)',
+    },
+
+    // Media
+    mediaImage: {
+        width: 200,
+        height: 200,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    mediaVideo: {
+        width: 200,
+        height: 150,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+
+    // Footer Area (Floating)
+    footerContainer: {
+        paddingHorizontal: spacing.md,
+        paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg,
+        paddingTop: spacing.xs,
+    },
+
+    // Quick Actions
+    quickActionsContainer: {
+        marginBottom: spacing.sm,
+    },
+    quickActionsContent: {
+        paddingRight: spacing.md,
+    },
+    quickActionPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: layout.borderRadius.full,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        marginRight: spacing.xs,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.15)',
+    },
+    quickActionText: {
+        color: '#E0B0B0',
+        fontSize: 12,
+        fontWeight: '600',
+        marginLeft: spacing.xs,
+    },
+
+    // Input Bar (Floating Glass)
+    // Input Bar (Floating Glass)
     inputContainer: {
         flexDirection: 'row',
-        alignItems: 'flex-end',
-        padding: spacing.md,
+        alignItems: 'center',
+        backgroundColor: 'rgba(30,30,35,0.9)',
+        borderRadius: 35,
+        padding: 5,
+        paddingHorizontal: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.3,
+        shadowRadius: 15,
+        elevation: 10,
+        marginHorizontal: spacing.xs,
     },
-    mediaButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+    inputLeftActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginRight: 4,
+    },
+    inputActionButton: {
+        width: 36,
+        height: 36,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: spacing.sm,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.05)',
     },
-    mediaButtonText: { fontSize: 20 },
+    inputActionIcon: {
+        fontSize: 18,
+        color: colors.textSecondary,
+    },
+    inputWrapper: {
+        flex: 1,
+        justifyContent: 'center',
+        paddingHorizontal: spacing.xs,
+    },
     input: {
         flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 24,
-        paddingHorizontal: spacing.lg,
-        paddingVertical: Platform.OS === 'ios' ? 12 : 8,
         color: colors.text,
-        fontSize: 16,
+        fontSize: 15,
+        paddingVertical: 10,
+        paddingHorizontal: 8,
         maxHeight: 100,
-        minHeight: 44,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        fontFamily: 'Manrope-Regular',
     },
     sendButton: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
-        marginLeft: spacing.sm,
+        shadowColor: '#f4256a',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
     },
-    sendButtonDisabled: { opacity: 0.5, backgroundColor: 'rgba(255,255,255,0.1)' },
-    sendButtonText: { fontSize: 20, color: colors.text, fontWeight: '600' },
-    // Preview modal styles
-    previewOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' },
-    previewContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    previewBackButton: { position: 'absolute', top: spacing.md, left: spacing.md, zIndex: 10, padding: spacing.md, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 8 },
-    previewBackText: { color: colors.text, fontSize: 16, fontWeight: '600' },
-    previewImage: { width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.8 },
-    previewVideo: { width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.6 },
-    bubbleDeleted: { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    replyContainer: { marginBottom: spacing.xs, backgroundColor: 'rgba(0,0,0,0.2)', padding: spacing.xs, borderRadius: 8, flexDirection: 'row' },
-    replyBar: { width: 4, backgroundColor: colors.primary, marginRight: spacing.xs, borderRadius: 2 },
-    replyContent: { flex: 1 },
-    replySender: { color: colors.primary, fontSize: 12, fontWeight: '600', marginBottom: 2 },
-    replyText: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
-    footer: { backgroundColor: 'rgba(0,0,0,0.3)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
-    replyPreviewBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.sm, backgroundColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-    replyPreviewHeader: { color: colors.primary, fontSize: 12, fontWeight: '600', marginBottom: 2 },
-    replyPreviewText: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
-    closeReply: { color: colors.textMuted, fontSize: 20, padding: spacing.xs },
+    sendButtonDisabled: {
+        opacity: 0.5,
+        shadowOpacity: 0,
+    },
+    sendButtonText: {
+        fontSize: 20,
+        color: 'white',
+        transform: [{ translateX: 1 }],
+    },
+
+    // Reply Preview
+    replyPreviewBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: spacing.sm,
+        paddingHorizontal: spacing.md,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 16,
+        marginBottom: spacing.xs,
+        borderLeftWidth: 3,
+        borderLeftColor: colors.primary,
+    },
+    replyPreviewHeader: {
+        color: colors.primary,
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    replyPreviewText: {
+        color: colors.textSecondary,
+        fontSize: 12,
+    },
+    closeReply: {
+        fontSize: 20,
+        color: colors.textMuted,
+        padding: 4,
+    },
+
+    // Components
+    // Components
+    replyContainer: {
+        borderLeftWidth: 2,
+        borderLeftColor: colors.primary,
+        paddingLeft: spacing.sm,
+        marginBottom: 4,
+    },
+    replySender: {
+        color: colors.primary,
+        fontSize: 11,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    replyText: {
+        color: colors.textSecondary,
+        fontSize: 11,
+    },
+
+    // Modal
+    previewOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.95)',
+        justifyContent: 'center',
+    },
+    previewContainer: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    previewBackButton: {
+        position: 'absolute',
+        top: 50,
+        left: 20,
+        zIndex: 10,
+        padding: 10,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 20,
+    },
+    previewBackText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    previewImage: {
+        width: '100%',
+        height: '80%',
+    },
+    previewVideo: {
+        width: '100%',
+        height: '80%',
+    },
+
+    // Bookings Modal
+    bookingsOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        justifyContent: 'flex-end',
+    },
+    bookingsModalContainer: {
+        maxHeight: '80%',
+        backgroundColor: '#1A1A2E',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+    },
+    bookingsHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.08)',
+    },
+    bookingsTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#fff',
+    },
+    bookingsCloseText: {
+        fontSize: 20,
+        color: 'rgba(255,255,255,0.5)',
+        fontWeight: '600',
+    },
+    bookingsLoadingContainer: {
+        paddingVertical: 60,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    bookingsEmptyContainer: {
+        paddingVertical: 60,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    bookingsEmptyText: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#fff',
+        marginTop: 12,
+    },
+    bookingsEmptySubtext: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.4)',
+        marginTop: 6,
+        textAlign: 'center',
+    },
+    bookingCard: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 16,
+        padding: 16,
+        marginTop: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    bookingCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    bookingServiceName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#fff',
+        flex: 1,
+    },
+    bookingStatusBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        marginLeft: 8,
+    },
+    bookingStatusText: {
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+    bookingDetailRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 6,
+    },
+    bookingDetailIcon: {
+        fontSize: 14,
+        marginRight: 8,
+        width: 22,
+    },
+    bookingDetailText: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.7)',
+        flex: 1,
+    },
 });
 
 export default ChatScreen;

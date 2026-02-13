@@ -12,11 +12,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { supabase } from '../../lib/supabase';
-import { Card, ScreenBackground } from '../../components/ui';
-import { colors, spacing } from '../../theme';
+import { Card, ScreenBackground, MerakiText } from '../../components/ui';
+import { colors, spacing, gradients } from '../../theme';
 
 type Master = {
     id: string;
@@ -38,11 +38,36 @@ export function DiscoverMastersScreen() {
     const [masters, setMasters] = useState<Master[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [userCity, setUserCity] = useState<string | null>(null);
+    const [userCountry, setUserCountry] = useState<string | null>(null);
 
     useEffect(() => {
-        loadMasters();
-        detectUserLocation();
+        const init = async () => {
+            // 1. Try to get location from device first
+            await detectUserLocation();
+            // 2. Then load masters (which will use the location state if set, or we might need to rely on the effect dependency if we want it to react)
+            // Actually, better to chain them or use separate effects. 
+            // Let's keep it simple: detect location, then load masters. 
+            // But detectUserLocation is async and sets state.
+            // So we should depend on userCountry/userCity or just load initially.
+
+            // To ensure we filter correctly on first load with location, we should wait for location or timeout, then load.
+            // But for now, let's just trigger loadMasters. The filter is client-side so we can just re-filter when location updates.
+        };
+        init();
     }, []);
+
+    // Re-filter when user location changes
+    useEffect(() => {
+        if (userCountry) {
+            // Optionally reload or just rely on the existing 'masters' state if we were fetching all. 
+            // But we are doing client side filtering on 'masters' state? 
+            // No, 'masters' state is the raw list. 'filteredMasters' is derived. 
+            // Wait, 'loadMasters' sets 'masters'. 
+            // Let's check 'loadMasters'. It fetches *all* masters. 
+            // So we can just use derived state for filtering.
+        }
+    }, [userCountry]);
+
 
     const detectUserLocation = async () => {
         try {
@@ -58,15 +83,24 @@ export function DiscoverMastersScreen() {
                 if (address?.city) {
                     setUserCity(address.city);
                 }
+                if (address?.country) {
+                    setUserCountry(address.country);
+                }
             }
         } catch (error) {
             console.log('Location detection failed:', error);
+        } finally {
+            // Load masters after attempting location to avoid flash of unfiltered content if possible, 
+            // but 'masters' is fetched independently. 
+            loadMasters();
         }
     };
 
     const loadMasters = async () => {
         try {
-            // Get all visible masters with their service counts
+            // Get all visible masters 
+            // Note: In a real app with many users, we should filter by country on the SERVER side (Supabase).
+            // But for now, client-side filtering as per current architecture.
             const { data: mastersData, error } = await supabase
                 .from('profiles')
                 .select(`
@@ -82,33 +116,27 @@ export function DiscoverMastersScreen() {
 
             if (error) throw error;
 
-            // Get master settings to check visibility
             const { data: settingsData } = await (supabase as any)
                 .from('master_settings')
                 .select('master_id, is_visible_globally, accepts_new_clients');
 
-            // Get service counts per master
             const { data: servicesData } = await supabase
                 .from('master_services')
                 .select('master_id');
 
-            // Create settings lookup
             const settingsMap = new Map();
             (settingsData || []).forEach((s: any) => {
                 settingsMap.set(s.master_id, s);
             });
 
-            // Count services per master
             const serviceCounts = new Map<string, number>();
             (servicesData || []).forEach((s: any) => {
                 serviceCounts.set(s.master_id, (serviceCounts.get(s.master_id) || 0) + 1);
             });
 
-            // Filter and map masters
             const visibleMasters: Master[] = (mastersData || [])
                 .filter((m: any) => {
                     const settings = settingsMap.get(m.id);
-                    // If no settings, default to visible
                     return !settings || settings.is_visible_globally !== false;
                 })
                 .map((m: any) => {
@@ -116,7 +144,7 @@ export function DiscoverMastersScreen() {
                     return {
                         ...m,
                         services_count: serviceCounts.get(m.id) || 0,
-                        rating: null, // TODO: Add rating system
+                        rating: null,
                         is_visible_globally: settings?.is_visible_globally ?? true,
                         accepts_new_clients: settings?.accepts_new_clients ?? true,
                     };
@@ -133,10 +161,20 @@ export function DiscoverMastersScreen() {
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        loadMasters();
+        // Re-detect location on refresh too, in case user moved
+        detectUserLocation();
     }, []);
 
     const filteredMasters = masters.filter((master) => {
+        // 1. Country Filter (Strict)
+        if (userCountry && master.country) {
+            // Normalize for comparison
+            const uCountry = userCountry.toLowerCase().trim();
+            const mCountry = master.country.toLowerCase().trim();
+            if (uCountry !== mCountry) return false;
+        }
+
+        // 2. Search Query Filter
         if (!searchQuery.trim()) return true;
         const query = searchQuery.toLowerCase();
         return (
@@ -166,8 +204,8 @@ export function DiscoverMastersScreen() {
             <ScreenBackground>
                 <SafeAreaView style={styles.container}>
                     <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={colors.text} />
-                        <Text style={styles.loadingText}>Finding masters near you...</Text>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <MerakiText style={styles.loadingText}>Finding masters near you...</MerakiText>
                     </View>
                 </SafeAreaView>
             </ScreenBackground>
@@ -178,19 +216,25 @@ export function DiscoverMastersScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← Back</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.title}>Discover Masters</Text>
+                    <View style={styles.headerRow}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
+                        </TouchableOpacity>
+                        <MerakiText style={styles.headerTitle}>Discover Masters</MerakiText>
+                        <View style={{ width: 40 }} />
+                    </View>
                     {userCity && (
-                        <Text style={styles.subtitle}>📍 Showing results for {userCity}</Text>
+                        <View style={styles.locationBadge}>
+                            <MaterialIcons name="location-on" size={14} color={colors.primary} />
+                            <MerakiText style={styles.subtitle}>Showing results for {userCity}</MerakiText>
+                        </View>
                     )}
                 </View>
 
                 {/* Search Bar */}
                 <View style={styles.searchContainer}>
-                    <View style={styles.searchBar}>
-                        <MaterialCommunityIcons name="magnify" size={20} color={colors.textMuted} />
+                    <Card variant="glass" style={styles.searchBar}>
+                        <MaterialIcons name="search" size={20} color={colors.textMuted} />
                         <TextInput
                             style={styles.searchInput}
                             placeholder="Search by name or city..."
@@ -200,79 +244,85 @@ export function DiscoverMastersScreen() {
                         />
                         {searchQuery.length > 0 && (
                             <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                <MaterialCommunityIcons name="close-circle" size={20} color={colors.textMuted} />
+                                <MaterialIcons name="cancel" size={20} color={colors.textMuted} />
                             </TouchableOpacity>
                         )}
-                    </View>
+                    </Card>
                 </View>
 
                 <ScrollView
                     contentContainerStyle={styles.content}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
                     }
                 >
                     {sortedMasters.length === 0 ? (
-                        <Card style={styles.emptyCard}>
-                            <Text style={styles.emptyIcon}>🔍</Text>
-                            <Text style={styles.emptyTitle}>No Masters Found</Text>
-                            <Text style={styles.emptyText}>
+                        <Card variant="glass" style={styles.emptyCard}>
+                            <View style={styles.emptyIconContainer}>
+                                <MaterialIcons name="person-search" size={64} color={colors.textMuted} />
+                            </View>
+                            <MerakiText variant="h3" style={styles.emptyTitle}>No Masters Found</MerakiText>
+                            <MerakiText style={styles.emptyText}>
                                 {searchQuery
-                                    ? 'Try adjusting your search'
-                                    : 'No masters are currently available in your area'}
-                            </Text>
+                                    ? 'Try adjusting your search query to find masters in other areas.'
+                                    : 'No masters are currently available in your area. Try searching for a different city.'}
+                            </MerakiText>
                         </Card>
                     ) : (
                         sortedMasters.map((master) => (
-                            <TouchableOpacity key={master.id} onPress={() => handleMasterPress(master)}>
-                                <Card style={styles.masterCard}>
+                            <TouchableOpacity key={master.id} onPress={() => handleMasterPress(master)} activeOpacity={0.7}>
+                                <Card variant="glass" style={styles.masterCard}>
                                     <View style={styles.masterRow}>
-                                        <View style={styles.avatar}>
+                                        <View style={styles.avatarContainer}>
                                             {master.avatar_url ? (
                                                 <Image source={{ uri: master.avatar_url }} style={styles.avatarImage} />
                                             ) : (
-                                                <Text style={styles.avatarText}>
-                                                    {master.full_name?.[0]?.toUpperCase() || '?'}
-                                                </Text>
+                                                <View style={styles.avatarPlaceholder}>
+                                                    <MerakiText variant="h2" style={styles.avatarText}>
+                                                        {master.full_name?.[0]?.toUpperCase() || '?'}
+                                                    </MerakiText>
+                                                </View>
                                             )}
                                         </View>
                                         <View style={styles.masterInfo}>
-                                            <Text style={styles.masterName}>{master.full_name}</Text>
+                                            <MerakiText variant="h4" style={styles.masterName}>{master.full_name}</MerakiText>
                                             {master.city && (
                                                 <View style={styles.locationRow}>
-                                                    <MaterialCommunityIcons
-                                                        name="map-marker"
+                                                    <MaterialIcons
+                                                        name="location-on"
                                                         size={14}
                                                         color={userCity?.toLowerCase() === master.city?.toLowerCase()
                                                             ? colors.primary
                                                             : colors.textSecondary
                                                         }
                                                     />
-                                                    <Text style={[
+                                                    <MerakiText style={[
                                                         styles.locationText,
                                                         userCity?.toLowerCase() === master.city?.toLowerCase() && styles.nearbyText
                                                     ]}>
                                                         {master.city}{master.country ? `, ${master.country}` : ''}
-                                                    </Text>
+                                                    </MerakiText>
                                                     {userCity?.toLowerCase() === master.city?.toLowerCase() && (
                                                         <View style={styles.nearbyBadge}>
-                                                            <Text style={styles.nearbyBadgeText}>Nearby</Text>
+                                                            <MerakiText style={styles.nearbyBadgeText}>Nearby</MerakiText>
                                                         </View>
                                                     )}
                                                 </View>
                                             )}
                                             <View style={styles.statsRow}>
-                                                <Text style={styles.statText}>
-                                                    {master.services_count} services
-                                                </Text>
+                                                <View style={styles.serviceBadge}>
+                                                    <MerakiText style={styles.statText}>
+                                                        {master.services_count} {master.services_count === 1 ? 'service' : 'services'}
+                                                    </MerakiText>
+                                                </View>
                                                 {!master.accepts_new_clients && (
                                                     <View style={styles.notAcceptingBadge}>
-                                                        <Text style={styles.notAcceptingText}>Not accepting new clients</Text>
+                                                        <MerakiText style={styles.notAcceptingText}>Full Capacity</MerakiText>
                                                     </View>
                                                 )}
                                             </View>
                                         </View>
-                                        <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textMuted} />
+                                        <MaterialIcons name="chevron-right" size={24} color={colors.textMuted} />
                                     </View>
                                 </Card>
                             </TouchableOpacity>
@@ -289,75 +339,120 @@ const styles = StyleSheet.create({
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     loadingText: { color: colors.textSecondary, marginTop: spacing.md, fontSize: 14 },
     header: {
-        paddingHorizontal: spacing.lg,
-        paddingTop: spacing.lg,
+        paddingHorizontal: 20,
+        paddingTop: 8,
         paddingBottom: spacing.md,
     },
-    backButton: {
-        marginBottom: spacing.sm,
-        alignSelf: 'flex-start',
-        paddingVertical: spacing.xs,
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
     },
-    backButtonText: { fontSize: 16, color: colors.primary, fontWeight: '500' },
-    title: { fontSize: 28, fontWeight: '600', color: colors.text },
-    subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: spacing.xs },
-    searchContainer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
+    backButton: {
+        width: 40, height: 40, borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    headerTitle: { fontSize: 17, fontWeight: '600', color: '#fff' },
+    locationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(200, 160, 77, 0.1)',
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 4,
+        borderRadius: 20,
+        alignSelf: 'flex-start',
+        borderWidth: 1,
+        borderColor: 'rgba(200, 160, 77, 0.2)',
+    },
+    subtitle: { fontSize: 12, color: colors.textSecondary, marginLeft: 4 },
+    searchContainer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 12,
         paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
+        paddingVertical: spacing.xs,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     searchInput: {
         flex: 1,
         marginLeft: spacing.sm,
         fontSize: 16,
         color: colors.text,
+        paddingVertical: spacing.sm,
     },
     content: { padding: spacing.lg, paddingTop: 0 },
-    masterCard: { marginBottom: spacing.md, padding: spacing.md },
+    masterCard: {
+        marginBottom: spacing.md,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
     masterRow: { flexDirection: 'row', alignItems: 'center' },
-    avatar: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+    avatarContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        marginRight: spacing.md,
+        overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: 'rgba(200, 160, 77, 0.3)',
+    },
+    avatarPlaceholder: {
+        flex: 1,
         backgroundColor: colors.surfaceLight,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: spacing.md,
     },
-    avatarImage: { width: 56, height: 56, borderRadius: 28 },
-    avatarText: { fontSize: 22, fontWeight: '600', color: colors.text },
+    avatarImage: { width: '100%', height: '100%' },
+    avatarText: { color: colors.text, opacity: 0.8 },
     masterInfo: { flex: 1 },
-    masterName: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 4 },
-    locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-    locationText: { fontSize: 13, color: colors.textSecondary, marginLeft: 4 },
-    nearbyText: { color: colors.primary, fontWeight: '500' },
+    masterName: { color: colors.text, marginBottom: 2 },
+    locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+    locationText: { fontSize: 12, color: colors.textSecondary, marginLeft: 4 },
+    nearbyText: { color: colors.primary },
     nearbyBadge: {
-        backgroundColor: 'rgba(139, 92, 246, 0.2)',
-        paddingHorizontal: 6,
+        backgroundColor: 'rgba(200, 160, 77, 0.15)',
+        paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 4,
         marginLeft: spacing.sm,
+        borderWidth: 1,
+        borderColor: 'rgba(200, 160, 77, 0.3)',
     },
-    nearbyBadgeText: { fontSize: 10, color: colors.primary, fontWeight: '600' },
+    nearbyBadgeText: { fontSize: 10, color: colors.primary, fontWeight: '700', textTransform: 'uppercase' },
     statsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-    statText: { fontSize: 12, color: colors.textMuted },
-    notAcceptingBadge: {
-        backgroundColor: 'rgba(239, 68, 68, 0.2)',
-        paddingHorizontal: 6,
+    serviceBadge: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 4,
     },
-    notAcceptingText: { fontSize: 10, color: '#EF4444', fontWeight: '500' },
-    emptyCard: { alignItems: 'center', padding: spacing.xl },
-    emptyIcon: { fontSize: 48, marginBottom: spacing.md, opacity: 0.5 },
-    emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: spacing.xs },
-    emptyText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
+    statText: { fontSize: 11, color: colors.textMuted },
+    notAcceptingBadge: {
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(239, 68, 68, 0.2)',
+    },
+    notAcceptingText: { fontSize: 10, color: '#EF4444', fontWeight: '600', textTransform: 'uppercase' },
+    emptyCard: { alignItems: 'center', padding: spacing.xl, borderStyle: 'dashed', borderWidth: 1, borderColor: colors.border },
+    emptyIconContainer: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing.lg,
+    },
+    emptyTitle: { color: colors.text, marginBottom: spacing.sm },
+    emptyText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
 });
 
 export default DiscoverMastersScreen;

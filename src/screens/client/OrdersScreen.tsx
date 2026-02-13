@@ -10,13 +10,18 @@ import {
     Alert,
     Modal,
 } from 'react-native';
+import PagerView from 'react-native-pager-view';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { format, addDays, isSameDay, differenceInHours } from 'date-fns';
 import { supabase } from '../../lib/supabase';
+import { safeGoBack } from '../../navigation/navigationUtils';
+import { useMenuBackHandler } from '../../hooks/useMenuBackHandler';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card, Button, ScreenBackground } from '../../components/ui';
+import { Card, Button, ScreenBackground, MerakiText } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 import { cancelPaymentIntent, capturePayment, eurosToCents } from '../../services/stripeService';
 
@@ -53,9 +58,12 @@ type ProductOrder = {
 
 export function OrdersScreen() {
     const navigation = useNavigation<any>();
+    const handleBack = useMenuBackHandler();
     const { user, checkSession } = useAuth();
+    const { showAlert, showConfirm } = useModal();
 
     // State
+    const pagerRef = React.useRef<PagerView>(null);
     const [activeTab, setActiveTab] = useState<'appointments' | 'products'>('appointments');
     const [subTab, setSubTab] = useState<'upcoming' | 'past'>('upcoming'); // For appointments
     const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -198,8 +206,22 @@ export function OrdersScreen() {
 
     const handleCancel = (appointment: Appointment) => {
         const isLate = isWithinCancellationWindow(appointment.start_time);
-        setIsLateCancellation(isLate);
-        setAppointmentToCancel(appointment);
+        const penaltyFee = calculatePenaltyFee(appointment.price);
+
+        const message = isLate
+            ? `You are canceling within ${CANCELLATION_WINDOW_HOURS} hours of your appointment.\n\n⚠️ Late cancellation fee applies.\n\nYou will be charged ${LATE_CANCEL_FEE_PERCENTAGE}% (€${penaltyFee.toFixed(2)}).`
+            : 'Are you sure you want to cancel this appointment?';
+
+        showConfirm(
+            'Cancel Appointment',
+            message,
+            () => confirmCancel(appointment, isLate),
+            {
+                confirmText: isLate ? 'Cancel & Pay Fee' : 'Yes, Cancel',
+                cancelText: 'No, Keep it',
+                type: isLate ? 'error' : 'info' // Use error style for late cancel warning
+            }
+        );
     };
 
     // Send notification to Master about cancellation
@@ -231,21 +253,20 @@ export function OrdersScreen() {
         }
     };
 
-    const confirmCancel = async () => {
-        if (!appointmentToCancel) return;
+    const confirmCancel = async (appointment: Appointment, isLate: boolean) => {
         setCancellationLoading(true);
 
         try {
-            if (isLateCancellation) {
+            if (isLate) {
                 // Late cancellation: Capture penalty fee
-                const penaltyFee = calculatePenaltyFee(appointmentToCancel.price);
+                const penaltyFee = calculatePenaltyFee(appointment.price);
 
                 // Capture partial payment for late cancellation
-                if (appointmentToCancel.stripe_payment_intent_id) {
+                if (appointment.stripe_payment_intent_id) {
                     try {
                         await supabase.functions.invoke('capture-payment', {
                             body: {
-                                payment_intent_id: appointmentToCancel.stripe_payment_intent_id,
+                                payment_intent_id: appointment.stripe_payment_intent_id,
                                 amount_to_capture: eurosToCents(penaltyFee),
                             }
                         });
@@ -263,24 +284,25 @@ export function OrdersScreen() {
                         cancellation_fee_amount: eurosToCents(penaltyFee),
                         cancellation_reason: 'Late cancellation by client',
                     } as any)
-                    .eq('id', appointmentToCancel.id);
+                    .eq('id', appointment.id);
 
                 if (error) throw error;
 
                 // Notify master
-                await notifyMasterOfCancellation(appointmentToCancel, true, penaltyFee);
+                await notifyMasterOfCancellation(appointment, true, penaltyFee);
 
-                Alert.alert(
+                showAlert(
                     'Appointment Canceled',
-                    `A cancellation fee of €${penaltyFee.toFixed(2)} has been charged.`
+                    `A cancellation fee of €${penaltyFee.toFixed(2)} has been charged.`,
+                    'info'
                 );
             } else {
                 // Early cancellation: Release payment hold, no charge
-                if (appointmentToCancel.stripe_payment_intent_id) {
+                if (appointment.stripe_payment_intent_id) {
                     try {
                         await supabase.functions.invoke('cancel-payment', {
                             body: {
-                                payment_intent_id: appointmentToCancel.stripe_payment_intent_id,
+                                payment_intent_id: appointment.stripe_payment_intent_id,
                             }
                         });
                     } catch (e) {
@@ -295,21 +317,19 @@ export function OrdersScreen() {
                         status: 'cancelled_free',
                         cancellation_reason: 'Early cancellation by client',
                     } as any)
-                    .eq('id', appointmentToCancel.id);
+                    .eq('id', appointment.id);
 
                 if (error) throw error;
 
                 // Notify master
-                await notifyMasterOfCancellation(appointmentToCancel, false);
+                await notifyMasterOfCancellation(appointment, false);
 
-                Alert.alert('Appointment Canceled', 'Your appointment has been canceled successfully.');
+                showAlert('Appointment Canceled', 'Your appointment has been canceled successfully.', 'success');
             }
 
-            setAppointmentToCancel(null);
-            setIsLateCancellation(false);
-            fetchAppointments();
+            fetchData();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setCancellationLoading(false);
         }
@@ -353,7 +373,7 @@ export function OrdersScreen() {
 
     const confirmReschedule = async () => {
         if (!selectedAppointment || !selectedDate || !selectedTime) {
-            Alert.alert('Error', 'Please select a new date and time');
+            showAlert('Error', 'Please select a new date and time', 'error');
             return;
         }
 
@@ -383,7 +403,7 @@ export function OrdersScreen() {
                 if (error) throw error;
 
                 await notifyMasterOfReschedule(selectedAppointment, newStartTime, true);
-                Alert.alert('Request Sent', 'This is a late reschedule. Your request has been sent to the master for approval.');
+                showAlert('Request Sent', 'This is a late reschedule. Your request has been sent to the master for approval.', 'info');
             } else {
                 // Early reschedule: Instant update, no approval needed
                 const { error } = await supabase
@@ -398,13 +418,13 @@ export function OrdersScreen() {
                 if (error) throw error;
 
                 await notifyMasterOfReschedule(selectedAppointment, newStartTime, false);
-                Alert.alert('Success', 'Your appointment has been rescheduled.');
+                showAlert('Success', 'Your appointment has been rescheduled.', 'success');
             }
 
             setShowRescheduleModal(false);
             fetchAppointments();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setRescheduleLoading(false);
         }
@@ -432,12 +452,17 @@ export function OrdersScreen() {
                 conversationId = newConv.id;
             }
 
-            navigation.navigate('Chat', {
-                conversationId,
-                otherUser: { full_name: appointment.master?.full_name },
-            });
+            navigation.dispatch(
+                CommonActions.navigate({
+                    name: 'Chat',
+                    params: {
+                        conversationId,
+                        otherUser: { full_name: appointment.master?.full_name },
+                    },
+                })
+            );
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         }
     };
 
@@ -459,7 +484,7 @@ export function OrdersScreen() {
         cancelled: { bg: '#FEE2E2', text: '#991B1B' },
         cancelled_free: { bg: '#FEE2E2', text: '#991B1B' },
         cancelled_charge: { bg: '#FEE2E2', text: '#991B1B' },
-        reschedule_pending: { bg: 'rgba(139, 92, 246, 0.15)', text: colors.primary },
+        reschedule_pending: { bg: 'rgba(200, 160, 77, 0.15)', text: colors.primary },
         no_show: { bg: '#F3F4F6', text: '#374151' },
     };
 
@@ -482,7 +507,7 @@ export function OrdersScreen() {
     const productStatusColors: Record<string, { bg: string; text: string }> = {
         confirmed: { bg: '#DBEAFE', text: '#1E40AF' },
         processing: { bg: '#FEF3C7', text: '#92400E' },
-        shipped: { bg: 'rgba(139, 92, 246, 0.1)', text: colors.primary },
+        shipped: { bg: 'rgba(200, 160, 77, 0.1)', text: colors.primary },
         completed: { bg: '#D1FAE5', text: '#065F46' },
         cancelled: { bg: '#FEE2E2', text: '#991B1B' },
     };
@@ -502,251 +527,250 @@ export function OrdersScreen() {
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
-                {/* Header */}
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+                {/* Header — Stitch Style */}
                 <View style={styles.header}>
-                    <Text style={styles.title}>My Orders</Text>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={handleBack}
+                    >
+                        <MaterialIcons name="arrow-back" size={20} color={colors.text} />
+                    </TouchableOpacity>
+                    <MerakiText variant="h1" style={styles.headerTitle}>My Orders</MerakiText>
+                    <View style={styles.headerRightPlaceholder} />
                 </View>
 
                 {/* Main Tabs (Bookings vs Shop) */}
-                <View style={styles.mainTabs}>
-                    <TouchableOpacity
-                        style={[styles.mainTab, activeTab === 'appointments' && styles.mainTabActive]}
-                        onPress={() => setActiveTab('appointments')}
-                    >
-                        <Text style={[styles.mainTabText, activeTab === 'appointments' && styles.mainTabTextActive]}>
-                            Bookings
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.mainTab, activeTab === 'products' && styles.mainTabActive]}
-                        onPress={() => setActiveTab('products')}
-                    >
-                        <Text style={[styles.mainTabText, activeTab === 'products' && styles.mainTabTextActive]}>
-                            Shop Orders
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Sub Tabs (Only for Appointments) */}
-                {activeTab === 'appointments' && (
-                    <View style={styles.subTabs}>
+                <View style={styles.tabsContainer}>
+                    <View style={styles.tabBar}>
                         <TouchableOpacity
-                            style={[styles.subTab, subTab === 'upcoming' && styles.subTabActive]}
-                            onPress={() => setSubTab('upcoming')}
+                            style={[styles.tabItem, activeTab === 'appointments' && styles.tabItemActive]}
+                            onPress={() => {
+                                setActiveTab('appointments');
+                                pagerRef.current?.setPage(0);
+                            }}
                         >
-                            <Text style={[styles.subTabText, subTab === 'upcoming' && styles.subTabTextActive]}>
-                                Upcoming ({upcomingAppointments.length})
-                            </Text>
+                            <MerakiText variant="label" style={[styles.tabText, activeTab === 'appointments' && styles.tabTextActive]}>
+                                Bookings
+                            </MerakiText>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.subTab, subTab === 'past' && styles.subTabActive]}
-                            onPress={() => setSubTab('past')}
+                            style={[styles.tabItem, activeTab === 'products' && styles.tabItemActive]}
+                            onPress={() => {
+                                setActiveTab('products');
+                                pagerRef.current?.setPage(1);
+                            }}
                         >
-                            <Text style={[styles.subTabText, subTab === 'past' && styles.subTabTextActive]}>
-                                Past ({pastAppointments.length})
-                            </Text>
+                            <MerakiText variant="label" style={[styles.tabText, activeTab === 'products' && styles.tabTextActive]}>
+                                Shop Orders
+                            </MerakiText>
                         </TouchableOpacity>
                     </View>
-                )}
+                </View>
 
-                <ScrollView
-                    contentContainerStyle={styles.content}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
-                    }
+                <PagerView
+                    ref={pagerRef}
+                    style={styles.pagerView}
+                    initialPage={0}
+                    onPageSelected={(e) => setActiveTab(e.nativeEvent.position === 0 ? 'appointments' : 'products')}
                 >
-                    {activeTab === 'appointments' ? (
-                        // --- APPOINTMENTS LIST ---
-                        (subTab === 'upcoming' ? upcomingAppointments : pastAppointments).length > 0 ? (
-                            (subTab === 'upcoming' ? upcomingAppointments : pastAppointments).map((apt) => {
-                                const date = new Date(apt.start_time);
-                                const statusStyle = statusColors[apt.status] || statusColors.pending;
-                                const canModify = subTab === 'upcoming' && apt.status !== 'cancelled';
+                    {/* Page 1: Appointments */}
+                    <View key="appointments" style={{ flex: 1 }}>
+                        <View style={styles.subTabsContainer}>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subTabsContent}>
+                                <TouchableOpacity
+                                    style={[styles.subTab, subTab === 'upcoming' && styles.subTabActive]}
+                                    onPress={() => setSubTab('upcoming')}
+                                >
+                                    <MerakiText style={[styles.subTabText, subTab === 'upcoming' && styles.subTabTextActive]}>
+                                        Upcoming ({upcomingAppointments.length})
+                                    </MerakiText>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.subTab, subTab === 'past' && styles.subTabActive]}
+                                    onPress={() => setSubTab('past')}
+                                >
+                                    <MerakiText style={[styles.subTabText, subTab === 'past' && styles.subTabTextActive]}>
+                                        Past ({pastAppointments.length})
+                                    </MerakiText>
+                                </TouchableOpacity>
+                            </ScrollView>
+                        </View>
 
-                                return (
-                                    <Card key={apt.id} style={styles.card} variant="glass">
-                                        <View style={styles.cardHeader}>
-                                            <View>
-                                                <Text style={styles.cardTitle}>
-                                                    {apt.service?.name || 'Service'}
-                                                </Text>
-                                                <Text style={styles.cardSubtitle}>
-                                                    with {apt.master?.full_name || 'Specialist'}
-                                                </Text>
-                                            </View>
-                                            <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-                                                <Text style={[styles.statusText, { color: statusStyle.text }]}>
-                                                    {formatStatus(apt.status)}
-                                                </Text>
-                                            </View>
-                                        </View>
+                        <ScrollView
+                            contentContainerStyle={styles.content}
+                            refreshControl={
+                                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
+                            }
+                        >
+                            {(subTab === 'upcoming' ? upcomingAppointments : pastAppointments).length > 0 ? (
+                                (subTab === 'upcoming' ? upcomingAppointments : pastAppointments).map((apt) => {
+                                    const date = new Date(apt.start_time);
+                                    const statusStyle = statusColors[apt.status] || statusColors.pending;
+                                    const canModify = subTab === 'upcoming' && apt.status !== 'cancelled';
 
-                                        <View style={styles.cardDetails}>
-                                            <View style={styles.detailRow}>
-                                                <Text style={styles.detailIcon}>📅</Text>
-                                                <Text style={styles.detailText}>
-                                                    {format(date, 'EEEE, MMMM d, yyyy')}
-                                                </Text>
+                                    return (
+                                        <View key={apt.id} style={styles.stitchCard}>
+                                            {/* Client Info Row: Avatar + Name/Service + Time/Date */}
+                                            <View style={styles.stitchClientRow}>
+                                                <View style={styles.stitchAvatar}>
+                                                    <MerakiText variant="label" color="#fff" style={styles.stitchAvatarText}>
+                                                        {apt.master?.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '?'}
+                                                    </MerakiText>
+                                                </View>
+                                                <View style={styles.stitchClientInfo}>
+                                                    <MerakiText variant="body" color={colors.text} style={styles.stitchClientName}>{apt.service?.name || 'Service'}</MerakiText>
+                                                    <MerakiText variant="caption" color={colors.textSecondary}>{apt.master?.full_name || 'Specialist'}</MerakiText>
+                                                    {subTab === 'upcoming' && (
+                                                        <View style={styles.stitchTimeRow}>
+                                                            <MaterialCommunityIcons name="clock-outline" size={12} color={colors.textSecondary} />
+                                                            <MerakiText variant="caption" color={colors.textSecondary}>
+                                                                {format(date, 'HH:mm')} ({apt.service?.duration_minutes} min)
+                                                            </MerakiText>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                                <View style={styles.stitchRightColumn}>
+                                                    <View style={[styles.stitchBadge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.bg }]}>
+                                                        <MerakiText variant="caption" color={statusStyle.text} style={styles.stitchBadgeText}>{formatStatus(apt.status)}</MerakiText>
+                                                    </View>
+                                                    <View style={styles.stitchTimeDate}>
+                                                        <MerakiText variant="body" color={colors.primary} style={styles.stitchTime}>{format(date, 'HH:mm')}</MerakiText>
+                                                        <MerakiText variant="caption" color={colors.textSecondary} style={styles.stitchDate}>{format(date, 'MMM d')}</MerakiText>
+                                                    </View>
+                                                </View>
                                             </View>
-                                            <View style={styles.detailRow}>
-                                                <Text style={styles.detailIcon}>🕐</Text>
-                                                <Text style={styles.detailText}>
-                                                    {format(date, 'HH:mm')} • {apt.service?.duration_minutes || 60} min
-                                                </Text>
-                                            </View>
-                                        </View>
 
-                                        <View style={styles.cardFooter}>
-                                            <Text style={styles.price}>€{apt.price}</Text>
+                                            {/* Price row */}
+                                            <View style={styles.stitchPriceRow}>
+                                                <MerakiText variant="body" color={colors.text} style={{ fontWeight: '700' }}>€{apt.price}</MerakiText>
+                                                {canModify && (
+                                                    <View style={styles.actionButtons}>
+                                                        <TouchableOpacity
+                                                            style={styles.chatButton}
+                                                            onPress={() => handleChat(apt)}
+                                                        >
+                                                            <MaterialCommunityIcons name="chat-outline" size={16} color={colors.primary} />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                )}
+                                            </View>
+
+                                            {/* Action Buttons */}
                                             {canModify && (
-                                                <View style={styles.actionButtons}>
+                                                <View style={styles.stitchActionButtons}>
                                                     <TouchableOpacity
-                                                        style={styles.chatButton}
-                                                        onPress={() => handleChat(apt)}
-                                                    >
-                                                        <Text style={styles.chatButtonText}>💬</Text>
-                                                    </TouchableOpacity>
-                                                    <TouchableOpacity
-                                                        style={styles.rescheduleButton}
-                                                        onPress={() => handleReschedule(apt)}
-                                                    >
-                                                        <Text style={styles.rescheduleButtonText}>Reschedule</Text>
-                                                    </TouchableOpacity>
-                                                    <TouchableOpacity
-                                                        style={styles.cancelButton}
+                                                        style={styles.stitchSmallBtn}
                                                         onPress={() => handleCancel(apt)}
                                                     >
-                                                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                                                        <MerakiText variant="caption" color={colors.error} style={styles.stitchSmallBtnText}>Cancel</MerakiText>
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={styles.stitchSmallBtnPrimary}
+                                                        onPress={() => handleReschedule(apt)}
+                                                    >
+                                                        <MerakiText variant="caption" color={colors.primary} style={styles.stitchSmallBtnText}>Reschedule</MerakiText>
                                                     </TouchableOpacity>
                                                 </View>
                                             )}
                                         </View>
-                                    </Card>
-                                );
-                            })
-                        ) : (
-                            <View style={styles.emptyState}>
-                                <Text style={styles.emptyIcon}>
-                                    {subTab === 'upcoming' ? '📅' : '📋'}
-                                </Text>
-                                <Text style={styles.emptyText}>
-                                    {subTab === 'upcoming' ? 'No upcoming appointments' : 'No past appointments'}
-                                </Text>
-                            </View>
-                        )
-                    ) : (
-                        // --- PRODUCT ORDERS LIST ---
-                        productOrders.length > 0 ? (
-                            productOrders.map((order) => {
-                                const orderDate = new Date(order.created_at);
-                                const statusStyle = productStatusColors[order.status] || productStatusColors.confirmed;
+                                    );
+                                })
+                            ) : (
+                                <View style={styles.emptyState}>
+                                    <View style={styles.emptyIconContainer}>
+                                        {subTab === 'upcoming'
+                                            ? <MaterialCommunityIcons name="calendar-blank-outline" size={36} color={colors.textMuted} />
+                                            : <MaterialCommunityIcons name="clipboard-text-outline" size={36} color={colors.textMuted} />
+                                        }
+                                    </View>
+                                    <MerakiText variant="body" color={colors.text} style={styles.emptyTitle}>
+                                        {subTab === 'upcoming' ? 'No Upcoming Appointments' : 'No Past Appointments'}
+                                    </MerakiText>
+                                    <MerakiText variant="caption" color={colors.textSecondary} style={styles.emptyText}>
+                                        {subTab === 'upcoming'
+                                            ? 'Your schedule is clear. Book a new service!'
+                                            : 'Your past appointments will appear here.'}
+                                    </MerakiText>
+                                </View>
+                            )}
+                        </ScrollView>
+                    </View>
 
-                                return (
-                                    <Card key={order.id} style={styles.card} variant="glass">
-                                        <View style={styles.cardHeader}>
-                                            <View>
-                                                <Text style={styles.cardTitle}>Order #{order.id.slice(0, 8).toUpperCase()}</Text>
-                                                <Text style={styles.cardSubtitle}>
-                                                    {format(orderDate, 'MMM d, yyyy • HH:mm')}
-                                                </Text>
-                                            </View>
-                                            <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-                                                <Text style={[styles.statusText, { color: statusStyle.text }]}>
-                                                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                                                </Text>
-                                            </View>
-                                        </View>
+                    {/* Page 2: Product Orders */}
+                    <View key="products" style={{ flex: 1 }}>
+                        <ScrollView
+                            contentContainerStyle={styles.content}
+                            refreshControl={
+                                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
+                            }
+                        >
+                            {productOrders.length > 0 ? (
+                                productOrders.map((order) => {
+                                    const orderDate = new Date(order.created_at);
+                                    const statusStyle = productStatusColors[order.status] || productStatusColors.confirmed;
 
-                                        <View style={styles.cardDetails}>
-                                            {order.items?.map((item, index) => (
-                                                <View key={index} style={styles.orderItemRow}>
-                                                    <Text style={styles.orderItemName} numberOfLines={1}>
-                                                        {item.quantity}x {item.product_name}
-                                                    </Text>
-                                                    <Text style={styles.orderItemPrice}>
-                                                        €{(item.price * item.quantity).toFixed(2)}
-                                                    </Text>
+                                    return (
+                                        <View key={order.id} style={styles.stitchCard}>
+                                            <View style={styles.cardHeader}>
+                                                <View>
+                                                    <MerakiText variant="body" style={styles.cardTitle}>Order #{order.id.slice(0, 8).toUpperCase()}</MerakiText>
+                                                    <MerakiText variant="caption" style={styles.cardSubtitle}>
+                                                        {format(orderDate, 'MMM d, yyyy • HH:mm')}
+                                                    </MerakiText>
                                                 </View>
-                                            ))}
-                                        </View>
-
-                                        <View style={styles.cardFooter}>
-                                            <View style={styles.paymentMethod}>
-                                                <Text style={styles.paymentMethodIcon}>💵</Text>
-                                                <Text style={styles.paymentMethodText}>Cash on Delivery</Text>
+                                                <View style={[styles.stitchBadge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.bg }]}>
+                                                    <MerakiText variant="caption" style={[styles.stitchBadgeText, { color: statusStyle.text }]}>
+                                                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                                    </MerakiText>
+                                                </View>
                                             </View>
-                                            <Text style={styles.price}>Total: €{order.total.toFixed(2)}</Text>
+
+                                            <View style={styles.cardDetails}>
+                                                {order.items?.map((item, index) => (
+                                                    <View key={index} style={styles.orderItemRow}>
+                                                        <MerakiText variant="body" style={styles.orderItemName} numberOfLines={1}>
+                                                            {item.quantity}x {item.product_name}
+                                                        </MerakiText>
+                                                        <MerakiText variant="body" style={styles.orderItemPrice}>
+                                                            €{(item.price * item.quantity).toFixed(2)}
+                                                        </MerakiText>
+                                                    </View>
+                                                ))}
+                                            </View>
+
+                                            <View style={styles.cardFooter}>
+                                                <View style={styles.paymentMethod}>
+                                                    <Text style={styles.paymentMethodIcon}>💵</Text>
+                                                    <MerakiText variant="caption" style={styles.paymentMethodText}>Cash on Delivery</MerakiText>
+                                                </View>
+                                                <MerakiText variant="h3" style={styles.price}>€{order.total.toFixed(2)}</MerakiText>
+                                            </View>
                                         </View>
-                                    </Card>
-                                );
-                            })
-                        ) : (
-                            <View style={styles.emptyState}>
-                                <Text style={styles.emptyIcon}>🛍️</Text>
-                                <Text style={styles.emptyText}>No orders yet</Text>
-                                <TouchableOpacity
-                                    style={styles.shopNowButton}
-                                    onPress={() => navigation.navigate('Shop')}
-                                >
-                                    <Text style={styles.shopNowButtonText}>Go to Shop</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )
-                    )}
-                </ScrollView>
+                                    );
+                                })
+                            ) : (
+                                <View style={styles.emptyState}>
+                                    <View style={styles.emptyIconContainer}>
+                                        <MaterialCommunityIcons name="shopping-outline" size={36} color={colors.textMuted} />
+                                    </View>
+                                    <MerakiText variant="body" color={colors.text} style={styles.emptyText}>No orders yet</MerakiText>
+                                    <TouchableOpacity
+                                        style={styles.shopNowButton}
+                                        onPress={() => navigation.navigate('Shop')}
+                                    >
+                                        <MerakiText style={styles.shopNowButtonText}>Go to Shop</MerakiText>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </ScrollView>
+                    </View>
+                </PagerView>
+
             </SafeAreaView>
 
             {/* Modals remain unchanged ... */}
-            <Modal
-                visible={!!appointmentToCancel}
-                animationType="fade"
-                transparent={true}
-                onRequestClose={() => setAppointmentToCancel(null)}
-            >
-                <View style={styles.overlayContainer}>
-                    <TouchableOpacity
-                        style={styles.backdrop}
-                        activeOpacity={1}
-                        onPress={() => setAppointmentToCancel(null)}
-                    />
-                    <View style={styles.dialogContainer}>
-                        <Text style={styles.dialogTitle}>Cancel Appointment</Text>
-                        <Text style={styles.dialogMessage}>
-                            {isLateCancellation && appointmentToCancel
-                                ? `You are canceling within ${CANCELLATION_WINDOW_HOURS} hours of your appointment. Per our policy, you will be charged ${LATE_CANCEL_FEE_PERCENTAGE}% (€${calculatePenaltyFee(appointmentToCancel.price).toFixed(2)}).`
-                                : 'Are you sure you want to cancel this appointment?'}
-                        </Text>
-                        {isLateCancellation && (
-                            <View style={styles.warningBox}>
-                                <Text style={styles.warningText}>⚠️ Late cancellation fee applies</Text>
-                            </View>
-                        )}
-                        <View style={styles.dialogButtons}>
-                            <TouchableOpacity
-                                style={styles.dialogButtonCancel}
-                                onPress={() => {
-                                    setAppointmentToCancel(null);
-                                    setIsLateCancellation(false);
-                                }}
-                                disabled={cancellationLoading}
-                            >
-                                <Text style={styles.dialogButtonCancelText}>No, Keep it</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.dialogButtonConfirm}
-                                onPress={confirmCancel}
-                                disabled={cancellationLoading}
-                            >
-                                <Text style={styles.dialogButtonConfirmText}>
-                                    {cancellationLoading ? 'Processing...' : (isLateCancellation ? 'Cancel & Pay Fee' : 'Yes, Cancel')}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
+            {/* Reschedule Modal */}
             <Modal
                 visible={showRescheduleModal}
                 animationType="slide"
@@ -757,14 +781,14 @@ export function OrdersScreen() {
                     <ScreenBackground>
                         <View style={styles.modalHeader}>
                             <TouchableOpacity onPress={() => setShowRescheduleModal(false)}>
-                                <Text style={styles.modalCancel}>Cancel</Text>
+                                <MerakiText variant="body" color={colors.textSecondary}>Cancel</MerakiText>
                             </TouchableOpacity>
-                            <Text style={styles.modalTitle}>Reschedule</Text>
+                            <MerakiText variant="h3">Reschedule</MerakiText>
                             <View style={{ width: 60 }} />
                         </View>
 
                         <ScrollView style={styles.modalContent}>
-                            <Text style={styles.sectionTitle}>Select New Date</Text>
+                            <MerakiText variant="label" style={styles.sectionTitle}>Select New Date</MerakiText>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.datesRow}>
                                 {availableDates.map((date) => (
                                     <TouchableOpacity
@@ -775,23 +799,23 @@ export function OrdersScreen() {
                                         ]}
                                         onPress={() => setSelectedDate(date)}
                                     >
-                                        <Text style={[
+                                        <MerakiText variant="caption" style={[
                                             styles.dateDayName,
                                             selectedDate && isSameDay(date, selectedDate) && styles.dateTextActive,
                                         ]}>
                                             {format(date, 'EEE')}
-                                        </Text>
-                                        <Text style={[
+                                        </MerakiText>
+                                        <MerakiText variant="h3" style={[
                                             styles.dateDay,
                                             selectedDate && isSameDay(date, selectedDate) && styles.dateTextActive,
                                         ]}>
                                             {format(date, 'd')}
-                                        </Text>
+                                        </MerakiText>
                                     </TouchableOpacity>
                                 ))}
                             </ScrollView>
 
-                            <Text style={styles.sectionTitle}>Select New Time</Text>
+                            <MerakiText variant="label" style={styles.sectionTitle}>Select New Time</MerakiText>
                             <View style={styles.timesGrid}>
                                 {timeSlots.map((time) => (
                                     <TouchableOpacity
@@ -802,22 +826,27 @@ export function OrdersScreen() {
                                         ]}
                                         onPress={() => setSelectedTime(time)}
                                     >
-                                        <Text style={[
+                                        <MerakiText variant="body" style={[
                                             styles.timeText,
                                             selectedTime === time && styles.timeTextActive,
                                         ]}>
                                             {time}
-                                        </Text>
+                                        </MerakiText>
                                     </TouchableOpacity>
                                 ))}
                             </View>
 
-                            <Button
-                                title={rescheduleLoading ? 'Updating...' : 'Confirm Reschedule'}
+                            <TouchableOpacity
+                                style={[styles.confirmButton, { opacity: (selectedDate && selectedTime) ? 1 : 0.5 }]}
                                 onPress={confirmReschedule}
-                                fullWidth
                                 disabled={!selectedDate || !selectedTime || rescheduleLoading}
-                            />
+                            >
+                                {rescheduleLoading ? (
+                                    <ActivityIndicator color="white" />
+                                ) : (
+                                    <MerakiText variant="body" style={{ color: 'white', fontWeight: 'bold' }}>Confirm Reschedule</MerakiText>
+                                )}
+                            </TouchableOpacity>
                         </ScrollView>
                     </ScreenBackground>
                 </SafeAreaView>
@@ -829,61 +858,184 @@ export function OrdersScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.sm },
-    title: { fontSize: 28, fontWeight: '600', color: colors.text },
-
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.lg,
+        paddingBottom: spacing.sm,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    headerTitle: {
+        flex: 1,
+        textAlign: 'center',
+    },
+    headerRightPlaceholder: {
+        width: 40,
+    },
     // Tabs
-    mainTabs: { flexDirection: 'row', paddingHorizontal: spacing.lg, marginBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
-    mainTab: { marginRight: spacing.xl, paddingVertical: spacing.md },
-    mainTabActive: { borderBottomWidth: 2, borderBottomColor: colors.primary },
-    mainTabText: { fontSize: 16, fontWeight: '500', color: colors.textSecondary },
-    mainTabTextActive: { color: colors.text, fontWeight: '600' },
+    tabsContainer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
+    tabBar: {
+        flexDirection: 'row',
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        padding: 4,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    tabItem: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 12,
+    },
+    tabItemActive: {
+        backgroundColor: colors.primary,
+    },
+    tabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+    tabTextActive: { color: '#FFFFFF', fontWeight: '700' },
 
-    subTabs: { flexDirection: 'row', paddingHorizontal: spacing.lg, marginBottom: spacing.md, gap: spacing.md },
-    subTab: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)' },
-    subTabActive: { backgroundColor: colors.surfaceLight },
+    pagerView: { flex: 1 },
+
+    subTabsContainer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
+    subTabsContent: { flexDirection: 'row', gap: 8 },
+    subTab: {
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    subTabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     subTabText: { fontSize: 13, color: colors.textSecondary },
-    subTabTextActive: { color: colors.text, fontWeight: '500' },
+    subTabTextActive: { color: '#fff', fontWeight: '600' },
 
-    content: { padding: spacing.lg },
+    content: { padding: spacing.lg, paddingTop: 0 },
 
-    // Card
-    card: { marginBottom: spacing.md, padding: spacing.lg },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md },
-    cardTitle: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 2 },
+    // Stitch Card
+    stitchCard: {
+        marginBottom: spacing.md,
+        padding: spacing.md,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    stitchClientRow: { flexDirection: 'row', marginBottom: spacing.md },
+    stitchAvatar: {
+        width: 48,
+        height: 48,
+        borderRadius: 16,
+        backgroundColor: colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: spacing.md,
+    },
+    stitchAvatarText: { fontSize: 18, fontWeight: '700' },
+    stitchClientInfo: { flex: 1, justifyContent: 'center' },
+    stitchClientName: { fontWeight: '600', marginBottom: 2 },
+    stitchTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+    stitchRightColumn: { alignItems: 'flex-end', justifyContent: 'space-between' },
+    stitchBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+        borderWidth: 1,
+        marginBottom: 4,
+    },
+    stitchBadgeText: { fontSize: 10, fontWeight: '600', textTransform: 'capitalize' },
+    stitchTimeDate: { alignItems: 'flex-end' },
+    stitchTime: { fontWeight: '700' },
+    stitchDate: { fontSize: 11 },
+
+    stitchPriceRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: spacing.sm,
+        marginTop: spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.06)',
+    },
+    stitchActionButtons: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+        marginTop: spacing.md,
+    },
+    stitchSmallBtn: {
+        flex: 1,
+        paddingVertical: 8,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    stitchSmallBtnPrimary: {
+        flex: 1,
+        paddingVertical: 8,
+        borderRadius: 10,
+        backgroundColor: 'rgba(200, 160, 77, 0.1)',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(200, 160, 77, 0.2)',
+    },
+    stitchSmallBtnText: { fontWeight: '600', fontSize: 12 },
+
+    // Keeping some legacy styles for Product Orders which I partly refactored
+    cardTitle: { fontWeight: '600', color: colors.text, marginBottom: 2 },
     cardSubtitle: { fontSize: 13, color: colors.textSecondary },
-
-    statusBadge: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: 6 },
-    statusText: { fontSize: 11, fontWeight: '600' },
-
-    cardDetails: { marginBottom: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
-    detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
-    detailIcon: { fontSize: 16, marginRight: spacing.sm },
-    detailText: { fontSize: 14, color: colors.textSecondary },
+    cardDetails: { marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
 
     // Order Item
     orderItemRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-    orderItemName: { flex: 1, color: colors.textSecondary, fontSize: 14, marginRight: spacing.sm },
-    orderItemPrice: { color: colors.text, fontSize: 14, fontWeight: '500' },
-
-    // Footer
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
-    price: { fontSize: 18, fontWeight: '700', color: colors.primary },
+    orderItemName: { flex: 1, color: colors.textSecondary, marginRight: spacing.sm },
+    orderItemPrice: { color: colors.text, fontWeight: '500' },
     paymentMethod: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     paymentMethodIcon: { fontSize: 16 },
     paymentMethodText: { fontSize: 12, color: colors.textSecondary },
+    price: { fontSize: 18, fontWeight: '700', color: colors.primary },
 
     actionButtons: { flexDirection: 'row', gap: spacing.sm },
-    chatButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-    chatButtonText: { fontSize: 16 },
-    rescheduleButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, justifyContent: 'center', height: 36 },
-    rescheduleButtonText: { fontSize: 12, fontWeight: '500', color: colors.text },
-    cancelButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: 10, backgroundColor: 'rgba(239, 68, 68, 0.1)', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.3)', height: 36 },
-    cancelButtonText: { fontSize: 12, fontWeight: '600', color: colors.error },
+    chatButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
 
     emptyState: { alignItems: 'center', paddingVertical: spacing.xxxl },
-    emptyIcon: { fontSize: 56, marginBottom: spacing.lg, opacity: 0.5 },
-    emptyText: { fontSize: 16, fontWeight: '500', color: colors.text, marginBottom: spacing.xs },
+    emptyIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing.md,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
+    },
+    emptyTitle: { fontSize: 18, fontWeight: '600', marginBottom: 8 },
+    emptyText: { fontSize: 14, textAlign: 'center', maxWidth: 240 },
     shopNowButton: { marginTop: spacing.lg, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, backgroundColor: colors.primary, borderRadius: 12 },
     shopNowButtonText: { color: 'white', fontWeight: '600' },
 
@@ -906,6 +1058,13 @@ const styles = StyleSheet.create({
     timeText: { fontSize: 14, fontWeight: '500', color: colors.text },
     timeTextActive: { color: colors.text },
 
+    confirmButton: {
+        marginTop: spacing.xl,
+        backgroundColor: colors.primary,
+        paddingVertical: spacing.md,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
     // Dialog
     overlayContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.lg },
     backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)' },

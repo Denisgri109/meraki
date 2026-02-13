@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Review &amp; Confirm Booking | Merakí</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f4256a",
+                        "background-light": "#f8f5f6",
+                        "background-dark": "#0F0F13",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .luxury-gradient {
+            background: linear-gradient(135deg, #f4256a 0%, #d4af37 100%);
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<!-- iOS Status Bar Spacer -->
+<div class="h-12 w-full"></div>
+<!-- Header Navigation -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-background-dark/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+<button class="w-10 h-10 flex items-center justify-start text-white">
+<span class="material-icons-round">arrow_back_ios</span>
+</button>
+<h1 class="text-lg font-semibold tracking-tight">Review Booking</h1>
+<div class="w-10"></div> <!-- Spacer for centering -->
+</header>
+<main class="px-6 pt-6 pb-32 max-w-md mx-auto">
+<!-- Service Highlight Card -->
+<section class="glass-card rounded-xl p-6 mb-6">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h2 class="text-2xl font-bold mb-1">Volume Lash Extensions</h2>
+<div class="flex items-center gap-2 text-primary text-sm font-medium">
+<span class="material-icons-round text-sm">schedule</span>
+<span>120 min duration</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-3 py-4 border-y border-white/10">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+<span class="material-icons-round text-primary">calendar_today</span>
+</div>
+<div>
+<p class="text-sm text-slate-400">Date &amp; Time</p>
+<p class="font-medium">Thursday, Oct 12 • 14:00</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+<span class="material-icons-round text-primary">location_on</span>
+</div>
+<div>
+<p class="text-sm text-slate-400">Location</p>
+<p class="font-medium">Merakí Studio, 123 Luxury Lane</p>
+</div>
+</div>
+</div>
+<!-- Artist Preview -->
+<div class="mt-4 flex items-center gap-4">
+<div class="relative">
+<img alt="Professional Profile" class="w-12 h-12 rounded-full object-cover border-2 border-primary/30" data-alt="Portrait of a professional female lash artist" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC993QykCpBloyDihX3PF7Ucc0siIrj4NVo8bp5_erHPVZlOAYoF9BPatTc34VKbpyUK2lXt81-G8B1aDVT6tFoSsZ0ratEaNQz6XuvqP9ZAsqc2BY42a-UIKmXq81lZgHtFaaG7vA416tXy0U4Mp0yBq3SBQiGwZYbXyF4R9CmLJSIZf5f_xujBkU0wtMmYskau0Z2TXDV2COeHf9n39KxAMttMYN2crfUkoMhhN4VwQ_5H1RJp8xmXcRXA6f99jhNXYI21z99UuNo"/>
+</div>
+<div>
+<p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Master Artist</p>
+<p class="font-semibold">Isabella Martinez</p>
+</div>
+</div>
+</section>
+<!-- Price Breakdown -->
+<section class="mb-6">
+<h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-3 ml-1">Payment Summary</h3>
+<div class="glass-card rounded-xl p-5 space-y-4">
+<div class="flex justify-between items-center">
+<span class="text-slate-400">Service Total</span>
+<span class="font-medium">€120.00</span>
+</div>
+<div class="flex justify-between items-center text-primary font-bold text-lg">
+<span>Deposit Due Now</span>
+<span>€24.00</span>
+</div>
+<div class="pt-4 border-t border-white/10 flex justify-between items-center">
+<span class="text-slate-400">Remaining Balance</span>
+<span class="font-medium">€96.00</span>
+</div>
+<p class="text-[11px] text-slate-500 italic">
+                    The remaining balance will be charged at the studio after your appointment.
+                </p>
+</div>
+</section>
+<!-- Payment Method -->
+<section class="mb-6">
+<h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-3 ml-1">Payment Method</h3>
+<div class="glass-card rounded-xl p-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-8 bg-slate-800 rounded flex items-center justify-center border border-white/5">
+<img alt="Visa" class="h-3 opacity-80" data-alt="Visa credit card logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCC3mWikfFBo_wLLQNNGWvc3Y6SBHU5W2ZGNWHZOBJjEvE1joCjlRf4fHmMaxk67glXRIjLoM3C-FDqVELZM4zyiJzeJot8ytPd1X1t9CN_DttDyrUHa_fH1eSjoKNwTHq2AZd-EAT8bB5zllgCyasImvzsiSTmHbsOhPGn-vqySFtZ_DIBNr-MtU0isDySOzOSt91i6fTrzFdIQ4MhpvlfpNtUKMCdnvWYQxl3z1IP_7dfpFx_ebyjXSMDWd4M4YmDCHHnw2zHhAh_"/>
+</div>
+<div>
+<p class="font-medium">Visa •••• 4242</p>
+<p class="text-xs text-slate-500">Expires 12/26</p>
+</div>
+</div>
+<button class="text-primary text-sm font-bold uppercase tracking-wider">Change</button>
+</div>
+</section>
+<!-- Notes Field -->
+<section class="mb-6">
+<h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-3 ml-1">Special Requests</h3>
+<div class="glass-card rounded-xl p-1">
+<textarea class="w-full bg-transparent border-none focus:ring-0 text-slate-200 placeholder:text-slate-600 px-4 py-3 resize-none" placeholder="Any allergies or specific lash preferences?" rows="2"></textarea>
+</div>
+</section>
+<!-- Policy Note -->
+<div class="px-2 mb-8">
+<div class="flex gap-3">
+<span class="material-icons-round text-slate-500 text-lg">info</span>
+<p class="text-xs text-slate-500 leading-relaxed">
+                    By confirming, you agree to Merakí's terms of service. Cancellations made less than 24h before the appointment may result in the loss of your deposit.
+                </p>
+</div>
+</div>
+</main>
+<!-- Fixed Footer Action -->
+<footer class="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background-dark via-background-dark/95 to-transparent">
+<div class="max-w-md mx-auto">
+<button class="luxury-gradient w-full py-4 rounded-xl font-bold text-white shadow-lg shadow-primary/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+<span>Confirm &amp; Pay €24.00</span>
+<span class="material-icons-round">lock</span>
+</button>
+<!-- Home Indicator (iOS style) -->
+<div class="mt-4 flex justify-center">
+<div class="w-32 h-1 bg-white/20 rounded-full"></div>
+</div>
+</div>
+</footer>
+</body></html>

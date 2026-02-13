@@ -5,7 +5,7 @@
       "ES2020"
     ],
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": true,
     "skipLibCheck": true,
     "jsx": "react-native",
@@ -23,7 +23,8 @@
   ],
   "exclude": [
     "node_modules",
-    "babel.config.js"
+    "babel.config.js",
+    "supabase"
   ],
   "extends": "expo/tsconfig.base"
 }

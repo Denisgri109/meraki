@@ -1,22 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
     RefreshControl,
     ActivityIndicator,
     TouchableOpacity,
+    Dimensions,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { format, startOfDay, endOfDay } from 'date-fns';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card, ScreenBackground } from '../../components/ui';
-import { colors, spacing } from '../../theme';
+import { Card, ScreenBackground, MerakiText } from '../../components/ui';
+import { colors, spacing, layout, gradients } from '../../theme';
+
+const { width } = Dimensions.get('window');
 
 type Appointment = {
     id: string;
@@ -28,8 +31,6 @@ type Appointment = {
 };
 
 type Stats = {
-    totalMasters: number;
-    activeMasters: number;
     totalServices: number;
     activeServices: number;
     todayAppointments: number;
@@ -43,8 +44,6 @@ export function OwnerDashboardScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [stats, setStats] = useState<Stats>({
-        totalMasters: 0,
-        activeMasters: 0,
         totalServices: 0,
         activeServices: 0,
         todayAppointments: 0,
@@ -61,238 +60,127 @@ export function OwnerDashboardScreen() {
 
     const fetchDashboardData = async () => {
         if (!user) return;
-
         try {
-            const today = new Date();
-            const todayStart = startOfDay(today).toISOString();
-            const todayEnd = endOfDay(today).toISOString();
+            const todayStart = startOfDay(new Date()).toISOString();
+            const todayEnd = endOfDay(new Date()).toISOString();
 
-            // Masters stats removed for independent account
-            const mastersCount = 0;
-            const activeMastersCount = 0;
+            // Services
+            const { count: servicesCount } = await supabase.from('services').select('*', { count: 'exact', head: true }).eq('created_by', user.id);
+            const { count: activeServicesCount } = await supabase.from('services').select('*', { count: 'exact', head: true }).eq('created_by', user.id).eq('is_active', true);
 
-            // Fetch services count
-            const { count: servicesCount } = await supabase
-                .from('services')
-                .select('*', { count: 'exact', head: true })
-                .eq('created_by', user.id);
+            // Today's Stats
+            const todayPromise = supabase.from('appointments').select(`id, start_time, status, price, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).gte('start_time', todayStart).lt('start_time', todayEnd).in('status', ['confirmed', 'pending', 'completed']).order('start_time');
+            const { data: todayData } = await safeSupabaseFetch(todayPromise as any);
 
-            const { count: activeServicesCount } = await supabase
-                .from('services')
-                .select('*', { count: 'exact', head: true })
-                .eq('created_by', user.id)
-                .eq('is_active', true);
+            // Upcoming confirmed
+            const allAppointmentsPromise = supabase.from('appointments').select(`id, start_time, status, price, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).eq('status', 'confirmed').gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(5);
+            const { data: allAppointmentsData } = await safeSupabaseFetch(allAppointmentsPromise as any);
 
-            // Fetch today's appointments (for stats)
-            const todayPromise = supabase
-                .from('appointments')
-                .select(`
-                    id, start_time, status, price,
-                    service:services(name),
-                    client:profiles!appointments_client_id_fkey(full_name)
-                `)
-                .eq('master_id', user.id)
-                .gte('start_time', todayStart)
-                .lt('start_time', todayEnd)
-                .in('status', ['confirmed', 'pending', 'completed'])
-                .order('start_time');
-
-            const { data: todayData } = await safeSupabaseFetch(todayPromise as any, { timeout: 8000 });
-
-            // Fetch ALL appointments for schedule (newest first)
-            const allAppointmentsPromise = supabase
-                .from('appointments')
-                .select(`
-                    id, start_time, status, price,
-                    service:services(name),
-                    client:profiles!appointments_client_id_fkey(full_name)
-                `)
-                .eq('master_id', user.id)
-                .eq('status', 'confirmed')
-                .gte('start_time', new Date().toISOString())
-                .order('start_time', { ascending: true })
-                .limit(20);
-
-            const { data: allAppointmentsData } = await safeSupabaseFetch(allAppointmentsPromise as any, { timeout: 8000 });
-
-            const { count: pendingCount } = await supabase
-                .from('appointments')
-                .select('*', { count: 'exact', head: true })
-                .eq('master_id', user.id)
-                .eq('status', 'pending');
-
-            // Calculate today's earnings from completed appointments
-            const todayEarnings = ((todayData as any[]) || [])
-                .filter((apt: any) => apt.status === 'completed')
-                .reduce((sum: number, apt: any) => sum + (apt.price || 0), 0);
+            const { count: pendingCount } = await supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('master_id', user.id).eq('status', 'pending');
+            const todayEarnings = ((todayData as any[]) || []).filter(apt => apt.status === 'completed').reduce((sum, apt) => sum + (apt.price || 0), 0);
 
             setAppointments((allAppointmentsData as unknown as Appointment[]) || []);
             setStats({
-                totalMasters: mastersCount || 0,
-                activeMasters: activeMastersCount || 0,
                 totalServices: servicesCount || 0,
                 activeServices: activeServicesCount || 0,
-                todayAppointments: ((todayData as any[]) || []).filter((apt: any) => apt.status !== 'completed').length,
+                todayAppointments: ((todayData as any[]) || []).filter(apt => apt.status !== 'completed').length,
                 pendingAppointments: pendingCount || 0,
                 todayEarnings,
             });
         } catch (error) {
-            console.error('Error fetching dashboard data:', error);
+            console.error('Error fetching owner data:', error);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     };
 
-    const onRefresh = () => {
-        setRefreshing(true);
-        fetchDashboardData();
-    };
+    const handleRefresh = () => { setRefreshing(true); fetchDashboardData(); };
 
-    if (loading) {
-        return (
-            <ScreenBackground>
-                <SafeAreaView style={styles.container}>
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={colors.text} />
-                    </View>
-                </SafeAreaView>
-            </ScreenBackground>
-        );
-    }
+    if (loading) return (
+        <ScreenBackground>
+            <SafeAreaView style={styles.container}><ActivityIndicator size="large" color={colors.accent} style={styles.loader} /></SafeAreaView>
+        </ScreenBackground>
+    );
 
     return (
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
-                <ScrollView
-                    contentContainerStyle={styles.content}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
-                    }
-                >
+                <ScrollView contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent} />}>
                     {/* Header */}
                     <View style={styles.header}>
                         <View>
-                            <Text style={styles.greeting}>Owner Dashboard</Text>
-                            <Text style={styles.name}>{profile?.full_name || 'Owner'}</Text>
+                            <MerakiText variant="label" color={colors.textSecondary}>BUSINESS HUB</MerakiText>
+                            <MerakiText variant="h1">{profile?.full_name?.split(' ')[0] || 'Owner'}</MerakiText>
                         </View>
-                        <TouchableOpacity
-                            style={styles.qrGeneratorBtn}
-                            onPress={() => navigation.navigate('LoyaltyQR')}
-                        >
-                            <MaterialCommunityIcons name="qrcode" size={22} color={colors.text} />
+                        <TouchableOpacity style={styles.analyticsButton} onPress={() => navigation.navigate('PlatformAnalytics')}>
+                            <LinearGradient colors={gradients.premium as any} style={styles.analyticsGradient}>
+                                <MaterialCommunityIcons name="finance" size={24} color="#FFF" />
+                            </LinearGradient>
                         </TouchableOpacity>
                     </View>
 
-                    {/* Personal Tools */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>My Tools</Text>
-                        <View style={styles.quickActionsGrid}>
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Portfolio')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="image-multiple" size={24} color="#A78BFA" />
-                                </View>
-                                <Text style={styles.actionLabel}>Portfolio</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('MyServices')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="format-list-checks" size={24} color="#34D399" />
-                                </View>
-                                <Text style={styles.actionLabel}>My Services</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Availability')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="clock-outline" size={24} color="#60A5FA" />
-                                </View>
-                                <Text style={styles.actionLabel}>Availability</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    {/* Business Management */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Business Management</Text>
-                        <View style={styles.quickActionsGrid}>
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('OwnerSupplies')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(20, 184, 166, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="clipboard-list" size={24} color="#14B8A6" />
-                                </View>
-                                <Text style={styles.actionLabel}>My Supplies</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('BusinessSettings')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(244, 114, 182, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="cog-outline" size={24} color="#F472B6" />
-                                </View>
-                                <Text style={styles.actionLabel}>Policies</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('LoyaltyCardBuilder')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(251, 191, 36, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="cards" size={24} color="#FBBF24" />
-                                </View>
-                                <Text style={styles.actionLabel}>Loyalty</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('AftercareCampaigns')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="email-outline" size={24} color="#10B981" />
-                                </View>
-                                <Text style={styles.actionLabel}>Campaigns</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('BookingConsultations')}>
-                                <View style={[styles.actionIcon, { backgroundColor: 'rgba(217, 70, 239, 0.2)' }]}>
-                                    <MaterialCommunityIcons name="clipboard-check-outline" size={24} color="#D946EF" />
-                                </View>
-                                <Text style={styles.actionLabel}>Consults</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    {/* Stats */}
-                    <View style={styles.statsRow}>
-                        <TouchableOpacity onPress={() => navigation.navigate('MyServices')}>
-                            <Card style={styles.statCard} variant="elevated">
-                                <Text style={styles.statValue}>{stats.activeServices}</Text>
-                                <Text style={styles.statLabel}>My Services</Text>
-                            </Card>
-                        </TouchableOpacity>
-                        <Card style={styles.statCard} variant="elevated">
-                            <Text style={styles.statValue}>{stats.todayAppointments}</Text>
-                            <Text style={styles.statLabel}>Today</Text>
+                    {/* Business Stats Grid */}
+                    <View style={styles.statsGrid}>
+                        <Card variant="glass" style={styles.statCard}>
+                            <MerakiText variant="h2" color={colors.accent}>€{stats.todayEarnings}</MerakiText>
+                            <MerakiText variant="caption" color={colors.textMuted}>Daily Rev</MerakiText>
                         </Card>
-                        <Card style={[styles.statCard, stats.pendingAppointments > 0 ? styles.pendingCard : undefined]} variant="elevated">
-                            <Text style={[styles.statValue, stats.pendingAppointments > 0 ? styles.pendingValue : undefined]}>
-                                {stats.pendingAppointments}
-                            </Text>
-                            <Text style={styles.statLabel}>Pending</Text>
+                        <Card variant="glass" style={styles.statCard}>
+                            <MerakiText variant="h2" color={colors.success}>{stats.activeServices}</MerakiText>
+                            <MerakiText variant="caption" color={colors.textMuted}>Live Services</MerakiText>
+                        </Card>
+                        <Card variant="glass" style={[styles.statCard, stats.pendingAppointments > 0 && styles.pendingStat]}>
+                            <MerakiText variant="h2" color={stats.pendingAppointments > 0 ? colors.error : colors.text}>{stats.pendingAppointments}</MerakiText>
+                            <MerakiText variant="caption" color={colors.textMuted}>To Action</MerakiText>
                         </Card>
                     </View>
 
-                    {/* Schedule */}
+                    {/* Management Sections */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Schedule</Text>
+                        <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>INVENTORY & LOGISTICS</MerakiText>
+                        <View style={styles.actionsGrid}>
+                            <ManagementCard icon="package-variant-closed" label="Inventory" onPress={() => navigation.navigate('Inventory')} color="#F19A3E" halfWidth />
+                            <ManagementCard icon="truck-delivery" label="Supplies" onPress={() => navigation.navigate('OwnerSupplies')} color="#4ADE80" halfWidth />
+                        </View>
+                    </View>
+
+                    <View style={styles.section}>
+                        <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>MARKETING & LOYALTY</MerakiText>
+                        <View style={styles.actionsGrid}>
+                            <ManagementCard icon="bullhorn" label="Campaigns" onPress={() => navigation.navigate('AftercareCampaigns')} color="#F472B6" />
+                            <ManagementCard icon="card-bulleted" label="Loyalty" onPress={() => navigation.navigate('LoyaltyCardBuilder')} color="#FBBF24" />
+                            <ManagementCard icon="chat-question" label="Consultations" onPress={() => navigation.navigate('BookingConsultations')} color="#8B5CF6" />
+                        </View>
+                    </View>
+
+                    {/* Appointment Overview */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <MerakiText variant="label" color={colors.textMuted}>LIVE OPERATIONS</MerakiText>
+                            <TouchableOpacity onPress={() => navigation.navigate('Appointments')}>
+                                <MerakiText variant="caption" color={colors.accent}>RECORDS →</MerakiText>
+                            </TouchableOpacity>
+                        </View>
                         {appointments.length > 0 ? (
                             appointments.map((apt) => (
-                                <Card key={apt.id} style={styles.appointmentCard}>
-                                    <View style={styles.appointmentTime}>
-                                        <Text style={styles.dateText}>{format(new Date(apt.start_time), 'MMM d')}</Text>
-                                        <Text style={styles.timeText}>{format(new Date(apt.start_time), 'HH:mm')}</Text>
-                                    </View>
-                                    <View style={styles.appointmentInfo}>
-                                        <Text style={styles.serviceName}>{apt.service?.name || 'Service'}</Text>
-                                        <Text style={styles.clientName}>{apt.client?.full_name || 'Client'}</Text>
-                                    </View>
-                                    <View style={[styles.statusDot, apt.status === 'completed' && styles.statusCompleted]} />
+                                <Card key={apt.id} variant="glass" style={styles.appointmentCard} noPadding>
+                                    <TouchableOpacity style={styles.aptRow}>
+                                        <View style={styles.timeBlock}>
+                                            <MerakiText variant="bodyBold" color={colors.accent}>{format(new Date(apt.start_time), 'HH:mm')}</MerakiText>
+                                        </View>
+                                        <View style={styles.infoBlock}>
+                                            <MerakiText variant="bodyBold" numberOfLines={1}>{apt.service?.name || 'Service'}</MerakiText>
+                                            <MerakiText variant="caption" color={colors.textSecondary}>{apt.client?.full_name || 'Client'}</MerakiText>
+                                        </View>
+                                        <View style={styles.statusDot} />
+                                    </TouchableOpacity>
                                 </Card>
                             ))
                         ) : (
                             <Card variant="glass" style={styles.emptyCard}>
-                                <Text style={styles.emptyIcon}>📅</Text>
-                                <Text style={styles.emptyText}>No appointments yet</Text>
+                                <MaterialCommunityIcons name="store" size={48} color={colors.textMuted} style={{ opacity: 0.3, marginBottom: spacing.sm }} />
+                                <MerakiText variant="body" color={colors.textMuted}>No bookings today</MerakiText>
                             </Card>
                         )}
                     </View>
@@ -302,47 +190,42 @@ export function OwnerDashboardScreen() {
     );
 }
 
+const ManagementCard = ({ icon, label, onPress, color, halfWidth }: any) => (
+    <TouchableOpacity style={halfWidth ? styles.mgtCardContainerHalf : styles.mgtCardContainer} onPress={onPress}>
+        <Card variant="glass" style={styles.mgtCard} noPadding>
+            <View style={[styles.iconBox, { backgroundColor: `${color}15` }]}>
+                <MaterialCommunityIcons name={icon} size={28} color={color} />
+            </View>
+            <MerakiText variant="bodyBold" style={styles.mgtLabel}>{label}</MerakiText>
+        </Card>
+    </TouchableOpacity>
+);
+
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    content: { padding: spacing.lg },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl, paddingTop: spacing.md },
-    greeting: { fontSize: 14, color: colors.textSecondary },
-    name: { fontSize: 28, fontWeight: '600', color: colors.text },
-    qrGeneratorBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: colors.surfaceLight,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
+    loader: { flex: 1, justifyContent: 'center' },
+    scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: 100 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: spacing.xl },
+    analyticsButton: { borderRadius: 16, overflow: 'hidden' },
+    analyticsGradient: { padding: 12 },
+    statsGrid: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
+    statCard: { flex: 1, alignItems: 'center', paddingVertical: spacing.md },
+    pendingStat: { borderColor: colors.error, borderWidth: 1 },
     section: { marginBottom: spacing.xl },
-    sectionTitle: { fontSize: 12, fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: spacing.md },
-    quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-    actionButton: { width: '31%', alignItems: 'center', backgroundColor: colors.surface, padding: spacing.md, borderRadius: 12 },
-    actionIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
-    actionLabel: { fontSize: 11, fontWeight: '600', color: colors.text, textAlign: 'center' },
-    statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
-    statCard: { flex: 1, alignItems: 'center', padding: spacing.md },
-    pendingCard: { borderWidth: 2, borderColor: '#F59E0B' },
-    statValue: { fontSize: 24, fontWeight: '700', color: colors.text },
-    pendingValue: { color: '#F59E0B' },
-    statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: spacing.xs },
-    appointmentCard: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm, padding: spacing.md },
-    appointmentTime: { marginRight: spacing.md },
-    timeText: { fontSize: 16, fontWeight: '600', color: colors.text },
-    dateText: { fontSize: 11, color: colors.textSecondary, marginBottom: 2 },
-    appointmentInfo: { flex: 1 },
-    serviceName: { fontSize: 14, fontWeight: '500', color: colors.text },
-    clientName: { fontSize: 12, color: colors.textSecondary },
-    statusDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#3B82F6' },
-    statusCompleted: { backgroundColor: '#22C55E' },
-    emptyCard: { alignItems: 'center', padding: spacing.xl },
-    emptyIcon: { fontSize: 48, marginBottom: spacing.md, opacity: 0.5 },
-    emptyText: { fontSize: 14, color: colors.textSecondary },
+    sectionLabel: { marginBottom: spacing.md },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
+    actionsGrid: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
+    mgtCardContainer: { width: (width - spacing.lg * 2 - spacing.sm * 2) / 3 },
+    mgtCardContainerHalf: { width: (width - spacing.lg * 2 - spacing.sm) / 2 },
+    mgtCard: { alignItems: 'center', paddingVertical: spacing.lg },
+    iconBox: { width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    mgtLabel: { fontSize: 13 },
+    appointmentCard: { marginBottom: spacing.sm },
+    aptRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md },
+    timeBlock: { width: 60 },
+    infoBlock: { flex: 1 },
+    statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
+    emptyCard: { alignItems: 'center', paddingVertical: spacing.xxl },
 });
 
 export default OwnerDashboardScreen;

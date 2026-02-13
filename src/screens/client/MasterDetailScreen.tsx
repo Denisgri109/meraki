@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     Image,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -124,13 +125,15 @@ export function MasterDetailScreen({ navigation, route }: MasterDetailScreenProp
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <ScrollView style={styles.scrollView}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={goBack}>
-                            <Text style={styles.backButton}>← Back</Text>
+                        <TouchableOpacity onPress={goBack} style={styles.backButton}>
+                            <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
                         </TouchableOpacity>
+                        <Text style={styles.headerTitle}>Master Profile</Text>
+                        <View style={{ width: 40 }} />
                     </View>
 
                     {/* Master Info */}
@@ -146,15 +149,17 @@ export function MasterDetailScreen({ navigation, route }: MasterDetailScreenProp
                         )}
                         <Text style={styles.masterName}>{master.full_name || 'Beauty Master'}</Text>
                         {(master.city || master.country) && (
-                            <Text style={styles.masterLocation}>
-                                📍 {[master.city, master.country].filter(Boolean).join(', ')}
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <MaterialIcons name="location-on" size={14} color={colors.primary} />
+                                <Text style={styles.masterLocation}>
+                                    {[master.city, master.country].filter(Boolean).join(', ')}
+                                </Text>
+                            </View>
                         )}
                         {master.bio && (
                             <Text style={styles.masterBio}>{master.bio}</Text>
                         )}
                     </View>
-
                     {/* Services */}
                     <View style={styles.servicesSection}>
                         <Text style={styles.sectionTitle}>Available Services</Text>
@@ -179,7 +184,7 @@ export function MasterDetailScreen({ navigation, route }: MasterDetailScreenProp
                                                 </Text>
                                             </View>
                                         </View>
-                                        <Text style={styles.chevron}>›</Text>
+                                        <MaterialIcons name="chevron-right" size={24} color={colors.textSecondary} />
                                     </Card>
                                 </TouchableOpacity>
                             ))
@@ -210,11 +215,20 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        padding: spacing.lg,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
     },
     backButton: {
-        color: colors.textSecondary,
-        fontSize: 16,
+        width: 40, height: 40, borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    headerTitle: {
+        fontSize: 17, fontWeight: '600', color: '#fff',
     },
     masterSection: {
         alignItems: 'center',

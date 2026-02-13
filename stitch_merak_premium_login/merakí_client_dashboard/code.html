@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merakí Client Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#e8305e",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0F0F13",
+                        "glass-dark": "rgba(255, 255, 255, 0.05)",
+                        "champagne": "#F7E7CE",
+                        "rose-white": "#FFF5F7"
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-rose-white min-h-screen pb-32">
+<!-- Header Section -->
+<header class="px-6 pt-12 pb-6 flex items-center justify-between sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md z-50">
+<div>
+<p class="text-sm font-medium opacity-60">Good Evening,</p>
+<h1 class="text-2xl font-bold tracking-tight">Sofia</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-12 h-12 rounded-full glass flex items-center justify-center relative">
+<span class="material-icons-round text-2xl">notifications</span>
+<span class="absolute top-3 right-3 w-2 h-2 bg-primary rounded-full ring-2 ring-background-dark"></span>
+</button>
+<div class="w-12 h-12 rounded-full border-2 border-primary overflow-hidden p-0.5">
+<img alt="User Profile" class="w-full h-full object-cover rounded-full" data-alt="Portrait of a smiling young woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnDRoDnzOdJjKerxkpifFTrcdyrZTNlU53ySuH9NQKNtF-Sv6hta_fNI7wQ3jfzGdX2Q8PUJlMD-YlqstbaLXP3_Rg7LJOb2-vpXHQcTOzzOi06cCeGuvb_FSI-o7Og7nTng_CIeRGRGQfo4gC3npnAemoApS3TSgIJ_uprGLMJumgfzVpEp8nWD2iW2npggaSOXmKIHzSCCW1dqRbTWqY9Gv8Zl1O5F_lo126je81XqnZm_xffQWffA-cEDY1jLM05RepvsXGWLAq"/>
+</div>
+</div>
+</header>
+<main class="space-y-8">
+<!-- Search Bar -->
+<section class="px-6">
+<div class="relative group">
+<span class="material-icons-round absolute left-4 top-1/2 -translate-y-1/2 text-primary opacity-70">search</span>
+<input class="w-full h-14 pl-12 pr-12 rounded-full glass border-none ring-1 ring-white/10 focus:ring-primary/50 bg-white/5 placeholder:text-gray-500 transition-all" placeholder="Find beauty services..." type="text"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-primary">
+<span class="material-icons-round">tune</span>
+</button>
+</div>
+</section>
+<!-- Quick Actions -->
+<section class="px-6">
+<div class="grid grid-cols-4 gap-4">
+<div class="flex flex-col items-center gap-2">
+<button class="w-16 h-16 rounded-full glass flex items-center justify-center group active:scale-95 transition-all">
+<span class="material-icons-round text-3xl bg-gradient-to-br from-primary to-purple-400 bg-clip-text text-transparent">shopping_bag</span>
+</button>
+<span class="text-xs font-medium opacity-80">Shop</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<button class="w-16 h-16 rounded-full glass flex items-center justify-center group active:scale-95 transition-all">
+<span class="material-icons-round text-3xl bg-gradient-to-br from-primary to-purple-400 bg-clip-text text-transparent">receipt_long</span>
+</button>
+<span class="text-xs font-medium opacity-80">Orders</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<button class="w-16 h-16 rounded-full glass flex items-center justify-center group active:scale-95 transition-all">
+<span class="material-icons-round text-3xl bg-gradient-to-br from-primary to-purple-400 bg-clip-text text-transparent">support_agent</span>
+</button>
+<span class="text-xs font-medium opacity-80">Support</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<button class="w-16 h-16 rounded-full glass flex items-center justify-center group active:scale-95 transition-all">
+<span class="material-icons-round text-3xl bg-gradient-to-br from-primary to-purple-400 bg-clip-text text-transparent">loyalty</span>
+</button>
+<span class="text-xs font-medium opacity-80">Deals</span>
+</div>
+</div>
+</section>
+<!-- Featured Masters -->
+<section>
+<div class="px-6 flex items-center justify-between mb-4">
+<h2 class="text-xl font-bold">Featured Masters</h2>
+<button class="text-primary text-sm font-semibold">View All</button>
+</div>
+<div class="flex gap-4 overflow-x-auto px-6 hide-scrollbar snap-x snap-mandatory">
+<!-- Master 1 -->
+<div class="flex-none w-72 snap-start">
+<div class="relative h-96 rounded-xl overflow-hidden glass p-4 flex flex-col justify-end">
+<img alt="Professional Master" class="absolute inset-0 w-full h-full object-cover -z-10" data-alt="Close up of a professional beauty artist" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBb9GTwo4s8HJhtodh9C1wk7ZDD2RkgV-2YakZ2HW7-hEGoofHI2R2mINX6AKydJouB72k6JpON_xWolwhQRvmU4zJtcibqYX3XSekysdK5gS2MytbxphwSK8BnRNoSgjSpjLR0gPOIf6jVXI62TSA2hD1ULQ0VTmAQKfuVgCZrthq3JwtJZq6xSOHwH5zcbVWScCvDZIzRo1VBzJKi9w3w1nKPihqZsuHDaA8YE6lrh0sX-FUPuTLZ8-BFXuTsqnE6ZSLQmipyj_qS"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark/90 via-background-dark/20 to-transparent -z-10"></div>
+<div class="bg-white/10 backdrop-blur-md rounded-lg p-3 border border-white/10">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h3 class="font-bold text-lg leading-none">Elena V.</h3>
+<p class="text-xs text-primary font-medium mt-1">Lash Specialist</p>
+</div>
+<div class="flex items-center gap-1 bg-champagne/20 px-2 py-1 rounded-full border border-champagne/30">
+<span class="material-icons-round text-champagne text-xs">star</span>
+<span class="text-champagne text-xs font-bold">4.9</span>
+</div>
+</div>
+<button class="w-full py-2.5 bg-primary text-white text-sm font-bold rounded-full mt-2 active:scale-[0.98] transition-transform">
+                                Book Master
+                            </button>
+</div>
+</div>
+</div>
+<!-- Master 2 -->
+<div class="flex-none w-72 snap-start">
+<div class="relative h-96 rounded-xl overflow-hidden glass p-4 flex flex-col justify-end">
+<img alt="Professional Master" class="absolute inset-0 w-full h-full object-cover -z-10" data-alt="Portrait of a modern hair stylist in a studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYkwfYNrmSaB-hhdmSO3wCKcSUBCRcbVbzRvU9baZFkezQMYlnijo-C-YUJgDmI3kwfIhLJURfa9BsLk2pWgUkRZ5LhgEyj8B1kgWa34iUbaZTtTtoL08pp2n90YYkPojTUduEK2sBkAemPPj5LlGFrxaW1tRqQKhQiLVwLFbjQc1AKNBTv9GGfkaSvtTlMzmuKk3qfjFYnN3lBhKMpMl5D9Dc5ZFLSSSiHRYUy0op8JkoJVbST2U3AeGkQOw9ZTGtq5Fgm_Z1UZsc"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark/90 via-background-dark/20 to-transparent -z-10"></div>
+<div class="bg-white/10 backdrop-blur-md rounded-lg p-3 border border-white/10">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h3 class="font-bold text-lg leading-none">Marcus K.</h3>
+<p class="text-xs text-primary font-medium mt-1">Senior Stylist</p>
+</div>
+<div class="flex items-center gap-1 bg-champagne/20 px-2 py-1 rounded-full border border-champagne/30">
+<span class="material-icons-round text-champagne text-xs">star</span>
+<span class="text-champagne text-xs font-bold">5.0</span>
+</div>
+</div>
+<button class="w-full py-2.5 bg-primary text-white text-sm font-bold rounded-full mt-2 active:scale-[0.98] transition-transform">
+                                Book Master
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Popular Services -->
+<section class="px-6">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-xl font-bold">Popular Services</h2>
+<button class="text-primary text-sm font-semibold">See All</button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<!-- Service 1 -->
+<div class="aspect-square glass rounded-xl p-5 flex flex-col justify-between group overflow-hidden relative">
+<div class="absolute -right-4 -top-4 w-20 h-20 bg-purple-500/20 rounded-full blur-2xl group-hover:bg-purple-500/40 transition-all"></div>
+<div class="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+<span class="material-icons-round text-purple-400">remove_red_eye</span>
+</div>
+<div>
+<h4 class="font-bold">Lash<br/>Extensions</h4>
+<p class="text-[10px] opacity-60 uppercase tracking-widest mt-1">Lavender Suite</p>
+</div>
+</div>
+<!-- Service 2 -->
+<div class="aspect-square glass rounded-xl p-5 flex flex-col justify-between group overflow-hidden relative">
+<div class="absolute -right-4 -top-4 w-20 h-20 bg-primary/20 rounded-full blur-2xl group-hover:bg-primary/40 transition-all"></div>
+<div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+<span class="material-icons-round text-primary">brush</span>
+</div>
+<div>
+<h4 class="font-bold">Nail<br/>Art</h4>
+<p class="text-[10px] opacity-60 uppercase tracking-widest mt-1">Dusty Rose</p>
+</div>
+</div>
+<!-- Service 3 -->
+<div class="aspect-square glass rounded-xl p-5 flex flex-col justify-between group overflow-hidden relative">
+<div class="absolute -right-4 -top-4 w-20 h-20 bg-amber-400/20 rounded-full blur-2xl group-hover:bg-amber-400/40 transition-all"></div>
+<div class="w-12 h-12 rounded-full bg-amber-400/20 flex items-center justify-center">
+<span class="material-icons-round text-amber-300">content_cut</span>
+</div>
+<div>
+<h4 class="font-bold">Hair<br/>Styling</h4>
+<p class="text-[10px] opacity-60 uppercase tracking-widest mt-1">Champagne Salon</p>
+</div>
+</div>
+<!-- Service 4 -->
+<div class="aspect-square glass rounded-xl p-5 flex flex-col justify-between group overflow-hidden relative">
+<div class="absolute -right-4 -top-4 w-20 h-20 bg-blue-400/20 rounded-full blur-2xl group-hover:bg-blue-400/40 transition-all"></div>
+<div class="w-12 h-12 rounded-full bg-blue-400/20 flex items-center justify-center">
+<span class="material-icons-round text-blue-300">face</span>
+</div>
+<div>
+<h4 class="font-bold">Facial<br/>Care</h4>
+<p class="text-[10px] opacity-60 uppercase tracking-widest mt-1">Oceanic Calm</p>
+</div>
+</div>
+<!-- Service 5 -->
+<div class="aspect-square glass rounded-xl p-5 flex flex-col justify-between group overflow-hidden relative">
+<div class="absolute -right-4 -top-4 w-20 h-20 bg-emerald-400/20 rounded-full blur-2xl group-hover:bg-emerald-400/40 transition-all"></div>
+<div class="w-12 h-12 rounded-full bg-emerald-400/20 flex items-center justify-center">
+<span class="material-icons-round text-emerald-300">spa</span>
+</div>
+<div>
+<h4 class="font-bold">Full Body<br/>Massage</h4>
+<p class="text-[10px] opacity-60 uppercase tracking-widest mt-1">Zen Garden</p>
+</div>
+</div>
+<!-- Service 6 -->
+<div class="aspect-square glass rounded-xl p-5 flex flex-col justify-between group overflow-hidden relative">
+<div class="absolute -right-4 -top-4 w-20 h-20 bg-rose-400/20 rounded-full blur-2xl group-hover:bg-rose-400/40 transition-all"></div>
+<div class="w-12 h-12 rounded-full bg-rose-400/20 flex items-center justify-center">
+<span class="material-icons-round text-rose-300">auto_fix_high</span>
+</div>
+<div>
+<h4 class="font-bold">Brows<br/>Design</h4>
+<p class="text-[10px] opacity-60 uppercase tracking-widest mt-1">Ethereal Glow</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] glass rounded-full h-18 px-8 py-3 flex items-center justify-between z-[100] border border-white/10 shadow-2xl">
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-icons-round">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-500 hover:text-rose-white transition-colors">
+<span class="material-icons-round">explore</span>
+<span class="text-[10px] font-medium">Discover</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-500 hover:text-rose-white transition-colors relative">
+<span class="material-icons-round">calendar_today</span>
+<span class="text-[10px] font-medium">Bookings</span>
+<span class="absolute -top-1 -right-1 w-1.5 h-1.5 bg-primary rounded-full"></span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-500 hover:text-rose-white transition-colors">
+<span class="material-icons-round">chat_bubble_outline</span>
+<span class="text-[10px] font-medium">Messages</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-500 hover:text-rose-white transition-colors">
+<span class="material-icons-round">person_outline</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</nav>
+</body></html>

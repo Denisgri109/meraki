@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { View, ActivityIndicator, StyleSheet, Linking } from 'react-native';
+import { NavigationContainer, LinkingOptions, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
+import { DeepLinkHandler } from '../components/DeepLinkHandler';
 import { AuthStack } from './AuthStack';
 import { ClientTabs } from './ClientTabs';
 import { MasterTabs } from './MasterTabs';
@@ -11,12 +12,49 @@ import { OwnerTabs } from './OwnerTabs';
 import { MasterOnboardingScreen } from '../screens/master';
 import { colors } from '../theme';
 
+import { ChatScreen } from '../screens/chat';
+
+// Deep link configuration for NFC stamp handling
+const linking: LinkingOptions<RootStackParamList> = {
+    prefixes: ['meraki://', 'https://meraki.app'],
+    config: {
+        screens: {
+            ClientApp: {
+                path: 'loyalty',
+                screens: {
+                    HomeStack: {
+                        path: 'stamp',
+                    },
+                },
+            },
+            Chat: {
+                path: 'chat/:conversationId',
+                parse: {
+                    conversationId: (conversationId) => `${conversationId}`,
+                },
+            },
+        },
+    },
+    // Handle deep links manually for stamp processing
+    async getInitialURL() {
+        const url = await Linking.getInitialURL();
+        return url;
+    },
+    subscribe(listener) {
+        const subscription = Linking.addEventListener('url', ({ url }) => {
+            listener(url);
+        });
+        return () => subscription.remove();
+    },
+};
+
 export type RootStackParamList = {
     Auth: undefined;
     ClientApp: undefined;
     MasterApp: undefined;
     MasterOnboarding: undefined;
     OwnerApp: undefined;
+    Chat: { conversationId: string; otherUser: any };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -61,21 +99,47 @@ export function AppNavigator() {
     };
 
     return (
-        <NavigationContainer>
+        <NavigationContainer
+            linking={linking}
+            theme={{
+                dark: true,
+                colors: {
+                    primary: colors.primary,
+                    background: 'transparent',
+                    card: colors.surface,
+                    text: colors.text,
+                    border: colors.border,
+                    notification: colors.primary,
+                },
+                fonts: DefaultTheme.fonts,
+            }}
+        >
             <NotificationProvider>
-                <Stack.Navigator
-                    initialRouteName={getInitialRoute()}
-                    screenOptions={{
-                        headerShown: false,
-                        contentStyle: { backgroundColor: colors.background },
-                    }}
-                >
-                    {!session ? (
-                        <Stack.Screen name="Auth" component={AuthStack} />
-                    ) : (
-                        renderAppScreens()
-                    )}
-                </Stack.Navigator>
+                <DeepLinkHandler>
+                    <Stack.Navigator
+                        initialRouteName={getInitialRoute()}
+                        screenOptions={{
+                            headerShown: false,
+                            contentStyle: { backgroundColor: colors.background },
+                        }}
+                    >
+                        {!session ? (
+                            <Stack.Screen name="Auth" component={AuthStack} />
+                        ) : (
+                            <>
+                                {renderAppScreens()}
+                                <Stack.Screen
+                                    name="Chat"
+                                    component={ChatScreen}
+                                    options={{
+                                        presentation: 'card',
+                                        animation: 'slide_from_right',
+                                    }}
+                                />
+                            </>
+                        )}
+                    </Stack.Navigator>
+                </DeepLinkHandler>
             </NotificationProvider>
         </NavigationContainer>
     );

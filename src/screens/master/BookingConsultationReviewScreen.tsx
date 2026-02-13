@@ -7,13 +7,14 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Image,
-    Alert,
     RefreshControl,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
-import { Button, Card, ScreenBackground } from '../../components/ui';
+import { Button, Card, ScreenBackground, MerakiText } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 import { BookingConsultation, Profile, Service } from '../../types/database';
 
@@ -31,6 +32,7 @@ const STATUS_FILTERS = [
 
 export function BookingConsultationReviewScreen() {
     const navigation = useNavigation<any>();
+    const { showAlert, showConfirm } = useModal();
     const [consultations, setConsultations] = useState<ConsultationWithDetails[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -113,17 +115,17 @@ export function BookingConsultationReviewScreen() {
 
             if (error) throw error;
 
-            Alert.alert(
+            showAlert(
                 'Approved!',
                 `Client can now proceed with booking. The approval is valid for 7 days.`,
-                [{ text: 'OK' }]
+                'success'
             );
 
             setSelectedConsultation(null);
             fetchConsultations();
         } catch (error: any) {
             console.error('Error approving consultation:', error);
-            Alert.alert('Error', error.message || 'Failed to approve consultation');
+            showAlert('Error', error.message || 'Failed to approve consultation', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -146,63 +148,60 @@ export function BookingConsultationReviewScreen() {
 
             if (error) throw error;
 
-            Alert.alert(
+            showConfirm(
                 'Chat Requested',
                 'The client has been notified. You can now start a conversation.',
-                [
-                    {
-                        text: 'Open Chat',
-                        onPress: () => openChatWithClient(consultation),
-                    },
-                    { text: 'Later', style: 'cancel' },
-                ]
+                () => openChatWithClient(consultation),
+                {
+                    confirmText: 'Open Chat',
+                    cancelText: 'Later',
+                    type: 'success'
+                }
             );
 
             setSelectedConsultation(null);
             fetchConsultations();
         } catch (error: any) {
             console.error('Error requesting chat:', error);
-            Alert.alert('Error', error.message || 'Failed to request chat');
+            showAlert('Error', error.message || 'Failed to request chat', 'error');
         } finally {
             setActionLoading(false);
         }
     };
 
     const handleDecline = async (consultation: ConsultationWithDetails) => {
-        Alert.alert(
+        showConfirm(
             'Decline Consultation',
             'Are you sure you want to decline this consultation request?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Decline',
-                    style: 'destructive',
-                    onPress: async () => {
-                        setActionLoading(true);
-                        try {
-                            const { data: { user } } = await supabase.auth.getUser();
+            async () => {
+                setActionLoading(true);
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
 
-                            const { error } = await supabase
-                                .from('booking_consultations')
-                                .update({
-                                    status: 'declined',
-                                    master_id: user?.id,
-                                    responded_at: new Date().toISOString(),
-                                })
-                                .eq('id', consultation.id);
+                    const { error } = await supabase
+                        .from('booking_consultations')
+                        .update({
+                            status: 'declined',
+                            master_id: user?.id,
+                            responded_at: new Date().toISOString(),
+                        })
+                        .eq('id', consultation.id);
 
-                            if (error) throw error;
+                    if (error) throw error;
 
-                            setSelectedConsultation(null);
-                            fetchConsultations();
-                        } catch (error: any) {
-                            Alert.alert('Error', error.message || 'Failed to decline consultation');
-                        } finally {
-                            setActionLoading(false);
-                        }
-                    },
-                },
-            ]
+                    setSelectedConsultation(null);
+                    fetchConsultations();
+                } catch (error: any) {
+                    showAlert('Error', error.message || 'Failed to decline consultation', 'error');
+                } finally {
+                    setActionLoading(false);
+                }
+            },
+            {
+                confirmText: 'Decline',
+                cancelText: 'Cancel',
+                type: 'error'
+            }
         );
     };
 
@@ -318,13 +317,13 @@ export function BookingConsultationReviewScreen() {
                     )}
                 </View>
 
-                {consultation.photo_urls?.length > 0 && (
+                {(consultation.photo_urls?.length ?? 0) > 0 && (
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         style={styles.photoScroll}
                     >
-                        {consultation.photo_urls.map((url, idx) => (
+                        {consultation.photo_urls!.map((url, idx) => (
                             <Image key={idx} source={{ uri: url }} style={styles.photoThumb} />
                         ))}
                     </ScrollView>
@@ -345,12 +344,12 @@ export function BookingConsultationReviewScreen() {
                 <View style={styles.modalContent}>
                     <ScrollView showsVerticalScrollIndicator={false}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Consultation Request</Text>
+                            <MerakiText variant="h2">Consultation Request</MerakiText>
                             <TouchableOpacity
                                 onPress={() => setSelectedConsultation(null)}
                                 style={styles.closeButton}
                             >
-                                <Text style={styles.closeButtonText}>✕</Text>
+                                <MaterialCommunityIcons name="close" size={20} color={colors.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
@@ -431,11 +430,11 @@ export function BookingConsultationReviewScreen() {
                         </View>
 
                         {/* Photos */}
-                        {selectedConsultation.photo_urls?.length > 0 && (
+                        {(selectedConsultation.photo_urls?.length ?? 0) > 0 && (
                             <View style={styles.modalSection}>
                                 <Text style={styles.sectionTitle}>Photos</Text>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                    {selectedConsultation.photo_urls.map((url, idx) => (
+                                    {selectedConsultation.photo_urls!.map((url, idx) => (
                                         <Image
                                             key={idx}
                                             source={{ uri: url }}
@@ -466,7 +465,7 @@ export function BookingConsultationReviewScreen() {
                                 {actionLoading ? (
                                     <ActivityIndicator color="#fff" size="small" />
                                 ) : (
-                                    <Text style={styles.chatButtonText}>💬 Chat</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><MaterialCommunityIcons name="chat-outline" size={16} color="#fff" /><Text style={styles.chatButtonText}>Chat</Text></View>
                                 )}
                             </TouchableOpacity>
 
@@ -478,7 +477,7 @@ export function BookingConsultationReviewScreen() {
                                 {actionLoading ? (
                                     <ActivityIndicator color="#fff" size="small" />
                                 ) : (
-                                    <Text style={styles.approveButtonText}>✓ Approve</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><MaterialCommunityIcons name="check" size={16} color="#fff" /><Text style={styles.approveButtonText}>Approve</Text></View>
                                 )}
                             </TouchableOpacity>
                         </View>
@@ -486,9 +485,12 @@ export function BookingConsultationReviewScreen() {
 
                     {selectedConsultation.status === 'approved' && (
                         <View style={styles.statusMessage}>
-                            <Text style={styles.statusMessageText}>
-                                ✓ Approved on {new Date(selectedConsultation.responded_at || '').toLocaleDateString()}
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <MaterialCommunityIcons name="check-circle" size={16} color={colors.success} />
+                                <Text style={styles.statusMessageText}>
+                                    Approved on {new Date(selectedConsultation.responded_at || '').toLocaleDateString()}
+                                </Text>
+                            </View>
                         </View>
                     )}
 
@@ -522,9 +524,9 @@ export function BookingConsultationReviewScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Text style={styles.backButton}>← Back</Text>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Booking Consultations</Text>
+                    <MerakiText variant="h2">Booking Consultations</MerakiText>
                     <View style={{ width: 50 }} />
                 </View>
 
@@ -564,8 +566,8 @@ export function BookingConsultationReviewScreen() {
                 >
                     {consultations.length === 0 ? (
                         <View style={styles.emptyState}>
-                            <Text style={styles.emptyIcon}>📋</Text>
-                            <Text style={styles.emptyTitle}>No consultations</Text>
+                            <MaterialCommunityIcons name="clipboard-text-outline" size={48} color={colors.textMuted} style={{ marginBottom: spacing.md }} />
+                            <MerakiText variant="h2" style={{ marginBottom: spacing.sm }}>No consultations</MerakiText>
                             <Text style={styles.emptySubtitle}>
                                 {statusFilter === 'pending'
                                     ? 'No pending consultation requests at the moment.'

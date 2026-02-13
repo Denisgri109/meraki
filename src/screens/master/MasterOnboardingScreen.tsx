@@ -5,7 +5,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
@@ -15,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { ScreenBackground, Button, Card } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 
 const ONBOARDING_STEPS = [
@@ -53,6 +53,7 @@ const ONBOARDING_STEPS = [
 export function MasterOnboardingScreen() {
     const navigation = useNavigation();
     const { user, refreshProfile } = useAuth();
+    const { showAlert } = useModal();
     const [currentStep, setCurrentStep] = useState(0);
     const [loading, setLoading] = useState(false);
     const [skipped, setSkipped] = useState(false);
@@ -84,25 +85,36 @@ export function MasterOnboardingScreen() {
             // Refresh profile to update context
             await refreshProfile();
 
-            // Show success message then navigate
-            Alert.alert(
+            // Setup success modal details
+            showAlert(
                 skipped ? 'Setup Skipped' : 'All Set!',
-                skipped 
+                skipped
                     ? 'You can complete your setup anytime from your profile settings.'
                     : 'You\'re ready to start accepting bookings!',
-                [
-                    { 
-                        text: "Let's Go!", 
-                        onPress: () => {
-                            // Navigate to MasterApp - the AppNavigator will handle the routing
-                            (navigation as any).navigate('MasterApp');
-                        }
+                'success',
+                {
+                    confirmText: "Let's Go!",
+                    onConfirm: () => {
+                        (navigation as any).navigate('MasterApp');
                     }
-                ]
+                }
             );
         } catch (error: any) {
             console.error('Error completing onboarding:', error);
-            Alert.alert('Error', 'Failed to save your preferences. Please try again.');
+            // Even if there's an error updating the profile (e.g. network), 
+            // we should let them proceed if they completed the steps locally
+            // but show an alert so they know the preference might not be saved
+            showAlert(
+                'Note',
+                'We saved your progress locally, but had trouble syncing with the server. You can still proceed!',
+                'info',
+                {
+                    confirmText: "Continue",
+                    onConfirm: () => {
+                        (navigation as any).navigate('MasterApp');
+                    }
+                }
+            );
         } finally {
             setLoading(false);
         }
@@ -114,6 +126,7 @@ export function MasterOnboardingScreen() {
     return (
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
+
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.keyboardView}
@@ -140,11 +153,11 @@ export function MasterOnboardingScreen() {
                             <Text style={styles.stepIndicator}>
                                 Step {currentStep + 1} of {ONBOARDING_STEPS.length}
                             </Text>
-                            
+
                             <Text style={styles.icon}>{currentStepData.icon}</Text>
-                            
+
                             <Text style={styles.title}>{currentStepData.title}</Text>
-                            
+
                             <Text style={styles.description}>
                                 {currentStepData.description}
                             </Text>
@@ -214,9 +227,9 @@ export function MasterOnboardingScreen() {
                                 fullWidth
                                 style={styles.button}
                             />
-                            
+
                             {!isLastStep && (
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     onPress={handleSkip}
                                     style={styles.skipButton}
                                 >

@@ -1,21 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Dimensions, Platform, ScrollView } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { ScreenBackground, Card, Button } from '../../components/ui';
+import { ScreenBackground, Card, Button, MerakiText } from '../../components/ui';
+import { NfcPairingModal } from '../../components/loyalty';
 import { colors, spacing } from '../../theme';
 
 const { width } = Dimensions.get('window');
 
 export function LoyaltyQRScreen() {
     const navigation = useNavigation();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [qrCode, setQrCode] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [scansCount, setScansCount] = useState(0);
+    const [showNfcModal, setShowNfcModal] = useState(false);
+
+    // Owners and Masters can pair NFC tags (both give stamps to clients)
+    const canPairNfc = profile?.role === 'owner' || profile?.role === 'master';
 
     useEffect(() => {
         if (user) {
@@ -95,14 +101,18 @@ export function LoyaltyQRScreen() {
                         onPress={() => navigation.goBack()}
                         style={styles.closeBtn}
                     />
-                    <Text style={styles.title}>Stamp Card QR</Text>
+                    <MerakiText variant="h2">Stamp Card QR</MerakiText>
                     <View style={{ width: 60 }} />
                 </View>
 
-                <View style={styles.content}>
-                    <Text style={styles.instruction}>
+                <ScrollView
+                    style={styles.scroll}
+                    contentContainerStyle={styles.content}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <MerakiText variant="body" color={colors.textSecondary} style={styles.instruction}>
                         Ask your client to scan this code to collect a stamp on your loyalty card.
-                    </Text>
+                    </MerakiText>
 
                     <Card style={styles.qrCard}>
                         <View style={styles.qrContainer}>
@@ -114,22 +124,49 @@ export function LoyaltyQRScreen() {
                                     backgroundColor="white"
                                 />
                             ) : (
-                                <Text>Generating...</Text>
+                                <MerakiText variant="caption" color={colors.textMuted}>Generating...</MerakiText>
                             )}
                         </View>
-                        <Text style={styles.securityNote}>
-                            🎫 Client scans this to collect stamps
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <MaterialCommunityIcons name="ticket-confirmation" size={14} color="#666" />
+                            <MerakiText variant="caption" style={styles.securityNote}>Client scans this to collect stamps</MerakiText>
+                        </View>
                     </Card>
 
                     <Card variant="glass" style={styles.statsCard}>
-                        <Text style={styles.statsLabel}>Stamps Given Today</Text>
-                        <Text style={styles.statsValue}>{scansCount}</Text>
-                        <Text style={styles.statsSub}>+1 stamp per scan</Text>
+                        <MerakiText variant="caption" color={colors.textMuted}>Stamps Given Today</MerakiText>
+                        <MerakiText variant="h1" color={colors.accent}>{scansCount}</MerakiText>
+                        <MerakiText variant="caption" color={colors.textSecondary}>+1 stamp per appointment</MerakiText>
                     </Card>
-                </View>
+
+                    {/* NFC Pairing - Owner & Master */}
+                    {canPairNfc && Platform.OS !== 'web' && (
+                        <Card variant="glass" style={styles.nfcCard}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.sm }}>
+                                <MaterialCommunityIcons name="antenna" size={20} color={colors.accent} />
+                                <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>NFC Tag Pairing</MerakiText>
+                            </View>
+                            <MerakiText variant="caption" color={colors.textSecondary} style={{ textAlign: 'center', marginBottom: spacing.md }}>
+                                Write your stamp link to an NFC sticker for instant client check-ins
+                            </MerakiText>
+                            <Button
+                                title="Pair NFC Tag"
+                                variant="primary"
+                                onPress={() => setShowNfcModal(true)}
+                                style={styles.nfcButton}
+                            />
+                        </Card>
+                    )}
+                </ScrollView>
+
+                {/* NFC Pairing Modal */}
+                <NfcPairingModal
+                    visible={showNfcModal}
+                    onClose={() => setShowNfcModal(false)}
+                    masterId={user?.id || ''}
+                />
             </SafeAreaView>
-        </ScreenBackground>
+        </ScreenBackground >
     );
 }
 
@@ -157,11 +194,15 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: colors.text,
     },
-    content: {
+    scroll: {
         flex: 1,
+    },
+    content: {
+        flexGrow: 1,
         alignItems: 'center',
         justifyContent: 'center',
         padding: spacing.xl,
+        paddingBottom: spacing.xxl * 2, // Extra padding for scrolling
     },
     instruction: {
         fontSize: 16,
@@ -202,6 +243,27 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: colors.textSecondary,
         marginTop: spacing.xs,
+    },
+    nfcCard: {
+        width: '100%',
+        padding: spacing.lg,
+        marginTop: spacing.md,
+        alignItems: 'center',
+    },
+    nfcTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: spacing.sm,
+    },
+    nfcDescription: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        marginBottom: spacing.md,
+    },
+    nfcButton: {
+        width: '100%',
     },
 });
 

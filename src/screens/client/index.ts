@@ -17,8 +17,13 @@ export { NotificationsScreen } from './NotificationsScreen';
 export { MenuScreen } from './MenuScreen';
 export { QRScannerScreen } from './QRScannerScreen';
 export { DiscoverMastersScreen } from './DiscoverMastersScreen';
-export { ConsultationWaitingScreen } from './ConsultationWaitingScreen';
+export { SearchMastersScreen } from './SearchMastersScreen';
+
 export * from './AppointmentListScreen';
 export * from './BookAndChatScreen';
+export { NFCScannerScreen } from './NFCScannerScreen';
+export { RewardsCatalogScreen } from './RewardsCatalogScreen';
+export { PointsHistoryScreen } from './PointsHistoryScreen';
+
 
 

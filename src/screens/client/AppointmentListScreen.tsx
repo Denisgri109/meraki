@@ -7,17 +7,18 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
-    Alert,
     Modal,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { format, addDays, isSameDay, differenceInHours } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, Button, ScreenBackground } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 import { eurosToCents } from '../../services/stripeService';
 
@@ -47,6 +48,7 @@ type Appointment = {
 export function AppointmentListScreen() {
     const navigation = useNavigation<any>();
     const { user, checkSession } = useAuth();
+    const { showAlert, showConfirm } = useModal();
 
     // State
     const [subTab, setSubTab] = useState<'upcoming' | 'past'>('upcoming'); // For appointments
@@ -142,8 +144,22 @@ export function AppointmentListScreen() {
 
     const handleCancel = (appointment: Appointment) => {
         const isLate = isWithinCancellationWindow(appointment.start_time);
-        setIsLateCancellation(isLate);
-        setAppointmentToCancel(appointment);
+        const penaltyFee = calculatePenaltyFee(appointment.price);
+
+        const message = isLate
+            ? `You are canceling within ${CANCELLATION_WINDOW_HOURS} hours of your appointment.\n\n⚠️ Late cancellation fee applies.\n\nYou will be charged ${LATE_CANCEL_FEE_PERCENTAGE}% (€${penaltyFee.toFixed(2)}).`
+            : 'Are you sure you want to cancel this appointment?';
+
+        showConfirm(
+            'Cancel Appointment',
+            message,
+            () => confirmCancel(appointment, isLate),
+            {
+                confirmText: isLate ? 'Cancel & Pay Fee' : 'Yes, Cancel',
+                cancelText: 'No, Keep it',
+                type: isLate ? 'error' : 'info'
+            }
+        );
     };
 
     // Send notification to Master about cancellation
@@ -175,21 +191,20 @@ export function AppointmentListScreen() {
         }
     };
 
-    const confirmCancel = async () => {
-        if (!appointmentToCancel) return;
+    const confirmCancel = async (appointment: Appointment, isLate: boolean) => {
         setCancellationLoading(true);
 
         try {
-            if (isLateCancellation) {
+            if (isLate) {
                 // Late cancellation: Capture penalty fee
-                const penaltyFee = calculatePenaltyFee(appointmentToCancel.price);
+                const penaltyFee = calculatePenaltyFee(appointment.price);
 
                 // Capture partial payment for late cancellation
-                if (appointmentToCancel.stripe_payment_intent_id) {
+                if (appointment.stripe_payment_intent_id) {
                     try {
                         await supabase.functions.invoke('capture-payment', {
                             body: {
-                                payment_intent_id: appointmentToCancel.stripe_payment_intent_id,
+                                payment_intent_id: appointment.stripe_payment_intent_id,
                                 amount_to_capture: eurosToCents(penaltyFee),
                             }
                         });
@@ -207,24 +222,25 @@ export function AppointmentListScreen() {
                         cancellation_fee_amount: eurosToCents(penaltyFee),
                         cancellation_reason: 'Late cancellation by client',
                     } as any)
-                    .eq('id', appointmentToCancel.id);
+                    .eq('id', appointment.id);
 
                 if (error) throw error;
 
                 // Notify master
-                await notifyMasterOfCancellation(appointmentToCancel, true, penaltyFee);
+                await notifyMasterOfCancellation(appointment, true, penaltyFee);
 
-                Alert.alert(
+                showAlert(
                     'Appointment Canceled',
-                    `A cancellation fee of €${penaltyFee.toFixed(2)} has been charged.`
+                    `A cancellation fee of €${penaltyFee.toFixed(2)} has been charged.`,
+                    'info'
                 );
             } else {
                 // Early cancellation: Release payment hold, no charge
-                if (appointmentToCancel.stripe_payment_intent_id) {
+                if (appointment.stripe_payment_intent_id) {
                     try {
                         await supabase.functions.invoke('cancel-payment', {
                             body: {
-                                payment_intent_id: appointmentToCancel.stripe_payment_intent_id,
+                                payment_intent_id: appointment.stripe_payment_intent_id,
                             }
                         });
                     } catch (e) {
@@ -239,21 +255,19 @@ export function AppointmentListScreen() {
                         status: 'cancelled_free',
                         cancellation_reason: 'Early cancellation by client',
                     } as any)
-                    .eq('id', appointmentToCancel.id);
+                    .eq('id', appointment.id);
 
                 if (error) throw error;
 
                 // Notify master
-                await notifyMasterOfCancellation(appointmentToCancel, false);
+                await notifyMasterOfCancellation(appointment, false);
 
-                Alert.alert('Appointment Canceled', 'Your appointment has been canceled successfully.');
+                showAlert('Appointment Canceled', 'Your appointment has been canceled successfully.', 'success');
             }
 
-            setAppointmentToCancel(null);
-            setIsLateCancellation(false);
             fetchAppointments();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setCancellationLoading(false);
         }
@@ -297,7 +311,7 @@ export function AppointmentListScreen() {
 
     const confirmReschedule = async () => {
         if (!selectedAppointment || !selectedDate || !selectedTime) {
-            Alert.alert('Error', 'Please select a new date and time');
+            showAlert('Error', 'Please select a new date and time', 'error');
             return;
         }
 
@@ -327,7 +341,7 @@ export function AppointmentListScreen() {
                 if (error) throw error;
 
                 await notifyMasterOfReschedule(selectedAppointment, newStartTime, true);
-                Alert.alert('Request Sent', 'This is a late reschedule. Your request has been sent to the master for approval.');
+                showAlert('Request Sent', 'This is a late reschedule. Your request has been sent to the master for approval.', 'info');
             } else {
                 // Early reschedule: Instant update, no approval needed
                 const { error } = await supabase
@@ -342,13 +356,13 @@ export function AppointmentListScreen() {
                 if (error) throw error;
 
                 await notifyMasterOfReschedule(selectedAppointment, newStartTime, false);
-                Alert.alert('Success', 'Your appointment has been rescheduled.');
+                showAlert('Success', 'Your appointment has been rescheduled.', 'success');
             }
 
             setShowRescheduleModal(false);
             fetchAppointments();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setRescheduleLoading(false);
         }
@@ -358,56 +372,54 @@ export function AppointmentListScreen() {
     const handleApproveMasterReschedule = async (apt: Appointment) => {
         if (!apt.proposed_start_time || !apt.proposed_end_time) return;
 
-        Alert.alert(
+        showConfirm(
             'Approve Reschedule',
             `Accept new time: ${format(new Date(apt.proposed_start_time), 'EEEE, MMM d at HH:mm')}?`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Approve',
-                    onPress: async () => {
-                        try {
-                            const { error } = await supabase
-                                .from('appointments')
-                                .update({
-                                    start_time: apt.proposed_start_time,
-                                    end_time: apt.proposed_end_time,
-                                    proposed_start_time: null,
-                                    proposed_end_time: null,
-                                    reschedule_initiated_by: null,
-                                    status: 'confirmed',
-                                } as any)
-                                .eq('id', apt.id);
+            async () => {
+                try {
+                    const { error } = await supabase
+                        .from('appointments')
+                        .update({
+                            start_time: apt.proposed_start_time,
+                            end_time: apt.proposed_end_time,
+                            proposed_start_time: null,
+                            proposed_end_time: null,
+                            reschedule_initiated_by: null,
+                            status: 'confirmed',
+                        } as any)
+                        .eq('id', apt.id);
 
-                            if (error) throw error;
+                    if (error) throw error;
 
-                            // Notify master
-                            const masterPushToken = apt.master?.push_token;
-                            if (masterPushToken) {
-                                await fetch('https://exp.host/--/api/v2/push/send', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Accept': 'application/json',
-                                        'Content-Type': 'application/json',
-                                    },
-                                    body: JSON.stringify({
-                                        to: masterPushToken,
-                                        sound: 'default',
-                                        title: 'Reschedule Approved',
-                                        body: `${user?.user_metadata?.full_name || 'Client'} approved your reschedule request.`,
-                                        data: { appointmentId: apt.id },
-                                    }),
-                                });
-                            }
+                    // Notify master
+                    const masterPushToken = apt.master?.push_token;
+                    if (masterPushToken) {
+                        await fetch('https://exp.host/--/api/v2/push/send', {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                to: masterPushToken,
+                                sound: 'default',
+                                title: 'Reschedule Approved',
+                                body: `${user?.user_metadata?.full_name || 'Client'} approved your reschedule request.`,
+                                data: { appointmentId: apt.id },
+                            }),
+                        });
+                    }
 
-                            Alert.alert('Success', 'Appointment rescheduled successfully.');
-                            fetchAppointments();
-                        } catch (error: any) {
-                            Alert.alert('Error', error.message);
-                        }
-                    },
-                },
-            ]
+                    showAlert('Success', 'Appointment rescheduled successfully.', 'success');
+                    fetchAppointments();
+                } catch (error: any) {
+                    showAlert('Error', error.message, 'error');
+                }
+            },
+            {
+                confirmText: 'Approve',
+                cancelText: 'Cancel'
+            }
         );
     };
 
@@ -441,12 +453,17 @@ export function AppointmentListScreen() {
                 conversationId = newConv.id;
             }
 
-            navigation.navigate('Chat', {
-                conversationId,
-                otherUser: { full_name: appointment.master?.full_name },
-            });
+            navigation.dispatch(
+                CommonActions.navigate({
+                    name: 'Chat',
+                    params: {
+                        conversationId,
+                        otherUser: { full_name: appointment.master?.full_name },
+                    },
+                })
+            );
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         }
     };
 
@@ -468,7 +485,7 @@ export function AppointmentListScreen() {
         cancelled: { bg: '#FEE2E2', text: '#991B1B' },
         cancelled_free: { bg: '#FEE2E2', text: '#991B1B' },
         cancelled_charge: { bg: '#FEE2E2', text: '#991B1B' },
-        reschedule_pending: { bg: 'rgba(139, 92, 246, 0.15)', text: colors.primary },
+        reschedule_pending: { bg: 'rgba(200, 160, 77, 0.15)', text: colors.primary },
         no_show: { bg: '#F3F4F6', text: '#374151' },
     };
 
@@ -507,37 +524,39 @@ export function AppointmentListScreen() {
             <SafeAreaView style={styles.container} edges={[]}>
 
                 {/* Premium Pill Tabs */}
-                <View style={styles.tabsContainer}>
-                    <View style={styles.subTabs}>
+                {/* Premium Pill Tabs - Styled to match BookAndChatScreen CustomTabBar */}
+                <View style={styles.tabContainer}>
+                    <View style={styles.tabBar}>
                         <TouchableOpacity
-                            style={[styles.subTab, subTab === 'upcoming' && styles.subTabActive]}
+                            style={[styles.tabItem]}
                             onPress={() => setSubTab('upcoming')}
                         >
                             {subTab === 'upcoming' && (
                                 <LinearGradient
-                                    colors={[colors.primary, colors.secondary]}
+                                    colors={[colors.primary, colors.champagne]}
                                     start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={styles.tabGradient}
+                                    end={{ x: 1, y: 1 }}
+                                    style={[StyleSheet.absoluteFillObject, { borderRadius: 10 }]}
                                 />
                             )}
-                            <Text style={[styles.subTabText, subTab === 'upcoming' && styles.subTabTextActive]}>
+                            <Text style={[styles.tabText, subTab === 'upcoming' && styles.tabTextActive]}>
                                 Upcoming ({upcomingAppointments.length})
                             </Text>
                         </TouchableOpacity>
+
                         <TouchableOpacity
-                            style={[styles.subTab, subTab === 'past' && styles.subTabActive]}
+                            style={[styles.tabItem]}
                             onPress={() => setSubTab('past')}
                         >
                             {subTab === 'past' && (
                                 <LinearGradient
-                                    colors={[colors.primary, colors.secondary]}
+                                    colors={[colors.primary, colors.champagne]}
                                     start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={styles.tabGradient}
+                                    end={{ x: 1, y: 1 }}
+                                    style={[StyleSheet.absoluteFillObject, { borderRadius: 10 }]}
                                 />
                             )}
-                            <Text style={[styles.subTabText, subTab === 'past' && styles.subTabTextActive]}>
+                            <Text style={[styles.tabText, subTab === 'past' && styles.tabTextActive]}>
                                 Past ({pastAppointments.length})
                             </Text>
                         </TouchableOpacity>
@@ -578,13 +597,13 @@ export function AppointmentListScreen() {
 
                                     <View style={styles.cardDetails}>
                                         <View style={styles.detailRow}>
-                                            <Text style={styles.detailIcon}>📅</Text>
+                                            <MaterialIcons name="event" size={16} color={colors.textSecondary} style={styles.detailIcon} />
                                             <Text style={styles.detailText}>
                                                 {format(date, 'EEEE, MMMM d, yyyy')}
                                             </Text>
                                         </View>
                                         <View style={styles.detailRow}>
-                                            <Text style={styles.detailIcon}>🕐</Text>
+                                            <MaterialIcons name="schedule" size={16} color={colors.textSecondary} style={styles.detailIcon} />
                                             <Text style={styles.detailText}>
                                                 {format(date, 'HH:mm')} • {apt.service?.duration_minutes || 60} min
                                             </Text>
@@ -596,9 +615,12 @@ export function AppointmentListScreen() {
                                         apt.proposed_start_time &&
                                         apt.reschedule_initiated_by !== user?.id && (
                                             <View style={styles.rescheduleProposalBox}>
-                                                <Text style={styles.rescheduleProposalTitle}>
-                                                    ✨ New time proposed by {apt.master?.full_name || 'specialist'}
-                                                </Text>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                                    <MaterialIcons name="auto-awesome" size={16} color={colors.primary} />
+                                                    <Text style={[styles.rescheduleProposalTitle, { marginBottom: 0 }]}>
+                                                        New time proposed by {apt.master?.full_name || 'specialist'}
+                                                    </Text>
+                                                </View>
                                                 <Text style={styles.rescheduleProposalTime}>
                                                     {format(new Date(apt.proposed_start_time), 'EEEE, MMM d at HH:mm')}
                                                 </Text>
@@ -607,7 +629,10 @@ export function AppointmentListScreen() {
                                                         style={styles.approveRescheduleButton}
                                                         onPress={() => handleApproveMasterReschedule(apt)}
                                                     >
-                                                        <Text style={styles.approveRescheduleText}>✓ Approve</Text>
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                                            <MaterialIcons name="check" size={16} color="#FFF" />
+                                                            <Text style={styles.approveRescheduleText}>Approve</Text>
+                                                        </View>
                                                     </TouchableOpacity>
                                                     <TouchableOpacity
                                                         style={styles.counterProposeButton}
@@ -617,7 +642,8 @@ export function AppointmentListScreen() {
                                                     </TouchableOpacity>
                                                 </View>
                                             </View>
-                                        )}
+                                        )
+                                    }
 
                                     <View style={styles.cardFooter}>
                                         <View>
@@ -634,7 +660,7 @@ export function AppointmentListScreen() {
                                                     style={styles.chatButton}
                                                     onPress={() => handleChat(apt)}
                                                 >
-                                                    <Text style={styles.chatButtonText}>💬</Text>
+                                                    <MaterialIcons name="chat-bubble-outline" size={16} color={colors.text} />
                                                 </TouchableOpacity>
                                                 <TouchableOpacity
                                                     style={styles.rescheduleButton}
@@ -657,9 +683,11 @@ export function AppointmentListScreen() {
                     ) : (
                         <View style={styles.emptyState}>
                             <View style={styles.emptyIconContainer}>
-                                <Text style={styles.emptyIcon}>
-                                    {subTab === 'upcoming' ? '📅' : '📋'}
-                                </Text>
+                                <MaterialIcons
+                                    name={subTab === 'upcoming' ? 'event-available' : 'history'}
+                                    size={36}
+                                    color={colors.textMuted}
+                                />
                             </View>
                             <Text style={styles.emptyTitle}>
                                 {subTab === 'upcoming' ? 'No Upcoming Appointments' : 'No Past Appointments'}
@@ -682,55 +710,6 @@ export function AppointmentListScreen() {
             </SafeAreaView>
 
             {/* Modals */}
-            <Modal
-                visible={!!appointmentToCancel}
-                animationType="fade"
-                transparent={true}
-                onRequestClose={() => setAppointmentToCancel(null)}
-            >
-                <View style={styles.overlayContainer}>
-                    <TouchableOpacity
-                        style={styles.backdrop}
-                        activeOpacity={1}
-                        onPress={() => setAppointmentToCancel(null)}
-                    />
-                    <View style={styles.dialogContainer}>
-                        <Text style={styles.dialogTitle}>Cancel Appointment</Text>
-                        <Text style={styles.dialogMessage}>
-                            {isLateCancellation && appointmentToCancel
-                                ? `You are canceling within ${CANCELLATION_WINDOW_HOURS} hours of your appointment. Per our policy, you will be charged ${LATE_CANCEL_FEE_PERCENTAGE}% (€${calculatePenaltyFee(appointmentToCancel.price).toFixed(2)}).`
-                                : 'Are you sure you want to cancel this appointment?'}
-                        </Text>
-                        {isLateCancellation && (
-                            <View style={styles.warningBox}>
-                                <Text style={styles.warningText}>⚠️ Late cancellation fee applies</Text>
-                            </View>
-                        )}
-                        <View style={styles.dialogButtons}>
-                            <TouchableOpacity
-                                style={styles.dialogButtonCancel}
-                                onPress={() => {
-                                    setAppointmentToCancel(null);
-                                    setIsLateCancellation(false);
-                                }}
-                                disabled={cancellationLoading}
-                            >
-                                <Text style={styles.dialogButtonCancelText}>No, Keep it</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.dialogButtonConfirm}
-                                onPress={confirmCancel}
-                                disabled={cancellationLoading}
-                            >
-                                <Text style={styles.dialogButtonConfirmText}>
-                                    {cancellationLoading ? 'Processing...' : (isLateCancellation ? 'Cancel & Pay Fee' : 'Yes, Cancel')}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
             <Modal
                 visible={showRescheduleModal}
                 animationType="slide"
@@ -813,7 +792,7 @@ export function AppointmentListScreen() {
                     </ScreenBackground>
                 </SafeAreaView>
             </Modal>
-        </ScreenBackground>
+        </ScreenBackground >
     );
 }
 
@@ -821,48 +800,50 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    // New Tab Styles (Matching BookAndChatScreen)
+    tabContainer: {
+        paddingHorizontal: 20,
+        paddingBottom: 8,
+        paddingTop: 4,
+        backgroundColor: 'transparent',
+    },
+    tabBar: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 12,
+        padding: 2,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    tabItem: {
+        flex: 1,
+        paddingVertical: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 10,
+        gap: 1,
+    },
+    tabText: {
+        fontSize: 13, // Slightly larger than the top nav
+        fontWeight: '600',
+        color: 'rgba(255,255,255,0.4)',
+    },
+    tabTextActive: {
+        color: '#FFFFFF',
+        fontWeight: '700',
+    },
+
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
     content: {
-        padding: spacing.lg,
+        padding: spacing.md,
         paddingBottom: 100,
     },
-    // Premium Pill Tabs
-    tabsContainer: {
-        paddingHorizontal: spacing.lg,
-        marginTop: spacing.md
-    },
-    subTabs: {
-        flexDirection: 'row',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 16,
-        padding: 4,
-    },
-    subTab: {
-        flex: 1,
-        paddingVertical: 12,
-        alignItems: 'center',
-        borderRadius: 12,
-        overflow: 'hidden',
-    },
-    subTabActive: {},
-    tabGradient: {
-        ...StyleSheet.absoluteFillObject,
-        borderRadius: 12,
-        opacity: 0.9
-    },
-    subTabText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.textSecondary,
-        zIndex: 1,
-    },
-    subTabTextActive: {
-        color: '#FFFFFF',
-    },
+
+
     card: {
         padding: spacing.md,
         marginBottom: spacing.md,
@@ -901,7 +882,6 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     detailIcon: {
-        fontSize: 14,
         marginRight: spacing.sm,
         width: 20,
     },
@@ -1174,12 +1154,12 @@ const styles = StyleSheet.create({
     },
     // Master-initiated reschedule proposal styles
     rescheduleProposalBox: {
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        backgroundColor: 'rgba(200, 160, 77, 0.1)',
         borderRadius: 12,
         padding: spacing.md,
         marginBottom: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(139, 92, 246, 0.3)',
+        borderColor: 'rgba(200, 160, 77, 0.3)',
     },
     rescheduleProposalTitle: {
         fontSize: 14,

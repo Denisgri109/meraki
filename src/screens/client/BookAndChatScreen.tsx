@@ -1,29 +1,28 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScreenBackground } from '../../components/ui';
+import { MaterialIcons } from '@expo/vector-icons';
+import { ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 
 // Import Screens
 import { AppointmentListScreen } from './AppointmentListScreen';
 import { BookingScreen } from './BookingScreen';
-import { ChatListScreen, ChatScreen } from '../chat';
+import { ChatListScreen } from '../chat';
 import { ServiceDetailScreen } from './ServiceDetailScreen';
 import { SelectDateTimeScreen } from './SelectDateTimeScreen';
 import { BookingConfirmScreen } from './BookingConfirmScreen';
-import { ConsultationWaitingScreen } from './ConsultationWaitingScreen';
 
 // --- STACKS ---
 
-// Booking Stack
 export type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
     SelectDateTime: { serviceId: string; masterId: string };
     BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
-    ConsultationWaiting: { consultationId: string; serviceId: string; masterId: string };
 };
 
 const BookingStack = createNativeStackNavigator<BookingStackParamList>();
@@ -35,15 +34,12 @@ function BookingStackNavigator() {
             <BookingStack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
             <BookingStack.Screen name="SelectDateTime" component={SelectDateTimeScreen} />
             <BookingStack.Screen name="BookingConfirm" component={BookingConfirmScreen} />
-            <BookingStack.Screen name="ConsultationWaiting" component={ConsultationWaitingScreen} />
         </BookingStack.Navigator>
     );
 }
 
-// Messages Stack
 export type MessagesStackParamList = {
-    ChatList: undefined;
-    Chat: { conversationId: string; otherUser: any };
+    MessagesMain: undefined;
 };
 
 const MessagesStack = createNativeStackNavigator<MessagesStackParamList>();
@@ -51,20 +47,17 @@ const MessagesStack = createNativeStackNavigator<MessagesStackParamList>();
 function MessagesStackNavigator() {
     return (
         <MessagesStack.Navigator screenOptions={{ headerShown: false }}>
-            <MessagesStack.Screen name="ChatList" component={ChatListScreen} />
-            <MessagesStack.Screen name="Chat" component={ChatScreen} />
+            <MessagesStack.Screen name="MessagesMain" component={ChatListScreen} />
         </MessagesStack.Navigator>
     );
 }
 
-// Appointment Stack (for Chat navigation)
 const AppointmentStack = createNativeStackNavigator();
 
 function AppointmentStackNavigator() {
     return (
         <AppointmentStack.Navigator screenOptions={{ headerShown: false }}>
             <AppointmentStack.Screen name="AppointmentList" component={AppointmentListScreen} />
-            <AppointmentStack.Screen name="Chat" component={ChatScreen} />
         </AppointmentStack.Navigator>
     );
 }
@@ -73,7 +66,6 @@ function AppointmentStackNavigator() {
 
 const TopTab = createMaterialTopTabNavigator();
 
-// Lazy placeholder to prevent white flash during tab loading
 function LazyPlaceholder() {
     return (
         <View style={styles.lazyPlaceholder}>
@@ -82,20 +74,19 @@ function LazyPlaceholder() {
     );
 }
 
+const TAB_CONFIG = [
+    { name: 'Appointments', icon: 'calendar-today', label: 'Appointments' },
+    { name: 'BookNew', icon: 'add-circle-outline', label: 'Book New' },
+    { name: 'Messages', icon: 'chat-bubble-outline', label: 'Messages' },
+];
+
 function CustomTabBar({ state, descriptors, navigation }: any) {
     return (
         <View style={styles.tabContainer}>
             <View style={styles.tabBar}>
                 {state.routes.map((route: any, index: number) => {
-                    const { options } = descriptors[route.key];
-                    const label =
-                        options.tabBarLabel !== undefined
-                            ? options.tabBarLabel
-                            : options.title !== undefined
-                                ? options.title
-                                : route.name;
-
                     const isFocused = state.index === index;
+                    const config = TAB_CONFIG[index];
 
                     const onPress = () => {
                         const event = navigation.emit({
@@ -103,7 +94,6 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                             target: route.key,
                             canPreventDefault: true,
                         });
-
                         if (!isFocused && !event.defaultPrevented) {
                             navigation.navigate(route.name, route.params);
                         }
@@ -114,13 +104,26 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                             key={route.key}
                             accessibilityRole="button"
                             accessibilityState={isFocused ? { selected: true } : {}}
-                            accessibilityLabel={options.tabBarAccessibilityLabel}
-                            testID={options.tabBarTestID}
                             onPress={onPress}
-                            style={[styles.tabItem, isFocused && styles.tabItemActive]}
+                            style={[styles.tabItem]}
                         >
+                            {isFocused ? (
+                                <LinearGradient
+                                    colors={[colors.primary, colors.champagne]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={[StyleSheet.absoluteFillObject, { borderRadius: 11 }]}
+                                />
+                            ) : null}
+
+                            <MaterialIcons
+                                name={config.icon as any}
+                                size={18}
+                                color={isFocused ? '#fff' : 'rgba(255,255,255,0.4)'}
+                                style={{ marginBottom: 2 }}
+                            />
                             <Text style={[styles.tabText, isFocused && styles.tabTextActive]}>
-                                {label}
+                                {config.label}
                             </Text>
                         </TouchableOpacity>
                     );
@@ -134,9 +137,6 @@ export function BookAndChatScreen() {
     return (
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
-                {/* Header */}
-
-
                 <TopTab.Navigator
                     tabBar={props => <CustomTabBar {...props} />}
                     style={{ backgroundColor: colors.background }}
@@ -171,39 +171,43 @@ export function BookAndChatScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background || '#121212', // Fallback to dark
+        backgroundColor: colors.background, // Ensure this matches the screen background
     },
-
     tabContainer: {
-        paddingHorizontal: spacing.lg,
-        paddingBottom: spacing.md,
+        paddingHorizontal: 20,
+        paddingBottom: 8, // Reduced from 12
+        paddingTop: 4, // Reduced from 8
         backgroundColor: 'transparent',
     },
     tabBar: {
         flexDirection: 'row',
-        backgroundColor: colors.surface, // Dark background
-        borderRadius: 16,
-        padding: 4,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 12, // Slightly reduced
+        padding: 2, // Reduced from 3
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: 'rgba(255,255,255,0.08)',
     },
     tabItem: {
         flex: 1,
-        paddingVertical: 10, // Slightly taller
+        paddingVertical: 8, // Reduced from 10
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 12,
+        borderRadius: 10, // Reduced from 11
+        gap: 1,
     },
     tabItemActive: {
-        backgroundColor: colors.primary, // Pop with primary color
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
     },
     tabText: {
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: '600',
-        color: colors.textSecondary, // Readable inactive text
+        color: 'rgba(255,255,255,0.4)',
     },
     tabTextActive: {
-        color: '#FFFFFF', // White text on primary
+        color: '#FFFFFF',
         fontWeight: '700',
     },
     lazyPlaceholder: {

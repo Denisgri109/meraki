@@ -1,26 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
-    Alert,
     TextInput,
     Modal,
     Image,
 } from 'react-native';
+import { useModal } from '../../contexts/ModalContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
-import { ScreenBackground, Button, ConfirmModal } from '../../components/ui';
-import { colors, spacing } from '../../theme';
+import { ScreenBackground, Button, ConfirmModal, MerakiText } from '../../components/ui';
+import { colors, spacing, gradients } from '../../theme';
 
 interface Product {
     id: string;
@@ -36,15 +36,16 @@ interface Product {
 }
 
 const CATEGORIES = [
-    { label: 'All', icon: '✦' },
-    { label: 'Nails', icon: '💅' },
-    { label: 'Lashes', icon: '👁️' },
-    { label: 'Brows', icon: '✨' },
-    { label: 'Equipment', icon: '⚙️' },
+    { label: 'All', icon: 'sparkles' },
+    { label: 'Nails', icon: 'hand-heart' },
+    { label: 'Lashes', icon: 'eye' },
+    { label: 'Brows', icon: 'face-woman' },
+    { label: 'Equipment', icon: 'tools' },
 ];
 
 export function InventoryScreen() {
     const navigation = useNavigation<any>();
+    const { showAlert } = useModal();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
@@ -126,7 +127,6 @@ export function InventoryScreen() {
 
             // Check if we need to trigger low stock alert
             if (newStockCount < newThreshold) {
-                // Trigger low stock notification edge function
                 try {
                     await supabase.functions.invoke('low-stock-alert');
                 } catch (e) {
@@ -134,11 +134,11 @@ export function InventoryScreen() {
                 }
             }
 
-            Alert.alert('Success', 'Stock updated successfully');
+            showAlert('Success', 'Stock updated successfully', 'success');
             setEditingProduct(null);
             fetchProducts();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setSaving(false);
         }
@@ -147,13 +147,13 @@ export function InventoryScreen() {
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission needed', 'Please grant gallery access to upload product photos.');
+            showAlert('Permission needed', 'Please grant gallery access to upload product photos.', 'warning');
             return;
         }
 
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images'] as any,
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
                 aspect: [1, 1], // Square aspect for products
                 quality: 0.8,
@@ -163,7 +163,7 @@ export function InventoryScreen() {
                 uploadImage(result.assets[0]);
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to pick image');
+            showAlert('Error', 'Failed to pick image', 'error');
         }
     };
 
@@ -200,7 +200,7 @@ export function InventoryScreen() {
 
         } catch (error: any) {
             console.error('Upload error:', error);
-            Alert.alert('Error', error.message || 'Failed to upload image');
+            showAlert('Error', error.message || 'Failed to upload image', 'error');
         } finally {
             setUploading(false);
         }
@@ -208,7 +208,7 @@ export function InventoryScreen() {
 
     const handleAddProduct = async () => {
         if (!newProduct.name || !newProduct.retail_price || !newProduct.wholesale_price) {
-            Alert.alert('Error', 'Please fill in all required fields (Name, Retail Price, Wholesale Price)');
+            showAlert('Error', 'Please fill in all required fields (Name, Retail Price, Wholesale Price)', 'error');
             return;
         }
 
@@ -228,12 +228,12 @@ export function InventoryScreen() {
 
             if (error) throw error;
 
-            Alert.alert('Success', 'Product added successfully');
+            showAlert('Success', 'Product added successfully', 'success');
             setShowAddModal(false);
             resetNewProduct();
             fetchProducts();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setSaving(false);
         }
@@ -276,7 +276,7 @@ export function InventoryScreen() {
                 }
             }
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         }
     };
 
@@ -297,11 +297,11 @@ export function InventoryScreen() {
 
     const getCategoryIcon = (category: string | null) => {
         switch (category) {
-            case 'Nails': return '💅';
-            case 'Lashes': return '👁️';
-            case 'Brows': return '✨';
-            case 'Equipment': return '🔧';
-            default: return '🛍️';
+            case 'Nails': return 'hand-heart';
+            case 'Lashes': return 'eye';
+            case 'Brows': return 'face-woman';
+            case 'Equipment': return 'tools';
+            default: return 'shopping';
         }
     };
 
@@ -329,17 +329,17 @@ export function InventoryScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Text style={styles.backButton}>←</Text>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Inventory</Text>
+                    <MerakiText variant="h3" style={styles.headerTitle}>Inventory</MerakiText>
                     <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
-                        <Text style={styles.addButtonText}>+</Text>
+                        <MaterialCommunityIcons name="plus" size={24} color={colors.text} />
                     </TouchableOpacity>
                 </View>
 
                 {/* Search Bar */}
                 <View style={styles.searchContainer}>
-                    <Text style={styles.searchIcon}>🔍</Text>
+                    <MaterialCommunityIcons name="magnify" size={20} color={colors.textMuted} style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search products..."
@@ -349,7 +349,7 @@ export function InventoryScreen() {
                     />
                     {searchQuery.length > 0 && (
                         <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Text style={styles.clearSearch}>✕</Text>
+                            <MaterialCommunityIcons name="close" size={20} color={colors.textMuted} />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -361,30 +361,33 @@ export function InventoryScreen() {
                     style={styles.categoriesScroll}
                     contentContainerStyle={styles.categories}
                 >
-                    {CATEGORIES.map((cat) => (
-                        <TouchableOpacity
-                            key={cat.label}
-                            onPress={() => setSelectedCategory(cat.label)}
-                            activeOpacity={0.7}
-                        >
-                            {selectedCategory === cat.label ? (
-                                <LinearGradient
-                                    colors={['#D48A82', '#C0A0E0']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={styles.categoryChipActive}
-                                >
-                                    <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                                    <Text style={styles.categoryTextActive}>{cat.label}</Text>
-                                </LinearGradient>
-                            ) : (
-                                <View style={styles.categoryChip}>
-                                    <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                                    <Text style={styles.categoryText}>{cat.label}</Text>
-                                </View>
-                            )}
-                        </TouchableOpacity>
-                    ))}
+                    {CATEGORIES.map((cat) => {
+                        const isSelected = selectedCategory === cat.label;
+                        return (
+                            <TouchableOpacity
+                                key={cat.label}
+                                onPress={() => setSelectedCategory(cat.label)}
+                                activeOpacity={0.7}
+                            >
+                                {isSelected ? (
+                                    <LinearGradient
+                                        colors={['#D48A82', '#C0A0E0']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={styles.categoryChipActive}
+                                    >
+                                        <MaterialCommunityIcons name={cat.icon as any} size={16} color={colors.text} style={{ marginRight: 6 }} />
+                                        <MerakiText variant="caption" style={styles.categoryTextActive}>{cat.label}</MerakiText>
+                                    </LinearGradient>
+                                ) : (
+                                    <View style={styles.categoryChip}>
+                                        <MaterialCommunityIcons name={cat.icon as any} size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
+                                        <MerakiText variant="caption" style={styles.categoryText}>{cat.label}</MerakiText>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })}
                 </ScrollView>
 
                 <ScrollView
@@ -397,33 +400,33 @@ export function InventoryScreen() {
                     {/* Summary Cards */}
                     <View style={styles.summaryRow}>
                         <View style={[styles.summaryCard, { backgroundColor: 'rgba(239,68,68,0.1)' }]}>
-                            <Text style={styles.summaryNumber}>{getOutOfStockProducts().length}</Text>
-                            <Text style={styles.summaryLabel}>Out of Stock</Text>
+                            <MerakiText variant="h2" style={styles.summaryNumber}>{getOutOfStockProducts().length}</MerakiText>
+                            <MerakiText variant="caption" style={styles.summaryLabel}>Out of Stock</MerakiText>
                         </View>
                         <View style={[styles.summaryCard, { backgroundColor: 'rgba(245,158,11,0.1)' }]}>
-                            <Text style={styles.summaryNumber}>{getLowStockProducts().length}</Text>
-                            <Text style={styles.summaryLabel}>Low Stock</Text>
+                            <MerakiText variant="h2" style={styles.summaryNumber}>{getLowStockProducts().length}</MerakiText>
+                            <MerakiText variant="caption" style={styles.summaryLabel}>Low Stock</MerakiText>
                         </View>
                         <View style={[styles.summaryCard, { backgroundColor: 'rgba(34,197,94,0.1)' }]}>
-                            <Text style={styles.summaryNumber}>{products.length}</Text>
-                            <Text style={styles.summaryLabel}>Total Products</Text>
+                            <MerakiText variant="h2" style={styles.summaryNumber}>{products.length}</MerakiText>
+                            <MerakiText variant="caption" style={styles.summaryLabel}>Total Products</MerakiText>
                         </View>
                     </View>
 
                     {/* Low Stock Alert */}
                     {getLowStockProducts().length > 0 && (
                         <View style={styles.alertCard}>
-                            <Text style={styles.alertIcon}>⚠️</Text>
-                            <Text style={styles.alertText}>
+                            <MaterialCommunityIcons name="alert" size={20} color="#F59E0B" style={styles.alertIcon} />
+                            <MerakiText variant="body" style={styles.alertText}>
                                 {getLowStockProducts().length} products need restocking
-                            </Text>
+                            </MerakiText>
                         </View>
                     )}
 
                     {/* Products List */}
-                    <Text style={styles.sectionTitle}>
+                    <MerakiText variant="caption" style={styles.sectionTitle}>
                         {selectedCategory === 'All' ? 'All Products' : selectedCategory} ({filteredProducts.length})
-                    </Text>
+                    </MerakiText>
 
                     {filteredProducts.length > 0 ? (
                         filteredProducts.map((product) => {
@@ -439,23 +442,23 @@ export function InventoryScreen() {
                                         {product.image_url ? (
                                             <Image source={{ uri: product.image_url }} style={styles.productImage} />
                                         ) : (
-                                            <Text style={styles.productEmoji}>{getCategoryIcon(product.category)}</Text>
+                                            <MaterialCommunityIcons name={getCategoryIcon(product.category) as any} size={24} color={colors.primary} />
                                         )}
                                     </View>
                                     <View style={styles.productInfo}>
-                                        <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
-                                        <Text style={styles.productCategory}>{product.category}</Text>
-                                        <Text style={styles.productThreshold}>
+                                        <MerakiText variant="body" style={styles.productName} numberOfLines={1}>{product.name}</MerakiText>
+                                        <MerakiText variant="caption" style={styles.productCategory}>{product.category}</MerakiText>
+                                        <MerakiText variant="caption" style={styles.productThreshold}>
                                             Alert at: {product.low_stock_threshold} units
-                                        </Text>
+                                        </MerakiText>
                                     </View>
                                     <View style={styles.stockControls}>
                                         <View style={styles.stockInfo}>
-                                            <Text style={styles.stockCount}>{product.stock_count}</Text>
+                                            <MerakiText variant="h3" style={styles.stockCount}>{product.stock_count}</MerakiText>
                                             <View style={[styles.stockBadge, { backgroundColor: status.bg }]}>
-                                                <Text style={[styles.stockBadgeText, { color: status.color }]}>
+                                                <MerakiText variant="caption" style={[styles.stockBadgeText, { color: status.color }]}>
                                                     {status.label}
-                                                </Text>
+                                                </MerakiText>
                                             </View>
                                         </View>
                                         <View style={styles.quickButtons}>
@@ -463,13 +466,13 @@ export function InventoryScreen() {
                                                 style={styles.quickButton}
                                                 onPress={() => handleQuickStockAdjust(product, -1)}
                                             >
-                                                <Text style={styles.quickButtonText}>−</Text>
+                                                <MaterialCommunityIcons name="minus" size={16} color={colors.text} />
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 style={styles.quickButton}
                                                 onPress={() => handleQuickStockAdjust(product, 1)}
                                             >
-                                                <Text style={styles.quickButtonText}>+</Text>
+                                                <MaterialCommunityIcons name="plus" size={16} color={colors.text} />
                                             </TouchableOpacity>
                                         </View>
                                     </View>
@@ -478,11 +481,11 @@ export function InventoryScreen() {
                         })
                     ) : (
                         <View style={styles.emptyState}>
-                            <Text style={styles.emptyIcon}>📦</Text>
-                            <Text style={styles.emptyText}>No products found</Text>
-                            <Text style={styles.emptySubtext}>
+                            <MaterialCommunityIcons name="package-variant" size={64} color={colors.textMuted} style={styles.emptyIcon} />
+                            <MerakiText variant="h3" style={styles.emptyText}>No products found</MerakiText>
+                            <MerakiText variant="body" style={styles.emptySubtext}>
                                 {searchQuery ? 'Try a different search' : 'Tap + to add your first product'}
-                            </Text>
+                            </MerakiText>
                         </View>
                     )}
                 </ScrollView>
@@ -496,10 +499,10 @@ export function InventoryScreen() {
                     message={editingProduct?.name}
                     confirmText={saving ? 'Saving...' : 'Save'}
                     loading={saving}
-                    icon="📦"
+                    icon="package-variant"
                 >
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Current Stock</Text>
+                        <MerakiText variant="caption" style={styles.inputLabel}>Current Stock</MerakiText>
                         <TextInput
                             style={styles.input}
                             value={editStock}
@@ -510,7 +513,7 @@ export function InventoryScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Low Stock Threshold</Text>
+                        <MerakiText variant="caption" style={styles.inputLabel}>Low Stock Threshold</MerakiText>
                         <TextInput
                             style={styles.input}
                             value={editThreshold}
@@ -528,145 +531,148 @@ export function InventoryScreen() {
                     presentationStyle="pageSheet"
                     onRequestClose={() => setShowAddModal(false)}
                 >
-                    <SafeAreaView style={styles.modalContainer}>
-                        <View style={styles.modalHeader}>
-                            <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                                <Text style={styles.modalCancel}>Cancel</Text>
-                            </TouchableOpacity>
-                            <Text style={styles.modalTitle}>Add Product</Text>
-                            <View style={{ width: 60 }} />
-                        </View>
-
-                        <ScrollView style={styles.modalContent}>
-                            <View style={styles.formGroup}>
-                                <Text style={styles.formLabel}>Name *</Text>
-                                <TextInput
-                                    style={styles.formInput}
-                                    value={newProduct.name}
-                                    onChangeText={(text) => setNewProduct({ ...newProduct, name: text })}
-                                    placeholder="Product name"
-                                    placeholderTextColor={colors.textMuted}
-                                />
+                    <ScreenBackground>
+                        <SafeAreaView style={styles.modalContainer}>
+                            <View style={styles.modalHeader}>
+                                <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                                    <MerakiText variant="body" style={styles.modalCancel}>Cancel</MerakiText>
+                                </TouchableOpacity>
+                                <MerakiText variant="h3" style={styles.modalTitle}>Add Product</MerakiText>
+                                <View style={{ width: 60 }} />
                             </View>
 
-                            <View style={styles.formGroup}>
-                                <Text style={styles.formLabel}>Description</Text>
-                                <TextInput
-                                    style={[styles.formInput, styles.textArea]}
-                                    value={newProduct.description}
-                                    onChangeText={(text) => setNewProduct({ ...newProduct, description: text })}
-                                    placeholder="Product description"
-                                    placeholderTextColor={colors.textMuted}
-                                    multiline
-                                    numberOfLines={3}
-                                />
-                            </View>
-
-                            <View style={styles.formGroup}>
-                                <Text style={styles.formLabel}>Product Image</Text>
-                                <View style={styles.imageUploadRow}>
-                                    <View style={styles.imagePreviewContainer}>
-                                        {newProduct.image_url ? (
-                                            <Image source={{ uri: newProduct.image_url }} style={styles.uploadedImage} />
-                                        ) : (
-                                            <View style={styles.imagePlaceholder}>
-                                                <Text style={styles.imagePlaceholderIcon}>📷</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                    <TouchableOpacity
-                                        style={styles.uploadButton}
-                                        onPress={pickImage}
-                                        disabled={uploading}
-                                    >
-                                        <Text style={styles.uploadButtonText}>
-                                            {uploading ? 'Uploading...' : newProduct.image_url ? 'Change Photo' : 'Upload Photo'}
-                                        </Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-
-                            <View style={styles.formRow}>
-                                <View style={[styles.formGroup, { flex: 1 }]}>
-                                    <Text style={styles.formLabel}>Retail Price *</Text>
+                            <ScrollView style={styles.modalContent}>
+                                <View style={styles.formGroup}>
+                                    <MerakiText variant="caption" style={styles.formLabel}>Name *</MerakiText>
                                     <TextInput
                                         style={styles.formInput}
-                                        value={newProduct.retail_price}
-                                        onChangeText={(text) => setNewProduct({ ...newProduct, retail_price: text })}
-                                        placeholder="0.00"
+                                        value={newProduct.name}
+                                        onChangeText={(text) => setNewProduct({ ...newProduct, name: text })}
+                                        placeholder="Product name"
                                         placeholderTextColor={colors.textMuted}
-                                        keyboardType="decimal-pad"
                                     />
                                 </View>
-                                <View style={[styles.formGroup, { flex: 1, marginLeft: spacing.md }]}>
-                                    <Text style={styles.formLabel}>Wholesale *</Text>
-                                    <TextInput
-                                        style={styles.formInput}
-                                        value={newProduct.wholesale_price}
-                                        onChangeText={(text) => setNewProduct({ ...newProduct, wholesale_price: text })}
-                                        placeholder="0.00"
-                                        placeholderTextColor={colors.textMuted}
-                                        keyboardType="decimal-pad"
-                                    />
-                                </View>
-                            </View>
 
-                            <View style={styles.formRow}>
-                                <View style={[styles.formGroup, { flex: 1 }]}>
-                                    <Text style={styles.formLabel}>Stock Count</Text>
+                                <View style={styles.formGroup}>
+                                    <MerakiText variant="caption" style={styles.formLabel}>Description</MerakiText>
                                     <TextInput
-                                        style={styles.formInput}
-                                        value={newProduct.stock_count}
-                                        onChangeText={(text) => setNewProduct({ ...newProduct, stock_count: text })}
-                                        placeholder="0"
+                                        style={[styles.formInput, styles.textArea]}
+                                        value={newProduct.description}
+                                        onChangeText={(text) => setNewProduct({ ...newProduct, description: text })}
+                                        placeholder="Product description"
                                         placeholderTextColor={colors.textMuted}
-                                        keyboardType="number-pad"
+                                        multiline
+                                        numberOfLines={3}
                                     />
                                 </View>
-                                <View style={[styles.formGroup, { flex: 1, marginLeft: spacing.md }]}>
-                                    <Text style={styles.formLabel}>Low Stock Alert</Text>
-                                    <TextInput
-                                        style={styles.formInput}
-                                        value={newProduct.low_stock_threshold}
-                                        onChangeText={(text) => setNewProduct({ ...newProduct, low_stock_threshold: text })}
-                                        placeholder="5"
-                                        placeholderTextColor={colors.textMuted}
-                                        keyboardType="number-pad"
-                                    />
-                                </View>
-                            </View>
 
-                            <View style={styles.formGroup}>
-                                <Text style={styles.formLabel}>Category</Text>
-                                <View style={styles.categoryPicker}>
-                                    {['Nails', 'Lashes', 'Brows', 'Equipment'].map((cat) => (
+                                <View style={styles.formGroup}>
+                                    <MerakiText variant="caption" style={styles.formLabel}>Product Image</MerakiText>
+                                    <View style={styles.imageUploadRow}>
+                                        <View style={styles.imagePreviewContainer}>
+                                            {newProduct.image_url ? (
+                                                <Image source={{ uri: newProduct.image_url }} style={styles.uploadedImage} />
+                                            ) : (
+                                                <View style={styles.imagePlaceholder}>
+                                                    <MaterialCommunityIcons name="camera" size={24} color={colors.textMuted} />
+                                                </View>
+                                            )}
+                                        </View>
                                         <TouchableOpacity
-                                            key={cat}
-                                            style={[
-                                                styles.categoryOption,
-                                                newProduct.category === cat && styles.categoryOptionActive,
-                                            ]}
-                                            onPress={() => setNewProduct({ ...newProduct, category: cat })}
+                                            style={styles.uploadButton}
+                                            onPress={pickImage}
+                                            disabled={uploading}
                                         >
-                                            <Text style={[
-                                                styles.categoryOptionText,
-                                                newProduct.category === cat && styles.categoryOptionTextActive,
-                                            ]}>
-                                                {cat}
-                                            </Text>
+                                            <MerakiText variant="caption" style={styles.uploadButtonText}>
+                                                {uploading ? 'Uploading...' : newProduct.image_url ? 'Change Photo' : 'Upload Photo'}
+                                            </MerakiText>
                                         </TouchableOpacity>
-                                    ))}
+                                    </View>
                                 </View>
-                            </View>
 
-                            <Button
-                                title={saving ? 'Adding...' : 'Add Product'}
-                                onPress={handleAddProduct}
-                                fullWidth
-                                disabled={saving}
-                            />
-                        </ScrollView>
-                    </SafeAreaView>
+                                <View style={styles.formRow}>
+                                    <View style={[styles.formGroup, { flex: 1 }]}>
+                                        <MerakiText variant="caption" style={styles.formLabel}>Retail Price *</MerakiText>
+                                        <TextInput
+                                            style={styles.formInput}
+                                            value={newProduct.retail_price}
+                                            onChangeText={(text) => setNewProduct({ ...newProduct, retail_price: text })}
+                                            placeholder="0.00"
+                                            placeholderTextColor={colors.textMuted}
+                                            keyboardType="decimal-pad"
+                                        />
+                                    </View>
+                                    <View style={[styles.formGroup, { flex: 1, marginLeft: spacing.md }]}>
+                                        <MerakiText variant="caption" style={styles.formLabel}>Wholesale *</MerakiText>
+                                        <TextInput
+                                            style={styles.formInput}
+                                            value={newProduct.wholesale_price}
+                                            onChangeText={(text) => setNewProduct({ ...newProduct, wholesale_price: text })}
+                                            placeholder="0.00"
+                                            placeholderTextColor={colors.textMuted}
+                                            keyboardType="decimal-pad"
+                                        />
+                                    </View>
+                                </View>
+
+                                <View style={styles.formRow}>
+                                    <View style={[styles.formGroup, { flex: 1 }]}>
+                                        <MerakiText variant="caption" style={styles.formLabel}>Stock Count</MerakiText>
+                                        <TextInput
+                                            style={styles.formInput}
+                                            value={newProduct.stock_count}
+                                            onChangeText={(text) => setNewProduct({ ...newProduct, stock_count: text })}
+                                            placeholder="0"
+                                            placeholderTextColor={colors.textMuted}
+                                            keyboardType="number-pad"
+                                        />
+                                    </View>
+                                    <View style={[styles.formGroup, { flex: 1, marginLeft: spacing.md }]}>
+                                        <MerakiText variant="caption" style={styles.formLabel}>Low Stock Alert</MerakiText>
+                                        <TextInput
+                                            style={styles.formInput}
+                                            value={newProduct.low_stock_threshold}
+                                            onChangeText={(text) => setNewProduct({ ...newProduct, low_stock_threshold: text })}
+                                            placeholder="5"
+                                            placeholderTextColor={colors.textMuted}
+                                            keyboardType="number-pad"
+                                        />
+                                    </View>
+                                </View>
+
+                                <View style={styles.formGroup}>
+                                    <MerakiText variant="caption" style={styles.formLabel}>Category</MerakiText>
+                                    <View style={styles.categoryPicker}>
+                                        {['Nails', 'Lashes', 'Brows', 'Equipment'].map((cat) => (
+                                            <TouchableOpacity
+                                                key={cat}
+                                                style={[
+                                                    styles.categoryOption,
+                                                    newProduct.category === cat && styles.categoryOptionActive,
+                                                ]}
+                                                onPress={() => setNewProduct({ ...newProduct, category: cat })}
+                                            >
+                                                <MerakiText variant="caption" style={[
+                                                    styles.categoryOptionText,
+                                                    newProduct.category === cat && styles.categoryOptionTextActive,
+                                                ]}>
+                                                    {cat}
+                                                </MerakiText>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+
+                                <Button
+                                    title={saving ? 'Adding...' : 'Add Product'}
+                                    onPress={handleAddProduct}
+                                    fullWidth
+                                    disabled={saving}
+                                    style={{ marginTop: spacing.md, marginBottom: spacing.xl }}
+                                />
+                            </ScrollView>
+                        </SafeAreaView>
+                    </ScreenBackground>
                 </Modal>
             </SafeAreaView>
         </ScreenBackground>
@@ -675,6 +681,7 @@ export function InventoryScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
+    modalContainer: { flex: 1 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     header: {
         flexDirection: 'row',
@@ -685,17 +692,15 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
     },
-    backButton: { fontSize: 28, color: colors.text },
-    headerTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
+    headerTitle: { color: colors.text },
     addButton: {
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: colors.primary,
+        backgroundColor: colors.surface,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    addButtonText: { color: colors.text, fontSize: 20, fontWeight: '500' },
 
     // Search
     searchContainer: {
@@ -710,9 +715,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
-    searchIcon: { fontSize: 14, marginRight: spacing.sm, opacity: 0.5 },
+    searchIcon: { marginRight: spacing.sm, opacity: 0.5 },
     searchInput: { flex: 1, fontSize: 15, color: colors.text },
-    clearSearch: { fontSize: 14, color: colors.textMuted, padding: spacing.xs },
 
     // Categories
     categoriesScroll: { marginTop: spacing.md, maxHeight: 50 },
@@ -726,7 +730,6 @@ const styles = StyleSheet.create({
         backgroundColor: colors.surface,
         borderWidth: 1,
         borderColor: colors.border,
-        gap: 6,
     },
     categoryChipActive: {
         flexDirection: 'row',
@@ -734,13 +737,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
         borderRadius: 20,
-        gap: 6,
         borderWidth: 1,
         borderColor: 'transparent',
     },
-    categoryIcon: { fontSize: 12 },
-    categoryText: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
-    categoryTextActive: { fontSize: 13, color: colors.text, fontWeight: '600' },
+    categoryText: { color: colors.textSecondary },
+    categoryTextActive: { color: colors.text, fontWeight: '600' },
 
     content: { padding: spacing.lg, paddingBottom: 100 },
     summaryRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
@@ -750,8 +751,8 @@ const styles = StyleSheet.create({
         padding: spacing.md,
         alignItems: 'center',
     },
-    summaryNumber: { fontSize: 28, fontWeight: '700', color: colors.text },
-    summaryLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 4 },
+    summaryNumber: { fontWeight: '700', color: colors.text },
+    summaryLabel: { color: colors.textSecondary, marginTop: 4 },
     alertCard: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -762,11 +763,9 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(245,158,11,0.3)',
     },
-    alertIcon: { fontSize: 20, marginRight: spacing.sm },
-    alertText: { flex: 1, fontSize: 14, color: colors.text },
+    alertIcon: { marginRight: spacing.sm },
+    alertText: { flex: 1, color: colors.text },
     sectionTitle: {
-        fontSize: 14,
-        fontWeight: '600',
         color: colors.textSecondary,
         marginBottom: spacing.md,
         textTransform: 'uppercase',
@@ -792,52 +791,43 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     productImage: { width: 44, height: 44, borderRadius: 10 },
-    productEmoji: { fontSize: 20 },
     productInfo: { flex: 1, marginLeft: spacing.md },
-    productName: { fontSize: 14, fontWeight: '600', color: colors.text },
-    productCategory: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-    productThreshold: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-    stockControls: { alignItems: 'flex-end' },
+    productName: { fontWeight: '600', color: colors.text },
+    productCategory: { color: colors.textMuted, marginTop: 2 },
+    productThreshold: { color: colors.textMuted, marginTop: 2 },
+    stockControls: { alignItems: 'flex-end', gap: 4 },
     stockInfo: { alignItems: 'flex-end', marginBottom: spacing.xs },
-    stockCount: { fontSize: 20, fontWeight: '700', color: colors.text },
-    stockBadge: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: 4, marginTop: 4 },
-    stockBadgeText: { fontSize: 10, fontWeight: '600' },
-    quickButtons: { flexDirection: 'row', gap: spacing.xs },
+    stockCount: { color: colors.text },
+    stockBadge: {
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginTop: 4,
+    },
+    stockBadgeText: { fontWeight: '600' },
+    quickButtons: { flexDirection: 'row', gap: 8 },
     quickButton: {
         width: 28,
         height: 28,
         borderRadius: 14,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: colors.background,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
         borderColor: colors.border,
     },
-    quickButtonText: { fontSize: 16, color: colors.text, fontWeight: '500' },
-
-    // Empty state
-    emptyState: { alignItems: 'center', paddingVertical: spacing.xxxl },
-    emptyIcon: { fontSize: 48, marginBottom: spacing.md, opacity: 0.5 },
-    emptyText: { fontSize: 16, fontWeight: '600', color: colors.text },
-    emptySubtext: { fontSize: 14, color: colors.textMuted, marginTop: spacing.xs },
-
-    // Edit modal
-    inputGroup: { marginBottom: spacing.md },
-    inputLabel: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.xs },
-    input: {
-        backgroundColor: colors.background,
-        borderRadius: 12,
-        padding: spacing.md,
-        color: colors.text,
-        fontSize: 18,
-        fontWeight: '600',
-        borderWidth: 1,
-        borderColor: colors.border,
-        textAlign: 'center',
+    quickButtonText: { color: colors.text, fontSize: 16 },
+    emptyState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: spacing.xl,
     },
+    emptyIcon: { marginBottom: spacing.lg },
+    emptyText: { fontWeight: '600', color: colors.text, marginBottom: spacing.sm },
+    emptySubtext: { color: colors.textSecondary, textAlign: 'center', lineHeight: 22 },
 
-    // Add modal
-    modalContainer: { flex: 1, backgroundColor: colors.background },
+    // Modal
     modalHeader: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -847,11 +837,11 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
     },
-    modalCancel: { color: colors.textSecondary, fontSize: 16 },
-    modalTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
+    modalCancel: { color: colors.text },
+    modalTitle: { fontWeight: '600', color: colors.text },
     modalContent: { padding: spacing.lg },
     formGroup: { marginBottom: spacing.md },
-    formLabel: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
+    formLabel: { color: colors.textMuted, marginBottom: 6, textTransform: 'uppercase' },
     formInput: {
         backgroundColor: colors.surface,
         borderRadius: 12,
@@ -861,8 +851,35 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
-    formRow: { flexDirection: 'row' },
     textArea: { minHeight: 80, textAlignVertical: 'top' },
+    formRow: { flexDirection: 'row' },
+    imageUploadRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+    },
+    imagePreviewContainer: {
+        width: 60,
+        height: 60,
+        borderRadius: 10,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+    },
+    uploadedImage: { width: '100%', height: '100%' },
+    imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
+    uploadButton: {
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        borderRadius: 8,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    uploadButtonText: { color: colors.primary },
     categoryPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
     categoryOption: {
         paddingHorizontal: spacing.md,
@@ -876,34 +893,19 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary,
         borderColor: colors.primary,
     },
-    categoryOptionText: { color: colors.textSecondary, fontWeight: '500' },
+    categoryOptionText: { color: colors.textSecondary },
     categoryOptionTextActive: { color: colors.text, fontWeight: '600' },
-
-    // Image Upload
-    imageUploadRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-    imagePreviewContainer: {
-        width: 80,
-        height: 80,
+    inputGroup: { gap: spacing.sm },
+    inputLabel: { fontWeight: '600', color: colors.text },
+    input: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
         borderRadius: 12,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
-        overflow: 'hidden',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    uploadedImage: { width: '100%', height: '100%' },
-    imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
-    imagePlaceholderIcon: { fontSize: 24, opacity: 0.5 },
-    uploadButton: {
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.sm,
-        borderRadius: 8,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        padding: spacing.md,
+        fontSize: 16,
+        color: colors.text,
         borderWidth: 1,
         borderColor: colors.border,
     },
-    uploadButtonText: { color: colors.text, fontWeight: '600' },
 });
 
 export default InventoryScreen;

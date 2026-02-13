@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     Image,
     RefreshControl,
     TextInput,
     Switch,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
-import { Button, ScreenBackground } from '../../components/ui';
+import { Button, ScreenBackground, MerakiText } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 import { PhotoConsultation, Profile } from '../../types/database';
 
@@ -23,6 +23,7 @@ type ConsultationStatus = 'pending' | 'in_review' | 'responded' | 'closed' | 'al
 export function PhotoConsultationReviewScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<RouteProp<{ params: { consultationId?: string } }, 'params'>>();
+    const { showAlert, showConfirm } = useModal();
     const preselectedId = route.params?.consultationId;
 
     const [consultations, setConsultations] = useState<PhotoConsultation[]>([]);
@@ -87,7 +88,7 @@ export function PhotoConsultationReviewScreen() {
             const { data, error } = await query;
 
             if (error) throw error;
-            
+
             const consultationsData = data || [];
             setConsultations(consultationsData);
 
@@ -100,7 +101,7 @@ export function PhotoConsultationReviewScreen() {
                     .in('id', clientIds);
 
                 if (clientsData) {
-                    const clientsMap: Record<string, Profile> = {};
+                    const clientsMap: Record<string, any> = {};
                     clientsData.forEach(client => {
                         clientsMap[client.id] = client;
                     });
@@ -117,7 +118,7 @@ export function PhotoConsultationReviewScreen() {
             }
         } catch (error: any) {
             console.error('Error fetching consultations:', error);
-            Alert.alert('Error', 'Failed to load consultations');
+            showAlert('Error', 'Failed to load consultations', 'error');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -139,21 +140,21 @@ export function PhotoConsultationReviewScreen() {
         if (consultation.status === 'pending') {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
-                
+
                 await supabase
                     .from('photo_consultations')
-                    .update({ 
+                    .update({
                         status: 'in_review',
                         master_id: user?.id || consultation.master_id,
                     })
                     .eq('id', consultation.id);
-                
+
                 fetchConsultations();
             } catch (error) {
                 console.error('Error updating status:', error);
             }
         }
-        
+
         // Pre-fill response data if already responded
         if (consultation.status === 'responded' || consultation.status === 'closed') {
             setResponseData({
@@ -172,7 +173,7 @@ export function PhotoConsultationReviewScreen() {
                 estimatedDuration: '',
             });
         }
-        
+
         setSelectedConsultation(consultation);
     };
 
@@ -180,14 +181,14 @@ export function PhotoConsultationReviewScreen() {
         if (!selectedConsultation) return;
 
         if (!responseData.professionalNotes.trim() || responseData.professionalNotes.length < 20) {
-            Alert.alert('Error', 'Please provide detailed professional notes (at least 20 characters)');
+            showAlert('Error', 'Please provide detailed professional notes (at least 20 characters)', 'error');
             return;
         }
 
         setLoading(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            
+
             const { error } = await supabase
                 .from('photo_consultations')
                 .update({
@@ -197,7 +198,7 @@ export function PhotoConsultationReviewScreen() {
                     recommendations: responseData.recommendations.trim() || null,
                     estimated_price_range: responseData.estimatedPrice.trim() || null,
                     estimated_duration: responseData.estimatedDuration.trim() || null,
-                    responded_at: new Date().toISOString(),
+                    replied_at: new Date().toISOString(),
                     responded_by: user?.id,
                     master_id: user?.id,
                 })
@@ -207,12 +208,12 @@ export function PhotoConsultationReviewScreen() {
 
             // TODO: Send notification to client
 
-            Alert.alert('Success', 'Your professional response has been submitted!');
+            showAlert('Success', 'Your professional response has been submitted!', 'success');
             setSelectedConsultation(null);
             fetchConsultations();
         } catch (error: any) {
             console.error('Error submitting response:', error);
-            Alert.alert('Error', error.message || 'Failed to submit response');
+            showAlert('Error', error.message || 'Failed to submit response', 'error');
         } finally {
             setLoading(false);
         }
@@ -221,36 +222,34 @@ export function PhotoConsultationReviewScreen() {
     const handleCloseConsultation = async () => {
         if (!selectedConsultation) return;
 
-        Alert.alert(
+        showConfirm(
             'Close Consultation',
             'Are you sure you want to close this consultation? This cannot be undone.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Close',
-                    style: 'destructive',
-                    onPress: async () => {
-                        setLoading(true);
-                        try {
-                            const { error } = await supabase
-                                .from('photo_consultations')
-                                .update({ status: 'closed' })
-                                .eq('id', selectedConsultation.id);
+            async () => {
+                setLoading(true);
+                try {
+                    const { error } = await supabase
+                        .from('photo_consultations')
+                        .update({ status: 'closed' })
+                        .eq('id', selectedConsultation.id);
 
-                            if (error) throw error;
+                    if (error) throw error;
 
-                            Alert.alert('Success', 'Consultation closed');
-                            setSelectedConsultation(null);
-                            fetchConsultations();
-                        } catch (error: any) {
-                            console.error('Error closing consultation:', error);
-                            Alert.alert('Error', 'Failed to close consultation');
-                        } finally {
-                            setLoading(false);
-                        }
-                    }
+                    showAlert('Success', 'Consultation closed', 'success');
+                    setSelectedConsultation(null);
+                    fetchConsultations();
+                } catch (error: any) {
+                    console.error('Error closing consultation:', error);
+                    showAlert('Error', 'Failed to close consultation', 'error');
+                } finally {
+                    setLoading(false);
                 }
-            ]
+            },
+            {
+                confirmText: 'Close',
+                cancelText: 'Cancel',
+                type: 'error'
+            }
         );
     };
 
@@ -267,7 +266,7 @@ export function PhotoConsultationReviewScreen() {
 
         return (
             <View style={[styles.statusBadge, { backgroundColor: style.backgroundColor }]}>
-                <Text style={[styles.statusText, { color: style.color }]}>{label}</Text>
+                <MerakiText variant="caption" color={style.color} style={{ fontWeight: '700', fontSize: 10 }}>{label}</MerakiText>
             </View>
         );
     };
@@ -283,12 +282,16 @@ export function PhotoConsultationReviewScreen() {
                     ]}
                     onPress={() => setFilter(status)}
                 >
-                    <Text style={[
-                        styles.filterTabText,
-                        filter === status && styles.filterTabTextActive
-                    ]}>
+                    <MerakiText
+                        variant="caption"
+                        color={filter === status ? '#fff' : colors.text}
+                        style={[
+                            { textTransform: 'capitalize' },
+                            filter === status && { fontWeight: '600' }
+                        ]}
+                    >
                         {status === 'all' ? 'All' : status.replace('_', ' ')}
-                    </Text>
+                    </MerakiText>
                 </TouchableOpacity>
             ))}
         </ScrollView>
@@ -301,12 +304,12 @@ export function PhotoConsultationReviewScreen() {
         >
             {consultations.length === 0 ? (
                 <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateText}>No consultations found</Text>
+                    <MerakiText variant="body" color={colors.textSecondary}>No consultations found</MerakiText>
                 </View>
             ) : (
                 consultations.map((consultation) => {
                     const client = clients[consultation.client_id];
-                    
+
                     return (
                         <TouchableOpacity
                             key={consultation.id}
@@ -319,45 +322,48 @@ export function PhotoConsultationReviewScreen() {
                                         <Image source={{ uri: client.avatar_url }} style={styles.clientAvatar} />
                                     ) : (
                                         <View style={styles.clientAvatarPlaceholder}>
-                                            <Text style={styles.clientAvatarText}>
+                                            <MerakiText variant="h2" color="#fff" style={{ fontSize: 20 }}>
                                                 {client?.full_name?.charAt(0).toUpperCase() || '?'}
-                                            </Text>
+                                            </MerakiText>
                                         </View>
                                     )}
                                     <View>
-                                        <Text style={styles.clientName}>{client?.full_name || 'Unknown'}</Text>
-                                        <Text style={styles.consultationTitle} numberOfLines={1}>
+                                        <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>{client?.full_name || 'Unknown'}</MerakiText>
+                                        <MerakiText variant="caption" color={colors.textSecondary} numberOfLines={1} style={{ maxWidth: 200, marginTop: 2 }}>
                                             {consultation.title}
-                                        </Text>
+                                        </MerakiText>
                                     </View>
                                 </View>
-                                {renderStatusBadge(consultation.status)}
+                                {renderStatusBadge(consultation.status || 'pending')}
                             </View>
 
                             <View style={styles.cardDetails}>
-                                <Text style={styles.serviceType}>{consultation.service_type}</Text>
-                                <Text style={styles.description} numberOfLines={2}>
+                                <MerakiText variant="body" color={colors.primary} style={{ fontWeight: '600', marginBottom: spacing.xs }}>{consultation.service_type}</MerakiText>
+                                <MerakiText variant="caption" color={colors.textSecondary} numberOfLines={2} style={{ lineHeight: 20 }}>
                                     {consultation.description}
-                                </Text>
+                                </MerakiText>
                             </View>
 
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoPreview}>
-                                {consultation.photo_urls.slice(0, 3).map((url, idx) => (
+                                {(consultation.photo_urls || []).slice(0, 3).map((url: string, idx: number) => (
                                     <Image key={idx} source={{ uri: url }} style={styles.previewPhoto} />
                                 ))}
-                                {consultation.photo_urls.length > 3 && (
+                                {(consultation.photo_urls?.length || 0) > 3 && (
                                     <View style={styles.morePhotosBadge}>
-                                        <Text style={styles.morePhotosText}>+{consultation.photo_urls.length - 3}</Text>
+                                        <MerakiText variant="body" color={colors.textSecondary} style={{ fontWeight: '600' }}>+{(consultation.photo_urls?.length || 0) - 3}</MerakiText>
                                     </View>
                                 )}
                             </ScrollView>
 
                             <View style={styles.cardFooter}>
-                                <Text style={styles.dateText}>
+                                <MerakiText variant="caption" color={colors.textMuted}>
                                     {new Date(consultation.created_at || '').toLocaleDateString()}
-                                </Text>
+                                </MerakiText>
                                 {consultation.status === 'pending' && (
-                                    <Text style={styles.actionHint}>Tap to review →</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                        <MerakiText variant="caption" color={colors.primary} style={{ fontWeight: '600' }}>Tap to review</MerakiText>
+                                        <MaterialCommunityIcons name="arrow-right" size={14} color={colors.primary} />
+                                    </View>
                                 )}
                             </View>
                         </TouchableOpacity>
@@ -379,7 +385,10 @@ export function PhotoConsultationReviewScreen() {
                     style={styles.backToList}
                     onPress={() => setSelectedConsultation(null)}
                 >
-                    <Text style={styles.backToListText}>← Back to List</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <MaterialCommunityIcons name="arrow-left" size={18} color={colors.primary} />
+                        <MerakiText variant="body" color={colors.primary}>Back to List</MerakiText>
+                    </View>
                 </TouchableOpacity>
 
                 {/* Client Info */}
@@ -389,32 +398,32 @@ export function PhotoConsultationReviewScreen() {
                             <Image source={{ uri: client.avatar_url }} style={styles.detailAvatar} />
                         ) : (
                             <View style={styles.detailAvatarPlaceholder}>
-                                <Text style={styles.detailAvatarText}>
+                                <MerakiText variant="h2" color="#fff" style={{ fontSize: 24 }}>
                                     {client?.full_name?.charAt(0).toUpperCase() || '?'}
-                                </Text>
+                                </MerakiText>
                             </View>
                         )}
                         <View style={styles.clientHeaderText}>
-                            <Text style={styles.detailClientName}>{client?.full_name || 'Unknown'}</Text>
-                            <Text style={styles.detailClientEmail}>{client?.email}</Text>
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>{client?.full_name || 'Unknown'}</MerakiText>
+                            <MerakiText variant="caption" color={colors.textSecondary}>{client?.email}</MerakiText>
                         </View>
-                        {renderStatusBadge(selectedConsultation.status)}
+                        {renderStatusBadge(selectedConsultation.status || 'pending')}
                     </View>
                 </View>
 
                 {/* Consultation Details */}
                 <View style={styles.detailSection}>
-                    <Text style={styles.sectionTitle}>{selectedConsultation.title}</Text>
-                    <Text style={styles.serviceTypeLabel}>{selectedConsultation.service_type}</Text>
-                    <Text style={styles.detailDescription}>{selectedConsultation.description}</Text>
+                    <MerakiText variant="h2" style={{ marginBottom: spacing.md }}>{selectedConsultation.title}</MerakiText>
+                    <MerakiText variant="body" color={colors.primary} style={{ fontWeight: '600', marginBottom: spacing.xs }}>{selectedConsultation.service_type}</MerakiText>
+                    <MerakiText variant="body" color={colors.textSecondary} style={{ lineHeight: 24 }}>{selectedConsultation.description}</MerakiText>
                 </View>
 
                 {/* Photos */}
                 <View style={styles.detailSection}>
-                    <Text style={styles.sectionTitle}>Client Photos</Text>
+                    <MerakiText variant="h2" style={{ marginBottom: spacing.md }}>Client Photos</MerakiText>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {selectedConsultation.photo_urls.map((url, idx) => (
-                            <TouchableOpacity key={idx} onPress={() => {}}>
+                        {(selectedConsultation.photo_urls || []).map((url: string, idx: number) => (
+                            <TouchableOpacity key={idx} onPress={() => { }}>
                                 <Image source={{ uri: url }} style={styles.detailPhoto} />
                             </TouchableOpacity>
                         ))}
@@ -424,10 +433,10 @@ export function PhotoConsultationReviewScreen() {
                 {/* Response Form */}
                 {(selectedConsultation.status === 'in_review' || selectedConsultation.status === 'pending') && (
                     <View style={styles.detailSection}>
-                        <Text style={styles.sectionTitle}>Your Professional Response</Text>
+                        <MerakiText variant="h2" style={{ marginBottom: spacing.md }}>Your Professional Response</MerakiText>
 
                         <View style={styles.switchRow}>
-                            <Text style={styles.switchLabel}>Is this doable?</Text>
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '500' }}>Is this doable?</MerakiText>
                             <Switch
                                 value={responseData.isDoable}
                                 onValueChange={(value) => setResponseData({ ...responseData, isDoable: value })}
@@ -435,7 +444,7 @@ export function PhotoConsultationReviewScreen() {
                             />
                         </View>
 
-                        <Text style={styles.label}>Professional Notes *</Text>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ fontWeight: '500', marginBottom: spacing.xs }}>Professional Notes *</MerakiText>
                         <TextInput
                             style={[styles.input, styles.textArea]}
                             value={responseData.professionalNotes}
@@ -446,7 +455,7 @@ export function PhotoConsultationReviewScreen() {
                             numberOfLines={6}
                         />
 
-                        <Text style={styles.label}>Recommendations</Text>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ fontWeight: '500', marginBottom: spacing.xs }}>Recommendations</MerakiText>
                         <TextInput
                             style={[styles.input, styles.textArea]}
                             value={responseData.recommendations}
@@ -459,7 +468,7 @@ export function PhotoConsultationReviewScreen() {
 
                         <View style={styles.rowInputs}>
                             <View style={styles.rowInput}>
-                                <Text style={styles.label}>Est. Price Range</Text>
+                                <MerakiText variant="caption" color={colors.textSecondary} style={{ fontWeight: '500', marginBottom: spacing.xs }}>Est. Price Range</MerakiText>
                                 <TextInput
                                     style={styles.input}
                                     value={responseData.estimatedPrice}
@@ -469,7 +478,7 @@ export function PhotoConsultationReviewScreen() {
                                 />
                             </View>
                             <View style={styles.rowInput}>
-                                <Text style={styles.label}>Est. Duration</Text>
+                                <MerakiText variant="caption" color={colors.textSecondary} style={{ fontWeight: '500', marginBottom: spacing.xs }}>Est. Duration</MerakiText>
                                 <TextInput
                                     style={styles.input}
                                     value={responseData.estimatedDuration}
@@ -492,41 +501,44 @@ export function PhotoConsultationReviewScreen() {
                 {/* Previous Response */}
                 {isResponded && selectedConsultation.professional_notes && (
                     <View style={styles.detailSection}>
-                        <Text style={styles.sectionTitle}>Your Response</Text>
-                        
+                        <MerakiText variant="h2" style={{ marginBottom: spacing.md }}>Your Response</MerakiText>
+
                         <View style={styles.responseBox}>
                             <View style={styles.doableBadge}>
-                                <Text style={styles.doableBadgeText}>
-                                    {selectedConsultation.is_doable ? '✓ Doable' : '✗ Not Doable'}
-                                </Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <MaterialCommunityIcons name={selectedConsultation.is_doable ? 'check-circle' : 'close-circle'} size={16} color={selectedConsultation.is_doable ? colors.success : colors.error} />
+                                    <MerakiText variant="body" color="#10B981" style={{ fontWeight: '600' }}>
+                                        {selectedConsultation.is_doable ? 'Doable' : 'Not Doable'}
+                                    </MerakiText>
+                                </View>
                             </View>
-                            
-                            <Text style={styles.responseLabel}>Professional Notes:</Text>
-                            <Text style={styles.responseText}>{selectedConsultation.professional_notes}</Text>
-                            
+
+                            <MerakiText variant="caption" color={colors.textMuted} style={{ marginBottom: 4 }}>Professional Notes:</MerakiText>
+                            <MerakiText variant="body" color={colors.text} style={{ marginBottom: spacing.md, lineHeight: 24 }}>{selectedConsultation.professional_notes}</MerakiText>
+
                             {selectedConsultation.recommendations && (
                                 <>
-                                    <Text style={styles.responseLabel}>Recommendations:</Text>
-                                    <Text style={styles.responseText}>{selectedConsultation.recommendations}</Text>
+                                    <MerakiText variant="caption" color={colors.textMuted} style={{ marginBottom: 4 }}>Recommendations:</MerakiText>
+                                    <MerakiText variant="body" color={colors.text} style={{ marginBottom: spacing.md, lineHeight: 24 }}>{selectedConsultation.recommendations}</MerakiText>
                                 </>
                             )}
-                            
+
                             <View style={styles.estimateRow}>
                                 {selectedConsultation.estimated_price_range && (
-                                    <Text style={styles.estimateText}>
+                                    <MerakiText variant="body" color={colors.primary} style={{ fontWeight: '500' }}>
                                         Est. Price: {selectedConsultation.estimated_price_range}
-                                    </Text>
+                                    </MerakiText>
                                 )}
                                 {selectedConsultation.estimated_duration && (
-                                    <Text style={styles.estimateText}>
+                                    <MerakiText variant="body" color={colors.primary} style={{ fontWeight: '500' }}>
                                         Est. Duration: {selectedConsultation.estimated_duration}
-                                    </Text>
+                                    </MerakiText>
                                 )}
                             </View>
-                            
-                            <Text style={styles.responseDate}>
-                                Responded: {new Date(selectedConsultation.responded_at || '').toLocaleDateString()}
-                            </Text>
+
+                            <MerakiText variant="caption" color={colors.textMuted} style={{ marginTop: spacing.md, textAlign: 'right' }}>
+                                Responded: {new Date(selectedConsultation.replied_at || '').toLocaleDateString()}
+                            </MerakiText>
                         </View>
 
                         {selectedConsultation.status === 'responded' && (
@@ -534,7 +546,7 @@ export function PhotoConsultationReviewScreen() {
                                 style={styles.closeBtn}
                                 onPress={handleCloseConsultation}
                             >
-                                <Text style={styles.closeBtnText}>Close Consultation</Text>
+                                <MerakiText variant="body" color="#EF4444" style={{ fontWeight: '600' }}>Close Consultation</MerakiText>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -549,9 +561,9 @@ export function PhotoConsultationReviewScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Text style={styles.backButton}>← Back</Text>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Photo Consultations</Text>
+                    <MerakiText variant="h2">Photo Consultations</MerakiText>
                     <View style={{ width: 50 }} />
                 </View>
 
@@ -577,15 +589,6 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
     },
-    backButton: {
-        fontSize: 16,
-        color: colors.primary,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: colors.text,
-    },
     filterContainer: {
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.md,
@@ -605,25 +608,12 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary,
         borderColor: colors.primary,
     },
-    filterTabText: {
-        fontSize: 14,
-        color: colors.text,
-        textTransform: 'capitalize',
-    },
-    filterTabTextActive: {
-        color: '#fff',
-        fontWeight: '600',
-    },
     listContainer: {
         padding: spacing.lg,
     },
     emptyState: {
         alignItems: 'center',
         paddingVertical: spacing.xl * 2,
-    },
-    emptyStateText: {
-        fontSize: 16,
-        color: colors.textSecondary,
     },
     consultationCard: {
         backgroundColor: colors.surface,
@@ -659,44 +649,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginRight: spacing.md,
     },
-    clientAvatarText: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#fff',
-    },
-    clientName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: colors.text,
-    },
-    consultationTitle: {
-        fontSize: 13,
-        color: colors.textSecondary,
-        marginTop: 2,
-        maxWidth: 200,
-    },
     statusBadge: {
         paddingVertical: spacing.xs,
         paddingHorizontal: spacing.sm,
         borderRadius: 4,
     },
-    statusText: {
-        fontSize: 10,
-        fontWeight: '700',
-    },
     cardDetails: {
         marginBottom: spacing.md,
-    },
-    serviceType: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.primary,
-        marginBottom: spacing.xs,
-    },
-    description: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        lineHeight: 20,
     },
     photoPreview: {
         marginBottom: spacing.md,
@@ -717,11 +676,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
-    morePhotosText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: colors.textSecondary,
-    },
     cardFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -730,25 +684,12 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: colors.border,
     },
-    dateText: {
-        fontSize: 12,
-        color: colors.textMuted,
-    },
-    actionHint: {
-        fontSize: 12,
-        color: colors.primary,
-        fontWeight: '600',
-    },
     detailContainer: {
         flex: 1,
         padding: spacing.lg,
     },
     backToList: {
         marginBottom: spacing.md,
-    },
-    backToListText: {
-        fontSize: 16,
-        color: colors.primary,
     },
     detailSection: {
         marginBottom: spacing.lg,
@@ -777,72 +718,30 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginRight: spacing.md,
     },
-    detailAvatarText: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: '#fff',
-    },
     clientHeaderText: {
         flex: 1,
     },
-    detailClientName: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: colors.text,
-    },
-    detailClientEmail: {
-        fontSize: 14,
-        color: colors.textSecondary,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: colors.text,
-        marginBottom: spacing.md,
-    },
-    serviceTypeLabel: {
-        fontSize: 14,
-        color: colors.primary,
-        fontWeight: '600',
-        marginBottom: spacing.sm,
-    },
-    detailDescription: {
-        fontSize: 14,
-        color: colors.text,
-        lineHeight: 20,
-    },
     detailPhoto: {
-        width: 150,
-        height: 150,
-        borderRadius: 8,
+        width: 200,
+        height: 200,
+        borderRadius: 12,
         marginRight: spacing.md,
     },
     switchRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: spacing.md,
-    },
-    switchLabel: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: colors.text,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.text,
-        marginBottom: spacing.xs,
+        marginBottom: spacing.lg,
     },
     input: {
-        backgroundColor: colors.background,
-        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 8,
         padding: spacing.md,
         color: colors.text,
         fontSize: 16,
         borderWidth: 1,
         borderColor: colors.border,
-        marginBottom: spacing.md,
+        marginBottom: spacing.lg,
     },
     textArea: {
         height: 120,
@@ -856,70 +755,37 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     submitBtn: {
-        marginTop: spacing.md,
+        marginTop: spacing.sm,
     },
     responseBox: {
-        backgroundColor: colors.background,
-        borderRadius: 12,
-        padding: spacing.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 8,
+        padding: spacing.md,
     },
     doableBadge: {
         alignSelf: 'flex-start',
-        paddingVertical: spacing.xs,
-        paddingHorizontal: spacing.md,
+        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 4,
         borderRadius: 4,
-        backgroundColor: '#D1FAE5',
         marginBottom: spacing.md,
-    },
-    doableBadgeText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#065F46',
-    },
-    responseLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.textSecondary,
-        marginBottom: spacing.xs,
-        marginTop: spacing.md,
-    },
-    responseText: {
-        fontSize: 14,
-        color: colors.text,
-        lineHeight: 20,
     },
     estimateRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: spacing.md,
-        paddingTop: spacing.md,
+        gap: spacing.lg,
+        marginTop: spacing.sm,
+        paddingTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: colors.border,
-    },
-    estimateText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.primary,
-    },
-    responseDate: {
-        fontSize: 12,
-        color: colors.textMuted,
-        marginTop: spacing.md,
+        borderTopColor: 'rgba(255,255,255,0.1)',
     },
     closeBtn: {
         marginTop: spacing.lg,
-        padding: spacing.md,
-        alignItems: 'center',
-        borderRadius: 12,
+        alignSelf: 'center',
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.lg,
         borderWidth: 1,
         borderColor: '#EF4444',
-    },
-    closeBtnText: {
-        color: '#EF4444',
-        fontSize: 16,
-        fontWeight: '600',
+        borderRadius: 20,
     },
 });
 

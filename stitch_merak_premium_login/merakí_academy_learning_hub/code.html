@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec1337",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0F0F13",
+                        "champagne": "#F7E7CE",
+                        "rose-gold": "#E0B0FF",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .holographic-border {
+            position: relative;
+            background: linear-gradient(135deg, #ec1337 0%, #E0B0FF 50%, #F7E7CE 100%);
+            padding: 1px;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .custom-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased">
+<!-- Phone Container -->
+<div class="max-w-[430px] mx-auto min-h-screen relative shadow-2xl overflow-hidden bg-background-light dark:bg-background-dark">
+<!-- Header -->
+<header class="sticky top-0 z-50 px-6 py-4 flex items-center justify-between bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 border border-white/5">
+<span class="material-icons-round text-2xl">chevron_left</span>
+</button>
+<h1 class="text-lg font-semibold tracking-tight">Merakí Academy</h1>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-icons-round">school</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="pb-24 px-6 space-y-8">
+<!-- Featured Course Banner -->
+<section class="mt-4">
+<div class="holographic-border rounded-xl">
+<div class="bg-background-dark/90 rounded-[0.9rem] p-5 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-[60px] rounded-full"></div>
+<div class="relative z-10">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary text-white mb-4 uppercase tracking-wider">
+                                Featured
+                            </span>
+<h2 class="text-2xl font-bold leading-tight mb-2">Master the Art of<br/>Lash Extensions</h2>
+<div class="flex items-center gap-3 mb-6">
+<img alt="Instructor" class="w-10 h-10 rounded-full object-cover border-2 border-champagne/30" data-alt="Professional beauty instructor portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4XExtdOmKeSTSC7hafQLZ8VOZk2ETbOibOs6MrHrHorbcpa80FiFc2khml1quisCHzYy1rc98n01AvgWZV72at73za3QpCRijAZaVUoryX16oyRcoeCeNLcUPGRBLu-QS72gIj3sJTrsqYn-8CgtGqiKNY35dG6zvvSXOfyF2QxM0mcYCPBo2SsjX7RUY-MQ-83FxnpIBPnr6dLCYxe3GGL_CAqGTgzpD9qCeBuCxN2oWJSZJDY2zkV2D12aVTZIRcwWATbxfzAp1"/>
+<div class="text-sm">
+<p class="text-white/60">Lead Instructor</p>
+<p class="font-medium">Elena Richardson</p>
+</div>
+</div>
+<button class="w-full py-3 bg-white text-background-dark font-semibold rounded-lg hover:bg-champagne transition-colors">
+                                Enroll Now
+                            </button>
+</div>
+<!-- Abstract Background Decoration -->
+<div class="absolute -bottom-10 -right-10 opacity-20 pointer-events-none">
+<span class="material-icons-round text-[120px]">auto_awesome</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Enrolled Courses -->
+<section>
+<div class="flex justify-between items-end mb-4">
+<h3 class="text-lg font-semibold">In Progress</h3>
+<button class="text-primary text-sm font-medium">See All</button>
+</div>
+<div class="flex gap-4 overflow-x-auto custom-scrollbar">
+<!-- Course Card 1 -->
+<div class="min-w-[280px] glass-morphism p-4 rounded-xl">
+<div class="flex gap-4 items-center mb-4">
+<img alt="Nail Art" class="w-16 h-16 rounded-lg object-cover" data-alt="Close up of artistic manicured nails" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCH6nTNA9wz5c5OV80WVybk1-x-b-xPvfMyYDrLqKRaLkXBG87LiHDPHF1hVKEwV1EdpbVSThmNeEgI25MwrAfXAShX28xgowRZreSKb5K0n7WnCJ6D1ZEKoATMTjuG5kx1WKnC_zMlH7xtAbzuyPXWr1bBBTGaZO9Pt_La6CLf8WJ4zeYMrU7R70YvVek9UwUtB-Siv-InTYTz24H_NJGFMmnTnOFyfS8KXx8oftDx2yszhi0HUr-KbmtCsDSnghFQuZTCibI5_LP2"/>
+<div>
+<h4 class="font-medium text-sm line-clamp-1">Advanced Nail Artistry</h4>
+<p class="text-xs text-white/50">Module 4 of 12</p>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[10px] font-medium uppercase tracking-widest text-white/40">
+<span>Progress</span>
+<span>65%</span>
+</div>
+<div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+<div class="bg-gradient-to-r from-rose-gold to-primary h-full rounded-full" style="width: 65%"></div>
+</div>
+</div>
+</div>
+<!-- Course Card 2 -->
+<div class="min-w-[280px] glass-morphism p-4 rounded-xl">
+<div class="flex gap-4 items-center mb-4">
+<img alt="Skincare" class="w-16 h-16 rounded-lg object-cover" data-alt="Luxury skincare product application" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyDEwezR5bVP1i28DB9BnYHm4M6DFCbOdpnpcO_4_WsL3W3tVSJw9R53R_oxQChE_KvWctW8R2R46ic5O4opnGDOZQqKxNDFuUXamWPshVSLGGlj4K-hlh8K0jHM8mG3OP3f9zlCAzfH3gVQgSSOIGDnOYdTEJNMFVHyGbJoStzVQwpf_C_4Ogg-8r-zpHKEUFLwsEgv50ciA37idawhd9BD7aoszBxutgHPJkA30i_cRmjmzaMIYuS_vqyIeF9QbLQmXtDNUBolT8"/>
+<div>
+<h4 class="font-medium text-sm line-clamp-1">The Science of Facials</h4>
+<p class="text-xs text-white/50">Module 2 of 8</p>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[10px] font-medium uppercase tracking-widest text-white/40">
+<span>Progress</span>
+<span>25%</span>
+</div>
+<div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+<div class="bg-gradient-to-r from-rose-gold to-primary h-full rounded-full" style="width: 25%"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Browse Categories -->
+<section>
+<div class="flex gap-3 overflow-x-auto custom-scrollbar mb-6">
+<button class="px-5 py-2 bg-primary text-white rounded-full text-sm font-medium whitespace-nowrap">All Courses</button>
+<button class="px-5 py-2 glass-morphism text-white/70 rounded-full text-sm font-medium whitespace-nowrap">Lashes</button>
+<button class="px-5 py-2 glass-morphism text-white/70 rounded-full text-sm font-medium whitespace-nowrap">Nails</button>
+<button class="px-5 py-2 glass-morphism text-white/70 rounded-full text-sm font-medium whitespace-nowrap">Aesthetics</button>
+<button class="px-5 py-2 glass-morphism text-white/70 rounded-full text-sm font-medium whitespace-nowrap">Business</button>
+</div>
+<!-- Course Grid -->
+<div class="grid grid-cols-2 gap-4">
+<!-- Course Card 1 -->
+<div class="flex flex-col">
+<div class="relative aspect-[4/5] mb-3">
+<img alt="Makeup" class="w-full h-full object-cover rounded-xl" data-alt="High-end makeup brushes and palette" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuS2OrFmIsmAkx5WyQMSH9G9047Y2-bfDHCHHs2RWeZHT7tJlFLqqRkef9BnBBdusVs5TW69H9fbc3z9JPwcATXofBUuZrw8JD2DGQn2b8XNr_OdUmK9KY9W_Vjj7RITsVL7ISloTzY8nxU0VNROClUIcAnrbt2-FvJkPhGTp_4i9c_iz5vS4kd_Xde1yCCwlLbNbokfQSVNV8z4sI-lyCgk-HPImR_YpJeYPCpc_6EIKqiehTAsfbNV0_L27kE2ldJaPJRDzdrHx7"/>
+<div class="absolute top-2 right-2 glass-morphism px-2 py-1 rounded-lg flex items-center gap-1">
+<span class="material-icons-round text-yellow-400 text-xs">star</span>
+<span class="text-[10px] font-bold">4.9</span>
+</div>
+</div>
+<h4 class="font-semibold text-sm leading-snug mb-1">Bridal Makeup Masterclass</h4>
+<p class="text-xs text-white/50 mb-2">Sarah Jenkins</p>
+<div class="flex items-center justify-between mt-auto">
+<span class="text-champagne font-bold">$199</span>
+<span class="text-[10px] text-white/40 uppercase font-medium">24 Lessons</span>
+</div>
+</div>
+<!-- Course Card 2 -->
+<div class="flex flex-col">
+<div class="relative aspect-[4/5] mb-3">
+<img alt="Microblading" class="w-full h-full object-cover rounded-xl" data-alt="Professional brow mapping and microblading" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIsHqQ4lIz4jf0ZmKW_nQvPOKuefQ34EpdGBXcYh15d7os7CDYM9XVS7I40kYCKyoMOW6lPZ8nb8v6YseFbxM9HvsayzjGKaVOVunsOtfrxUQlinSYZFObWlgb3N_l5mUpzb0qmpI_6J9y4CO8hq6eGMLQHJ7-MspjSnBr72N_zx7hBSRpOk4qAch-jxteKH4g57YyaUxBsRtotihfatN-nXnhXNpFD04TgBY1HbH25-UKEMUq_ovXTaP174KYWTqc3MBD-N-CMUa2"/>
+<div class="absolute top-2 right-2 glass-morphism px-2 py-1 rounded-lg flex items-center gap-1">
+<span class="material-icons-round text-yellow-400 text-xs">star</span>
+<span class="text-[10px] font-bold">5.0</span>
+</div>
+</div>
+<h4 class="font-semibold text-sm leading-snug mb-1">Brow Mapping Secrets</h4>
+<p class="text-xs text-white/50 mb-2">Marcus Chen</p>
+<div class="flex items-center justify-between mt-auto">
+<span class="text-champagne font-bold">$149</span>
+<span class="text-[10px] text-white/40 uppercase font-medium">15 Lessons</span>
+</div>
+</div>
+<!-- Course Card 3 -->
+<div class="flex flex-col">
+<div class="relative aspect-[4/5] mb-3">
+<img alt="Skincare" class="w-full h-full object-cover rounded-xl" data-alt="Professional facial steamer and tools" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4-YOFf7bW6SbPlGZtO-yzMRVPYWu5ov6CsBS86OVh27F1LEhm6snGcY5r-NSlTBQ1ANd01BLW_qkt00OxjfraiTqoOwtuwaE01Zn25vc6yQQAlC_1e_b9QOguzcDyvy82_aE5PfULuw9eJfamgyT_6u0FqCUpq4XIdX5Ev4rdMHQU-tn0_cp2KV3XyuDcYHGPJdZy_6kU5gpPR-OyOMqedUzy29VJ3-NFOhyNc9df0IhQDI1NeBm6q6rfKbQAAxSaFGJ2S-4Rutht"/>
+<div class="absolute top-2 right-2 glass-morphism px-2 py-1 rounded-lg flex items-center gap-1">
+<span class="material-icons-round text-yellow-400 text-xs">star</span>
+<span class="text-[10px] font-bold">4.8</span>
+</div>
+</div>
+<h4 class="font-semibold text-sm leading-snug mb-1">Dermaplaning Pro Cert</h4>
+<p class="text-xs text-white/50 mb-2">Olivia Rose</p>
+<div class="flex items-center justify-between mt-auto">
+<span class="text-champagne font-bold">$299</span>
+<span class="text-[10px] text-white/40 uppercase font-medium">32 Lessons</span>
+</div>
+</div>
+<!-- Course Card 4 -->
+<div class="flex flex-col">
+<div class="relative aspect-[4/5] mb-3">
+<img alt="Massage" class="w-full h-full object-cover rounded-xl" data-alt="Luxurious spa massage therapy setup" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHHR3IAd2zsTLVMzij-bEuz1cjvAAvCwFmbnPh2cNrfWUi1hx1TMyHz7QsLioc9k7WIDAxspM93t2e-iD53LUkLftjCTzdYPoT2oSs7x7zSXJXgozJed5dLPpWoH5Mf6fLZSdIbDy8AXE094tF6Aj2r6-kV5MlNy-jsXamtxtlW5MVXgM77MK5e-AYXPo_iUF5XeKZ4peUtN3HKReQPOzKAqfBm-BkkNFiYt98ZjOf-Gv53CeGJRqiNupa5XsCPfCI4VQlOkMSVDPY"/>
+<div class="absolute top-2 right-2 glass-morphism px-2 py-1 rounded-lg flex items-center gap-1">
+<span class="material-icons-round text-yellow-400 text-xs">star</span>
+<span class="text-[10px] font-bold">4.7</span>
+</div>
+</div>
+<h4 class="font-semibold text-sm leading-snug mb-1">Deep Tissue Essentials</h4>
+<p class="text-xs text-white/50 mb-2">David Kim</p>
+<div class="flex items-center justify-between mt-auto">
+<span class="text-champagne font-bold">$249</span>
+<span class="text-[10px] text-white/40 uppercase font-medium">20 Lessons</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-8 py-4 bg-background-dark/90 backdrop-blur-xl border-t border-white/5 flex justify-between items-center z-50">
+<button class="flex flex-col items-center gap-1 text-white/40">
+<span class="material-icons-round">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-icons-round">local_library</span>
+<span class="text-[10px] font-medium">Academy</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-white/40">
+<span class="material-icons-round">search</span>
+<span class="text-[10px] font-medium">Explore</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-white/40">
+<span class="material-icons-round">person_outline</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</nav>
+<!-- Safe Area Spacer -->
+<div class="h-6 w-full bg-background-dark"></div>
+</div>
+</body></html>

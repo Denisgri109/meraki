@@ -1,18 +1,18 @@
 import React, { useState, useCallback } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     FlatList,
     Image,
     RefreshControl,
+    TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { formatDistanceToNow } from 'date-fns';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
-import { ScreenBackground } from '../../../components/ui';
+import { ScreenBackground, MerakiText } from '../../../components/ui';
 import { colors, spacing } from '../../../theme';
-import { TouchableOpacity } from 'react-native';
 
 interface StudentEnrollment {
     id: string;
@@ -149,28 +149,28 @@ export function AcademyStudentsScreen() {
                 {item.student?.avatar_url ? (
                     <Image source={{ uri: item.student.avatar_url }} style={styles.avatarImage} />
                 ) : (
-                    <Text style={styles.avatarText}>
+                    <MerakiText variant="h3" color={colors.primary}>
                         {item.student?.full_name?.[0] || '?'}
-                    </Text>
+                    </MerakiText>
                 )}
             </View>
             <View style={styles.studentInfo}>
-                <Text style={styles.studentName}>{item.student?.full_name}</Text>
-                <Text style={styles.courseName}>{item.course?.title}</Text>
+                <MerakiText variant="body" style={styles.studentName}>{item.student?.full_name}</MerakiText>
+                <MerakiText variant="caption" style={styles.courseName}>{item.course?.title}</MerakiText>
                 <View style={styles.progressRow}>
                     <View style={styles.progressBar}>
                         <View style={[styles.progressFill, { width: `${item.progress}%` }]} />
                     </View>
-                    <Text style={styles.progressText}>{item.progress}%</Text>
+                    <MerakiText variant="caption" style={styles.progressText}>{item.progress}%</MerakiText>
                 </View>
             </View>
             <View style={styles.studentMeta}>
-                <Text style={styles.lastActive}>
+                <MerakiText variant="caption" style={styles.lastActive}>
                     {formatDistanceToNow(new Date(item.lastActive || item.enrolled_at), { addSuffix: true })}
-                </Text>
+                </MerakiText>
                 {item.completed_at && (
                     <View style={styles.completedBadge}>
-                        <Text style={styles.completedText}>✓</Text>
+                        <MaterialCommunityIcons name="check" size={12} color="#fff" />
                     </View>
                 )}
             </View>
@@ -192,26 +192,26 @@ export function AcademyStudentsScreen() {
                         <View style={styles.analyticsSection}>
                             <View style={styles.analyticsRow}>
                                 <View style={styles.analyticsCard}>
-                                    <Text style={styles.analyticsValue}>€{analytics.totalRevenue.toFixed(0)}</Text>
-                                    <Text style={styles.analyticsLabel}>Total Revenue</Text>
+                                    <MerakiText variant="h2" color={colors.text}>€{analytics.totalRevenue.toFixed(0)}</MerakiText>
+                                    <MerakiText variant="caption" color={colors.textMuted} style={{ marginTop: 4 }}>Total Revenue</MerakiText>
                                 </View>
                                 <View style={styles.analyticsCard}>
-                                    <Text style={styles.analyticsValue}>{analytics.totalStudents}</Text>
-                                    <Text style={styles.analyticsLabel}>Students</Text>
+                                    <MerakiText variant="h2" color={colors.text}>{analytics.totalStudents}</MerakiText>
+                                    <MerakiText variant="caption" color={colors.textMuted} style={{ marginTop: 4 }}>Students</MerakiText>
                                 </View>
                                 <View style={styles.analyticsCard}>
-                                    <Text style={styles.analyticsValue}>{analytics.completionRate}%</Text>
-                                    <Text style={styles.analyticsLabel}>Completion</Text>
+                                    <MerakiText variant="h2" color={colors.text}>{analytics.completionRate}%</MerakiText>
+                                    <MerakiText variant="caption" color={colors.textMuted} style={{ marginTop: 4 }}>Completion</MerakiText>
                                 </View>
                             </View>
-                            <Text style={styles.sectionTitle}>Enrolled Students</Text>
+                            <MerakiText variant="caption" style={styles.sectionTitle}>Enrolled Students</MerakiText>
                         </View>
                     }
                     ListEmptyComponent={
                         <View style={styles.empty}>
-                            <Text style={styles.emptyIcon}>👥</Text>
-                            <Text style={styles.emptyTitle}>No Students Yet</Text>
-                            <Text style={styles.emptyText}>Students will appear here when they enroll</Text>
+                            <MaterialCommunityIcons name="account-group" size={48} color={colors.textMuted} style={{ marginBottom: spacing.md }} />
+                            <MerakiText variant="h3" color={colors.text}>No Students Yet</MerakiText>
+                            <MerakiText variant="body" color={colors.textMuted} style={{ marginTop: 4 }}>Students will appear here when they enroll</MerakiText>
                         </View>
                     }
                 />
@@ -234,10 +234,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
-    analyticsValue: { fontSize: 22, fontWeight: '700', color: colors.text },
-    analyticsLabel: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
     sectionTitle: {
-        fontSize: 14,
         fontWeight: '600',
         color: colors.textMuted,
         textTransform: 'uppercase',
@@ -263,10 +260,9 @@ const styles = StyleSheet.create({
         marginRight: spacing.md,
     },
     avatarImage: { width: 44, height: 44, borderRadius: 22 },
-    avatarText: { fontSize: 18, fontWeight: '600', color: colors.primary },
     studentInfo: { flex: 1 },
-    studentName: { fontSize: 15, fontWeight: '600', color: colors.text },
-    courseName: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+    studentName: { fontWeight: '600', color: colors.text },
+    courseName: { color: colors.textMuted, marginTop: 2 },
     progressRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: spacing.sm },
     progressBar: {
         flex: 1,
@@ -276,9 +272,9 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     progressFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 3 },
-    progressText: { fontSize: 11, fontWeight: '600', color: colors.textMuted, width: 35 },
+    progressText: { fontWeight: '600', color: colors.textMuted, width: 35 },
     studentMeta: { alignItems: 'flex-end' },
-    lastActive: { fontSize: 11, color: colors.textMuted },
+    lastActive: { color: colors.textMuted },
     completedBadge: {
         width: 20,
         height: 20,
@@ -288,11 +284,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginTop: 4,
     },
-    completedText: { fontSize: 12, color: '#fff' },
     empty: { alignItems: 'center', paddingTop: 40 },
-    emptyIcon: { fontSize: 48, marginBottom: spacing.md },
-    emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
-    emptyText: { fontSize: 14, color: colors.textMuted, marginTop: 4 },
 });
 
 export default AcademyStudentsScreen;

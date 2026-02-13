@@ -247,7 +247,7 @@ export function CheckoutScreen() {
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()}>
                         <Text style={styles.backButton}>←</Text>
@@ -385,7 +385,7 @@ export function CheckoutScreen() {
                                                 borderRadius: 12,
                                             }}
                                             style={styles.cardField}
-                                            onCardChange={(cardDetails) => {
+                                            onCardChange={(cardDetails: any) => {
                                                 setNewCardComplete(cardDetails.complete);
                                             }}
                                         />
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
     },
     paymentOptionSelected: {
         borderColor: colors.primary,
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        backgroundColor: 'rgba(200, 160, 77, 0.1)',
     },
     paymentOptionInfo: {
         flexDirection: 'row',
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.xs,
     },
     countryOptionSelected: {
-        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+        backgroundColor: 'rgba(200, 160, 77, 0.2)',
     },
     countryOptionText: {
         fontSize: 16,

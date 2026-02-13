@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
 } from 'react-native';
+import { useModal } from '../../contexts/ModalContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { ScreenBackground, Button, Card } from '../../components/ui';
+import { ScreenBackground, Button, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { OwnerSupply } from '../../types/database';
 
@@ -23,7 +23,9 @@ const COMMON_UNITS = ['pieces', 'pairs', 'sets', 'trays', 'bottles', 'tubes', 's
 
 export function AddOwnerSupplyScreen() {
     const navigation = useNavigation();
+
     const { user } = useAuth();
+    const { showAlert } = useModal();
     const route = useRoute();
     const editingSupply = (route.params as any)?.supply as OwnerSupply | undefined;
 
@@ -42,19 +44,19 @@ export function AddOwnerSupplyScreen() {
 
     const handleSave = async () => {
         if (!name.trim()) {
-            Alert.alert('Error', 'Please enter a supply name');
+            showAlert('Error', 'Please enter a supply name', 'error');
             return;
         }
 
         const quantityNum = parseInt(quantity);
         if (isNaN(quantityNum) || quantityNum < 0) {
-            Alert.alert('Error', 'Please enter a valid quantity');
+            showAlert('Error', 'Please enter a valid quantity', 'error');
             return;
         }
 
         const finalUnit = showCustomUnit ? customUnit.trim() : unit;
         if (!finalUnit) {
-            Alert.alert('Error', 'Please select or enter a unit');
+            showAlert('Error', 'Please select or enter a unit', 'error');
             return;
         }
 
@@ -76,20 +78,20 @@ export function AddOwnerSupplyScreen() {
                     .eq('id', editingSupply.id);
 
                 if (error) throw error;
-                Alert.alert('Success', 'Supply updated successfully!');
+                showAlert('Success', 'Supply updated successfully!', 'success');
             } else {
                 const { error } = await supabase
                     .from('owner_supplies')
                     .insert(supplyData);
 
                 if (error) throw error;
-                Alert.alert('Success', 'Supply added successfully!');
+                showAlert('Success', 'Supply added successfully!', 'success');
             }
 
             navigation.goBack();
         } catch (error: any) {
             console.error('Error saving supply:', error);
-            Alert.alert('Error', error.message || 'Failed to save supply');
+            showAlert('Error', error.message || 'Failed to save supply', 'error');
         } finally {
             setLoading(false);
         }
@@ -109,24 +111,9 @@ export function AddOwnerSupplyScreen() {
 
                 if (error) throw error;
 
-                // Log the adjustment manually (if using same log table, or skip if no owner log table exists)
-                // Assuming owner uses same log table or skipping for now as explicit requirement was just to add supply
-                /*
-                await supabase
-                    .from('supply_consumption_log')
-                    .insert({
-                        supply_id: editingSupply.id,
-                        quantity_used: newQty - currentQty,
-                        quantity_before: currentQty,
-                        quantity_after: newQty,
-                        notes: `Manual adjustment from ${currentQty} to ${newQty}`,
-                        created_by: user!.id
-                    });
-                */
-
                 setQuantity(newQty.toString());
             } catch (error: any) {
-                Alert.alert('Error', 'Failed to adjust quantity');
+                showAlert('Error', 'Failed to adjust quantity', 'error');
             }
         } else {
             setQuantity(newQty.toString());
@@ -145,14 +132,14 @@ export function AddOwnerSupplyScreen() {
                         showsVerticalScrollIndicator={false}
                     >
                         {/* Header */}
-                        {/* Header */}
                         <View style={styles.header}>
                             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                                <Text style={styles.backButtonText}>← Back</Text>
+                                <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+                                <MerakiText variant="body" color={colors.text}>Back</MerakiText>
                             </TouchableOpacity>
-                            <Text style={styles.title}>
+                            <MerakiText variant="h3" style={styles.title}>
                                 {isEditing ? 'Edit Supply' : 'Add Supply'}
-                            </Text>
+                            </MerakiText>
                             <View style={{ width: 60 }} />
                         </View>
 
@@ -160,7 +147,7 @@ export function AddOwnerSupplyScreen() {
                         <View style={styles.form}>
                             {/* Name */}
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Supply Name *</Text>
+                                <MerakiText variant="caption" style={styles.label}>Supply Name *</MerakiText>
                                 <TextInput
                                     style={styles.input}
                                     value={name}
@@ -173,7 +160,7 @@ export function AddOwnerSupplyScreen() {
 
                             {/* Description */}
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Description (Optional)</Text>
+                                <MerakiText variant="caption" style={styles.label}>Description (Optional)</MerakiText>
                                 <TextInput
                                     style={[styles.input, styles.textArea]}
                                     value={description}
@@ -187,13 +174,13 @@ export function AddOwnerSupplyScreen() {
 
                             {/* Quantity */}
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Current Quantity *</Text>
+                                <MerakiText variant="caption" style={styles.label}>Current Quantity *</MerakiText>
                                 <View style={styles.quantityInputRow}>
                                     <TouchableOpacity
                                         style={styles.adjustButton}
                                         onPress={() => handleAdjustQuantity(-1)}
                                     >
-                                        <Text style={styles.adjustButtonText}>−</Text>
+                                        <MaterialCommunityIcons name="minus" size={24} color={colors.text} />
                                     </TouchableOpacity>
                                     <TextInput
                                         style={[styles.input, styles.quantityInput]}
@@ -206,14 +193,14 @@ export function AddOwnerSupplyScreen() {
                                         style={styles.adjustButton}
                                         onPress={() => handleAdjustQuantity(1)}
                                     >
-                                        <Text style={styles.adjustButtonText}>+</Text>
+                                        <MaterialCommunityIcons name="plus" size={24} color={colors.text} />
                                     </TouchableOpacity>
                                 </View>
                             </View>
 
                             {/* Unit */}
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Unit *</Text>
+                                <MerakiText variant="caption" style={styles.label}>Unit *</MerakiText>
                                 {!showCustomUnit ? (
                                     <View style={styles.unitsContainer}>
                                         {COMMON_UNITS.map((u) => (
@@ -225,19 +212,22 @@ export function AddOwnerSupplyScreen() {
                                                 ]}
                                                 onPress={() => setUnit(u)}
                                             >
-                                                <Text style={[
-                                                    styles.unitChipText,
-                                                    unit === u && styles.unitChipTextActive
-                                                ]}>
+                                                <MerakiText
+                                                    variant="caption"
+                                                    style={[
+                                                        styles.unitChipText,
+                                                        unit === u && styles.unitChipTextActive
+                                                    ]}
+                                                >
                                                     {u}
-                                                </Text>
+                                                </MerakiText>
                                             </TouchableOpacity>
                                         ))}
                                         <TouchableOpacity
                                             style={styles.unitChip}
                                             onPress={() => setShowCustomUnit(true)}
                                         >
-                                            <Text style={styles.unitChipText}>+ Custom</Text>
+                                            <MerakiText variant="caption" style={styles.unitChipText}>+ Custom</MerakiText>
                                         </TouchableOpacity>
                                     </View>
                                 ) : (
@@ -257,7 +247,7 @@ export function AddOwnerSupplyScreen() {
                                                 setCustomUnit('');
                                             }}
                                         >
-                                            <Text style={styles.cancelCustomText}>Cancel</Text>
+                                            <MerakiText variant="caption" style={styles.cancelCustomText}>Cancel</MerakiText>
                                         </TouchableOpacity>
                                     </View>
                                 )}
@@ -265,11 +255,11 @@ export function AddOwnerSupplyScreen() {
 
                             {/* Low Stock Threshold */}
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Low Stock Alert Threshold (Optional)</Text>
-                                <Text style={styles.helperText}>
+                                <MerakiText variant="caption" style={styles.label}>Low Stock Alert Threshold (Optional)</MerakiText>
+                                <MerakiText variant="caption" style={styles.helperText}>
                                     You'll be notified when quantity drops below this number.
                                     Leave empty to use global default (5).
-                                </Text>
+                                </MerakiText>
                                 <TextInput
                                     style={styles.input}
                                     value={lowStockThreshold}
@@ -314,16 +304,13 @@ const styles = StyleSheet.create({
         marginBottom: spacing.xl,
     },
     backButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
         padding: spacing.xs,
-        width: 60,
-    },
-    backButtonText: {
-        color: colors.text,
-        fontSize: 16,
+        width: 80,
     },
     title: {
-        fontSize: 20,
-        fontWeight: '700',
         color: colors.text,
         textAlign: 'center',
         flex: 1,
@@ -336,12 +323,11 @@ const styles = StyleSheet.create({
         gap: spacing.sm,
     },
     label: {
-        fontSize: 14,
         fontWeight: '600',
         color: colors.text,
+        textTransform: 'uppercase',
     },
     helperText: {
-        fontSize: 12,
         color: colors.textMuted,
         lineHeight: 18,
     },
@@ -371,11 +357,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    adjustButtonText: {
-        fontSize: 24,
-        color: colors.text,
-        fontWeight: '600',
-    },
     quantityInput: {
         flex: 1,
         fontSize: 24,
@@ -399,7 +380,6 @@ const styles = StyleSheet.create({
         borderColor: colors.primary,
     },
     unitChipText: {
-        fontSize: 14,
         color: colors.textSecondary,
     },
     unitChipTextActive: {
@@ -415,7 +395,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
     },
     cancelCustomText: {
-        fontSize: 14,
         color: colors.textSecondary,
     },
     saveButton: {

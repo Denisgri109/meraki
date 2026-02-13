@@ -8,10 +8,10 @@ import {
     Modal,
     TextInput,
     ScrollView,
-    Alert,
     ActivityIndicator,
     RefreshControl,
 } from 'react-native';
+import { useModal } from '../../contexts/ModalContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { format, addDays, startOfDay, setHours, setMinutes, isBefore } from 'date-fns';
@@ -23,6 +23,7 @@ import { BlockedSlot } from '../../types/database';
 
 export function BlockedSlotsScreen() {
     const navigation = useNavigation();
+    const { showAlert, showConfirm } = useModal();
     const { user } = useAuth();
     const [blocks, setBlocks] = useState<BlockedSlot[]>([]);
     const [loading, setLoading] = useState(true);
@@ -55,7 +56,7 @@ export function BlockedSlotsScreen() {
             setBlocks(data || []);
         } catch (error: any) {
             console.error('Error fetching blocks:', error);
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -69,7 +70,7 @@ export function BlockedSlotsScreen() {
 
     const handleAddBlock = async () => {
         if (!reason.trim()) {
-            Alert.alert('Error', 'Please enter a reason');
+            showAlert('Error', 'Please enter a reason', 'error');
             return;
         }
 
@@ -83,7 +84,7 @@ export function BlockedSlotsScreen() {
         end.setHours(endParts[0], endParts[1], 0, 0);
 
         if (end <= start) {
-            Alert.alert('Error', 'End time must be after start time');
+            showAlert('Error', 'End time must be after start time', 'error');
             return;
         }
 
@@ -100,29 +101,31 @@ export function BlockedSlotsScreen() {
 
             if (error) throw error;
 
-            Alert.alert('Success', 'Time slot blocked');
+            showAlert('Success', 'Time slot blocked', 'success');
             setModalVisible(false);
             setReason('');
             fetchBlocks();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setSubmitting(false);
         }
     };
 
     const handleDelete = (id: string) => {
-        Alert.alert('Delete Block', 'Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
+        showConfirm(
+            'Delete Block',
+            'Are you sure?',
+            async () => {
+                const { error } = await supabase.from('blocked_slots').delete().eq('id', id);
+                if (!error) fetchBlocks();
+            },
             {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: async () => {
-                    const { error } = await supabase.from('blocked_slots').delete().eq('id', id);
-                    if (!error) fetchBlocks();
-                }
+                type: 'warning',
+                confirmText: 'Delete',
+                cancelText: 'Cancel'
             }
-        ]);
+        );
     };
 
     // Helpers for UI

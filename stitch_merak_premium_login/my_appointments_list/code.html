@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>My Appointments - Merakí</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#f4256a",
+            "background-light": "#f8f5f6",
+            "background-dark": "#0F0F13",
+            "glass": "rgba(255, 255, 255, 0.05)",
+            "glass-border": "rgba(255, 255, 255, 0.1)",
+          },
+          fontFamily: {
+            "display": ["Plus Jakarta Sans", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "1rem",
+            "xl": "1.5rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    .glassmorphism {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .next-appointment-glow {
+      box-shadow: 0 0 20px -5px rgba(244, 37, 106, 0.3);
+      border: 1px solid rgba(244, 37, 106, 0.4);
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen">
+<!-- iOS Status Bar Spacer -->
+<div class="h-12 w-full"></div>
+<!-- Header -->
+<header class="px-6 py-4 sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="flex justify-between items-center">
+<h1 class="text-2xl font-bold tracking-tight">My Appointments</h1>
+<button class="w-10 h-10 rounded-full glassmorphism flex items-center justify-center">
+<span class="material-icons-round text-primary">add</span>
+</button>
+</div>
+<!-- Tabs -->
+<div class="mt-6 flex space-x-1 p-1 bg-black/20 dark:bg-white/5 rounded-xl">
+<button class="flex-1 py-2 text-sm font-semibold rounded-lg bg-primary text-white shadow-lg transition-all">
+        Upcoming
+      </button>
+<button class="flex-1 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-white transition-all">
+        Past
+      </button>
+<button class="flex-1 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-white transition-all">
+        Cancelled
+      </button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="px-6 pb-32 space-y-6 mt-4">
+<!-- Next Appointment Section -->
+<div class="space-y-3">
+<div class="flex justify-between items-center px-1">
+<span class="text-xs font-bold uppercase tracking-widest text-primary">Next Up</span>
+<span class="text-xs text-slate-400">In 2 days</span>
+</div>
+<div class="glassmorphism next-appointment-glow rounded-xl p-5 relative overflow-hidden">
+<!-- Background Accent -->
+<div class="absolute -top-12 -right-12 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
+<div class="flex items-start space-x-4">
+<!-- Date Badge -->
+<div class="flex-shrink-0 w-16 h-20 bg-primary/20 border border-primary/30 rounded-xl flex flex-col items-center justify-center">
+<span class="text-xs font-bold text-primary uppercase">Mar</span>
+<span class="text-2xl font-extrabold text-white">15</span>
+</div>
+<!-- Info -->
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold leading-tight">Volume Lash Extensions</h3>
+<span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-green-500/20 text-green-400 border border-green-500/30">Confirmed</span>
+</div>
+<p class="text-sm text-slate-400 mt-1">14:00 - 15:30 (90 min)</p>
+<div class="flex items-center mt-4 space-x-2">
+<img alt="Master Specialist" class="w-6 h-6 rounded-full object-cover" data-alt="Portrait of a professional beauty specialist" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQ0F777yesyjy0J6xD5qOsGp5X7rizXaYX-eH3gkKRSWAd950dY-iXuaqC8EtTi4aqvGvAlbEavztqwcRoZSaxI4nWlzc-S9cbvc5g511f9BIAcyUKY7fR2Dj9diBlBhjHWW51ZAu16oRfESrGKLNT8GSJ9wyEfrVFpWrVmpYji-KsTo00i1ip6jXO1AkB962PjljiWjqwCjLOgb__yRU4TCNEyY8eZM0lcQwDaqBdNqrcMWHPe8YvYDFtnMB0KQJvutGpcnK9Jzd_"/>
+<span class="text-xs font-medium text-slate-300">Master: Elena Vance</span>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
+<div class="flex space-x-3">
+<button class="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+<span class="material-icons-round text-sm text-white">chat_bubble_outline</span>
+</button>
+<button class="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+<span class="material-icons-round text-sm text-white">calendar_today</span>
+</button>
+</div>
+<button class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 transition-colors uppercase tracking-wider">
+            Cancel
+          </button>
+</div>
+</div>
+</div>
+<!-- Other Appointments -->
+<div class="space-y-4">
+<h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest px-1">Later this month</h2>
+<!-- Card 2 -->
+<div class="glassmorphism rounded-xl p-5">
+<div class="flex items-start space-x-4">
+<div class="flex-shrink-0 w-16 h-20 bg-white/5 border border-white/10 rounded-xl flex flex-col items-center justify-center">
+<span class="text-xs font-bold text-slate-400 uppercase">Mar</span>
+<span class="text-2xl font-extrabold text-white">22</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold leading-tight">HydraFacial Luxe</h3>
+<span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 border border-amber-500/30">Pending</span>
+</div>
+<p class="text-sm text-slate-400 mt-1">10:30 - 11:30 (60 min)</p>
+<div class="flex items-center mt-4 space-x-2">
+<img alt="Master Specialist" class="w-6 h-6 rounded-full object-cover" data-alt="Portrait of a male professional stylist" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_Cl-Zv3h6pNSdNipBGpUOd5_KDAfNqh7iRzxKXsjaH569ZaRwuMAtP_c5r1VeXK0dqZEMP-FoBFaDXHI1voKvVsxN7OeZP-fGyWhu3OI4NQPbc-lP4UlJedhvAcxVW3n4xtGQrfMcdinhQzNefB-LKhyOlWrjEcOrU5ngHRDUEddfC1sCv26YhvGUp-VByUK4uW5ecy3mPRKnD3uxSncVpjGzZSX0Z7aDVt8AmubFMvhduhCSLGiDmV-ebNB9iZA6n2YfLG8Fq379"/>
+<span class="text-xs font-medium text-slate-300">Master: Marcus Chen</span>
+</div>
+</div>
+</div>
+<div class="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
+<div class="flex space-x-3">
+<button class="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center">
+<span class="material-icons-round text-sm text-white">chat_bubble_outline</span>
+</button>
+<button class="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center">
+<span class="material-icons-round text-sm text-white">calendar_today</span>
+</button>
+</div>
+<button class="px-4 py-2 rounded-lg bg-white/5 text-xs font-bold text-slate-300 uppercase tracking-wider">
+            Cancel
+          </button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="glassmorphism rounded-xl p-5">
+<div class="flex items-start space-x-4">
+<div class="flex-shrink-0 w-16 h-20 bg-white/5 border border-white/10 rounded-xl flex flex-col items-center justify-center">
+<span class="text-xs font-bold text-slate-400 uppercase">Apr</span>
+<span class="text-2xl font-extrabold text-white">05</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-bold leading-tight">Balayage &amp; Styling</h3>
+<span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-green-500/20 text-green-400 border border-green-500/30">Confirmed</span>
+</div>
+<p class="text-sm text-slate-400 mt-1">15:00 - 18:00 (180 min)</p>
+<div class="flex items-center mt-4 space-x-2">
+<img alt="Master Specialist" class="w-6 h-6 rounded-full object-cover" data-alt="Portrait of a female hair stylist" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5PnUelaUC5D89fZ0JKc974A9n6elmyA6qhgyFff24ONKgOH4YD3XfxCbUpm-zyU6Hd9nslOltEK69oNd5PFo4bc0uyQ-juq41qZHIQw8VA9V2eVWnlcL2oPRUja6SmqgSiY-SQzpjEOkB7DKpbsvXXk5UzxqYKTyzlThrgm6d_LWLSQ0aZuH40-AoEXwpJs5pCdB3VuIl3OLIkxSWA6WkeQZ2bbaL-ilG5LbRqmlPN9uqvfKuT8252CDO6_JCfbrF3ALcd5HND67y"/>
+<span class="text-xs font-medium text-slate-300">Master: Sofia Rodriguez</span>
+</div>
+</div>
+</div>
+<div class="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
+<div class="flex space-x-3">
+<button class="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center">
+<span class="material-icons-round text-sm text-white">chat_bubble_outline</span>
+</button>
+<button class="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center">
+<span class="material-icons-round text-sm text-white">calendar_today</span>
+</button>
+</div>
+<button class="px-4 py-2 rounded-lg bg-white/5 text-xs font-bold text-slate-300 uppercase tracking-wider">
+            Cancel
+          </button>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 right-0 glassmorphism border-t border-white/10 px-6 py-4 pb-8 flex justify-between items-center z-50">
+<button class="flex flex-col items-center space-y-1 text-slate-500">
+<span class="material-icons-round">home</span>
+<span class="text-[10px] font-bold uppercase">Home</span>
+</button>
+<button class="flex flex-col items-center space-y-1 text-slate-500">
+<span class="material-icons-round">search</span>
+<span class="text-[10px] font-bold uppercase">Explore</span>
+</button>
+<button class="flex flex-col items-center space-y-1 text-primary">
+<span class="material-icons-round">event_note</span>
+<span class="text-[10px] font-bold uppercase">Bookings</span>
+</button>
+<button class="flex flex-col items-center space-y-1 text-slate-500">
+<span class="material-icons-round">favorite_border</span>
+<span class="text-[10px] font-bold uppercase">Favs</span>
+</button>
+<button class="flex flex-col items-center space-y-1 text-slate-500">
+<div class="w-6 h-6 rounded-full overflow-hidden border border-white/20">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Small circular profile picture of the user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3NCffJ7aTE5-ZuFnrvBIkBIIWWIp7F_6vbO3-25jceoNs3aWROaSp5zi4oxuXyXr08BajLHhOzjsX4aPTyelI304N1SPFNDJ7NHwD-pn0Ks4VDYId2PhoLlshqyTJ4uV-cv-1NbT-HCc0PEpTVnHkHFa8A3Flnn-ejtE4JjiN2BKFJHaobp7pg6ikqwyWRjx4mbYHR2Dgx08KEi-xqXKy7aht5Bgxg3jYb_2-lwBEKly7D9d3V_JTQ30frI6XYCdWpiMNFf4BTc9f"/>
+</div>
+<span class="text-[10px] font-bold uppercase">Profile</span>
+</button>
+</nav>
+<!-- iOS Home Indicator -->
+<div class="fixed bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full z-[60]"></div>
+</body></html>

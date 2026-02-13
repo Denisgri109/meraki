@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merakí QR Scanner</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#e8305e",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#211115",
+                        "luxe-gold": "#d4af37",
+                        "rose-white": "#fff5f6"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(33, 17, 21, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .scanning-line {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #e8305e, transparent);
+            box-shadow: 0 0 15px #e8305e;
+            position: absolute;
+            width: 100%;
+            top: 50%;
+            animation: scan 3s ease-in-out infinite;
+        }
+        @keyframes scan {
+            0%, 100% { top: 0%; opacity: 0; }
+            5% { opacity: 1; }
+            95% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        .bracket-corner {
+            width: 32px;
+            height: 32px;
+            border-color: #fca5a5; /* Rose Gold tint */
+            border-width: 4px;
+            position: absolute;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-rose-white overflow-hidden antialiased">
+<!-- Camera Background Viewport -->
+<div class="fixed inset-0 w-full h-full z-0">
+<img alt="High-end beauty salon interior with soft lighting" class="w-full h-full object-cover brightness-[0.4]" data-alt="Blurred luxury beauty salon interior" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-03gSL8V4TZaYRCaffi7Z2woPLgQh7rnQ_U-hzuf8F3Ef1P3d1a3AhBug32feDla7PsuAuBJPhIrly3xyyjl3C_nUaxZxOoTZ0WJX4rM1sfWi8uP7HvovhBAz078x-KkrUXywVFtNQk3uutLs5cahpM3h2f0EqMqfzOLb-VhvGJnzV59OIsBB2QxRFupAygo2z4dAjEbC_j4d0wMRUlm23NQ0U2-Ukh62m1uH7dV6Ovwq8sqWHqZhU9hXmIH6PzElzdQ5VEguGU9z"/>
+</div>
+<!-- Interface Overlay -->
+<div class="relative z-10 h-screen flex flex-col justify-between p-6">
+<!-- Header Section -->
+<header class="flex items-center justify-between pt-8">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-md">
+<span class="material-icons text-rose-white">close</span>
+</button>
+<h1 class="text-xl font-semibold tracking-wide text-rose-white">Scan QR Code</h1>
+<div class="w-10"></div> <!-- Spacer for balance -->
+</header>
+<!-- Scanner Viewport Area -->
+<div class="flex-grow flex flex-col items-center justify-center relative">
+<!-- Quick Actions (Left) -->
+<div class="absolute left-0 flex flex-col gap-6">
+<button class="w-12 h-12 rounded-full glass-panel flex items-center justify-center hover:bg-primary/20 transition-colors">
+<span class="material-icons text-white">highlight</span>
+</button>
+</div>
+<!-- Main Scanning Square -->
+<div class="relative w-64 h-64 sm:w-80 sm:h-80">
+<!-- Rose Gold Corner Brackets -->
+<div class="bracket-corner top-0 left-0 border-t-4 border-l-4 rounded-tl-lg"></div>
+<div class="bracket-corner top-0 right-0 border-t-4 border-r-4 rounded-tr-lg"></div>
+<div class="bracket-corner bottom-0 left-0 border-b-4 border-l-4 rounded-bl-lg"></div>
+<div class="bracket-corner bottom-0 right-0 border-b-4 border-r-4 rounded-br-lg"></div>
+<!-- The Scanning Line -->
+<div class="scanning-line"></div>
+<!-- Inner darkened mask -->
+<div class="absolute inset-2 border border-white/5 bg-transparent"></div>
+</div>
+<!-- Quick Actions (Right) -->
+<div class="absolute right-0 flex flex-col gap-6">
+<button class="w-12 h-12 rounded-full glass-panel flex items-center justify-center hover:bg-primary/20 transition-colors">
+<span class="material-icons text-white">photo_library</span>
+</button>
+</div>
+<!-- Contextual Instructions -->
+<div class="mt-12 glass-panel px-6 py-3 rounded-xl max-w-xs text-center">
+<p class="text-sm font-light text-rose-white/90">
+                    Position the Master's QR code within the frame
+                </p>
+</div>
+</div>
+<!-- Bottom Preview Card -->
+<footer class="mb-8">
+<div class="glass-panel p-5 rounded-2xl flex items-center justify-between shadow-2xl">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+<span class="material-icons text-primary">auto_awesome</span>
+</div>
+<div>
+<p class="text-xs text-rose-white/60 uppercase tracking-widest font-medium">Scan Reward</p>
+<p class="text-xl font-bold text-primary">+50 Points <span class="text-rose-white/40 font-normal text-sm ml-1">pending</span></p>
+</div>
+</div>
+<div class="h-10 w-[1px] bg-white/10"></div>
+<div class="text-right">
+<p class="text-xs text-rose-white/60 uppercase tracking-widest font-medium">Balance</p>
+<p class="text-lg font-semibold text-rose-white">1,250 <span class="text-xs font-normal opacity-60">pts</span></p>
+</div>
+</div>
+<!-- Bottom Tab Indicator (iOS Style) -->
+<div class="w-32 h-1.5 bg-white/20 rounded-full mx-auto mt-8"></div>
+</footer>
+</div>
+<!-- Decoration elements for "Luxe" feel -->
+<div class="fixed top-1/4 -left-20 w-64 h-64 bg-primary/10 rounded-full blur-[100px] pointer-events-none"></div>
+<div class="fixed bottom-1/4 -right-20 w-64 h-64 bg-luxe-gold/10 rounded-full blur-[100px] pointer-events-none"></div>
+</body></html>

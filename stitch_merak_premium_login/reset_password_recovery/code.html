@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merakí - Reset Password Recovery</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#d48a82",
+            "champagne": "#E6C090",
+            "background-light": "#f8f6f6",
+            "background-dark": "#0F0F13",
+            "rose-white": "#FFF5F4",
+            "muted-lavender": "#A8A2B5",
+          },
+          fontFamily: {
+            "display": ["Manrope"]
+          },
+          borderRadius: {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    .glass-input {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(212, 138, 130, 0.1);
+    }
+    .gradient-primary {
+      background: linear-gradient(135deg, #d48a82 0%, #E6C090 100%);
+    }
+    .glow-soft {
+      filter: drop-shadow(0 0 15px rgba(212, 138, 130, 0.3));
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-rose-white antialiased min-h-screen flex flex-col">
+<!-- Status Bar Spacer (iOS Style) -->
+<div class="h-12 w-full"></div>
+<!-- Header -->
+<header class="px-6 py-4 flex items-center justify-between">
+<button class="w-10 h-10 flex items-center justify-start text-rose-white hover:opacity-70 transition-opacity">
+<span class="material-icons-outlined">arrow_back_ios</span>
+</button>
+<h1 class="text-lg font-semibold tracking-wide text-rose-white">Reset Password</h1>
+<div class="w-10"></div> <!-- Placeholder for centering -->
+</header>
+<main class="flex-1 px-8 flex flex-col items-center justify-start pt-12">
+<!-- Lock Illustration -->
+<div class="relative mb-12">
+<div class="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150"></div>
+<div class="relative w-24 h-24 bg-background-dark border border-primary/20 rounded-full flex items-center justify-center glow-soft">
+<span class="material-icons-outlined text-5xl text-primary">lock_reset</span>
+</div>
+</div>
+<!-- Instructions -->
+<div class="text-center space-y-3 mb-12">
+<h2 class="text-2xl font-light tracking-tight text-rose-white">Forgot Security Key?</h2>
+<p class="text-muted-lavender leading-relaxed max-w-[280px] mx-auto">
+        Enter your email and we'll send you a link to reset your password
+      </p>
+</div>
+<!-- Form Section -->
+<div class="w-full space-y-8">
+<div class="space-y-2">
+<label class="text-xs font-medium uppercase tracking-widest text-primary ml-1" for="email">Email Address</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-icons-outlined text-primary/60 text-xl">mail</span>
+</div>
+<input class="glass-input w-full py-5 pl-12 pr-6 rounded-[20px] focus:ring-1 focus:ring-primary focus:border-primary outline-none text-rose-white placeholder:text-muted-lavender/40 transition-all" id="email" placeholder="meraki.luxe@example.com" type="email"/>
+</div>
+</div>
+<!-- Action Button -->
+<button class="gradient-primary w-full py-5 rounded-full text-background-dark font-bold text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-[0.98] transition-all">
+        Send Reset Link
+      </button>
+</div>
+<!-- Success Message Mockup (Hidden by default) -->
+<!-- <div class="mt-8 flex items-center gap-2 text-primary text-sm opacity-0">
+      <span class="material-icons-outlined text-base">check_circle</span>
+      <span>Link sent successfully to your email</span>
+    </div> -->
+</main>
+<!-- Footer Link -->
+<footer class="p-8 text-center mt-auto">
+<p class="text-muted-lavender text-sm">
+      Remember your password? 
+      <a class="text-champagne font-semibold ml-1 hover:underline decoration-champagne/30 underline-offset-4 transition-all" href="#">
+        Sign In
+      </a>
+</p>
+</footer>
+<!-- Background Decorative Elements -->
+<div class="fixed top-[-10%] right-[-10%] w-64 h-64 bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+<div class="fixed bottom-[-5%] left-[-5%] w-80 h-80 bg-champagne/5 rounded-full blur-[120px] pointer-events-none"></div>
+</body></html><!-- 
+  Image descriptions:
+  data-alt="Minimalist glowing lock icon in rose gold" 
+-->

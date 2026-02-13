@@ -14,14 +14,15 @@ import {
     TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
 import { formatDistanceToNow } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
+import * as Location from 'expo-location';
 
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card, ScreenBackground } from '../../components/ui';
+import { Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 
 interface Master {
@@ -29,6 +30,8 @@ interface Master {
     full_name: string | null;
     avatar_url: string | null;
     bio?: string | null;
+    city?: string | null;
+    country?: string | null;
 }
 
 interface Conversation {
@@ -58,28 +61,61 @@ export function ChatListScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [userLocation, setUserLocation] = useState<{ city: string | null; country: string | null }>({ city: null, country: null });
 
     const isMaster = profile?.is_master || profile?.role === 'master' || profile?.role === 'owner';
 
     useFocusEffect(
         React.useCallback(() => {
+            detectLocation();
             fetchData();
         }, [user?.id])
     );
 
-    useEffect(() => {
-        if (!isMaster) return;
+    const detectLocation = async () => {
+        try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status === 'granted') {
+                const location = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced,
+                });
+                const [address] = await Location.reverseGeocodeAsync({
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                });
+                if (address) {
+                    setUserLocation({
+                        city: address.city || null,
+                        country: address.country || null,
+                    });
+                }
+            }
+        } catch (error) {
+            console.log('Location detection failed:', error);
+        }
+    };
 
+    useEffect(() => {
+        // Debounced search effect
         const timer = setTimeout(async () => {
             if (searchQuery.trim().length > 0) {
                 setIsSearching(true);
                 try {
-                    const { data, error } = await supabase
+                    let query = supabase
                         .from('profiles')
                         .select('id, full_name, avatar_url, role')
                         .ilike('full_name', `%${searchQuery}%`)
                         .neq('id', user?.id || '')
                         .limit(20);
+
+                    // If user is client, filter for masters/owners
+                    if (!isMaster) {
+                        query = query.in('role', ['master', 'owner']);
+                    }
+                    // If user is master, filter for clients (optional, depending on requirements)
+                    // Existing logic was broad, but let's keep it broad for masters for now or filter for clients if preferred
+
+                    const { data, error } = await query;
 
                     if (error) throw error;
                     setSearchResults(data || []);
@@ -116,7 +152,7 @@ export function ChatListScreen() {
             if (!isMaster) {
                 const mastersPromise = supabase
                     .from('profiles')
-                    .select('id, full_name, avatar_url, bio')
+                    .select('id, full_name, avatar_url, bio, city, country')
                     .or('is_master.eq.true,role.eq.owner')
                     .order('full_name');
 
@@ -233,14 +269,19 @@ export function ChatListScreen() {
             setSearchQuery('');
             setSearchResults([]);
 
-            navigation.navigate('Chat', {
-                conversationId,
-                otherUser: {
-                    full_name: targetUserName,
-                    avatar_url: targetUserAvatarUrl,
-                    id: targetUserId
-                },
-            });
+            navigation.dispatch(
+                CommonActions.navigate({
+                    name: 'Chat',
+                    params: {
+                        conversationId,
+                        otherUser: {
+                            full_name: targetUserName,
+                            avatar_url: targetUserAvatarUrl,
+                            id: targetUserId
+                        },
+                    },
+                })
+            );
         } catch (error: any) {
             console.error('Error starting conversation:', error);
         }
@@ -252,53 +293,69 @@ export function ChatListScreen() {
             style={styles.masterItem}
             onPress={() => startOrOpenConversation(master.id, master.full_name, master.avatar_url)}
         >
-            {master.avatar_url ? (
-                <Image source={{ uri: master.avatar_url }} style={styles.masterAvatarImage} />
-            ) : (
-                <View style={styles.masterAvatar}>
-                    <Text style={styles.masterAvatarText}>
-                        {master.full_name?.[0] || 'M'}
-                    </Text>
-                </View>
-            )}
-            <Text style={styles.masterName} numberOfLines={1}>
+            <View style={styles.masterAvatarContainer}>
+                {master.avatar_url ? (
+                    <Image source={{ uri: master.avatar_url }} style={styles.masterAvatarImage} />
+                ) : (
+                    <View style={styles.masterAvatarPlaceholder}>
+                        <MerakiText style={styles.masterAvatarText}>
+                            {master.full_name?.[0] || 'M'}
+                        </MerakiText>
+                    </View>
+                )}
+                {/* Online Indicator Dot (Optional/Mock) */}
+                <View style={styles.onlineIndicator} />
+            </View>
+            <MerakiText style={styles.masterName} numberOfLines={1} variant="caption">
                 {master.full_name?.split(' ')[0] || 'Master'}
-            </Text>
+            </MerakiText>
         </TouchableOpacity>
     );
 
     const renderConversation = ({ item }: { item: Conversation }) => (
         <TouchableOpacity
-            onPress={() => navigation.navigate('Chat', {
-                conversationId: item.id,
-                otherUser: item.other_user,
-            })}
+            onPress={() => navigation.dispatch(
+                CommonActions.navigate({
+                    name: 'Chat',
+                    params: {
+                        conversationId: item.id,
+                        otherUser: item.other_user,
+                    },
+                })
+            )}
+            activeOpacity={0.7}
         >
-            <Card style={styles.conversationCard} variant="glass">
-                {item.other_user?.avatar_url ? (
-                    <Image source={{ uri: item.other_user.avatar_url }} style={styles.conversationAvatarImage} />
-                ) : (
-                    <View style={styles.conversationAvatar}>
-                        <Text style={styles.conversationAvatarText}>
-                            {item.other_user?.full_name?.[0] || '?'}
-                        </Text>
+            <Card style={styles.conversationCard} variant="glass" noPadding>
+                <View style={styles.conversationContent}>
+                    {item.other_user?.avatar_url ? (
+                        <Image source={{ uri: item.other_user.avatar_url }} style={styles.conversationAvatarImage} />
+                    ) : (
+                        <View style={styles.conversationAvatarPlaceholder}>
+                            <MerakiText style={styles.conversationAvatarText}>
+                                {item.other_user?.full_name?.[0] || '?'}
+                            </MerakiText>
+                        </View>
+                    )}
+
+                    <View style={styles.conversationInfo}>
+                        <View style={styles.conversationHeader}>
+                            <MerakiText style={styles.conversationName} variant="bodyBold">
+                                {item.other_user?.full_name || 'Unknown'}
+                            </MerakiText>
+                            <MerakiText style={styles.timestamp} variant="caption">
+                                {formatDistanceToNow(new Date(item.last_message_at), { addSuffix: false })}
+                            </MerakiText>
+                        </View>
+
+                        <MerakiText style={styles.lastMessage} numberOfLines={1} variant="body">
+                            {item.last_message?.is_deleted
+                                ? 'Message deleted'
+                                : item.last_message?.media_type
+                                    ? `📷 ${item.last_message.media_type === 'image' ? 'Photo' : 'Video'}`
+                                    : item.last_message?.content || 'Start a conversation...'}
+                        </MerakiText>
                     </View>
-                )}
-                <View style={styles.conversationInfo}>
-                    <Text style={styles.conversationName}>
-                        {item.other_user?.full_name || 'Unknown'}
-                    </Text>
-                    <Text style={styles.lastMessage} numberOfLines={1}>
-                        {item.last_message?.is_deleted
-                            ? 'Message deleted'
-                            : item.last_message?.media_type
-                                ? `📷 ${item.last_message.media_type === 'image' ? 'Photo' : 'Video'}`
-                                : item.last_message?.content || 'Start a conversation...'}
-                    </Text>
                 </View>
-                <Text style={styles.timestamp}>
-                    {formatDistanceToNow(new Date(item.last_message_at), { addSuffix: false })}
-                </Text>
             </Card>
         </TouchableOpacity>
     );
@@ -307,23 +364,25 @@ export function ChatListScreen() {
         <TouchableOpacity
             onPress={() => startOrOpenConversation(item.id, item.full_name, item.avatar_url)}
         >
-            <Card style={styles.conversationCard} variant="glass">
-                {item.avatar_url ? (
-                    <Image source={{ uri: item.avatar_url }} style={styles.conversationAvatarImage} />
-                ) : (
-                    <View style={styles.conversationAvatar}>
-                        <Text style={styles.conversationAvatarText}>
-                            {item.full_name?.[0] || '?'}
-                        </Text>
+            <Card style={styles.conversationCard} variant="glass" noPadding>
+                <View style={styles.conversationContent}>
+                    {item.avatar_url ? (
+                        <Image source={{ uri: item.avatar_url }} style={styles.conversationAvatarImage} />
+                    ) : (
+                        <View style={styles.conversationAvatarPlaceholder}>
+                            <MerakiText style={styles.conversationAvatarText}>
+                                {item.full_name?.[0] || '?'}
+                            </MerakiText>
+                        </View>
+                    )}
+                    <View style={styles.conversationInfo}>
+                        <MerakiText style={styles.conversationName} variant="bodyBold">
+                            {item.full_name || 'Unknown'}
+                        </MerakiText>
+                        <MerakiText style={styles.lastMessage} numberOfLines={1}>
+                            {item.role === 'client' ? 'Client' : 'Master'}
+                        </MerakiText>
                     </View>
-                )}
-                <View style={styles.conversationInfo}>
-                    <Text style={styles.conversationName}>
-                        {item.full_name || 'Unknown'}
-                    </Text>
-                    <Text style={styles.lastMessage} numberOfLines={1}>
-                        {item.role === 'client' ? 'Client' : 'User'}
-                    </Text>
                 </View>
             </Card>
         </TouchableOpacity>
@@ -334,7 +393,7 @@ export function ChatListScreen() {
             <ScreenBackground>
                 <SafeAreaView style={styles.container}>
                     <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={colors.text} />
+                        <ActivityIndicator size="large" color={colors.primary} />
                     </View>
                 </SafeAreaView>
             </ScreenBackground>
@@ -344,16 +403,16 @@ export function ChatListScreen() {
     return (
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
-                {/* Header */}
+                {/* Search Header */}
+                <View style={styles.headerContainer}>
+                    <MerakiText variant="h2" style={styles.pageTitle}>Messages</MerakiText>
 
-                {/* Search Header for Masters */}
-                {isMaster && (
                     <View style={styles.searchContainer}>
                         <View style={styles.searchBar}>
-                            <Text style={styles.searchIcon}>🔍</Text>
+                            <MerakiText style={styles.searchIcon}>🔍</MerakiText>
                             <TextInput
                                 style={styles.searchInput}
-                                placeholder="Search clients..."
+                                placeholder={isMaster ? "Search clients..." : "Search masters globally..."}
                                 placeholderTextColor={colors.textSecondary}
                                 value={searchQuery}
                                 onChangeText={setSearchQuery}
@@ -361,16 +420,17 @@ export function ChatListScreen() {
                             />
                             {searchQuery.length > 0 && (
                                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                    <Text style={styles.clearIcon}>✕</Text>
+                                    <MerakiText style={styles.clearIcon}>✕</MerakiText>
                                 </TouchableOpacity>
                             )}
                         </View>
                     </View>
-                )}
+                </View>
 
                 {/* Search Results Overlay */}
-                {isMaster && searchQuery.length > 0 ? (
+                {searchQuery.length > 0 ? (
                     <View style={styles.searchResultsContainer}>
+                        <MerakiText style={styles.sectionTitle} variant="label">Global Results</MerakiText>
                         {isSearching ? (
                             <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
                         ) : searchResults.length > 0 ? (
@@ -383,53 +443,69 @@ export function ChatListScreen() {
                             />
                         ) : (
                             <View style={styles.emptyContainer}>
-                                <Text style={styles.emptyText}>No clients found</Text>
+                                <MerakiText style={styles.emptyText}>
+                                    {isMaster ? 'No clients found' : 'No masters found'}
+                                </MerakiText>
                             </View>
                         )}
                     </View>
                 ) : (
                     <>
+                        <ScrollView
+                            style={{ flex: 1 }}
+                            contentContainerStyle={{ paddingBottom: 100 }}
+                            refreshControl={
+                                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+                            }
+                            showsVerticalScrollIndicator={false}
+                        >
+                            {/* Masters Section (only for clients) */}
+                            {!isMaster && masters.length > 0 && (
+                                <View style={styles.mastersSection}>
+                                    <View style={styles.mastersHeader}>
+                                        <MerakiText style={styles.mastersTitle} variant="label">
+                                            {userLocation.country ? `Masters in ${userLocation.country}` : 'Recommended Masters'}
+                                        </MerakiText>
+                                    </View>
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={styles.mastersScroll}
+                                    >
+                                        {masters
+                                            .filter(m => !userLocation.country || m.country === userLocation.country)
+                                            .map(renderMaster)}
+                                    </ScrollView>
+                                </View>
+                            )}
 
-                        {/* Masters Section (only for clients) */}
-                        {!isMaster && masters.length > 0 && (
-                            <View style={styles.mastersSection}>
-                                <Text style={styles.mastersTitle}>Contact a Master</Text>
-                                <ScrollView
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    contentContainerStyle={styles.mastersScroll}
-                                >
-                                    {masters.map(renderMaster)}
-                                </ScrollView>
+                            {/* Conversations Section */}
+                            <View style={styles.conversationsSection}>
+                                <MerakiText style={styles.sectionTitle} variant="label">Conversations</MerakiText>
+
+                                {conversations.length > 0 ? (
+                                    <View style={styles.conversationsList}>
+                                        {conversations.map(item => (
+                                            <View key={item.id}>
+                                                {renderConversation({ item })}
+                                            </View>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <View style={styles.emptyContainer}>
+                                        <View style={styles.emptyIconContainer}>
+                                            <MerakiText style={styles.emptyIcon}>💬</MerakiText>
+                                        </View>
+                                        <MerakiText variant="h3" style={styles.emptyText}>No conversations yet</MerakiText>
+                                        <MerakiText style={styles.emptySubtext}>
+                                            {isMaster
+                                                ? 'Search above to start chatting with a client'
+                                                : 'Tap a master above to start chatting'}
+                                        </MerakiText>
+                                    </View>
+                                )}
                             </View>
-                        )}
-
-                        {/* Conversations Section */}
-                        <View style={styles.conversationsSection}>
-                            <Text style={styles.sectionTitle}>Conversations</Text>
-                        </View>
-
-                        {conversations.length > 0 ? (
-                            <FlatList
-                                data={conversations}
-                                keyExtractor={(item) => item.id}
-                                renderItem={renderConversation}
-                                contentContainerStyle={styles.listContent}
-                                refreshControl={
-                                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
-                                }
-                            />
-                        ) : (
-                            <View style={styles.emptyContainer}>
-                                <Text style={styles.emptyIcon}>💬</Text>
-                                <Text style={styles.emptyText}>No conversations yet</Text>
-                                <Text style={styles.emptySubtext}>
-                                    {isMaster
-                                        ? 'Search above to start chatting with a client'
-                                        : 'Tap a master above to start chatting'}
-                                </Text>
-                            </View>
-                        )}
+                        </ScrollView>
                     </>
                 )}
             </SafeAreaView>
@@ -441,19 +517,66 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-    mastersSection: {
-        paddingBottom: spacing.lg,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
+    headerContainer: {
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.md,
     },
-    mastersTitle: {
-        fontSize: 14,
-        fontWeight: '600',
+    pageTitle: {
+        marginBottom: spacing.md,
+        color: colors.text,
+    },
+
+    // Search
+    searchContainer: {
+        marginBottom: spacing.xs,
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.surfaceGlass,
+        borderRadius: 16,
+        paddingHorizontal: spacing.md,
+        height: 50,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+    },
+    searchIcon: {
+        fontSize: 18,
+        marginRight: spacing.sm,
+        opacity: 0.7,
+    },
+    searchInput: {
+        flex: 1,
+        color: colors.text,
+        fontSize: 16,
+        height: '100%',
+        fontFamily: 'Manrope-Regular',
+    },
+    clearIcon: {
+        fontSize: 18,
         color: colors.textSecondary,
+        marginLeft: spacing.sm,
+    },
+
+    // Masters Row
+    mastersSection: {
+        marginBottom: spacing.xl,
+    },
+    mastersHeader: {
         paddingHorizontal: spacing.lg,
         marginBottom: spacing.md,
-        textTransform: 'uppercase',
+    },
+    mastersTitle: {
+        color: colors.textSecondary,
         letterSpacing: 1,
+        textTransform: 'uppercase',
+        fontSize: 12,
     },
     mastersScroll: {
         paddingHorizontal: spacing.lg,
@@ -461,117 +584,154 @@ const styles = StyleSheet.create({
     },
     masterItem: {
         alignItems: 'center',
-        width: 70,
+        width: 72,
     },
-    masterAvatar: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: colors.primary,
+    masterAvatarContainer: {
+        position: 'relative',
+        marginBottom: spacing.xs,
+    },
+    masterAvatarPlaceholder: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: colors.surfaceLight,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: spacing.xs,
         borderWidth: 2,
-        borderColor: colors.primaryLight || 'rgba(139, 92, 246, 0.3)',
+        borderColor: colors.borderGold, // Gold border
     },
     masterAvatarImage: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        marginBottom: spacing.xs,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         borderWidth: 2,
-        borderColor: colors.primaryLight || 'rgba(139, 92, 246, 0.3)',
+        borderColor: colors.borderGold, // Gold border
     },
     masterAvatarText: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: '700',
-        color: colors.text,
+        color: colors.primary,
+    },
+    onlineIndicator: {
+        position: 'absolute',
+        bottom: 2,
+        right: 2,
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: colors.success,
+        borderWidth: 2,
+        borderColor: colors.background,
     },
     masterName: {
-        fontSize: 12,
         color: colors.text,
         textAlign: 'center',
-        fontWeight: '500',
+        width: '100%',
     },
+
+    // Conversations
     conversationsSection: {
         paddingHorizontal: spacing.lg,
-        paddingTop: spacing.lg,
-        paddingBottom: spacing.sm,
+        paddingBottom: spacing.xl,
     },
     sectionTitle: {
-        fontSize: 14,
-        fontWeight: '600',
         color: colors.textSecondary,
-        textTransform: 'uppercase',
         letterSpacing: 1,
+        textTransform: 'uppercase',
+        fontSize: 12,
+        marginBottom: spacing.md,
     },
     listContent: {
         paddingHorizontal: spacing.lg,
         paddingTop: spacing.sm
     },
+    conversationsList: {
+        gap: spacing.sm,
+    },
     conversationCard: {
+        marginBottom: spacing.xs,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    conversationContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: spacing.sm,
-        padding: spacing.md
+        padding: spacing.md,
     },
-    conversationAvatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: colors.surface,
+    conversationAvatarPlaceholder: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        backgroundColor: colors.surfaceLight,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: spacing.md,
         borderWidth: 1,
-        borderColor: colors.border
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     conversationAvatarImage: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+        width: 52,
+        height: 52,
+        borderRadius: 26,
         marginRight: spacing.md,
         borderWidth: 1,
-        borderColor: colors.border
+        borderColor: 'rgba(255,255,255,0.1)',
     },
-    conversationAvatarText: { fontSize: 20, fontWeight: '600', color: colors.text },
-    conversationInfo: { flex: 1 },
-    conversationName: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 2 },
-    lastMessage: { fontSize: 14, color: colors.textSecondary },
-    timestamp: { fontSize: 12, color: colors.textMuted },
-    emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
-    emptyIcon: { fontSize: 64, marginBottom: spacing.lg, opacity: 0.5 },
-    emptyText: { fontSize: 18, fontWeight: '500', color: colors.text, marginBottom: spacing.sm },
-    emptySubtext: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
-    searchContainer: {
-        paddingHorizontal: spacing.lg,
-        paddingBottom: spacing.md,
-        paddingTop: spacing.sm,
+    conversationAvatarText: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: colors.textMuted
     },
-    searchBar: {
+    conversationInfo: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    conversationHeader: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: colors.surfaceLight,
-        borderRadius: 12,
-        paddingHorizontal: spacing.md,
-        height: 48,
-        borderWidth: 1,
-        borderColor: colors.border,
+        marginBottom: 4,
     },
-    searchIcon: {
-        fontSize: 18,
+    conversationName: {
+        color: colors.text,
+        flex: 1,
         marginRight: spacing.sm,
     },
-    searchInput: {
-        flex: 1,
-        color: colors.text,
-        fontSize: 16,
-        height: '100%',
+    timestamp: {
+        color: colors.textMuted,
+        fontSize: 12,
     },
-    clearIcon: {
-        fontSize: 18,
+    lastMessage: {
         color: colors.textSecondary,
-        marginLeft: spacing.sm,
+    },
+
+    // Empty State
+    emptyContainer: {
+        alignItems: 'center',
+        paddingVertical: spacing.xxxl,
+    },
+    emptyIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(200, 160, 77, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing.lg,
+    },
+    emptyIcon: {
+        fontSize: 32,
+        opacity: 0.8
+    },
+    emptyText: {
+        color: colors.text,
+        marginBottom: spacing.sm
+    },
+    emptySubtext: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        maxWidth: 250,
     },
     searchResultsContainer: {
         flex: 1,

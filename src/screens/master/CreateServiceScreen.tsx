@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
     TextInput,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { ScreenBackground, Card, Button } from '../../components/ui';
+import { ScreenBackground, Card, Button, MerakiText } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 
 const CATEGORIES = ['Nails', 'Lashes', 'Brows', 'Hair', 'Makeup', 'Skincare', 'Other'];
@@ -23,6 +23,7 @@ const CATEGORIES = ['Nails', 'Lashes', 'Brows', 'Hair', 'Makeup', 'Skincare', 'O
 export function CreateServiceScreen() {
     const navigation = useNavigation();
     const { user } = useAuth();
+    const { showAlert, showConfirm } = useModal();
     const [loading, setLoading] = useState(false);
 
     const [name, setName] = useState('');
@@ -33,15 +34,15 @@ export function CreateServiceScreen() {
 
     const handleCreate = async () => {
         if (!name.trim()) {
-            Alert.alert('Error', 'Please enter a service name');
+            showAlert('Error', 'Please enter a service name', 'error');
             return;
         }
         if (!basePrice || isNaN(Number(basePrice)) || Number(basePrice) <= 0) {
-            Alert.alert('Error', 'Please enter a valid price');
+            showAlert('Error', 'Please enter a valid price', 'error');
             return;
         }
         if (!durationMinutes || isNaN(Number(durationMinutes)) || Number(durationMinutes) <= 0) {
-            Alert.alert('Error', 'Please enter a valid duration');
+            showAlert('Error', 'Please enter a valid duration', 'error');
             return;
         }
 
@@ -77,12 +78,15 @@ export function CreateServiceScreen() {
 
             if (linkError) throw linkError;
 
-            Alert.alert('Success', 'Service created successfully!', [
-                { text: 'OK', onPress: () => navigation.goBack() }
-            ]);
+            // Use showConfirm to handle navigation on acknowledgement
+            showConfirm('Success', 'Service created successfully!', () => navigation.goBack(), {
+                type: 'success',
+                confirmText: 'OK',
+                hideCancel: true
+            });
         } catch (error: any) {
             console.error('Error creating service:', error);
-            Alert.alert('Error', error.message || 'Failed to create service');
+            showAlert('Error', error.message || 'Failed to create service', 'error');
         } finally {
             setLoading(false);
         }
@@ -103,17 +107,17 @@ export function CreateServiceScreen() {
                         {/* Header */}
                         <View style={styles.header}>
                             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                                <Text style={styles.backButtonText}>← Back</Text>
+                                <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                             </TouchableOpacity>
-                            <Text style={styles.title}>Create New Service</Text>
-                            <Text style={styles.subtitle}>Add a service that clients can book</Text>
+                            <MerakiText variant="h1" style={{ marginBottom: spacing.xs }}>Create New Service</MerakiText>
+                            <MerakiText variant="caption" color={colors.textSecondary}>Add a service that clients can book</MerakiText>
                         </View>
 
                         {/* Form */}
                         <View style={styles.form}>
                             {/* Service Name */}
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Service Name *</Text>
+                                <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', marginBottom: spacing.sm }}>Service Name *</MerakiText>
                                 <TextInput
                                     style={styles.input}
                                     placeholder="e.g., Gel Manicure"
@@ -126,7 +130,7 @@ export function CreateServiceScreen() {
 
                             {/* Description */}
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Description</Text>
+                                <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', marginBottom: spacing.sm }}>Description</MerakiText>
                                 <TextInput
                                     style={[styles.input, styles.textArea]}
                                     placeholder="Describe what this service includes..."
@@ -141,7 +145,7 @@ export function CreateServiceScreen() {
 
                             {/* Category */}
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Category</Text>
+                                <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', marginBottom: spacing.sm }}>Category</MerakiText>
                                 <ScrollView
                                     horizontal
                                     showsHorizontalScrollIndicator={false}
@@ -156,12 +160,16 @@ export function CreateServiceScreen() {
                                             ]}
                                             onPress={() => setCategory(cat)}
                                         >
-                                            <Text style={[
-                                                styles.categoryChipText,
-                                                category === cat && styles.categoryChipTextActive
-                                            ]}>
+                                            <MerakiText
+                                                variant="body"
+                                                color={category === cat ? colors.text : colors.textSecondary}
+                                                style={[
+                                                    styles.categoryChipText,
+                                                    category === cat && styles.categoryChipTextActive
+                                                ]}
+                                            >
                                                 {cat}
-                                            </Text>
+                                            </MerakiText>
                                         </TouchableOpacity>
                                     ))}
                                 </ScrollView>
@@ -170,7 +178,7 @@ export function CreateServiceScreen() {
                             {/* Price & Duration Row */}
                             <View style={styles.row}>
                                 <View style={[styles.inputGroup, styles.halfWidth]}>
-                                    <Text style={styles.label}>Price (€) *</Text>
+                                    <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', marginBottom: spacing.sm }}>Price (€) *</MerakiText>
                                     <TextInput
                                         style={styles.input}
                                         placeholder="50"
@@ -181,7 +189,7 @@ export function CreateServiceScreen() {
                                     />
                                 </View>
                                 <View style={[styles.inputGroup, styles.halfWidth]}>
-                                    <Text style={styles.label}>Duration (min) *</Text>
+                                    <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', marginBottom: spacing.sm }}>Duration (min) *</MerakiText>
                                     <TextInput
                                         style={styles.input}
                                         placeholder="60"
@@ -195,22 +203,22 @@ export function CreateServiceScreen() {
 
                             {/* Preview Card */}
                             <View style={styles.previewSection}>
-                                <Text style={styles.previewLabel}>Preview</Text>
+                                <MerakiText variant="caption" color={colors.textSecondary} style={{ fontWeight: '600', marginBottom: spacing.sm }}>Preview</MerakiText>
                                 <Card style={styles.previewCard} variant="glass">
-                                    <Text style={styles.previewCategory}>{category}</Text>
-                                    <Text style={styles.previewName}>{name || 'Service Name'}</Text>
+                                    <MerakiText variant="label" color={colors.accent} style={{ textTransform: 'uppercase', marginBottom: spacing.xs }}>{category}</MerakiText>
+                                    <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18, marginBottom: spacing.xs }}>{name || 'Service Name'}</MerakiText>
                                     {description ? (
-                                        <Text style={styles.previewDescription} numberOfLines={2}>
+                                        <MerakiText variant="caption" color={colors.textSecondary} numberOfLines={2}>
                                             {description}
-                                        </Text>
+                                        </MerakiText>
                                     ) : null}
                                     <View style={styles.previewMeta}>
-                                        <Text style={styles.previewPrice}>
+                                        <MerakiText variant="h2" color={colors.accent}>
                                             €{basePrice || '0'}
-                                        </Text>
-                                        <Text style={styles.previewDuration}>
+                                        </MerakiText>
+                                        <MerakiText variant="caption" color={colors.textMuted}>
                                             {durationMinutes || '0'} min
-                                        </Text>
+                                        </MerakiText>
                                     </View>
                                 </Card>
                             </View>

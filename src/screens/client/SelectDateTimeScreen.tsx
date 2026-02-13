@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -227,14 +228,15 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <ScrollView style={styles.scrollView}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
-                            <Text style={styles.backButton}>← Back</Text>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
                         </TouchableOpacity>
-                        <Text style={styles.title}>Select Date & Time</Text>
+                        <Text style={styles.headerTitle}>Select Date & Time</Text>
+                        <View style={{ width: 40 }} />
                     </View>
 
                     {/* Date Selection */}
@@ -293,9 +295,12 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                         <View style={styles.sectionTitleRow}>
                             <Text style={styles.sectionTitle}>Choose a Time</Text>
                             {master?.timezone && (
-                                <Text style={styles.timezoneHint}>
-                                    🌐 {getTimezoneAbbreviation(master.timezone)} ({master.city || 'Master\'s time'})
-                                </Text>
+                                <View style={styles.timezoneHint}>
+                                    <MaterialIcons name="language" size={12} color={colors.textMuted} style={{ marginRight: 4 }} />
+                                    <Text style={styles.timezoneHintText}>
+                                        {getTimezoneAbbreviation(master.timezone)} ({master.city || 'Master\'s time'})
+                                    </Text>
+                                </View>
                             )}
                         </View>
                         {timeSlots.length > 0 ? (
@@ -392,17 +397,20 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        padding: spacing.lg,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
     },
     backButton: {
-        color: colors.textSecondary,
-        fontSize: 16,
-        marginBottom: spacing.md,
+        width: 40, height: 40, borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center', justifyContent: 'center',
     },
-    title: {
-        fontSize: 28,
-        fontWeight: '600',
-        color: colors.text,
+    headerTitle: {
+        fontSize: 17, fontWeight: '600', color: '#fff',
     },
     section: {
         paddingHorizontal: spacing.lg,
@@ -421,12 +429,16 @@ const styles = StyleSheet.create({
         marginBottom: spacing.md,
     },
     timezoneHint: {
-        fontSize: 12,
-        color: colors.textMuted,
-        backgroundColor: 'rgba(139, 92, 246, 0.15)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(200, 160, 77, 0.15)',
         paddingHorizontal: spacing.sm,
         paddingVertical: spacing.xs,
         borderRadius: 8,
+    },
+    timezoneHintText: {
+        fontSize: 12,
+        color: colors.textMuted,
     },
     datesContainer: {
         gap: spacing.sm,

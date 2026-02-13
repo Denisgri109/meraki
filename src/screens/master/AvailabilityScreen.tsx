@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
@@ -9,11 +8,12 @@ import {
     Switch,
     TextInput,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card, Button, MerakiModal, MerakiModalProps } from '../../components/ui';
+import { Card, Button, MerakiModal, MerakiModalProps, MerakiText } from '../../components/ui';
 import { ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 
@@ -199,11 +199,11 @@ export function MasterAvailabilityScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← Back</Text>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <View>
-                        <Text style={styles.title}>Availability</Text>
-                        <Text style={styles.subtitle}>Set your weekly schedule and hours</Text>
+                        <MerakiText variant="h1">Availability</MerakiText>
+                        <MerakiText variant="caption" color={colors.textSecondary}>Set your weekly schedule and hours</MerakiText>
                     </View>
                 </View>
 
@@ -211,7 +211,7 @@ export function MasterAvailabilityScreen() {
                     {availability.map((day) => (
                         <Card key={day.day_of_week} style={styles.dayCard}>
                             <View style={styles.dayHeader}>
-                                <Text style={styles.dayName}>{DAYS_OF_WEEK[day.day_of_week]}</Text>
+                                <MerakiText variant="body" color={colors.text} style={styles.dayName}>{DAYS_OF_WEEK[day.day_of_week]}</MerakiText>
                                 <Switch
                                     value={day.is_available}
                                     onValueChange={() => toggleDay(day.day_of_week)}
@@ -223,29 +223,29 @@ export function MasterAvailabilityScreen() {
                             {day.is_available && (
                                 <View style={styles.timeRow}>
                                     <View style={styles.timeInputGroup}>
-                                        <Text style={styles.timeLabel}>Start</Text>
+                                        <MerakiText variant="caption" color={colors.textSecondary}>Start</MerakiText>
                                         <TouchableOpacity
                                             style={styles.timeButton}
                                             onPress={() => openTimePicker(day.day_of_week, 'start_time')}
                                         >
-                                            <Text style={styles.timeButtonText}>{day.start_time}</Text>
+                                            <MerakiText variant="body" color={colors.text} style={styles.timeButtonText}>{day.start_time}</MerakiText>
                                         </TouchableOpacity>
                                     </View>
-                                    <Text style={styles.timeSeparator}>to</Text>
+                                    <MerakiText variant="caption" color={colors.textMuted} style={styles.timeSeparator}>to</MerakiText>
                                     <View style={styles.timeInputGroup}>
-                                        <Text style={styles.timeLabel}>End</Text>
+                                        <MerakiText variant="caption" color={colors.textSecondary}>End</MerakiText>
                                         <TouchableOpacity
                                             style={styles.timeButton}
                                             onPress={() => openTimePicker(day.day_of_week, 'end_time')}
                                         >
-                                            <Text style={styles.timeButtonText}>{day.end_time}</Text>
+                                            <MerakiText variant="body" color={colors.text} style={styles.timeButtonText}>{day.end_time}</MerakiText>
                                         </TouchableOpacity>
                                     </View>
                                 </View>
                             )}
 
                             {!day.is_available && (
-                                <Text style={styles.dayOff}>Day off</Text>
+                                <MerakiText variant="caption" color={colors.textMuted} style={styles.dayOff}>Day off</MerakiText>
                             )}
                         </Card>
                     ))}
@@ -284,12 +284,16 @@ export function MasterAvailabilityScreen() {
                                             ]}
                                             onPress={() => handleTimeSelect(time)}
                                         >
-                                            <Text style={[
-                                                styles.timeOptionText,
-                                                isSelected && styles.timeOptionTextSelected
-                                            ]}>
+                                            <MerakiText
+                                                variant="body"
+                                                color={colors.text}
+                                                style={[
+                                                    styles.timeOptionText,
+                                                    isSelected && styles.timeOptionTextSelected
+                                                ]}
+                                            >
                                                 {time}
-                                            </Text>
+                                            </MerakiText>
                                         </TouchableOpacity>
                                     );
                                 })}

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merakí - Master Appointments</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec1337",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221013",
+                        "gold-accent": "#D4AF37",
+                        "champagne": "#F7E7CE",
+                        "surface-dark": "rgba(34, 16, 19, 0.7)",
+                        "glass": "rgba(255, 255, 255, 0.05)"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glassmorphic {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .active-tab {
+            position: relative;
+        }
+        .active-tab::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background-color: #ec1337;
+            border-radius: 50%;
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<!-- iOS Status Bar Spacer -->
+<div class="h-12 w-full"></div>
+<!-- Header Section -->
+<header class="px-6 py-4 flex items-center justify-between sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<h1 class="text-2xl font-bold tracking-tight">Appointments</h1>
+<button class="w-10 h-10 flex items-center justify-center rounded-full glassmorphic text-primary">
+<span class="material-icons-round text-xl">tune</span>
+</button>
+</header>
+<!-- Tab Navigation -->
+<nav class="px-6 mb-6">
+<div class="flex justify-between items-center glassmorphic p-1.5 rounded-2xl">
+<button class="flex-1 py-2 text-sm font-semibold active-tab text-primary">
+                Pending
+                <span class="ml-1 inline-flex items-center justify-center bg-gradient-to-tr from-primary to-orange-400 text-[10px] text-white w-5 h-5 rounded-full ring-2 ring-background-dark">3</span>
+</button>
+<button class="flex-1 py-2 text-sm font-medium text-slate-400">Upcoming</button>
+<button class="flex-1 py-2 text-sm font-medium text-slate-400">Completed</button>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="px-6 pb-28 space-y-4">
+<!-- Section Label -->
+<h2 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">New Requests</h2>
+<!-- Pending Appointment Card 1 -->
+<div class="glassmorphic rounded-2xl p-4 overflow-hidden">
+<div class="flex items-start justify-between mb-4">
+<div class="flex gap-3">
+<img alt="Client" class="w-12 h-12 rounded-xl object-cover" data-alt="Portrait of a female client with smile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhwx-dBWB9Acm6jB63nzGHjwF_ERsM9rs_UbxD_tPm-LH2JE612Lx-J9qtYFaQ-4aC0Zjcw1-bQuVNs3Q9oFCb9jBeIBFDPM7eK-p5grSqPgkmbNFeX8bUZBiT-BVC5cPrEC2hVmYqL-LJVLSWPwFuLBV7EsYCn8uoDKufJ_MeHrUT4eNzbX6RmkzAZmkFHUl6np55l94pJU8Qs9seHTcSo--Ifyl1HGvLPIhDpuPZ3QNSmTB5xmVQFaRV7Bq1_fq5O_D5Y4UO9AB3"/>
+<div>
+<h3 class="font-semibold text-lg leading-tight">Seraphina Vance</h3>
+<p class="text-xs text-slate-400">Luxe Balayage &amp; Toning</p>
+</div>
+</div>
+<div class="text-right">
+<span class="block text-primary font-bold">14:30</span>
+<span class="block text-[10px] text-slate-500 uppercase">Oct 24</span>
+</div>
+</div>
+<div class="flex gap-3 mt-4">
+<button class="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-primary/20">Accept</button>
+<button class="flex-1 border border-white/10 text-slate-300 py-2.5 rounded-xl text-sm font-semibold">Decline</button>
+</div>
+</div>
+<!-- Section Label -->
+<h2 class="text-xs font-bold uppercase tracking-widest text-slate-500 mt-8 mb-2">Upcoming Today</h2>
+<!-- Upcoming Appointment Card 1 -->
+<div class="glassmorphic rounded-2xl p-4 relative overflow-hidden">
+<!-- Confirmed Badge -->
+<div class="absolute top-4 right-4">
+<span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-tighter border border-emerald-500/20">Confirmed</span>
+</div>
+<div class="flex gap-3 mb-4">
+<img alt="Client" class="w-12 h-12 rounded-xl object-cover" data-alt="Close up portrait of a male client" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBp5CTZ322xwBtjNZDyDtKEdYjHuuZN66zE1F1O4iajVm-TUbSqhfUfIcpzDjTN0toG1lqxIzFXD19Crwmpf2-DCBuVNNmpVkQsZCM_yytXN8dP1DLRHZDVJ7wd5SOCabzxt_YCQXOq_fqmrD4IeM-YwPRxLt654fskXWUgRSjCow90Eibaz9YIu7shZ6a_dWBRTFeBH81Uf-eC06BGBFcll-Q7rd0Ocx4bIunoe2g_ZmNZ9f2pV2alRudjAINJ1CgGOOeRouCaHo3Q"/>
+<div>
+<h3 class="font-semibold text-lg leading-tight">Julian Thorne</h3>
+<p class="text-xs text-slate-400">Signature Sculpting Cut</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-icons-round text-xs text-slate-500">schedule</span>
+<span class="text-xs text-slate-400 font-medium">16:00 (60 min)</span>
+</div>
+</div>
+</div>
+<!-- Quick Action Row -->
+<div class="flex items-center justify-between pt-4 border-t border-white/5">
+<div class="flex gap-4">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-icons-round text-xl">chat_bubble_outline</span>
+</button>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-icons-round text-xl">event_repeat</span>
+</button>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-white/5 text-[11px] font-bold uppercase tracking-wider hover:bg-white/10">No-Show</button>
+<button class="px-3 py-1.5 rounded-lg bg-white/5 text-[11px] font-bold uppercase tracking-wider text-primary hover:bg-primary/10">Complete</button>
+</div>
+</div>
+</div>
+<!-- Upcoming Appointment Card 2 (Waiting State) -->
+<div class="glassmorphic rounded-2xl p-4 relative overflow-hidden">
+<!-- Waiting Badge -->
+<div class="absolute top-4 right-4">
+<span class="px-2 py-0.5 rounded-full bg-gold-accent/10 text-gold-accent text-[10px] font-bold uppercase tracking-tighter border border-gold-accent/20">Waiting</span>
+</div>
+<div class="flex gap-3 mb-4">
+<div class="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center border border-white/5">
+<span class="text-lg font-bold text-slate-300">EM</span>
+</div>
+<div>
+<h3 class="font-semibold text-lg leading-tight">Elena Moretti</h3>
+<p class="text-xs text-slate-400">HydraFacial Glow</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-icons-round text-xs text-slate-500">schedule</span>
+<span class="text-xs text-slate-400 font-medium">17:30 (45 min)</span>
+</div>
+</div>
+</div>
+<!-- Quick Action Row -->
+<div class="flex items-center justify-between pt-4 border-t border-white/5">
+<div class="flex gap-4">
+<button class="text-slate-400">
+<span class="material-icons-round text-xl">chat_bubble_outline</span>
+</button>
+<button class="text-slate-400">
+<span class="material-icons-round text-xl">event_repeat</span>
+</button>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-white/5 text-[11px] font-bold uppercase tracking-wider">No-Show</button>
+<button class="px-3 py-1.5 rounded-lg bg-white/5 text-[11px] font-bold uppercase tracking-wider text-primary">Complete</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-background-light/90 dark:bg-background-dark/95 backdrop-blur-xl border-t border-white/5 px-8 pb-8 pt-4">
+<div class="flex items-center justify-between max-w-md mx-auto">
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round">dashboard</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Panel</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-icons-round">calendar_today</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Agenda</span>
+</button>
+<div class="relative -top-10">
+<button class="w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-2xl shadow-primary/40 ring-4 ring-background-dark">
+<span class="material-icons-round text-white text-3xl">add</span>
+</button>
+</div>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round">groups</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Clients</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-icons-round">account_circle</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
+</button>
+</div>
+</nav>
+<!-- Home Indicator -->
+<div class="fixed bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full z-[60]"></div>
+</body></html>

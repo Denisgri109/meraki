@@ -101,7 +101,7 @@ export function DrawerMenu({ visible, onClose, onNavigate }: DrawerMenuProps) {
                                 <View style={styles.userDetails}>
                                     <Text style={styles.userName}>{profile?.full_name || 'Guest'}</Text>
                                     <Text style={styles.userRole}>
-                                        {profile?.role === 'admin' ? 'Owner' : 'Client'}
+                                        {profile?.role === 'owner' ? 'Owner' : 'Client'}
                                     </Text>
                                 </View>
                             </View>

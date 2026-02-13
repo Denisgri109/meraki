@@ -5,16 +5,17 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     TextInput,
     Modal,
     Switch,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card, Button, ScreenBackground } from '../../components/ui';
+import { Card, Button, ScreenBackground, MerakiText } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 
 // Types for master settings
@@ -68,6 +69,7 @@ type PickerType = 'confirmation' | 'late_arrival' | 'cancellation_percent' | 'no
 export function BusinessSettingsScreen() {
     const navigation = useNavigation();
     const { user } = useAuth();
+    const { showAlert } = useModal();
 
     const [settings, setSettings] = useState<MasterBusinessSettings>(DEFAULT_SETTINGS);
     const [loading, setLoading] = useState(true);
@@ -145,9 +147,9 @@ export function BusinessSettingsScreen() {
 
             if (error) throw error;
 
-            Alert.alert('Success', 'Your business settings have been saved!');
+            showAlert('Success', 'Your business settings have been saved!', 'success');
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to save settings');
+            showAlert('Error', error.message || 'Failed to save settings', 'error');
         } finally {
             setSaving(false);
         }
@@ -220,9 +222,9 @@ export function BusinessSettingsScreen() {
                 >
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{title}</Text>
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>{title}</MerakiText>
                             <TouchableOpacity onPress={() => setPickerVisible(null)}>
-                                <Text style={styles.modalClose}>✕</Text>
+                                <MaterialCommunityIcons name="close" size={22} color={colors.textMuted} />
                             </TouchableOpacity>
                         </View>
                         <ScrollView style={styles.optionsScroll}>
@@ -244,7 +246,7 @@ export function BusinessSettingsScreen() {
                                             {item.label}
                                         </Text>
                                         {isSelected && (
-                                            <Text style={styles.checkmark}>✓</Text>
+                                            <MaterialCommunityIcons name="check" size={18} color={colors.primary} />
                                         )}
                                     </TouchableOpacity>
                                 );
@@ -306,21 +308,24 @@ Example:
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← Back</Text>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <View>
-                        <Text style={styles.title}>Business Settings</Text>
-                        <Text style={styles.subtitle}>Configure your booking policies and preferences</Text>
+                        <MerakiText variant="h1">Business Settings</MerakiText>
+                        <MerakiText variant="caption" color={colors.textSecondary}>Configure your booking policies and preferences</MerakiText>
                     </View>
                 </View>
 
                 <ScrollView contentContainerStyle={styles.content}>
                     {/* Confirmation Timing */}
                     <Card style={styles.section}>
-                        <Text style={styles.sectionTitle}>📅 Appointment Confirmations</Text>
-                        <Text style={styles.sectionDescription}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="calendar-check" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Appointment Confirmations</MerakiText>
+                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
                             When should clients receive confirmation reminders?
-                        </Text>
+                        </MerakiText>
                         <TouchableOpacity
                             style={styles.selector}
                             onPress={() => setPickerVisible('confirmation')}
@@ -328,16 +333,19 @@ Example:
                             <Text style={styles.selectorText}>
                                 {CONFIRMATION_OPTIONS.find(o => o.value === settings.confirmation_timing_hours)?.label || '24 hours before'}
                             </Text>
-                            <Text style={styles.selectorArrow}>›</Text>
+                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
                         </TouchableOpacity>
                     </Card>
 
                     {/* Late Arrival Policy */}
                     <Card style={styles.section}>
-                        <Text style={styles.sectionTitle}>⏰ Late Arrival Policy</Text>
-                        <Text style={styles.sectionDescription}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="clock-alert-outline" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Late Arrival Policy</MerakiText>
+                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
                             After how many minutes is a client considered late? Late arrivals can be marked as no-show.
-                        </Text>
+                        </MerakiText>
                         <TouchableOpacity
                             style={styles.selector}
                             onPress={() => setPickerVisible('late_arrival')}
@@ -345,16 +353,19 @@ Example:
                             <Text style={styles.selectorText}>
                                 {LATE_ARRIVAL_OPTIONS.find(o => o.value === settings.late_arrival_minutes)?.label || '15 minutes'}
                             </Text>
-                            <Text style={styles.selectorArrow}>›</Text>
+                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
                         </TouchableOpacity>
                     </Card>
 
                     {/* Cancellation Charge */}
                     <Card style={styles.section}>
-                        <Text style={styles.sectionTitle}>💸 Late Cancellation Charge</Text>
-                        <Text style={styles.sectionDescription}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="cash-remove" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Late Cancellation Charge</MerakiText>
+                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
                             What percentage to charge when clients cancel within {settings.late_cancellation_window_hours} hours of appointment?
-                        </Text>
+                        </MerakiText>
                         <TouchableOpacity
                             style={styles.selector}
                             onPress={() => setPickerVisible('cancellation_percent')}
@@ -362,16 +373,19 @@ Example:
                             <Text style={styles.selectorText}>
                                 {PERCENTAGE_OPTIONS.find(o => o.value === settings.cancellation_charge_percent)?.label || '50%'}
                             </Text>
-                            <Text style={styles.selectorArrow}>›</Text>
+                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
                         </TouchableOpacity>
                     </Card>
 
                     {/* No-Show Charge */}
                     <Card style={styles.section}>
-                        <Text style={styles.sectionTitle}>🚫 No-Show Charge</Text>
-                        <Text style={styles.sectionDescription}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="account-cancel-outline" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>No-Show Charge</MerakiText>
+                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
                             What percentage to charge when clients confirm but don't show up?
-                        </Text>
+                        </MerakiText>
                         <TouchableOpacity
                             style={styles.selector}
                             onPress={() => setPickerVisible('noshow_percent')}
@@ -379,16 +393,19 @@ Example:
                             <Text style={styles.selectorText}>
                                 {PERCENTAGE_OPTIONS.find(o => o.value === settings.no_show_charge_percent)?.label || '100%'}
                             </Text>
-                            <Text style={styles.selectorArrow}>›</Text>
+                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
                         </TouchableOpacity>
                     </Card>
 
                     {/* Terms & Conditions */}
                     <Card style={styles.section}>
-                        <Text style={styles.sectionTitle}>📋 Terms & Conditions</Text>
-                        <Text style={styles.sectionDescription}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="clipboard-text-outline" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Terms & Conditions</MerakiText>
+                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
                             Set your booking terms. Clients must accept these before booking.
-                        </Text>
+                        </MerakiText>
 
                         <TouchableOpacity
                             style={styles.tcButton}
@@ -397,9 +414,12 @@ Example:
                                 setTcModalVisible(true);
                             }}
                         >
-                            <Text style={styles.tcButtonText}>
-                                {settings.terms_and_conditions ? '✏️ Edit Terms' : '➕ Add Terms'}
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <MaterialCommunityIcons name={settings.terms_and_conditions ? 'pencil' : 'plus'} size={16} color={colors.primary} />
+                                <Text style={styles.tcButtonText}>
+                                    {settings.terms_and_conditions ? 'Edit Terms' : 'Add Terms'}
+                                </Text>
+                            </View>
                         </TouchableOpacity>
 
                         {settings.terms_and_conditions && (
@@ -430,7 +450,10 @@ Example:
 
                     {/* Visibility Settings */}
                     <Card style={styles.section}>
-                        <Text style={styles.sectionTitle}>👀 Visibility</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="eye-outline" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Visibility</MerakiText>
+                        </View>
 
                         <View style={styles.switchRow}>
                             <View style={styles.switchLabel}>
@@ -549,7 +572,7 @@ const styles = StyleSheet.create({
     switchDescription: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
 
     tcButton: {
-        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+        backgroundColor: 'rgba(200, 160, 77, 0.2)',
         borderRadius: 12,
         padding: spacing.md,
         alignItems: 'center',
@@ -655,7 +678,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.xs,
     },
     optionItemSelected: {
-        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+        backgroundColor: 'rgba(200, 160, 77, 0.2)',
     },
     optionText: {
         fontSize: 16,

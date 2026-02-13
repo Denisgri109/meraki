@@ -3,16 +3,18 @@ import {
     View,
     Text,
     StyleSheet,
+    ScrollView,
     TouchableOpacity,
     ActivityIndicator,
-    Alert,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useModal } from '../../contexts/ModalContext';
 import { Button, Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { Appointment, Service, Profile } from '../../types/database';
@@ -20,6 +22,7 @@ import { Appointment, Service, Profile } from '../../types/database';
 type RootStackParamList = {
     AppointmentConfirmation: { appointmentId: string };
     Home: undefined;
+    AppointmentSuccess: { appointmentId: string }; // Added for new handleConfirm logic
 };
 
 type AppointmentConfirmationScreenProps = {
@@ -30,7 +33,8 @@ type AppointmentConfirmationScreenProps = {
 export function AppointmentConfirmationScreen({ navigation, route }: AppointmentConfirmationScreenProps) {
     const { appointmentId } = route.params;
     const { user } = useAuth();
-    
+    const { showAlert, showConfirm } = useModal();
+
     const [appointment, setAppointment] = useState<Appointment | null>(null);
     const [service, setService] = useState<Service | null>(null);
     const [master, setMaster] = useState<Profile | null>(null);
@@ -38,6 +42,7 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
     const [confirmationDeadline, setConfirmationDeadline] = useState<Date | null>(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+    const [confirming, setConfirming] = useState(false); // Added for new handleConfirm logic
     const [alreadyResponded, setAlreadyResponded] = useState(false);
 
     useEffect(() => {
@@ -50,10 +55,10 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
             const { data: apptData, error: apptError } = await supabase
                 .from('appointments')
                 .select(`
-                    *,
-                    service:service_id (*),
-                    master:master_id (*),
-                    confirmation:appointment_confirmations (*)
+    *,
+    service: service_id(*),
+        master: master_id(*),
+            confirmation: appointment_confirmations(*)
                 `)
                 .eq('id', appointmentId)
                 .single();
@@ -61,7 +66,7 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
             if (apptError) throw apptError;
 
             if (!apptData) {
-                Alert.alert('Error', 'Appointment not found');
+                showAlert('Error', 'Appointment not found', 'error');
                 navigation.goBack();
                 return;
             }
@@ -91,92 +96,72 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
 
         } catch (error) {
             console.error('Error loading appointment:', error);
-            Alert.alert('Error', 'Failed to load appointment details');
+            showAlert('Error', 'Failed to load appointment details', 'error');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleConfirm = async () => {
-        if (!user || !appointment) return;
+    const handleConfirm = () => {
+        showConfirm(
+            'Confirm Appointment',
+            'Are you sure you want to confirm this appointment? Since no payment is required, this will finalize your booking.',
+            async () => {
+                setConfirming(true);
+                try {
+                    const { data, error } = await (supabase as any).rpc('confirm_appointment_no_payment', {
+                        p_appointment_id: appointmentId,
+                        p_client_id: user?.id
+                    });
 
-        setProcessing(true);
-        try {
-            const { data, error } = await supabase.functions.invoke('client-confirm-appointment', {
-                body: {
-                    appointment_id: appointmentId,
-                    response: 'yes',
-                },
-            });
+                    if (error) throw error;
 
-            if (error) throw error;
-
-            if (data.success) {
-                Alert.alert(
-                    '✅ Appointment Confirmed!',
-                    'Your appointment has been confirmed. We look forward to seeing you!',
-                    [
-                        {
-                            text: 'Done',
-                            onPress: () => navigation.navigate('Home'),
-                        },
-                    ]
-                );
-            } else {
-                Alert.alert('Error', data.message || 'Failed to confirm appointment');
+                    if (data.success) {
+                        navigation.replace('AppointmentSuccess', { appointmentId });
+                    } else {
+                        showAlert('Error', data.message || 'Failed to confirm appointment', 'error');
+                    }
+                } catch (error: any) {
+                    console.error('Error confirming appointment:', error);
+                    showAlert('Error', error.message || 'Something went wrong', 'error');
+                } finally {
+                    setConfirming(false);
+                }
             }
-        } catch (error: any) {
-            Alert.alert('Error', error.message || 'Something went wrong');
-        } finally {
-            setProcessing(false);
-        }
+        );
     };
 
     const handleCancel = async () => {
         if (!user || !appointment) return;
 
-        Alert.alert(
+        showConfirm(
             'Cancel Appointment?',
             'Are you sure you want to cancel this appointment? The time slot will be released.',
-            [
-                { text: 'Keep Appointment', style: 'cancel' },
-                {
-                    text: 'Cancel Appointment',
-                    style: 'destructive',
-                    onPress: async () => {
-                        setProcessing(true);
-                        try {
-                            const { data, error } = await supabase.functions.invoke('client-confirm-appointment', {
-                                body: {
-                                    appointment_id: appointmentId,
-                                    response: 'no',
-                                },
-                            });
+            async () => {
+                setProcessing(true);
+                try {
+                    const { data, error } = await supabase.functions.invoke('client-confirm-appointment', {
+                        body: {
+                            appointment_id: appointmentId,
+                            response: 'no',
+                        },
+                    });
 
-                            if (error) throw error;
+                    if (error) throw error;
 
-                            if (data.success) {
-                                Alert.alert(
-                                    'Appointment Cancelled',
-                                    'Your appointment has been cancelled.',
-                                    [
-                                        {
-                                            text: 'Done',
-                                            onPress: () => navigation.navigate('Home'),
-                                        },
-                                    ]
-                                );
-                            } else {
-                                Alert.alert('Error', data.message || 'Failed to cancel appointment');
-                            }
-                        } catch (error: any) {
-                            Alert.alert('Error', error.message || 'Something went wrong');
-                        } finally {
-                            setProcessing(false);
-                        }
-                    },
-                },
-            ]
+                    if (data.success) {
+                        showAlert('Appointment Cancelled', 'Your appointment has been cancelled.', 'success');
+                        navigation.navigate('Home');
+                    } else {
+                        showAlert('Error', data.message || 'Failed to cancel appointment', 'error');
+                    }
+                } catch (error: any) {
+                    showAlert('Error', error.message || 'Something went wrong', 'error');
+                } finally {
+                    setProcessing(false);
+                }
+            },
+            { confirmDestructive: true }
         );
     };
 
@@ -216,7 +201,7 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
                             {isConfirmed ? 'Already Confirmed' : 'Already Cancelled'}
                         </Text>
                         <Text style={styles.respondedMessage}>
-                            {isConfirmed 
+                            {isConfirmed
                                 ? 'You have already confirmed this appointment. We look forward to seeing you!'
                                 : 'This appointment has already been cancelled.'}
                         </Text>
@@ -263,7 +248,7 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
                 <View style={styles.content}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.emoji}>📅</Text>
+                        <MaterialIcons name="event-available" size={48} color={colors.primary} />
                         <Text style={styles.title}>Confirm Your Appointment</Text>
                         <Text style={styles.subtitle}>
                             Please confirm or cancel your upcoming appointment
@@ -289,7 +274,7 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
                         </View>
 
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailIcon}>📅</Text>
+                            <MaterialIcons name="event" size={16} color={colors.textSecondary} />
                             <View style={styles.detailInfo}>
                                 <Text style={styles.detailLabel}>Date</Text>
                                 <Text style={styles.detailValue}>
@@ -299,7 +284,7 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
                         </View>
 
                         <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                            <Text style={styles.detailIcon}>🕐</Text>
+                            <MaterialIcons name="schedule" size={16} color={colors.textSecondary} />
                             <View style={styles.detailInfo}>
                                 <Text style={styles.detailLabel}>Time</Text>
                                 <Text style={styles.detailValue}>
@@ -320,7 +305,7 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
 
                     {/* No-Show Policy */}
                     <View style={styles.policyBox}>
-                        <Text style={styles.policyIcon}>⚠️</Text>
+                        <MaterialIcons name="warning" size={20} color="#FFA500" />
                         <Text style={styles.policyTitle}>Important No-Show Policy</Text>
                         <Text style={styles.policyText}>
                             By confirming, you agree to our no-show policy: If you don't show up or arrive significantly late, you may be charged {noShowPercentage}% of the service price as a no-show fee.
@@ -347,7 +332,7 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
                             variant="primary"
                             style={styles.confirmButton}
                         />
-                        
+
                         <Button
                             title="❌ NO, Cancel Appointment"
                             onPress={handleCancel}

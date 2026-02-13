@@ -9,12 +9,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useMenuBackHandler } from '../../hooks/useMenuBackHandler';
+import { safeGoBack } from '../../navigation/navigationUtils';
 import { Card, Button } from '../../components/ui';
 import { ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 
 export function HelpSupportScreen() {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
+    const handleBack = useMenuBackHandler();
 
     const faqs = [
         {
@@ -58,9 +61,9 @@ export function HelpSupportScreen() {
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity onPress={handleBack} style={styles.backButton}>
                         <Text style={styles.backButtonText}>←</Text>
                     </TouchableOpacity>
                     <Text style={styles.title}>Help & Support</Text>
