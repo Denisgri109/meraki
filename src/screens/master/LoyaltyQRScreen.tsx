@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ActivityIndicator, Dimensions, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Dimensions, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -95,12 +95,9 @@ export function LoyaltyQRScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
-                    <Button
-                        title="Close"
-                        variant="ghost"
-                        onPress={() => navigation.goBack()}
-                        style={styles.closeBtn}
-                    />
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+                    </TouchableOpacity>
                     <MerakiText variant="h2">Stamp Card QR</MerakiText>
                     <View style={{ width: 60 }} />
                 </View>
@@ -186,8 +183,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         paddingTop: spacing.md,
     },
-    closeBtn: {
-        minWidth: 60,
+    backBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     title: {
         fontSize: 18,

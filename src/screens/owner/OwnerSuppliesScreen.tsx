@@ -168,7 +168,6 @@ export function OwnerSuppliesScreen() {
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
-                        <MerakiText variant="body" color={colors.text} style={{ marginLeft: 4 }}>Back</MerakiText>
                     </TouchableOpacity>
                     <MerakiText variant="h3" style={styles.title}>My Supplies</MerakiText>
                     <TouchableOpacity
@@ -236,8 +235,12 @@ const styles = StyleSheet.create({
         paddingBottom: spacing.md,
     },
     backButton: {
-        flexDirection: 'row',
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
         alignItems: 'center',
+        justifyContent: 'center',
     },
     title: {
         color: colors.text,

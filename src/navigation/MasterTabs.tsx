@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Text, StyleSheet, View, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -24,6 +24,8 @@ import {
     ServiceSuppliesScreen,
     BookingConsultationReviewScreen,
     ManageRewardsScreen,
+    MasterMenuScreen,
+    MasterScheduleScreen,
 } from '../screens/master';
 import PhotoConsultationReviewScreen from '../screens/master/PhotoConsultationReviewScreen';
 import {
@@ -122,28 +124,62 @@ function SuppliesStackNavigator() {
     );
 }
 
-// Profile Stack
-export type ProfileStackParamList = {
-    ProfileMain: undefined;
+// Menu Stack (replacing Profile)
+export type MenuStackParamList = {
+    MenuMain: undefined;
+    Profile: undefined;
+    Schedule: undefined;
+    Portfolio: undefined;
+    MyServices: undefined;
+    Availability: undefined;
+    Earnings: undefined;
+    Notifications: undefined;
+    BusinessSettings: undefined;
+    Settings: undefined;
+    LoyaltyCardBuilder: undefined;
+    AftercareCampaigns: undefined;
+    ManageRewards: undefined;
+    BlockedSlots: undefined;
+    PhotoConsultations: undefined;
+    BookingConsultations: undefined;
+    PaymentMethods: undefined;
+    LoyaltyQR: undefined;
     HelpSupport: undefined;
     TermsOfService: undefined;
     PrivacyPolicy: undefined;
-    LoyaltyPoints: undefined;
-    PaymentMethods: undefined;
-    Notifications: undefined;
+    CreateService: undefined;
+    ServiceSupplies: { serviceId?: string } | undefined;
 };
 
-const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
+const MenuStack = createNativeStackNavigator<MenuStackParamList>();
 
-function ProfileStackNavigator() {
+function MenuStackNavigator() {
     return (
-        <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
-            <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
-            <ProfileStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
-            <ProfileStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-            <ProfileStack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
-            <ProfileStack.Screen name="Notifications" component={NotificationsScreen} />
-        </ProfileStack.Navigator>
+        <MenuStack.Navigator screenOptions={{ headerShown: false }}>
+            <MenuStack.Screen name="MenuMain" component={MasterMenuScreen} />
+            <MenuStack.Screen name="Profile" component={ProfileScreen} />
+            <MenuStack.Screen name="Schedule" component={MasterScheduleScreen} />
+            <MenuStack.Screen name="Portfolio" component={PortfolioScreen} />
+            <MenuStack.Screen name="MyServices" component={MyServicesScreen} />
+            <MenuStack.Screen name="Availability" component={MasterAvailabilityScreen} />
+            <MenuStack.Screen name="Earnings" component={MasterEarningsScreen} />
+            <MenuStack.Screen name="Notifications" component={NotificationsScreen} />
+            <MenuStack.Screen name="BusinessSettings" component={BusinessSettingsScreen} />
+            <MenuStack.Screen name="Settings" component={MasterSettingsScreen} />
+            <MenuStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
+            <MenuStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />
+            <MenuStack.Screen name="ManageRewards" component={ManageRewardsScreen} />
+            <MenuStack.Screen name="BlockedSlots" component={BlockedSlotsScreen} />
+            <MenuStack.Screen name="PhotoConsultations" component={PhotoConsultationReviewScreen} />
+            <MenuStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
+            <MenuStack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+            <MenuStack.Screen name="LoyaltyQR" component={LoyaltyQRScreen} />
+            <MenuStack.Screen name="HelpSupport" component={HelpSupportScreen} />
+            <MenuStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
+            <MenuStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+            <MenuStack.Screen name="CreateService" component={CreateServiceScreen} />
+            <MenuStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
+        </MenuStack.Navigator>
     );
 }
 
@@ -153,7 +189,7 @@ export type MasterTabsParamList = {
     Supplies: undefined;
     Messages: undefined;
     Shop: undefined;
-    Profile: undefined;
+    Menu: undefined;
 };
 
 const Tab = createBottomTabNavigator<MasterTabsParamList>();
@@ -196,11 +232,18 @@ export function MasterTabs() {
             <Tab.Screen
                 name="Dashboard"
                 component={DashboardStackNavigator}
-                options={{
+                options={({ route }) => ({
                     tabBarIcon: ({ color }: { color: string }) => (
                         <MaterialIcons name="grid-view" size={22} color={color} />
                     ),
-                } as any}
+                    tabBarStyle: ((route) => {
+                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'DashboardMain';
+                        if (routeName !== 'DashboardMain') {
+                            return { display: 'none' };
+                        }
+                        return styles.tabBar;
+                    })(route),
+                } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
                         e.preventDefault();
@@ -236,11 +279,18 @@ export function MasterTabs() {
             <Tab.Screen
                 name="Supplies"
                 component={SuppliesStackNavigator}
-                options={{
+                options={({ route }) => ({
                     tabBarIcon: ({ color }: { color: string }) => (
                         <MaterialIcons name="inventory-2" size={22} color={color} />
                     ),
-                } as any}
+                    tabBarStyle: ((route) => {
+                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'SuppliesMain';
+                        if (routeName !== 'SuppliesMain') {
+                            return { display: 'none' };
+                        }
+                        return styles.tabBar;
+                    })(route),
+                } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
                         e.preventDefault();
@@ -256,11 +306,18 @@ export function MasterTabs() {
             <Tab.Screen
                 name="Messages"
                 component={MessagesStackNavigator}
-                options={{
+                options={({ route }) => ({
                     tabBarIcon: ({ color }: { color: string }) => (
                         <MaterialIcons name="forum" size={22} color={color} />
                     ),
-                } as any}
+                    tabBarStyle: ((route) => {
+                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'ChatList';
+                        if (routeName !== 'ChatList') {
+                            return { display: 'none' };
+                        }
+                        return styles.tabBar;
+                    })(route),
+                } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
                         e.preventDefault();
@@ -276,11 +333,18 @@ export function MasterTabs() {
             <Tab.Screen
                 name="Shop"
                 component={ShopStackNavigator}
-                options={{
+                options={({ route }) => ({
                     tabBarIcon: ({ color }: { color: string }) => (
                         <MaterialIcons name="storefront" size={22} color={color} />
                     ),
-                } as any}
+                    tabBarStyle: ((route) => {
+                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'ShopMain';
+                        if (routeName !== 'ShopMain') {
+                            return { display: 'none' };
+                        }
+                        return styles.tabBar;
+                    })(route),
+                } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
                         e.preventDefault();
@@ -294,13 +358,20 @@ export function MasterTabs() {
                 })}
             />
             <Tab.Screen
-                name="Profile"
-                component={ProfileStackNavigator}
-                options={{
+                name="Menu"
+                component={MenuStackNavigator}
+                options={({ route }) => ({
                     tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="person-outline" size={22} color={color} />
+                        <MaterialIcons name="settings" size={22} color={color} />
                     ),
-                } as any}
+                    tabBarStyle: ((route) => {
+                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'MenuMain';
+                        if (routeName !== 'MenuMain') {
+                            return { display: 'none' };
+                        }
+                        return styles.tabBar;
+                    })(route),
+                } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
                         e.preventDefault();

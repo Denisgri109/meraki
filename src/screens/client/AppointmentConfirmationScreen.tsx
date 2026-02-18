@@ -85,10 +85,10 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
                 setConfirmationDeadline(new Date(apptData.confirmation_deadline));
             }
 
-            // Fetch master settings for no-show percentage and T&C
+            // Fetch master settings for T&C
             const { data: settings } = await supabase
                 .from('master_settings')
-                .select('no_show_charge_percent, terms_and_conditions')
+                .select('terms_and_conditions')
                 .eq('master_id', apptData.master_id)
                 .single();
 
@@ -239,7 +239,7 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
         );
     }
 
-    const noShowPercentage = masterSettings?.no_show_charge_percent || 100;
+    const noShowPercentage = 100;
     const termsAndConditions = masterSettings?.terms_and_conditions;
 
     return (

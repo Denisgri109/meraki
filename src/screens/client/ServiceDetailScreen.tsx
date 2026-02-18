@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { Button, Card, ScreenBackground } from '../../components/ui';
+import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import { PreBookingQuestionnaireModal } from '../../components/booking';
 import { colors, spacing } from '../../theme';
@@ -35,6 +36,8 @@ type ServiceDetailScreenProps = {
 
 export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenProps) {
     const { serviceId } = route.params;
+    const { profile } = useAuth();
+    const userCountry = profile?.country || null;
     const { showAlert } = useModal();
     const [service, setService] = useState<Service | null>(null);
     const [master, setMaster] = useState<Profile | null>(null);
@@ -79,9 +82,17 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                 .eq('is_available', true);
 
             // Extract profiles
-            const availableMasters = (masterServiceData || [])
+            let availableMasters = (masterServiceData || [])
                 .map((item: any) => item.profiles)
                 .filter((profile: any) => profile !== null);
+
+            // Country filter: only show masters from the client's country
+            if (userCountry) {
+                const uCountry = userCountry.toLowerCase().trim();
+                availableMasters = availableMasters.filter((m: any) => {
+                    return m.country && m.country.toLowerCase().trim() === uCountry;
+                });
+            }
 
             let selectedProfile = null;
 

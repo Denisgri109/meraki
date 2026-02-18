@@ -167,8 +167,8 @@ export function DiscoverMastersScreen() {
 
     const filteredMasters = masters.filter((master) => {
         // 1. Country Filter (Strict)
-        if (userCountry && master.country) {
-            // Normalize for comparison
+        if (userCountry) {
+            if (!master.country) return false;
             const uCountry = userCountry.toLowerCase().trim();
             const mCountry = master.country.toLowerCase().trim();
             if (uCountry !== mCountry) return false;

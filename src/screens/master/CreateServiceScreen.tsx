@@ -250,11 +250,15 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
     },
     backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
         marginBottom: spacing.md,
-    },
-    backButtonText: {
-        color: colors.textSecondary,
-        fontSize: 16,
     },
     title: {
         fontSize: 28,

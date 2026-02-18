@@ -135,7 +135,6 @@ export function AddOwnerSupplyScreen() {
                         <View style={styles.header}>
                             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                                 <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
-                                <MerakiText variant="body" color={colors.text}>Back</MerakiText>
                             </TouchableOpacity>
                             <MerakiText variant="h3" style={styles.title}>
                                 {isEditing ? 'Edit Supply' : 'Add Supply'}
@@ -304,11 +303,14 @@ const styles = StyleSheet.create({
         marginBottom: spacing.xl,
     },
     backButton: {
-        flexDirection: 'row',
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
         alignItems: 'center',
-        gap: 4,
-        padding: spacing.xs,
-        width: 80,
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     title: {
         color: colors.text,

@@ -75,64 +75,84 @@ export function PortfolioScreen() {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [4, 5],
+                allowsMultipleSelection: true,
+                selectionLimit: 10, // Reasonable limit
                 quality: 0.8,
             });
 
-            if (!result.canceled && result.assets[0]) {
-                uploadImage(result.assets[0]);
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                uploadImages(result.assets);
             }
         } catch (error) {
             showAlert('Error', 'Failed to pick image', 'error');
         }
     };
 
-    const uploadImage = async (asset: ImagePicker.ImagePickerAsset) => {
+    const uploadImages = async (assets: ImagePicker.ImagePickerAsset[]) => {
         if (!user) return;
         setUploading(true);
 
+        let successCount = 0;
+        let errors: string[] = [];
+
         try {
-            const fileExt = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
-            const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-            const base64 = await FileSystem.readAsStringAsync(asset.uri, {
-                encoding: 'base64',
-            });
+            for (let i = 0; i < assets.length; i++) {
+                const asset = assets[i];
+                try {
+                    const fileExt = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+                    const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
+                    const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+                        encoding: 'base64',
+                    });
 
-            const { error: uploadError } = await supabase.storage
-                .from('portfolios')
-                .upload(fileName, decode(base64), {
-                    contentType: 'image/jpeg',
-                    upsert: false,
-                });
+                    const { error: uploadError } = await supabase.storage
+                        .from('portfolios')
+                        .upload(fileName, decode(base64), {
+                            contentType: `image/${fileExt === 'png' ? 'png' : 'jpeg'}`,
+                            upsert: false,
+                        });
 
-            if (uploadError) {
-                if (uploadError.message.includes('Bucket not found')) {
-                    throw new Error('Storage bucket "portfolios" does not exist. Please contact admin.');
+                    if (uploadError) {
+                        if (uploadError.message.includes('Bucket not found')) {
+                            throw new Error('Storage bucket "portfolios" does not exist. Please contact admin.');
+                        }
+                        throw uploadError;
+                    }
+
+                    const { data: urlData } = supabase.storage
+                        .from('portfolios')
+                        .getPublicUrl(fileName);
+
+                    const { error: dbError } = await supabase
+                        .from('portfolios')
+                        .insert({
+                            master_id: user.id,
+                            image_url: urlData.publicUrl,
+                            description: '',
+                        });
+
+                    if (dbError) throw dbError;
+                    successCount++;
+                } catch (err: any) {
+                    console.error('Upload error for image ' + i, err);
+                    errors.push(err.message || 'Unknown error');
                 }
-                throw uploadError;
             }
 
-            const { data: urlData } = supabase.storage
-                .from('portfolios')
-                .getPublicUrl(fileName);
+            if (successCount > 0) {
+                showAlert('Success', `${successCount} image${successCount > 1 ? 's' : ''} added to portfolio`, 'success');
+                fetchPortfolio();
+            }
 
-            const { error: dbError } = await supabase
-                .from('portfolios')
-                .insert({
-                    master_id: user.id,
-                    image_url: urlData.publicUrl,
-                    description: '',
-                });
-
-            if (dbError) throw dbError;
-
-            showAlert('Success', 'Image added to portfolio', 'success');
-            fetchPortfolio();
+            if (errors.length > 0) {
+                // If some failed but some succeeded, we already showed success for those.
+                // Just show a warning for the failures.
+                showAlert('Upload Issues', `${errors.length} image${errors.length > 1 ? 's' : ''} failed to upload.`, 'warning');
+            }
 
         } catch (error: any) {
-            console.error('Upload error:', error);
-            showAlert('Error', error.message || 'Failed to upload image', 'error');
+            console.error('Upload process error:', error);
+            showAlert('Error', error.message || 'Failed to upload images', 'error');
         } finally {
             setUploading(false);
         }
@@ -258,9 +278,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: colors.surface,
+        backgroundColor: 'rgba(255,255,255,0.05)',
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     statsBar: {
         paddingHorizontal: spacing.lg,

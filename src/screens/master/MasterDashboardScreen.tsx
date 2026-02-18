@@ -8,7 +8,7 @@ import {
     TouchableOpacity,
     Dimensions,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { format, startOfDay, endOfDay } from 'date-fns';
@@ -40,6 +40,13 @@ type RecentMessage = {
     created_at: string;
     sender_name: string;
     conversation_id: string;
+};
+
+const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
 };
 
 export function MasterDashboardScreen() {
@@ -176,14 +183,17 @@ export function MasterDashboardScreen() {
                     {/* Header */}
                     <View style={styles.header}>
                         <View>
-                            <MerakiText variant="label" color={colors.textSecondary}>WELCOME BACK</MerakiText>
-                            <MerakiText variant="h1">{profile?.full_name?.split(' ')[0] || 'Master'}</MerakiText>
+                            <MerakiText style={styles.greeting}>{getGreeting()},</MerakiText>
+                            <MerakiText style={styles.userName}>{profile?.full_name?.split(' ')[0] || 'Master'}</MerakiText>
                         </View>
-                        <TouchableOpacity style={styles.qrButton} onPress={() => navigation.navigate('LoyaltyQR')}>
-                            <LinearGradient colors={gradients.primary as any} style={styles.qrGradient}>
-                                <MaterialCommunityIcons name="qrcode-scan" size={24} color="#FFF" />
-                            </LinearGradient>
-                        </TouchableOpacity>
+                        <View style={styles.headerIcons}>
+                            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('LoyaltyQR')}>
+                                <MaterialIcons name="qr-code-scanner" size={20} color="rgba(255,255,255,0.7)" />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
+                                <MaterialIcons name="notifications-none" size={22} color="rgba(255,255,255,0.7)" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     {/* Quick Stats Grid */}
@@ -285,9 +295,16 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     loader: { flex: 1, justifyContent: 'center' },
     scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: 100 },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: spacing.xl },
-    qrButton: { borderRadius: 16, overflow: 'hidden', elevation: 4 },
-    qrGradient: { padding: 12 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, marginBottom: 24 },
+    greeting: { fontSize: 13, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
+    userName: { fontSize: 28, fontWeight: '700', color: '#fff', letterSpacing: -0.5 },
+    headerIcons: { flexDirection: 'row', gap: 8 },
+    iconBtn: {
+        width: 40, height: 40, borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center', justifyContent: 'center',
+    },
     statsGrid: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
     statCard: { flex: 1, alignItems: 'center', paddingVertical: spacing.md },
     activeStat: { borderColor: colors.error, borderWidth: 1 },

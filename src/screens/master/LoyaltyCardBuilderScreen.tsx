@@ -366,7 +366,7 @@ export function LoyaltyCardBuilderScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← Back</Text>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <View style={styles.headerRow}>
                         <View>
@@ -466,13 +466,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
         paddingTop: spacing.lg,
         paddingBottom: spacing.md,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     backButton: {
-        marginBottom: spacing.sm,
-        alignSelf: 'flex-start',
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: spacing.md,
     },
-    backButtonText: { fontSize: 16, color: colors.primary, fontWeight: '500' },
-    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    // backButtonText: { fontSize: 16, color: colors.primary, fontWeight: '500' },
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     title: { fontSize: 28, fontWeight: '600', color: colors.text },
     subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: spacing.xs },
     addButton: {

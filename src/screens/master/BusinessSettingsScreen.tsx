@@ -21,9 +21,6 @@ import { colors, spacing } from '../../theme';
 // Types for master settings
 interface MasterBusinessSettings {
     confirmation_timing_hours: number;
-    cancellation_charge_percent: number;
-    late_cancellation_window_hours: number;
-    no_show_charge_percent: number;
     late_arrival_minutes: number;
     terms_and_conditions: string | null;
     require_tc_acceptance: boolean;
@@ -33,9 +30,6 @@ interface MasterBusinessSettings {
 
 const DEFAULT_SETTINGS: MasterBusinessSettings = {
     confirmation_timing_hours: 24,
-    cancellation_charge_percent: 50,
-    late_cancellation_window_hours: 24,
-    no_show_charge_percent: 100,
     late_arrival_minutes: 15,
     terms_and_conditions: null,
     require_tc_acceptance: true,
@@ -102,9 +96,6 @@ export function BusinessSettingsScreen() {
             if (data) {
                 setSettings({
                     confirmation_timing_hours: data.confirmation_timing_hours ?? 24,
-                    cancellation_charge_percent: data.cancellation_charge_percent ?? 50,
-                    late_cancellation_window_hours: data.late_cancellation_window_hours ?? 24,
-                    no_show_charge_percent: data.no_show_charge_percent ?? 100,
                     late_arrival_minutes: data.late_arrival_minutes ?? 15,
                     terms_and_conditions: data.terms_and_conditions,
                     require_tc_acceptance: data.require_tc_acceptance ?? true,
@@ -178,16 +169,7 @@ export function BusinessSettingsScreen() {
                 title = 'Late Arrival Window';
                 currentValue = settings.late_arrival_minutes;
                 break;
-            case 'cancellation_percent':
-                items = PERCENTAGE_OPTIONS;
-                title = 'Late Cancellation Charge';
-                currentValue = settings.cancellation_charge_percent;
-                break;
-            case 'noshow_percent':
-                items = PERCENTAGE_OPTIONS;
-                title = 'No-Show Charge';
-                currentValue = settings.no_show_charge_percent;
-                break;
+
         }
 
         const onSelect = (value: number) => {
@@ -198,12 +180,7 @@ export function BusinessSettingsScreen() {
                 case 'late_arrival':
                     setSettings({ ...settings, late_arrival_minutes: value });
                     break;
-                case 'cancellation_percent':
-                    setSettings({ ...settings, cancellation_charge_percent: value });
-                    break;
-                case 'noshow_percent':
-                    setSettings({ ...settings, no_show_charge_percent: value });
-                    break;
+
             }
             setPickerVisible(null);
         };
@@ -262,34 +239,44 @@ export function BusinessSettingsScreen() {
         <Modal
             visible={tcModalVisible}
             animationType="slide"
+            presentationStyle="fullScreen"
             onRequestClose={() => setTcModalVisible(false)}
         >
-            <SafeAreaView style={styles.tcModalContainer}>
-                <View style={styles.tcModalHeader}>
-                    <TouchableOpacity onPress={() => setTcModalVisible(false)}>
-                        <Text style={styles.tcHeaderButton}>Cancel</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.tcHeaderTitle}>Terms & Conditions</Text>
-                    <TouchableOpacity onPress={saveTc}>
-                        <Text style={[styles.tcHeaderButton, styles.tcSaveButton]}>Save</Text>
-                    </TouchableOpacity>
-                </View>
-                <TextInput
-                    style={styles.tcInput}
-                    multiline
-                    placeholder="Enter your Terms & Conditions here...
+            <ScreenBackground>
+                <SafeAreaView style={styles.tcModalContainer} edges={['top']}>
+                    <View style={styles.tcModalHeader}>
+                        <TouchableOpacity onPress={() => setTcModalVisible(false)} style={styles.backButton}>
+                            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+                        </TouchableOpacity>
+                        <View style={{ flex: 1 }}>
+                            <MerakiText variant="h1">Terms & Conditions</MerakiText>
+                            <MerakiText variant="caption" color={colors.textSecondary}>Edit your booking terms</MerakiText>
+                        </View>
+                    </View>
 
-Example:
-- Cancellation Policy: Appointments cancelled within 24 hours will be charged 50%.
-- Late Arrivals: If you are more than 15 minutes late, the appointment may be cancelled.
-- Payment: Full payment is due at the time of service.
-- Consultations: Certain services require a consultation before booking."
-                    placeholderTextColor={colors.textMuted}
-                    value={tcDraft}
-                    onChangeText={setTcDraft}
-                    textAlignVertical="top"
-                />
-            </SafeAreaView>
+                    <View style={styles.tcContentArea}>
+                        <Card style={styles.tcInputCard}>
+                            <TextInput
+                                style={styles.tcInput}
+                                multiline
+                                placeholder={"Enter your Terms & Conditions here...\n\nExample:\n- Cancellation Policy: Appointments cancelled within 24 hours will be charged 50%.\n- Late Arrivals: If you are more than 15 minutes late, the appointment may be cancelled.\n- Payment: Full payment is due at the time of service.\n- Consultations: Certain services require a consultation before booking."}
+                                placeholderTextColor={colors.textMuted}
+                                value={tcDraft}
+                                onChangeText={setTcDraft}
+                                textAlignVertical="top"
+                            />
+                        </Card>
+                    </View>
+
+                    <View style={styles.tcBottomBar}>
+                        <Button
+                            title="Save Terms"
+                            onPress={saveTc}
+                            fullWidth
+                        />
+                    </View>
+                </SafeAreaView>
+            </ScreenBackground>
         </Modal>
     );
 
@@ -357,26 +344,6 @@ Example:
                         </TouchableOpacity>
                     </Card>
 
-                    {/* Cancellation Charge */}
-                    <Card style={styles.section}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
-                            <MaterialCommunityIcons name="cash-remove" size={20} color={colors.accent} />
-                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Late Cancellation Charge</MerakiText>
-                        </View>
-                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
-                            What percentage to charge when clients cancel within {settings.late_cancellation_window_hours} hours of appointment?
-                        </MerakiText>
-                        <TouchableOpacity
-                            style={styles.selector}
-                            onPress={() => setPickerVisible('cancellation_percent')}
-                        >
-                            <Text style={styles.selectorText}>
-                                {PERCENTAGE_OPTIONS.find(o => o.value === settings.cancellation_charge_percent)?.label || '50%'}
-                            </Text>
-                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
-                        </TouchableOpacity>
-                    </Card>
-
                     {/* No-Show Charge */}
                     <Card style={styles.section}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
@@ -384,17 +351,11 @@ Example:
                             <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>No-Show Charge</MerakiText>
                         </View>
                         <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
-                            What percentage to charge when clients confirm but don't show up?
+                            Clients who confirm but don't show up will be charged 100% of the service price.
                         </MerakiText>
-                        <TouchableOpacity
-                            style={styles.selector}
-                            onPress={() => setPickerVisible('noshow_percent')}
-                        >
-                            <Text style={styles.selectorText}>
-                                {PERCENTAGE_OPTIONS.find(o => o.value === settings.no_show_charge_percent)?.label || '100%'}
-                            </Text>
-                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
-                        </TouchableOpacity>
+                        <View style={styles.selector}>
+                            <Text style={styles.selectorText}>100%</Text>
+                        </View>
                     </Card>
 
                     {/* Terms & Conditions */}
@@ -517,13 +478,16 @@ const styles = StyleSheet.create({
         paddingBottom: spacing.md,
     },
     backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
         marginBottom: spacing.sm,
-        alignSelf: 'flex-start',
-        paddingVertical: spacing.xs,
-        paddingHorizontal: spacing.xs,
-        marginLeft: -spacing.xs,
     },
-    backButtonText: { fontSize: 16, color: colors.primary, fontWeight: '500' },
     title: { fontSize: 28, fontWeight: '600', color: colors.text },
     subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: spacing.xs },
     content: { padding: spacing.lg, paddingBottom: 100 },
@@ -597,36 +561,30 @@ const styles = StyleSheet.create({
 
     tcModalContainer: {
         flex: 1,
-        backgroundColor: colors.background,
     },
     tcModalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
+        paddingTop: spacing.lg,
+        paddingBottom: spacing.md,
     },
-    tcHeaderButton: {
-        fontSize: 16,
-        color: colors.textSecondary,
+    tcContentArea: {
+        flex: 1,
+        padding: spacing.lg,
     },
-    tcSaveButton: {
-        color: colors.primary,
-        fontWeight: '600',
-    },
-    tcHeaderTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: colors.text,
+    tcInputCard: {
+        flex: 1,
+        padding: spacing.lg,
     },
     tcInput: {
         flex: 1,
-        padding: spacing.lg,
         fontSize: 16,
         color: colors.text,
         lineHeight: 24,
+    },
+    tcBottomBar: {
+        padding: spacing.lg,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
     },
 
     bottomBar: {

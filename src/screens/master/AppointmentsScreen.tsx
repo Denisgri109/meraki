@@ -1,14 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
     View,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
-    RefreshControl,
     Alert,
     Modal,
+    TextInput,
+    FlatList,
+    Keyboard,
+    TouchableWithoutFeedback,
+    RefreshControl,
 } from 'react-native';
+import PagerView from 'react-native-pager-view';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -43,6 +49,12 @@ export function MasterAppointmentsScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState<'upcoming' | 'completed'>('upcoming');
+    const pagerRef = useRef<PagerView>(null);
+
+    // Search & Filter
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterDate, setFilterDate] = useState<Date | null>(null); // If null, show all dates
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     // Reschedule State
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
@@ -445,27 +457,214 @@ export function MasterAppointmentsScreen() {
     };
 
     const now = new Date();
-    // Upcoming: confirmed, pending, reschedule requests, awaiting confirmation
-    const upcomingAppointments = appointments.filter(apt =>
-        (new Date(apt.start_time) >= now && apt.status === 'confirmed') ||
-        apt.status === 'reschedule_pending' ||
-        apt.status === 'pending_reschedule' ||
-        apt.status === 'awaiting_confirmation' ||
-        apt.status === 'pending' ||
-        apt.status === 'pending_cancellation'
-    );
-    const completedAppointments = appointments.filter(
-        apt => apt.status === 'completed' || apt.status === 'cancelled' || apt.status === 'cancelled_free' || apt.status === 'cancelled_charge'
-    );
 
-    const getDisplayedAppointments = () => {
-        switch (activeTab) {
-            case 'upcoming': return upcomingAppointments;
-            case 'completed': return completedAppointments;
+    const filteredAppointments = useMemo(() => {
+        let data = appointments;
+        // 1. Filter by Date
+        if (filterDate) {
+            data = data.filter(a => isSameDay(new Date(a.start_time), filterDate));
+        }
+        // 2. Filter by Search (Client Name)
+        if (searchQuery) {
+            const lower = searchQuery.toLowerCase();
+            data = data.filter(a =>
+                a.client?.full_name?.toLowerCase().includes(lower) ||
+                a.service?.name?.toLowerCase().includes(lower)
+            );
+        }
+        return data;
+    }, [appointments, filterDate, searchQuery]);
+
+    const upcomingList = useMemo(() => filteredAppointments.filter(apt => {
+        const isFuture = new Date(apt.start_time) >= now;
+        const isConfirmed = apt.status === 'confirmed';
+        // If specific date is selected, show all confirmed. If no date (All), only show future confirmed.
+        const showConfirmed = filterDate ? isConfirmed : (isFuture && isConfirmed);
+
+        return showConfirmed ||
+            apt.status === 'reschedule_pending' ||
+            apt.status === 'pending_reschedule' ||
+            apt.status === 'awaiting_confirmation' ||
+            apt.status === 'pending' ||
+            apt.status === 'pending_cancellation';
+    }), [filteredAppointments, now, filterDate]);
+
+    const completedList = useMemo(() => filteredAppointments.filter(apt =>
+        apt.status === 'completed' || apt.status === 'cancelled' || apt.status === 'cancelled_free' || apt.status === 'cancelled_charge'
+    ), [filteredAppointments]);
+
+    const onPageSelected = (e: any) => {
+        const index = e.nativeEvent.position;
+        setActiveTab(index === 0 ? 'upcoming' : 'completed');
+    };
+
+    const handleTabPress = (tab: 'upcoming' | 'completed') => {
+        setActiveTab(tab);
+        pagerRef.current?.setPage(tab === 'upcoming' ? 0 : 1);
+    };
+
+    const handleDateChange = (event: any, selectedDate?: Date) => {
+        setShowDatePicker(false);
+        if (selectedDate) {
+            setFilterDate(selectedDate);
         }
     };
 
+    const renderAppointmentItem = useCallback(({ item: apt }: { item: Appointment }) => {
+        const date = new Date(apt.start_time);
+        const isPending = apt.status === 'pending' || apt.status === 'awaiting_confirmation';
+        const isReschedule = apt.status === 'pending_reschedule' || apt.status === 'reschedule_pending';
+        const isConfirmed = apt.status === 'confirmed';
+        const isCompleted = apt.status === 'completed';
+        const isCancelled = apt.status === 'cancelled' || apt.status === 'cancelled_free' || apt.status === 'cancelled_charge';
 
+        // Status badge config
+        const getStatusBadge = () => {
+            if (isConfirmed && apt.confirmation?.confirmed) return { label: 'Confirmed', color: '#22C55E', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.2)' };
+            if (isConfirmed) return { label: 'Confirmed', color: '#22C55E', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.2)' };
+            if (isPending) return { label: 'Waiting', color: '#D4AF37', bg: 'rgba(212,175,55,0.1)', border: 'rgba(212,175,55,0.2)' };
+            if (isReschedule) return { label: 'Reschedule', color: colors.primary, bg: 'rgba(236,19,55,0.1)', border: 'rgba(236,19,55,0.2)' };
+            if (isCompleted) return { label: 'Completed', color: '#6366F1', bg: 'rgba(99,102,241,0.1)', border: 'rgba(99,102,241,0.2)' };
+            if (isCancelled) return { label: 'Cancelled', color: '#EF4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)' };
+            return null;
+        };
+        const badge = getStatusBadge();
+
+        return (
+            <View style={styles.stitchCard}>
+                {/* Client Info Row */}
+                <View style={styles.stitchClientRow}>
+                    <View style={styles.stitchAvatar}>
+                        <MerakiText variant="label" color="#fff" style={styles.stitchAvatarText}>
+                            {apt.client?.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '?'}
+                        </MerakiText>
+                    </View>
+                    <View style={styles.stitchClientInfo}>
+                        <MerakiText variant="body" color={colors.text} style={styles.stitchClientName}>{apt.client?.full_name || 'Client'}</MerakiText>
+                        <MerakiText variant="caption" color={colors.textSecondary}>{apt.service?.name || 'Service'}</MerakiText>
+                        <View style={styles.stitchTimeRow}>
+                            <MaterialCommunityIcons name="clock-outline" size={12} color={colors.textSecondary} />
+                            <MerakiText variant="caption" color={colors.textSecondary}>
+                                {format(date, 'HH:mm')} ({apt.service?.duration_minutes} min)
+                            </MerakiText>
+                        </View>
+                    </View>
+                    <View style={styles.stitchRightColumn}>
+                        {badge && (
+                            <View style={[styles.stitchBadge, { backgroundColor: badge.bg, borderColor: badge.border }]}>
+                                <MerakiText variant="caption" color={badge.color} style={styles.stitchBadgeText}>{badge.label}</MerakiText>
+                            </View>
+                        )}
+                        <View style={styles.stitchTimeDate}>
+                            <MerakiText variant="body" color={colors.primary} style={styles.stitchTime}>{format(date, 'HH:mm')}</MerakiText>
+                            <MerakiText variant="caption" color={colors.textSecondary} style={styles.stitchDate}>{format(date, 'MMM d')}</MerakiText>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Reschedule proposed time */}
+                {isReschedule && apt.proposed_start_time && apt.reschedule_initiated_by !== user?.id && (
+                    <View style={styles.stitchProposed}>
+                        <MerakiText variant="caption" color={colors.textMuted}>Proposed new time:</MerakiText>
+                        <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>
+                            {format(new Date(apt.proposed_start_time), 'EEEE, MMM d \'at\' HH:mm')}
+                        </MerakiText>
+                    </View>
+                )}
+
+                {/* Notes */}
+                {apt.notes && (
+                    <View style={styles.stitchNotes}>
+                        <MaterialCommunityIcons name="note-text-outline" size={13} color={colors.textMuted} />
+                        <MerakiText variant="caption" color={colors.textMuted} style={{ fontStyle: 'italic', flex: 1 }}>{apt.notes}</MerakiText>
+                    </View>
+                )}
+
+                {/* Price row */}
+                <View style={styles.stitchPriceRow}>
+                    <MerakiText variant="body" color={colors.text} style={{ fontWeight: '700' }}>€{apt.price}</MerakiText>
+                    {apt.deposit_paid && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <View style={styles.stitchDepositBadge}>
+                                <MerakiText variant="caption" color="#22C55E" style={{ fontWeight: '600', fontSize: 10 }}>
+                                    <MaterialCommunityIcons name="check" size={10} color="#22C55E" /> €{apt.deposit_amount} paid
+                                </MerakiText>
+                            </View>
+                        </View>
+                    )}
+                </View>
+
+                {/* Pending: Accept / Decline Buttons */}
+                {isPending && (
+                    <View style={styles.stitchAcceptDecline}>
+                        <TouchableOpacity style={styles.stitchAcceptButton} onPress={() => handleConfirm(apt.id)}>
+                            <MerakiText variant="label" color="#fff" style={{ fontWeight: '700', fontSize: 14 }}>Accept</MerakiText>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.stitchDeclineButton} onPress={() => handleDecline(apt.id)}>
+                            <MerakiText variant="label" color={colors.textSecondary} style={{ fontWeight: '600', fontSize: 14 }}>Decline</MerakiText>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {/* Reschedule: Approve / Reject */}
+                {isReschedule && apt.proposed_start_time && apt.reschedule_initiated_by !== user?.id && (
+                    <View style={styles.stitchAcceptDecline}>
+                        <TouchableOpacity style={styles.stitchAcceptButton} onPress={() => handleApproveReschedule(apt)}>
+                            <MerakiText variant="label" color="#fff" style={{ fontWeight: '700', fontSize: 14 }}>Approve</MerakiText>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.stitchDeclineButton} onPress={() => handleRejectReschedule(apt.id)}>
+                            <MerakiText variant="label" color={colors.textSecondary} style={{ fontWeight: '600', fontSize: 14 }}>Keep Original</MerakiText>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {/* Confirmed — Quick Action Row */}
+                {isConfirmed && new Date(apt.start_time) > now && (
+                    <View style={styles.stitchActionRow}>
+                        <View style={styles.stitchActionIcons}>
+                            <TouchableOpacity style={styles.stitchIconBtn} onPress={() => handleRescheduleAppointment(apt)}>
+                                <MaterialCommunityIcons name="calendar-clock" size={20} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.stitchActionButtons}>
+                            <TouchableOpacity style={styles.stitchSmallBtn} onPress={() => handleCancelAppointment(apt.id)}>
+                                <MerakiText variant="caption" color={colors.textSecondary} style={styles.stitchSmallBtnText}>Cancel</MerakiText>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.stitchSmallBtnPrimary} onPress={() => handleComplete(apt.id)}>
+                                <MerakiText variant="caption" color={colors.primary} style={styles.stitchSmallBtnText}>Complete</MerakiText>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
+
+                {/* Confirmed — Past (needs completion) */}
+                {isConfirmed && new Date(apt.start_time) <= now && (
+                    <View style={styles.stitchActionRow}>
+                        <View />
+                        <TouchableOpacity style={styles.stitchSmallBtnPrimary} onPress={() => handleComplete(apt.id)}>
+                            <MerakiText variant="caption" color={colors.primary} style={styles.stitchSmallBtnText}>Complete</MerakiText>
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
+        );
+    }, [activeTab, user?.id, now]);
+
+    const renderEmptyState = (type: 'upcoming' | 'completed') => (
+        <View style={styles.emptyState}>
+            <View style={styles.emptyIconContainer}>
+                <MaterialCommunityIcons name="calendar-blank-outline" size={36} color={colors.textMuted} />
+            </View>
+            <MerakiText variant="body" color={colors.text} style={styles.emptyTitle}>
+                {type === 'upcoming' ? 'No Upcoming Appointments' : 'No Completed Appointments'}
+            </MerakiText>
+            <MerakiText variant="caption" color={colors.textSecondary} style={styles.emptyText}>
+                {type === 'upcoming'
+                    ? 'Your schedule is clear. New bookings will appear here.'
+                    : 'Completed appointments will be shown here.'}
+            </MerakiText>
+        </View>
+    );
 
     if (loading) {
         return (
@@ -487,17 +686,63 @@ export function MasterAppointmentsScreen() {
                 {/* Header — Stitch Style */}
                 <View style={styles.header}>
                     <MerakiText variant="h1">Appointments</MerakiText>
-                    <TouchableOpacity style={styles.filterButton}>
-                        <MaterialCommunityIcons name="tune-variant" size={20} color={colors.primary} />
-                    </TouchableOpacity>
                 </View>
 
-                {/* 2-Tab Segmented Pill — Academy Style */}
+                {/* Search & Filter */}
+                <View style={styles.searchContainer}>
+                    <View style={styles.searchBar}>
+                        <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
+                        <TextInput
+                            placeholder="Search client or service..."
+                            placeholderTextColor={colors.textSecondary}
+                            style={styles.searchInput}
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ marginRight: 8 }}>
+                                <MaterialCommunityIcons name="close-circle" size={18} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        )}
+
+                        {/* Date Filter Button in Search Bar */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', borderLeftWidth: 1, borderLeftColor: colors.border, paddingLeft: 10 }}>
+                            {filterDate && (
+                                <TouchableOpacity onPress={() => setFilterDate(null)} style={{ marginRight: 4 }}>
+                                    <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity onPress={() => setShowDatePicker(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <MaterialCommunityIcons
+                                    name="calendar-month"
+                                    size={20}
+                                    color={filterDate ? colors.primary : colors.textSecondary}
+                                />
+                                {filterDate && (
+                                    <MerakiText variant="caption" color={colors.primary} style={{ fontWeight: '700' }}>
+                                        {format(filterDate, 'MMM d')}
+                                    </MerakiText>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+
+                {showDatePicker && (
+                    <DateTimePicker
+                        value={filterDate || new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={handleDateChange}
+                    />
+                )}
+
+                {/* 2-Tab Segmented Pill */}
                 <View style={styles.tabsContainer}>
                     <View style={styles.tabBar}>
                         <TouchableOpacity
                             style={[styles.tabItem, activeTab === 'upcoming' && styles.tabItemActive]}
-                            onPress={() => setActiveTab('upcoming')}
+                            onPress={() => handleTabPress('upcoming')}
                         >
                             <MerakiText variant="label" style={[styles.tabText, activeTab === 'upcoming' && styles.tabTextActive]}>
                                 Upcoming
@@ -505,7 +750,7 @@ export function MasterAppointmentsScreen() {
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.tabItem, activeTab === 'completed' && styles.tabItemActive]}
-                            onPress={() => setActiveTab('completed')}
+                            onPress={() => handleTabPress('completed')}
                         >
                             <MerakiText variant="label" style={[styles.tabText, activeTab === 'completed' && styles.tabTextActive]}>
                                 Completed
@@ -514,175 +759,42 @@ export function MasterAppointmentsScreen() {
                     </View>
                 </View>
 
-                <ScrollView
-                    contentContainerStyle={styles.content}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
-                    }
-                    showsVerticalScrollIndicator={false}
+                <PagerView
+                    ref={pagerRef}
+                    style={styles.pagerView}
+                    initialPage={0}
+                    onPageSelected={onPageSelected}
                 >
-                    {(getDisplayedAppointments() ?? []).length > 0 ? (
-                        (getDisplayedAppointments() ?? []).map((apt) => {
-                            const date = new Date(apt.start_time);
-                            const isPending = apt.status === 'pending' || apt.status === 'awaiting_confirmation';
-                            const isReschedule = apt.status === 'pending_reschedule' || apt.status === 'reschedule_pending';
-                            const isConfirmed = apt.status === 'confirmed';
-                            const isCompleted = apt.status === 'completed';
-                            const isCancelled = apt.status === 'cancelled' || apt.status === 'cancelled_free' || apt.status === 'cancelled_charge';
+                    {/* Page 1: Upcoming */}
+                    <View key="upcoming" style={styles.page}>
+                        <FlatList
+                            data={upcomingList}
+                            keyExtractor={item => item.id}
+                            renderItem={renderAppointmentItem}
+                            contentContainerStyle={styles.content}
+                            refreshControl={
+                                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
+                            }
+                            ListEmptyComponent={() => renderEmptyState('upcoming')}
+                            showsVerticalScrollIndicator={false}
+                        />
+                    </View>
 
-                            // Status badge config
-                            const getStatusBadge = () => {
-                                if (isConfirmed && apt.confirmation?.confirmed) return { label: 'Confirmed', color: '#22C55E', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.2)' };
-                                if (isConfirmed) return { label: 'Confirmed', color: '#22C55E', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.2)' };
-                                if (isPending) return { label: 'Waiting', color: '#D4AF37', bg: 'rgba(212,175,55,0.1)', border: 'rgba(212,175,55,0.2)' };
-                                if (isReschedule) return { label: 'Reschedule', color: colors.primary, bg: 'rgba(236,19,55,0.1)', border: 'rgba(236,19,55,0.2)' };
-                                if (isCompleted) return { label: 'Completed', color: '#6366F1', bg: 'rgba(99,102,241,0.1)', border: 'rgba(99,102,241,0.2)' };
-                                if (isCancelled) return { label: 'Cancelled', color: '#EF4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)' };
-                                return null;
-                            };
-                            const badge = getStatusBadge();
-
-                            return (
-                                <View key={apt.id} style={styles.stitchCard}>
-
-
-                                    {/* Client Info Row: Avatar + Name/Service + Time/Date */}
-                                    <View style={styles.stitchClientRow}>
-                                        <View style={styles.stitchAvatar}>
-                                            <MerakiText variant="label" color="#fff" style={styles.stitchAvatarText}>
-                                                {apt.client?.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '?'}
-                                            </MerakiText>
-                                        </View>
-                                        <View style={styles.stitchClientInfo}>
-                                            <MerakiText variant="body" color={colors.text} style={styles.stitchClientName}>{apt.client?.full_name || 'Client'}</MerakiText>
-                                            <MerakiText variant="caption" color={colors.textSecondary}>{apt.service?.name || 'Service'}</MerakiText>
-                                            {activeTab === 'upcoming' && (
-                                                <View style={styles.stitchTimeRow}>
-                                                    <MaterialCommunityIcons name="clock-outline" size={12} color={colors.textSecondary} />
-                                                    <MerakiText variant="caption" color={colors.textSecondary}>
-                                                        {format(date, 'HH:mm')} ({apt.service?.duration_minutes} min)
-                                                    </MerakiText>
-                                                </View>
-                                            )}
-                                        </View>
-                                        <View style={styles.stitchRightColumn}>
-                                            {badge && (
-                                                <View style={[styles.stitchBadge, { backgroundColor: badge.bg, borderColor: badge.border }]}>
-                                                    <MerakiText variant="caption" color={badge.color} style={styles.stitchBadgeText}>{badge.label}</MerakiText>
-                                                </View>
-                                            )}
-                                            <View style={styles.stitchTimeDate}>
-                                                <MerakiText variant="body" color={colors.primary} style={styles.stitchTime}>{format(date, 'HH:mm')}</MerakiText>
-                                                <MerakiText variant="caption" color={colors.textSecondary} style={styles.stitchDate}>{format(date, 'MMM d')}</MerakiText>
-                                            </View>
-                                        </View>
-                                    </View>
-
-                                    {/* Reschedule proposed time */}
-                                    {isReschedule && apt.proposed_start_time && apt.reschedule_initiated_by !== user?.id && (
-                                        <View style={styles.stitchProposed}>
-                                            <MerakiText variant="caption" color={colors.textMuted}>Proposed new time:</MerakiText>
-                                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>
-                                                {format(new Date(apt.proposed_start_time), 'EEEE, MMM d \'at\' HH:mm')}
-                                            </MerakiText>
-                                        </View>
-                                    )}
-
-                                    {/* Notes */}
-                                    {apt.notes && (
-                                        <View style={styles.stitchNotes}>
-                                            <MaterialCommunityIcons name="note-text-outline" size={13} color={colors.textMuted} />
-                                            <MerakiText variant="caption" color={colors.textMuted} style={{ fontStyle: 'italic', flex: 1 }}>{apt.notes}</MerakiText>
-                                        </View>
-                                    )}
-
-                                    {/* Price row for upcoming/pending */}
-                                    {activeTab === 'upcoming' && (
-                                        <View style={styles.stitchPriceRow}>
-                                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '700' }}>€{apt.price}</MerakiText>
-                                            {apt.deposit_paid && (
-                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                                    <View style={styles.stitchDepositBadge}>
-                                                        <MerakiText variant="caption" color="#22C55E" style={{ fontWeight: '600', fontSize: 10 }}>
-                                                            <MaterialCommunityIcons name="check" size={10} color="#22C55E" /> €{apt.deposit_amount} paid
-                                                        </MerakiText>
-                                                    </View>
-                                                </View>
-                                            )}
-                                        </View>
-                                    )}
-
-                                    {/* Pending: Accept / Decline Buttons */}
-                                    {isPending && (
-                                        <View style={styles.stitchAcceptDecline}>
-                                            <TouchableOpacity style={styles.stitchAcceptButton} onPress={() => handleConfirm(apt.id)}>
-                                                <MerakiText variant="label" color="#fff" style={{ fontWeight: '700', fontSize: 14 }}>Accept</MerakiText>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity style={styles.stitchDeclineButton} onPress={() => handleDecline(apt.id)}>
-                                                <MerakiText variant="label" color={colors.textSecondary} style={{ fontWeight: '600', fontSize: 14 }}>Decline</MerakiText>
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
-
-                                    {/* Reschedule: Approve / Reject */}
-                                    {isReschedule && apt.proposed_start_time && apt.reschedule_initiated_by !== user?.id && (
-                                        <View style={styles.stitchAcceptDecline}>
-                                            <TouchableOpacity style={styles.stitchAcceptButton} onPress={() => handleApproveReschedule(apt)}>
-                                                <MerakiText variant="label" color="#fff" style={{ fontWeight: '700', fontSize: 14 }}>Approve</MerakiText>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity style={styles.stitchDeclineButton} onPress={() => handleRejectReschedule(apt.id)}>
-                                                <MerakiText variant="label" color={colors.textSecondary} style={{ fontWeight: '600', fontSize: 14 }}>Keep Original</MerakiText>
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
-
-                                    {/* Confirmed — Quick Action Row */}
-                                    {isConfirmed && new Date(apt.start_time) > now && (
-                                        <View style={styles.stitchActionRow}>
-                                            <View style={styles.stitchActionIcons}>
-                                                <TouchableOpacity style={styles.stitchIconBtn} onPress={() => handleRescheduleAppointment(apt)}>
-                                                    <MaterialCommunityIcons name="calendar-clock" size={20} color={colors.textSecondary} />
-                                                </TouchableOpacity>
-                                            </View>
-                                            <View style={styles.stitchActionButtons}>
-                                                <TouchableOpacity style={styles.stitchSmallBtn} onPress={() => handleCancelAppointment(apt.id)}>
-                                                    <MerakiText variant="caption" color={colors.textSecondary} style={styles.stitchSmallBtnText}>Cancel</MerakiText>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity style={styles.stitchSmallBtnPrimary} onPress={() => handleComplete(apt.id)}>
-                                                    <MerakiText variant="caption" color={colors.primary} style={styles.stitchSmallBtnText}>Complete</MerakiText>
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-                                    )}
-
-                                    {/* Confirmed — Past (needs completion) */}
-                                    {isConfirmed && new Date(apt.start_time) <= now && (
-                                        <View style={styles.stitchActionRow}>
-                                            <View />
-                                            <TouchableOpacity style={styles.stitchSmallBtnPrimary} onPress={() => handleComplete(apt.id)}>
-                                                <MerakiText variant="caption" color={colors.primary} style={styles.stitchSmallBtnText}>Complete</MerakiText>
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
-                                </View>
-                            );
-                        })
-                    ) : (
-                        <View style={styles.emptyState}>
-                            <View style={styles.emptyIconContainer}>
-                                <MaterialCommunityIcons name="calendar-blank-outline" size={36} color={colors.textMuted} />
-                            </View>
-                            <MerakiText variant="body" color={colors.text} style={styles.emptyTitle}>
-                                {activeTab === 'upcoming' ? 'No Upcoming Appointments' : 'No Completed Appointments'}
-                            </MerakiText>
-                            <MerakiText variant="caption" color={colors.textSecondary} style={styles.emptyText}>
-                                {activeTab === 'upcoming'
-                                    ? 'Your schedule is clear. New bookings will appear here.'
-                                    : 'Completed appointments will be shown here.'}
-                            </MerakiText>
-                        </View>
-                    )}
-                </ScrollView>
+                    {/* Page 2: Completed */}
+                    <View key="completed" style={styles.page}>
+                        <FlatList
+                            data={completedList}
+                            keyExtractor={item => item.id}
+                            renderItem={renderAppointmentItem}
+                            contentContainerStyle={styles.content}
+                            refreshControl={
+                                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
+                            }
+                            ListEmptyComponent={() => renderEmptyState('completed')}
+                            showsVerticalScrollIndicator={false}
+                        />
+                    </View>
+                </PagerView>
             </SafeAreaView>
 
             {/* Reschedule Modal */}
@@ -789,18 +901,56 @@ const styles = StyleSheet.create({
         paddingBottom: spacing.sm,
     },
     title: { fontSize: 28, fontWeight: '700', color: colors.text },
-    filterButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.06)',
-        justifyContent: 'center',
+
+    // Search
+    searchContainer: {
+        paddingHorizontal: spacing.lg,
+        marginBottom: spacing.md,
+    },
+    searchBar: {
+        flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        paddingHorizontal: spacing.md,
+        height: 48,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: colors.border,
+    },
+    searchInput: {
+        flex: 1,
+        height: '100%',
+        color: colors.text,
+        marginLeft: spacing.sm,
+        fontSize: 14,
     },
 
-    // ─── 2-Tab Navigation (Academy Style) ───
+    // Date Chips
+    dateChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    dateChipActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    dateChipText: {
+        color: colors.textSecondary,
+        fontWeight: '600',
+    },
+    dateChipTextActive: {
+        color: '#fff',
+    },
+
+    // Pager
+    pagerView: { flex: 1 },
+    page: { flex: 1 },
+
+    // ─── 2-Tab Navigation ───
     tabsContainer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
     tabBar: {
         flexDirection: 'row',
@@ -824,7 +974,7 @@ const styles = StyleSheet.create({
     tabTextActive: { color: '#FFFFFF', fontWeight: '700' },
 
     // ─── Content ───
-    content: { padding: spacing.lg },
+    content: { padding: spacing.lg, paddingBottom: 100 },
 
     // ─── Stitch Appointment Card ───
     stitchCard: {

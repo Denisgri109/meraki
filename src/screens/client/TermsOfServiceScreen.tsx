@@ -50,9 +50,9 @@ export function TermsOfServiceScreen() {
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>4. Booking & Cancellations</Text>
+                        <Text style={styles.sectionTitle}>4. Booking & No-Shows</Text>
                         <Text style={styles.paragraph}>
-                            Appointments may be cancelled up to 24 hours in advance without charge. Late cancellations or no-shows may result in a fee charged to your payment method on file.
+                            Appointments may be cancelled at any time without charge. No-shows will result in a 100% fee charged to your payment method on file.
                         </Text>
                     </View>
 

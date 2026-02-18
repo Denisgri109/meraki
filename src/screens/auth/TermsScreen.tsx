@@ -56,9 +56,9 @@ export const TermsScreen = ({ navigation }: TermsScreenProps) => {
                         You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately of any unauthorized use of your account.
                     </Text>
 
-                    <Text style={styles.sectionTitle}>4. Cancellations & No-Shows</Text>
+                    <Text style={styles.sectionTitle}>4. No-Show Policy</Text>
                     <Text style={styles.text}>
-                        In the event of a no-show or late cancellation, applicable fees may be charged according to the Master's cancellation policy.
+                        In the event of a no-show, a 100% fee will be charged according to the no-show policy.
                     </Text>
 
                     <Text style={styles.sectionTitle}>5. Privacy Policy</Text>

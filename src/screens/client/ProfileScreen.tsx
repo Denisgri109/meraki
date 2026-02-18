@@ -95,6 +95,7 @@ export function ProfileScreen() {
     const [editCity, setEditCity] = useState(profile?.city || '');
     const [editCountry, setEditCountry] = useState(profile?.country || '');
     const [editCountryCode, setEditCountryCode] = useState('');
+    const [editSearchRadius, setEditSearchRadius] = useState<number>((profile as any)?.search_radius_km ?? 50);
     const [editTimezone, setEditTimezone] = useState(profile?.timezone || 'Europe/Dublin');
 
     // Professional (Masters/Owners only)
@@ -112,7 +113,7 @@ export function ProfileScreen() {
     const [cities, setCities] = useState<City[]>([]);
     const [loadingCountries, setLoadingCountries] = useState(false);
     const [loadingCities, setLoadingCities] = useState(false);
-    const [detectingLocation, setDetectingLocation] = useState(false);
+
 
     // Picker modals
     const [countryModalVisible, setCountryModalVisible] = useState(false);
@@ -128,6 +129,7 @@ export function ProfileScreen() {
         setEditCity(profile?.city || '');
         setEditCountry(profile?.country || '');
         setEditTimezone(profile?.timezone || 'Europe/Dublin');
+        setEditSearchRadius((profile as any)?.search_radius_km ?? 50);
         setEditCurrency(profile?.currency || 'EUR');
         setEditYearsExp('');
         setEditSpecialties('');
@@ -170,6 +172,7 @@ export function ProfileScreen() {
                 country: editCountry || null,
                 timezone: editTimezone || null,
                 currency: editCurrency || null,
+                search_radius_km: editSearchRadius,
                 updated_at: new Date().toISOString(),
             };
 
@@ -359,24 +362,6 @@ export function ProfileScreen() {
     // Render Location section
     const renderLocationSection = () => (
         <View style={styles.sectionContent}>
-            {/* Detect Location Button */}
-            <TouchableOpacity
-                style={styles.detectLocationBtn}
-                onPress={handleDetectLocation}
-                disabled={detectingLocation}
-            >
-                <Card variant="glass" style={styles.detectLocationCard}>
-                    {detectingLocation ? (
-                        <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                        <View style={styles.detectLocationRow}>
-                            <MaterialIcons name="my-location" size={20} color={colors.primary} />
-                            <MerakiText style={styles.detectLocationText}>Detect My Location</MerakiText>
-                        </View>
-                    )}
-                </Card>
-            </TouchableOpacity>
-
             <View style={styles.inputGroup}>
                 <MerakiText style={styles.inputLabel}>Country *</MerakiText>
                 <TouchableOpacity
@@ -429,58 +414,48 @@ export function ProfileScreen() {
                 </TouchableOpacity>
                 <MerakiText style={styles.hintText}>This affects your availability and booking times</MerakiText>
             </View>
+
+            {profile?.role === 'client' && (
+                <View style={styles.inputGroup}>
+                    <MerakiText style={styles.inputLabel}>Search Radius</MerakiText>
+                    <MerakiText style={styles.hintText}>Only show specialists within this distance</MerakiText>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                        {[
+                            { label: '10 km', value: 10 },
+                            { label: '25 km', value: 25 },
+                            { label: '50 km', value: 50 },
+                            { label: '100 km', value: 100 },
+                            { label: '200 km', value: 200 },
+                            { label: 'Whole Country', value: 0 },
+                        ].map((opt) => (
+                            <TouchableOpacity
+                                key={opt.value}
+                                onPress={() => setEditSearchRadius(opt.value)}
+                                style={{
+                                    paddingHorizontal: 14,
+                                    paddingVertical: 8,
+                                    borderRadius: 20,
+                                    backgroundColor: editSearchRadius === opt.value ? colors.primary : colors.surface,
+                                    borderWidth: 1,
+                                    borderColor: editSearchRadius === opt.value ? colors.primary : colors.border,
+                                }}
+                            >
+                                <Text style={{
+                                    color: editSearchRadius === opt.value ? '#fff' : colors.textSecondary,
+                                    fontSize: 13,
+                                    fontWeight: editSearchRadius === opt.value ? '600' : '400',
+                                }}>
+                                    {opt.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+            )}
         </View>
     );
 
-    // Handle location detection
-    const handleDetectLocation = async () => {
-        setDetectingLocation(true);
-        try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                showAlert('Permission Denied', 'Location permission is required to detect your location', 'error');
-                return;
-            }
 
-            const location = await Location.getCurrentPositionAsync({});
-            const [reverseGeocode] = await Location.reverseGeocodeAsync({
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-            });
-
-            if (reverseGeocode) {
-                // Set country
-                if (reverseGeocode.country) {
-                    setEditCountry(reverseGeocode.country);
-                    // Find and set country code
-                    const foundCountry = countries.find(
-                        c => c.name.toLowerCase() === reverseGeocode.country?.toLowerCase()
-                    );
-                    if (foundCountry) {
-                        setEditCountryCode(foundCountry.iso2);
-                        // Fetch cities for this country
-                        loadCitiesForCountry(foundCountry.iso2);
-                        // Set timezone from country
-                        if (foundCountry.timezones && foundCountry.timezones.length > 0) {
-                            setEditTimezone(foundCountry.timezones[0].zoneName);
-                        }
-                    }
-                }
-                // Set city if available
-                if (reverseGeocode.city) {
-                    setEditCity(reverseGeocode.city);
-                } else if (reverseGeocode.subregion) {
-                    setEditCity(reverseGeocode.subregion);
-                }
-                showAlert('Location Detected', `Found: ${reverseGeocode.city || reverseGeocode.subregion}, ${reverseGeocode.country}`, 'success');
-            }
-        } catch (error: any) {
-            console.error('Location detection error:', error);
-            showAlert('Error', 'Failed to detect location. Please select manually.', 'error');
-        } finally {
-            setDetectingLocation(false);
-        }
-    };
 
     // Load cities for a country
     const loadCitiesForCountry = async (countryCode: string) => {
@@ -1074,18 +1049,7 @@ const styles = StyleSheet.create({
     },
     passwordButtonText: { color: colors.primary, fontSize: 15, fontWeight: '700' },
 
-    // Location detection
-    detectLocationBtn: { marginBottom: spacing.lg },
-    detectLocationCard: {
-        padding: spacing.md,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(200, 160, 77, 0.25)',
-        backgroundColor: 'rgba(200, 160, 77, 0.05)',
-    },
-    detectLocationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-    detectLocationText: { fontSize: 15, color: colors.primary, fontWeight: '700' },
+
 
     // Dropdown modals (kept similar for consistency)
     dropdownOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },

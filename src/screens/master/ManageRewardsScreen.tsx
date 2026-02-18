@@ -297,7 +297,7 @@ export function ManageRewardsScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← Back</Text>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <View style={styles.headerRow}>
                         <View>
@@ -384,8 +384,17 @@ const styles = StyleSheet.create({
         paddingTop: spacing.lg,
         paddingBottom: spacing.md,
     },
-    backButton: { marginBottom: spacing.sm, alignSelf: 'flex-start' },
-    backButtonText: { fontSize: 16, color: colors.primary, fontWeight: '500' },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        marginBottom: spacing.sm,
+    },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     title: { fontSize: 28, fontWeight: '600', color: colors.text },
     subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: spacing.xs },

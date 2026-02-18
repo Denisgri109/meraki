@@ -11,6 +11,7 @@ import {
     ActivityIndicator,
     RefreshControl,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useModal } from '../../contexts/ModalContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -158,7 +159,7 @@ export function BlockedSlotsScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← Back</Text>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <Text style={styles.title}>Blocked Slots</Text>
                     <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addButton}>
@@ -260,8 +261,16 @@ export function BlockedSlotsScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md },
-    backButton: { padding: spacing.xs },
-    backButtonText: { color: colors.text, fontSize: 16 },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
     title: { fontSize: 20, fontWeight: 'bold', color: colors.text },
     addButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
     addButtonText: { fontSize: 24, color: '#fff' },

@@ -18,5 +18,6 @@ export { AddSupplyScreen } from './AddSupplyScreen';
 export { ServiceSuppliesScreen } from './ServiceSuppliesScreen';
 export { BookingConsultationReviewScreen } from './BookingConsultationReviewScreen';
 export { ManageRewardsScreen } from './ManageRewardsScreen';
+export { MasterMenuScreen } from './MasterMenuScreen';
 
 

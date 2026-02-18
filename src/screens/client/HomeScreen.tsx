@@ -49,7 +49,7 @@ interface FeaturedMaster {
     full_name: string;
     avatar_url: string | null;
     bio: string | null;
-
+    country: string | null;
 }
 
 interface Master {
@@ -139,7 +139,7 @@ export function ClientHomeScreen() {
             const { data: orders } = await safeSupabaseFetch(ordersPromise, { timeout: 5000 });
             setRecentOrders((orders as any) || []);
 
-            const mastersPromise = (supabase as any).from('profiles').select('id, full_name, avatar_url, bio').or('is_master.eq.true,role.eq.master,role.eq.owner').limit(10);
+            const mastersPromise = (supabase as any).from('profiles').select('id, full_name, avatar_url, bio, country').or('is_master.eq.true,role.eq.master,role.eq.owner').limit(50);
             const { data: masters } = await safeSupabaseFetch(mastersPromise, { timeout: 5000 });
             setFeaturedMasters((masters as FeaturedMaster[]) || []);
 
@@ -278,7 +278,8 @@ export function ClientHomeScreen() {
 
         // 1. Masters (Strict Country)
         const filteredMasters = allMasters.filter(master => {
-            if (userCountry && master.country) {
+            if (userCountry) {
+                if (!master.country) return false;
                 const uCountry = userCountry.toLowerCase().trim();
                 const mCountry = master.country.toLowerCase().trim();
                 if (uCountry !== mCountry) return false;
@@ -293,7 +294,8 @@ export function ClientHomeScreen() {
 
         // 2. Services (Strict Country of Master)
         const filteredServices = allServices.filter(service => {
-            if (userCountry && service.master_country) {
+            if (userCountry) {
+                if (!service.master_country) return false;
                 const uCountry = userCountry.toLowerCase().trim();
                 const mCountry = service.master_country.toLowerCase().trim();
                 if (uCountry !== mCountry) return false;
@@ -605,25 +607,28 @@ export function ClientHomeScreen() {
                                         </TouchableOpacity>
                                     </View>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 24 }}>
-                                        {featuredMasters.map((master) => (
-                                            <TouchableOpacity
-                                                key={master.id}
-                                                style={styles.masterCard}
-                                                onPress={() => navigation.navigate('MasterDetail', { masterId: master.id })}
-                                            >
-                                                {master.avatar_url ? (
-                                                    <Image source={{ uri: master.avatar_url }} style={styles.masterAvatar} />
-                                                ) : (
-                                                    <LinearGradient colors={[...gradients.primary]} style={styles.masterAvatar}>
-                                                        <Text style={styles.masterInitial}>{master.full_name?.[0] || '?'}</Text>
-                                                    </LinearGradient>
-                                                )}
-                                                <MerakiText style={styles.masterName} numberOfLines={1}>{master.full_name || 'Master'}</MerakiText>
-                                                {master.bio && (
-                                                    <MerakiText style={styles.masterBio} numberOfLines={1}>{master.bio}</MerakiText>
-                                                )}
-                                            </TouchableOpacity>
-                                        ))}
+                                        {featuredMasters
+                                            .filter(m => !userCountry || (m.country && m.country.toLowerCase().trim() === userCountry.toLowerCase().trim()))
+                                            .slice(0, 10)
+                                            .map((master) => (
+                                                <TouchableOpacity
+                                                    key={master.id}
+                                                    style={styles.masterCard}
+                                                    onPress={() => navigation.navigate('MasterDetail', { masterId: master.id })}
+                                                >
+                                                    {master.avatar_url ? (
+                                                        <Image source={{ uri: master.avatar_url }} style={styles.masterAvatar} />
+                                                    ) : (
+                                                        <LinearGradient colors={[...gradients.primary]} style={styles.masterAvatar}>
+                                                            <Text style={styles.masterInitial}>{master.full_name?.[0] || '?'}</Text>
+                                                        </LinearGradient>
+                                                    )}
+                                                    <MerakiText style={styles.masterName} numberOfLines={1}>{master.full_name || 'Master'}</MerakiText>
+                                                    {master.bio && (
+                                                        <MerakiText style={styles.masterBio} numberOfLines={1}>{master.bio}</MerakiText>
+                                                    )}
+                                                </TouchableOpacity>
+                                            ))}
                                     </ScrollView>
                                 </View>
                             )}

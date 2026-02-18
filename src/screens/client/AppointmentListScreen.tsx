@@ -24,7 +24,6 @@ import { eurosToCents } from '../../services/stripeService';
 
 // Cancellation policy constants
 const CANCELLATION_WINDOW_HOURS = 24;
-const LATE_CANCEL_FEE_PERCENTAGE = 50;
 
 type Appointment = {
     id: string;
@@ -75,10 +74,7 @@ export function AppointmentListScreen() {
         return hoursUntil < CANCELLATION_WINDOW_HOURS;
     };
 
-    // Calculate penalty fee
-    const calculatePenaltyFee = (price: number): number => {
-        return Math.round(price * (LATE_CANCEL_FEE_PERCENTAGE / 100));
-    };
+
 
     useEffect(() => {
         fetchAppointments();
@@ -143,33 +139,22 @@ export function AppointmentListScreen() {
     // --- Appointment Handlers ---
 
     const handleCancel = (appointment: Appointment) => {
-        const isLate = isWithinCancellationWindow(appointment.start_time);
-        const penaltyFee = calculatePenaltyFee(appointment.price);
-
-        const message = isLate
-            ? `You are canceling within ${CANCELLATION_WINDOW_HOURS} hours of your appointment.\n\n⚠️ Late cancellation fee applies.\n\nYou will be charged ${LATE_CANCEL_FEE_PERCENTAGE}% (€${penaltyFee.toFixed(2)}).`
-            : 'Are you sure you want to cancel this appointment?';
-
         showConfirm(
             'Cancel Appointment',
-            message,
-            () => confirmCancel(appointment, isLate),
+            'Are you sure you want to cancel this appointment?',
+            () => confirmCancel(appointment),
             {
-                confirmText: isLate ? 'Cancel & Pay Fee' : 'Yes, Cancel',
+                confirmText: 'Yes, Cancel',
                 cancelText: 'No, Keep it',
-                type: isLate ? 'error' : 'info'
+                type: 'info'
             }
         );
     };
 
     // Send notification to Master about cancellation
-    const notifyMasterOfCancellation = async (apt: Appointment, wasCharged: boolean, feeAmount?: number) => {
+    const notifyMasterOfCancellation = async (apt: Appointment) => {
         const masterPushToken = apt.master?.push_token;
         if (!masterPushToken) return;
-
-        const message = wasCharged
-            ? `${user?.user_metadata?.full_name || 'Client'} canceled late. A €${feeAmount?.toFixed(2)} fee has been charged.`
-            : `${user?.user_metadata?.full_name || 'Client'} canceled their appointment. The slot is open again.`;
 
         try {
             await fetch('https://exp.host/--/api/v2/push/send', {
@@ -181,8 +166,8 @@ export function AppointmentListScreen() {
                 body: JSON.stringify({
                     to: masterPushToken,
                     sound: 'default',
-                    title: wasCharged ? 'Late Cancellation Fee Charged' : 'Appointment Canceled',
-                    body: message,
+                    title: 'Appointment Canceled',
+                    body: `${user?.user_metadata?.full_name || 'Client'} canceled their appointment. The slot is open again.`,
                     data: { appointmentId: apt.id },
                 }),
             });
@@ -191,79 +176,38 @@ export function AppointmentListScreen() {
         }
     };
 
-    const confirmCancel = async (appointment: Appointment, isLate: boolean) => {
+    const confirmCancel = async (appointment: Appointment) => {
         setCancellationLoading(true);
 
         try {
-            if (isLate) {
-                // Late cancellation: Capture penalty fee
-                const penaltyFee = calculatePenaltyFee(appointment.price);
-
-                // Capture partial payment for late cancellation
-                if (appointment.stripe_payment_intent_id) {
-                    try {
-                        await supabase.functions.invoke('capture-payment', {
-                            body: {
-                                payment_intent_id: appointment.stripe_payment_intent_id,
-                                amount_to_capture: eurosToCents(penaltyFee),
-                            }
-                        });
-                    } catch (e) {
-                        console.error('Failed to capture penalty:', e);
-                        // Continue with cancellation even if payment capture fails
-                    }
+            // Release payment hold, no charge
+            if (appointment.stripe_payment_intent_id) {
+                try {
+                    await supabase.functions.invoke('cancel-payment', {
+                        body: {
+                            payment_intent_id: appointment.stripe_payment_intent_id,
+                        }
+                    });
+                } catch (e) {
+                    console.error('Failed to release payment hold:', e);
                 }
-
-                // Update appointment status
-                const { error } = await supabase
-                    .from('appointments')
-                    .update({
-                        status: 'cancelled_charge',
-                        cancellation_fee_amount: eurosToCents(penaltyFee),
-                        cancellation_reason: 'Late cancellation by client',
-                    } as any)
-                    .eq('id', appointment.id);
-
-                if (error) throw error;
-
-                // Notify master
-                await notifyMasterOfCancellation(appointment, true, penaltyFee);
-
-                showAlert(
-                    'Appointment Canceled',
-                    `A cancellation fee of €${penaltyFee.toFixed(2)} has been charged.`,
-                    'info'
-                );
-            } else {
-                // Early cancellation: Release payment hold, no charge
-                if (appointment.stripe_payment_intent_id) {
-                    try {
-                        await supabase.functions.invoke('cancel-payment', {
-                            body: {
-                                payment_intent_id: appointment.stripe_payment_intent_id,
-                            }
-                        });
-                    } catch (e) {
-                        console.error('Failed to release payment hold:', e);
-                    }
-                }
-
-                // Update appointment status
-                const { error } = await supabase
-                    .from('appointments')
-                    .update({
-                        status: 'cancelled_free',
-                        cancellation_reason: 'Early cancellation by client',
-                    } as any)
-                    .eq('id', appointment.id);
-
-                if (error) throw error;
-
-                // Notify master
-                await notifyMasterOfCancellation(appointment, false);
-
-                showAlert('Appointment Canceled', 'Your appointment has been canceled successfully.', 'success');
             }
+
+            // Update appointment status
+            const { error } = await supabase
+                .from('appointments')
+                .update({
+                    status: 'cancelled_free',
+                    cancellation_reason: 'Cancellation by client',
+                } as any)
+                .eq('id', appointment.id);
+
+            if (error) throw error;
+
+            // Notify master
+            await notifyMasterOfCancellation(appointment);
+
+            showAlert('Appointment Canceled', 'Your appointment has been canceled successfully.', 'success');
 
             fetchAppointments();
         } catch (error: any) {

@@ -198,6 +198,14 @@ function MenuStackNavigator() {
     );
 }
 
+// Helper to get recursive child route name
+const getLeafRouteName = (route: any): string => {
+    if (route.state && route.state.routes) {
+        return getLeafRouteName(route.state.routes[route.state.index ?? 0]);
+    }
+    return route.name;
+};
+
 // Book & Chat Tab
 
 function BookAndChatNavigator() {
@@ -265,12 +273,31 @@ export function ClientTabs() {
                 <Tab.Screen
                     name="Book"
                     component={BookAndChatNavigator}
-                    options={{
+                    options={({ route }) => ({
                         tabBarIcon: ({ color, size }: { color: string; size: number }) => (
                             <MaterialIcons name="explore" size={22} color={color} />
                         ),
                         tabBarLabel: 'Book & Chat',
-                    } as any}
+                        tabBarStyle: ((route) => {
+                            const leafRouteName = getLeafRouteName(route);
+
+                            // Screens where the tab bar should be HIDDEN
+                            const hiddenScreens = [
+                                'ServiceDetail',
+                                'SelectDateTime',
+                                'BookingConfirm',
+                                'PhotoConsultationRequest',
+                                'MasterDetail',
+                                'ConsultationWaiting',
+                            ];
+
+                            if (hiddenScreens.includes(leafRouteName)) {
+                                return { display: 'none' };
+                            }
+
+                            return styles.tabBar;
+                        })(route),
+                    } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
                             e.preventDefault();

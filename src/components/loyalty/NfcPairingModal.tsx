@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     Modal,
     ActivityIndicator,
@@ -9,8 +8,10 @@ import {
     Platform,
 } from 'react-native';
 import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '../../theme';
-import { Button } from '../ui';
+import { Button, Card, ScreenBackground, MerakiText } from '../ui';
 
 interface NfcPairingModalProps {
     visible: boolean;
@@ -28,7 +29,6 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
         try {
             setState('scanning');
 
-            // Check if NfcManager is available (won't be in Expo Go)
             if (!NfcManager || typeof NfcManager.isSupported !== 'function') {
                 setErrorMessage(
                     'NFC is not available. This feature requires a development build (not Expo Go). ' +
@@ -38,12 +38,10 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
                 return;
             }
 
-            // Check if NFC is supported
             let isSupported = false;
             try {
                 isSupported = await NfcManager.isSupported();
             } catch (e) {
-                // isSupported threw - likely Expo Go
                 setErrorMessage(
                     'NFC module not linked. This feature requires a development build. ' +
                     'Run "npx expo run:android" to test NFC pairing.'
@@ -58,7 +56,6 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
                 return;
             }
 
-            // Check if NFC is enabled
             const isEnabled = await NfcManager.isEnabled();
             if (!isEnabled) {
                 setErrorMessage('Please enable NFC in your device settings');
@@ -66,16 +63,13 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
                 return;
             }
 
-            // Start NFC session
             await NfcManager.start();
             await NfcManager.requestTechnology(NfcTech.Ndef);
 
             setState('writing');
 
-            // Create the deep link URL
             const deepLinkUrl = `meraki://loyalty/stamp?master_id=${masterId}`;
 
-            // Create NDEF message with URL record
             const bytes = Ndef.encodeMessage([
                 Ndef.uriRecord(deepLinkUrl),
             ]);
@@ -90,7 +84,6 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
         } catch (error: any) {
             console.error('NFC Pairing Error:', error);
 
-            // Check for common error types
             let message = error?.message || 'Failed to write to NFC tag';
 
             if (message.includes('null') || message.includes('undefined')) {
@@ -100,7 +93,6 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
             setErrorMessage(message);
             setState('error');
         } finally {
-            // Clean up NFC session safely
             try {
                 await NfcManager.cancelTechnologyRequest();
             } catch (e) {
@@ -119,95 +111,126 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
         switch (state) {
             case 'ready':
                 return (
-                    <View style={styles.content}>
-                        <Text style={styles.icon}>📱</Text>
-                        <Text style={styles.title}>Pair NFC Tag</Text>
-                        <Text style={styles.description}>
-                            Write your loyalty stamp link to an NFC sticker.
-                            Clients can tap their phone on the sticker to collect stamps instantly!
-                        </Text>
-                        <View style={styles.instructions}>
-                            <Text style={styles.instructionTitle}>Requirements:</Text>
-                            <Text style={styles.instructionItem}>• NTAG213, NTAG215, or NTAG216 tag</Text>
-                            <Text style={styles.instructionItem}>• Tag must be blank or rewritable</Text>
+                    <>
+                        <Card style={styles.mainCard}>
+                            <View style={styles.iconCircle}>
+                                <MaterialCommunityIcons name="cellphone-nfc" size={48} color={colors.accent} />
+                            </View>
+                            <MerakiText variant="h2" style={styles.cardTitle}>Pair NFC Tag</MerakiText>
+                            <MerakiText variant="body" color={colors.textSecondary} style={styles.cardDescription}>
+                                Write your loyalty stamp link to an NFC sticker.
+                                Clients can tap their phone on the sticker to collect stamps instantly!
+                            </MerakiText>
+                        </Card>
+
+                        <Card variant="glass" style={styles.requirementsCard}>
+                            <View style={styles.sectionHeader}>
+                                <MaterialCommunityIcons name="information-outline" size={18} color={colors.accent} />
+                                <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>Requirements</MerakiText>
+                            </View>
+                            <MerakiText variant="caption" color={colors.textSecondary} style={styles.requirementItem}>
+                                •  NTAG213, NTAG215, or NTAG216 tag
+                            </MerakiText>
+                            <MerakiText variant="caption" color={colors.textSecondary} style={styles.requirementItem}>
+                                •  Tag must be blank or rewritable
+                            </MerakiText>
+                        </Card>
+
+                        <View style={styles.buttonContainer}>
+                            <Button
+                                title="Start Pairing"
+                                onPress={startNfcPairing}
+                                fullWidth
+                            />
                         </View>
-                        <Button
-                            title="Start Pairing"
-                            onPress={startNfcPairing}
-                            style={styles.button}
-                        />
-                        <Button
-                            title="Cancel"
-                            variant="ghost"
-                            onPress={handleClose}
-                            style={styles.cancelButton}
-                        />
-                    </View>
+                    </>
                 );
 
             case 'scanning':
             case 'writing':
                 return (
-                    <View style={styles.content}>
-                        <View style={styles.scanningAnimation}>
-                            <Text style={styles.icon}>📡</Text>
+                    <Card style={styles.mainCard}>
+                        <View style={styles.scanningCircle}>
+                            <MaterialCommunityIcons name="antenna" size={48} color={colors.accent} />
                             <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
                         </View>
-                        <Text style={styles.title}>
+                        <MerakiText variant="h2" style={styles.cardTitle}>
                             {state === 'scanning' ? 'Ready to Scan' : 'Writing...'}
-                        </Text>
-                        <Text style={styles.description}>
+                        </MerakiText>
+                        <MerakiText variant="body" color={colors.textSecondary} style={styles.cardDescription}>
                             Hold your phone near the NFC sticker to pair
-                        </Text>
+                        </MerakiText>
                         <Button
                             title="Cancel"
                             variant="outline"
                             onPress={handleClose}
-                            style={styles.cancelButton}
+                            fullWidth
+                            style={{ marginTop: spacing.md }}
                         />
-                    </View>
+                    </Card>
                 );
 
             case 'success':
                 return (
-                    <View style={styles.content}>
-                        <Text style={styles.successIcon}>✅</Text>
-                        <Text style={styles.successTitle}>Tag Paired!</Text>
-                        <Text style={styles.description}>
-                            Your NFC sticker is now ready. Clients can tap their phones on it to collect stamps automatically.
-                        </Text>
-                        <View style={styles.tipBox}>
-                            <Text style={styles.tipTitle}>💡 Pro Tip</Text>
-                            <Text style={styles.tipText}>
+                    <>
+                        <Card style={styles.mainCard}>
+                            <View style={[styles.iconCircle, styles.successCircle]}>
+                                <MaterialCommunityIcons name="check-circle" size={48} color={colors.success} />
+                            </View>
+                            <MerakiText variant="h2" color={colors.success} style={styles.cardTitle}>Tag Paired!</MerakiText>
+                            <MerakiText variant="body" color={colors.textSecondary} style={styles.cardDescription}>
+                                Your NFC sticker is now ready. Clients can tap their phones on it to collect stamps automatically.
+                            </MerakiText>
+                        </Card>
+
+                        <Card variant="glass" style={styles.tipCard}>
+                            <View style={styles.sectionHeader}>
+                                <MaterialCommunityIcons name="lightbulb-on-outline" size={18} color={colors.accent} />
+                                <MerakiText variant="body" color={colors.accent} style={{ fontWeight: '600' }}>Pro Tip</MerakiText>
+                            </View>
+                            <MerakiText variant="caption" color={colors.textSecondary} style={{ lineHeight: 20 }}>
                                 Place the sticker at your checkout counter or service station where clients can easily tap.
-                            </Text>
+                            </MerakiText>
+                        </Card>
+
+                        <View style={styles.buttonContainer}>
+                            <Button
+                                title="Done"
+                                onPress={handleClose}
+                                fullWidth
+                            />
                         </View>
-                        <Button
-                            title="Done"
-                            onPress={handleClose}
-                            style={styles.button}
-                        />
-                    </View>
+                    </>
                 );
 
             case 'error':
                 return (
-                    <View style={styles.content}>
-                        <Text style={styles.errorIcon}>❌</Text>
-                        <Text style={styles.errorTitle}>Pairing Failed</Text>
-                        <Text style={styles.errorDescription}>{errorMessage}</Text>
-                        <Button
-                            title="Try Again"
-                            onPress={() => setState('ready')}
-                            style={styles.button}
-                        />
-                        <Button
-                            title="Cancel"
-                            variant="ghost"
-                            onPress={handleClose}
-                            style={styles.cancelButton}
-                        />
-                    </View>
+                    <>
+                        <Card style={styles.mainCard}>
+                            <View style={[styles.iconCircle, styles.errorCircle]}>
+                                <MaterialCommunityIcons name="close-circle" size={48} color={colors.error} />
+                            </View>
+                            <MerakiText variant="h2" color={colors.error} style={styles.cardTitle}>Pairing Failed</MerakiText>
+                            <MerakiText variant="body" color={colors.textSecondary} style={styles.cardDescription}>
+                                {errorMessage}
+                            </MerakiText>
+                        </Card>
+
+                        <View style={styles.buttonContainer}>
+                            <Button
+                                title="Try Again"
+                                onPress={() => setState('ready')}
+                                fullWidth
+                                style={{ marginBottom: spacing.sm }}
+                            />
+                            <Button
+                                title="Cancel"
+                                variant="ghost"
+                                onPress={handleClose}
+                                fullWidth
+                            />
+                        </View>
+                    </>
                 );
         }
     };
@@ -216,17 +239,30 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
         <Modal
             visible={visible}
             animationType="slide"
-            presentationStyle="pageSheet"
+            presentationStyle="fullScreen"
             onRequestClose={handleClose}
         >
-            <View style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                        <Text style={styles.closeButtonText}>✕</Text>
-                    </TouchableOpacity>
-                </View>
-                {renderContent()}
-            </View>
+            <ScreenBackground>
+                <SafeAreaView style={styles.container} edges={['top']}>
+                    {/* Standardized header with back button */}
+                    <View style={styles.header}>
+                        <TouchableOpacity onPress={handleClose} style={styles.backButton}>
+                            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+                        </TouchableOpacity>
+                        <View>
+                            <MerakiText variant="h1">Pair NFC Tag</MerakiText>
+                            <MerakiText variant="caption" color={colors.textSecondary}>
+                                Write your stamp link to a tag
+                            </MerakiText>
+                        </View>
+                    </View>
+
+                    {/* Content */}
+                    <View style={styles.content}>
+                        {renderContent()}
+                    </View>
+                </SafeAreaView>
+            </ScreenBackground>
         </Modal>
     );
 }
@@ -234,131 +270,96 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        padding: spacing.md,
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.lg,
+        paddingBottom: spacing.md,
     },
-    closeButton: {
+    backButton: {
         width: 40,
         height: 40,
-        borderRadius: 20,
-        backgroundColor: colors.surface,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    closeButtonText: {
-        fontSize: 20,
-        color: colors.textSecondary,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        marginBottom: spacing.sm,
     },
     content: {
         flex: 1,
+        paddingHorizontal: spacing.lg,
+        justifyContent: 'center',
+    },
+    mainCard: {
+        padding: spacing.xl,
+        alignItems: 'center',
+        marginBottom: spacing.md,
+    },
+    iconCircle: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: 'rgba(200, 160, 77, 0.1)',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: spacing.xl,
-    },
-    icon: {
-        fontSize: 64,
         marginBottom: spacing.lg,
+        borderWidth: 1,
+        borderColor: 'rgba(200, 160, 77, 0.2)',
     },
-    title: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: colors.text,
-        marginBottom: spacing.md,
-        textAlign: 'center',
+    successCircle: {
+        backgroundColor: 'rgba(52, 199, 89, 0.1)',
+        borderColor: 'rgba(52, 199, 89, 0.2)',
     },
-    description: {
-        fontSize: 16,
-        color: colors.textSecondary,
-        textAlign: 'center',
-        lineHeight: 24,
-        marginBottom: spacing.xl,
+    errorCircle: {
+        backgroundColor: 'rgba(255, 69, 58, 0.1)',
+        borderColor: 'rgba(255, 69, 58, 0.2)',
     },
-    instructions: {
-        backgroundColor: colors.surface,
-        padding: spacing.lg,
-        borderRadius: borderRadius.lg,
-        width: '100%',
-        marginBottom: spacing.xl,
-    },
-    instructionTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.text,
-        marginBottom: spacing.sm,
-    },
-    instructionItem: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        marginBottom: spacing.xs,
-    },
-    button: {
-        width: '100%',
-        marginBottom: spacing.md,
-    },
-    cancelButton: {
-        width: '100%',
-    },
-    scanningAnimation: {
+    scanningCircle: {
         width: 120,
         height: 120,
         borderRadius: 60,
-        backgroundColor: `${colors.primary}20`,
+        backgroundColor: 'rgba(200, 160, 77, 0.1)',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: spacing.lg,
+        borderWidth: 1,
+        borderColor: 'rgba(200, 160, 77, 0.2)',
     },
     spinner: {
         position: 'absolute',
     },
-    successIcon: {
-        fontSize: 72,
-        marginBottom: spacing.lg,
-    },
-    successTitle: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: colors.success,
-        marginBottom: spacing.md,
-    },
-    tipBox: {
-        backgroundColor: `${colors.primary}15`,
-        padding: spacing.lg,
-        borderRadius: borderRadius.lg,
-        width: '100%',
-        marginBottom: spacing.xl,
-        borderLeftWidth: 4,
-        borderLeftColor: colors.primary,
-    },
-    tipTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.primary,
-        marginBottom: spacing.xs,
-    },
-    tipText: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        lineHeight: 20,
-    },
-    errorIcon: {
-        fontSize: 72,
-        marginBottom: spacing.lg,
-    },
-    errorTitle: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: colors.error,
-        marginBottom: spacing.md,
-    },
-    errorDescription: {
-        fontSize: 16,
-        color: colors.textSecondary,
+    cardTitle: {
+        marginBottom: spacing.sm,
         textAlign: 'center',
-        marginBottom: spacing.xl,
+    },
+    cardDescription: {
+        textAlign: 'center',
+        lineHeight: 24,
+    },
+    requirementsCard: {
+        padding: spacing.lg,
+        marginBottom: spacing.md,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: spacing.sm,
+    },
+    requirementItem: {
+        marginBottom: spacing.xs,
+        paddingLeft: spacing.xs,
+    },
+    tipCard: {
+        padding: spacing.lg,
+        marginBottom: spacing.md,
+        borderLeftWidth: 3,
+        borderLeftColor: colors.accent,
+    },
+    buttonContainer: {
+        paddingVertical: spacing.md,
     },
 });
 

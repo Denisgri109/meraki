@@ -10,6 +10,8 @@ import { ClientTabs } from './ClientTabs';
 import { MasterTabs } from './MasterTabs';
 import { OwnerTabs } from './OwnerTabs';
 import { MasterOnboardingScreen } from '../screens/master';
+import { useAutoLocation } from '../hooks/useAutoLocation';
+import { CitySelectionModal } from '../components/CitySelectionModal';
 import { colors } from '../theme';
 
 import { ChatScreen } from '../screens/chat';
@@ -61,6 +63,14 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function AppNavigator() {
     const { session, profile, loading } = useAuth();
+    const {
+        isCityMissing,
+        detectedCountry,
+        detectedCountryCode,
+        detectedTimezone,
+        dismissCityModal,
+        onCitySaved,
+    } = useAutoLocation();
 
     if (loading) {
         return (
@@ -99,49 +109,62 @@ export function AppNavigator() {
     };
 
     return (
-        <NavigationContainer
-            linking={linking}
-            theme={{
-                dark: true,
-                colors: {
-                    primary: colors.primary,
-                    background: 'transparent',
-                    card: colors.surface,
-                    text: colors.text,
-                    border: colors.border,
-                    notification: colors.primary,
-                },
-                fonts: DefaultTheme.fonts,
-            }}
-        >
-            <NotificationProvider>
-                <DeepLinkHandler>
-                    <Stack.Navigator
-                        initialRouteName={getInitialRoute()}
-                        screenOptions={{
-                            headerShown: false,
-                            contentStyle: { backgroundColor: colors.background },
-                        }}
-                    >
-                        {!session ? (
-                            <Stack.Screen name="Auth" component={AuthStack} />
-                        ) : (
-                            <>
-                                {renderAppScreens()}
-                                <Stack.Screen
-                                    name="Chat"
-                                    component={ChatScreen}
-                                    options={{
-                                        presentation: 'card',
-                                        animation: 'slide_from_right',
-                                    }}
-                                />
-                            </>
-                        )}
-                    </Stack.Navigator>
-                </DeepLinkHandler>
-            </NotificationProvider>
-        </NavigationContainer>
+        <>
+            <NavigationContainer
+                linking={linking}
+                theme={{
+                    dark: true,
+                    colors: {
+                        primary: colors.primary,
+                        background: 'transparent',
+                        card: colors.surface,
+                        text: colors.text,
+                        border: colors.border,
+                        notification: colors.primary,
+                    },
+                    fonts: DefaultTheme.fonts,
+                }}
+            >
+                <NotificationProvider>
+                    <DeepLinkHandler>
+                        <Stack.Navigator
+                            initialRouteName={getInitialRoute()}
+                            screenOptions={{
+                                headerShown: false,
+                                contentStyle: { backgroundColor: colors.background },
+                            }}
+                        >
+                            {!session ? (
+                                <Stack.Screen name="Auth" component={AuthStack} />
+                            ) : (
+                                <>
+                                    {renderAppScreens()}
+                                    <Stack.Screen
+                                        name="Chat"
+                                        component={ChatScreen}
+                                        options={{
+                                            presentation: 'card',
+                                            animation: 'slide_from_right',
+                                        }}
+                                    />
+                                </>
+                            )}
+                        </Stack.Navigator>
+                    </DeepLinkHandler>
+                </NotificationProvider>
+            </NavigationContainer>
+
+            {/* City Selection Modal - shown for all authenticated users when city is missing */}
+            {session && (
+                <CitySelectionModal
+                    visible={isCityMissing}
+                    detectedCountry={detectedCountry}
+                    detectedCountryCode={detectedCountryCode}
+                    onCitySaved={onCitySaved}
+                    onDismiss={dismissCityModal}
+                />
+            )}
+        </>
     );
 }
 

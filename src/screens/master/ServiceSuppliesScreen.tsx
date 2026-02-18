@@ -273,8 +273,8 @@ export function ServiceSuppliesScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     {serviceId && (
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                            <MaterialCommunityIcons name="arrow-left" size={20} color={colors.textSecondary} />
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                         </TouchableOpacity>
                     )}
                     <MerakiText variant="h1">Service Supplies</MerakiText>
@@ -419,8 +419,16 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingBottom: spacing.md,
     },
-    backButton: {
+    backBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: spacing.sm,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     list: {
         padding: spacing.lg,

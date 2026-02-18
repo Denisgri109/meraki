@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Text, Platform, StyleSheet, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -14,6 +14,9 @@ import {
     OwnerSuppliesScreen,
     AddOwnerSupplyScreen,
     PlatformAnalyticsScreen,
+    OwnerOrdersScreen,
+    OwnerOrderDetailScreen,
+    OwnerMenuScreen,
 } from '../screens/owner';
 import {
     ManageAcademyScreen,
@@ -28,16 +31,23 @@ import {
     MasterAvailabilityScreen,
     PortfolioScreen,
     MyServicesScreen,
+    BlockedSlotsScreen,
     CreateServiceScreen,
+    MasterSettingsScreen,
     ServiceSuppliesScreen,
     BusinessSettingsScreen,
     LoyaltyCardBuilderScreen,
     AftercareCampaignScreen,
+    SuppliesScreen,
+    AddSupplyScreen,
     BookingConsultationReviewScreen,
     ManageRewardsScreen,
+    MasterEarningsScreen,
 } from '../screens/master';
+import PhotoConsultationReviewScreen from '../screens/master/PhotoConsultationReviewScreen';
 import {
     ProfileScreen,
+    HelpSupportScreen,
     TermsOfServiceScreen,
     PrivacyPolicyScreen,
     PaymentMethodsScreen,
@@ -58,7 +68,9 @@ export type OwnerDashboardStackParamList = {
     Availability: undefined;
     Portfolio: undefined;
     MyServices: undefined;
+    BlockedSlots: undefined;
     CreateService: undefined;
+    Settings: undefined;
     ServiceSupplies: { serviceId?: string } | undefined;
     OwnerSupplies: undefined;
     AddOwnerSupply: { supply?: any } | undefined;
@@ -66,9 +78,12 @@ export type OwnerDashboardStackParamList = {
     BusinessSettings: undefined;
     LoyaltyCardBuilder: undefined;
     AftercareCampaigns: undefined;
+    PhotoConsultations: undefined;
     BookingConsultations: undefined;
     ManageRewards: undefined;
     PlatformAnalytics: undefined;
+    CustomerOrders: undefined;
+    OrderDetail: { order: any };
 };
 
 const DashboardStack = createNativeStackNavigator<OwnerDashboardStackParamList>();
@@ -85,16 +100,21 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="Availability" component={MasterAvailabilityScreen} />
             <DashboardStack.Screen name="Portfolio" component={PortfolioScreen} />
             <DashboardStack.Screen name="MyServices" component={MyServicesScreen} />
+            <DashboardStack.Screen name="BlockedSlots" component={BlockedSlotsScreen} />
             <DashboardStack.Screen name="CreateService" component={CreateServiceScreen} />
+            <DashboardStack.Screen name="Settings" component={MasterSettingsScreen} />
             <DashboardStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
             <DashboardStack.Screen name="OwnerSupplies" component={OwnerSuppliesScreen} />
             <DashboardStack.Screen name="AddOwnerSupply" component={AddOwnerSupplyScreen} />
             <DashboardStack.Screen name="BusinessSettings" component={BusinessSettingsScreen} />
             <DashboardStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
             <DashboardStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />
+            <DashboardStack.Screen name="PhotoConsultations" component={PhotoConsultationReviewScreen} />
             <DashboardStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
             <DashboardStack.Screen name="ManageRewards" component={ManageRewardsScreen} />
             <DashboardStack.Screen name="PlatformAnalytics" component={PlatformAnalyticsScreen} />
+            <DashboardStack.Screen name="CustomerOrders" component={OwnerOrdersScreen} />
+            <DashboardStack.Screen name="OrderDetail" component={OwnerOrderDetailScreen} />
         </DashboardStack.Navigator>
     );
 }
@@ -133,26 +153,93 @@ function ShopStackNavigator() {
     );
 }
 
-// Profile Stack
-export type ProfileStackParamList = {
-    ProfileMain: undefined;
-    TermsOfService: undefined;
-    PrivacyPolicy: undefined;
-    PaymentMethods: undefined;
-    Notifications: undefined;
+// Supplies Stack
+export type SuppliesStackParamList = {
+    SuppliesMain: undefined;
+    AddSupply: { supply?: any } | undefined;
+    ServiceSupplies: undefined;
 };
 
-const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
+const SuppliesStack = createNativeStackNavigator<SuppliesStackParamList>();
 
-function ProfileStackNavigator() {
+function SuppliesStackNavigator() {
     return (
-        <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
-            <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
-            <ProfileStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
-            <ProfileStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-            <ProfileStack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
-            <ProfileStack.Screen name="Notifications" component={NotificationsScreen} />
-        </ProfileStack.Navigator>
+        <SuppliesStack.Navigator screenOptions={{ headerShown: false }}>
+            <SuppliesStack.Screen name="SuppliesMain" component={SuppliesScreen} />
+            <SuppliesStack.Screen name="AddSupply" component={AddSupplyScreen} />
+            <SuppliesStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
+        </SuppliesStack.Navigator>
+    );
+}
+
+// Menu Stack (replacing Profile)
+export type MenuStackParamList = {
+    MenuMain: undefined;
+    Profile: undefined;
+    Availability: undefined;
+    Portfolio: undefined;
+    MyServices: undefined;
+    PlatformAnalytics: undefined;
+    Notifications: undefined;
+    BusinessSettings: undefined;
+    Settings: undefined;
+    Inventory: undefined;
+    OwnerSupplies: undefined;
+    CustomerOrders: undefined;
+    OrderDetail: { order: any };
+    Services: undefined;
+    ServiceForm: { service?: any } | undefined;
+    BlockedSlots: undefined;
+    LoyaltyCardBuilder: undefined;
+    AftercareCampaigns: undefined;
+    BookingConsultations: undefined;
+    PhotoConsultations: undefined;
+    ManageRewards: undefined;
+    LoyaltyQR: undefined;
+    PaymentMethods: undefined;
+    HelpSupport: undefined;
+    TermsOfService: undefined;
+    PrivacyPolicy: undefined;
+    AddOwnerSupply: { supply?: any } | undefined;
+    CreateService: undefined;
+    ServiceSupplies: { serviceId?: string } | undefined;
+};
+
+const MenuStack = createNativeStackNavigator<MenuStackParamList>();
+
+function MenuStackNavigator() {
+    return (
+        <MenuStack.Navigator screenOptions={{ headerShown: false }}>
+            <MenuStack.Screen name="MenuMain" component={OwnerMenuScreen} />
+            <MenuStack.Screen name="Profile" component={ProfileScreen} />
+            <MenuStack.Screen name="Availability" component={MasterAvailabilityScreen} />
+            <MenuStack.Screen name="Portfolio" component={PortfolioScreen} />
+            <MenuStack.Screen name="MyServices" component={MyServicesScreen} />
+            <MenuStack.Screen name="PlatformAnalytics" component={PlatformAnalyticsScreen} />
+            <MenuStack.Screen name="Notifications" component={NotificationsScreen} />
+            <MenuStack.Screen name="BusinessSettings" component={BusinessSettingsScreen} />
+            <MenuStack.Screen name="Settings" component={MasterSettingsScreen} />
+            <MenuStack.Screen name="Inventory" component={InventoryScreen} />
+            <MenuStack.Screen name="OwnerSupplies" component={OwnerSuppliesScreen} />
+            <MenuStack.Screen name="CustomerOrders" component={OwnerOrdersScreen} />
+            <MenuStack.Screen name="OrderDetail" component={OwnerOrderDetailScreen} />
+            <MenuStack.Screen name="Services" component={ServiceListScreen} />
+            <MenuStack.Screen name="ServiceForm" component={ServiceFormScreen} />
+            <MenuStack.Screen name="BlockedSlots" component={BlockedSlotsScreen} />
+            <MenuStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
+            <MenuStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />
+            <MenuStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
+            <MenuStack.Screen name="PhotoConsultations" component={PhotoConsultationReviewScreen} />
+            <MenuStack.Screen name="ManageRewards" component={ManageRewardsScreen} />
+            <MenuStack.Screen name="LoyaltyQR" component={LoyaltyQRScreen} />
+            <MenuStack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+            <MenuStack.Screen name="HelpSupport" component={HelpSupportScreen} />
+            <MenuStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
+            <MenuStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+            <MenuStack.Screen name="AddOwnerSupply" component={AddOwnerSupplyScreen} />
+            <MenuStack.Screen name="CreateService" component={CreateServiceScreen} />
+            <MenuStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
+        </MenuStack.Navigator>
     );
 }
 
@@ -183,8 +270,10 @@ export type OwnerTabsParamList = {
     Dashboard: undefined;
     Academy: undefined;
     Appointments: undefined;
+    Supplies: undefined;
+    Shop: undefined;
     Messages: undefined;
-    Profile: undefined;
+    Menu: undefined;
 };
 
 const Tab = createBottomTabNavigator<OwnerTabsParamList>();
@@ -211,11 +300,18 @@ export function OwnerTabs() {
             <Tab.Screen
                 name="Dashboard"
                 component={DashboardStackNavigator}
-                options={{
+                options={({ route }) => ({
                     tabBarIcon: ({ color }: { color: string }) => (
                         <MaterialIcons name="dashboard" size={22} color={color} />
                     ),
-                } as any}
+                    tabBarStyle: ((route) => {
+                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'DashboardMain';
+                        if (routeName !== 'DashboardMain') {
+                            return { display: 'none' };
+                        }
+                        return styles.tabBar;
+                    })(route),
+                } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
                         e.preventDefault();
@@ -231,11 +327,18 @@ export function OwnerTabs() {
             <Tab.Screen
                 name="Academy"
                 component={AcademyStackNavigator}
-                options={{
+                options={({ route }) => ({
                     tabBarIcon: ({ color }: { color: string }) => (
                         <MaterialIcons name="school" size={22} color={color} />
                     ),
-                } as any}
+                    tabBarStyle: ((route) => {
+                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'ManageAcademy';
+                        if (routeName !== 'ManageAcademy') {
+                            return { display: 'none' };
+                        }
+                        return styles.tabBar;
+                    })(route),
+                } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
                         e.preventDefault();
@@ -269,13 +372,20 @@ export function OwnerTabs() {
                 })}
             />
             <Tab.Screen
-                name="Messages"
-                component={MessagesStackNavigator}
-                options={{
+                name="Supplies"
+                component={SuppliesStackNavigator}
+                options={({ route }) => ({
                     tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="forum" size={22} color={color} />
+                        <MaterialIcons name="inventory-2" size={22} color={color} />
                     ),
-                } as any}
+                    tabBarStyle: ((route) => {
+                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'SuppliesMain';
+                        if (routeName !== 'SuppliesMain') {
+                            return { display: 'none' };
+                        }
+                        return styles.tabBar;
+                    })(route),
+                } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
                         e.preventDefault();
@@ -289,13 +399,74 @@ export function OwnerTabs() {
                 })}
             />
             <Tab.Screen
-                name="Profile"
-                component={ProfileStackNavigator}
-                options={{
+                name="Shop"
+                component={ShopStackNavigator}
+                options={({ route }) => ({
                     tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="person-outline" size={22} color={color} />
+                        <MaterialIcons name="storefront" size={22} color={color} />
                     ),
-                } as any}
+                    tabBarStyle: ((route) => {
+                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'ShopMain';
+                        if (routeName !== 'ShopMain') {
+                            return { display: 'none' };
+                        }
+                        return styles.tabBar;
+                    })(route),
+                } as any)}
+                listeners={({ navigation, route }) => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.dispatch(
+                            CommonActions.reset({
+                                index: 0,
+                                routes: [{ name: route.name }],
+                            })
+                        );
+                    },
+                })}
+            />
+            <Tab.Screen
+                name="Messages"
+                component={MessagesStackNavigator}
+                options={({ route }) => ({
+                    tabBarIcon: ({ color }: { color: string }) => (
+                        <MaterialIcons name="forum" size={22} color={color} />
+                    ),
+                    tabBarStyle: ((route) => {
+                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'ChatList';
+                        if (routeName !== 'ChatList') {
+                            return { display: 'none' };
+                        }
+                        return styles.tabBar;
+                    })(route),
+                } as any)}
+                listeners={({ navigation, route }) => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.dispatch(
+                            CommonActions.reset({
+                                index: 0,
+                                routes: [{ name: route.name }],
+                            })
+                        );
+                    },
+                })}
+            />
+            <Tab.Screen
+                name="Menu"
+                component={MenuStackNavigator}
+                options={({ route }) => ({
+                    tabBarIcon: ({ color }: { color: string }) => (
+                        <MaterialIcons name="settings" size={22} color={color} />
+                    ),
+                    tabBarStyle: ((route) => {
+                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'MenuMain';
+                        if (routeName !== 'MenuMain') {
+                            return { display: 'none' };
+                        }
+                        return styles.tabBar;
+                    })(route),
+                } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
                         e.preventDefault();

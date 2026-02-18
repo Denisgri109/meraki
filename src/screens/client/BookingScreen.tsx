@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { Service } from '../../types/database';
@@ -35,6 +36,8 @@ const CATEGORIES = [
 ];
 
 export function BookingScreen({ navigation }: BookingScreenProps) {
+    const { profile } = useAuth();
+    const userCountry = profile?.country || null;
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -42,20 +45,34 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
 
     useEffect(() => {
         fetchServices();
-    }, []);
+    }, [userCountry]);
 
     const fetchServices = async () => {
         try {
-            // Only fetch services that are active AND have at least one available master
+            // Fetch services with master country info for filtering
             const { data } = await supabase
                 .from('services')
-                .select('*, master_services!inner(is_available)')
+                .select('*, master_services!inner(is_available, profiles:master_id(country))')
                 .eq('is_active', true)
                 .eq('master_services.is_available', true)
                 .order('name');
 
-            // Cast data to ensure it fits Service[] state, ignoring the extra master_services property
-            setServices((data as any) || []);
+            let filtered = (data as any[]) || [];
+
+            // Country filter: only show services that have at least one master in the client's country
+            if (userCountry) {
+                const uCountry = userCountry.toLowerCase().trim();
+                filtered = filtered.filter((service: any) => {
+                    const masterServices = service.master_services || [];
+                    return masterServices.some((ms: any) => {
+                        const masterCountry = ms.profiles?.country;
+                        return masterCountry && masterCountry.toLowerCase().trim() === uCountry;
+                    });
+                });
+            }
+
+            // Strip the master_services join data before setting state
+            setServices(filtered.map(({ master_services, ...rest }: any) => rest) as Service[]);
         } catch (error) {
             console.error('Error fetching services:', error);
         } finally {

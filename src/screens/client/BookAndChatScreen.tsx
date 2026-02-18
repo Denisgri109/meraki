@@ -80,7 +80,31 @@ const TAB_CONFIG = [
     { name: 'Messages', icon: 'chat-bubble-outline', label: 'Messages' },
 ];
 
+const getLeafRouteName = (route: any): string => {
+    if (route.state && route.state.routes) {
+        return getLeafRouteName(route.state.routes[route.state.index ?? 0]);
+    }
+    return route.name;
+};
+
 function CustomTabBar({ state, descriptors, navigation }: any) {
+    // Check if the current nested route should hide the tab bar
+    const activeRoute = state.routes[state.index];
+    const leafRouteName = getLeafRouteName(activeRoute);
+
+    const hiddenScreens = [
+        'ServiceDetail',
+        'SelectDateTime',
+        'BookingConfirm',
+        'PhotoConsultationRequest',
+        'MasterDetail',
+        'ConsultationWaiting',
+    ];
+
+    if (hiddenScreens.includes(leafRouteName)) {
+        return null;
+    }
+
     return (
         <View style={styles.tabContainer}>
             <View style={styles.tabBar}>

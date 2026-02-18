@@ -249,8 +249,16 @@ export function MyServicesScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md },
-    backButton: { padding: spacing.xs },
-    backButtonText: { color: colors.text, fontSize: 16 },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
     title: { fontSize: 20, fontWeight: 'bold', color: colors.text },
     list: { padding: spacing.md },
     card: { padding: spacing.md, marginBottom: spacing.md },

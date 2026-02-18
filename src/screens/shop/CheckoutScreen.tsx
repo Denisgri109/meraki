@@ -9,6 +9,8 @@ import {
     ActivityIndicator,
     TextInput,
     Modal,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -25,7 +27,11 @@ import {
     formatCardBrand,
     PaymentMethod,
 } from '../../services/stripeService';
-import { COMMON_COUNTRIES } from '../../utils/timezone';
+import {
+    EUROPEAN_COUNTRIES_SORTED,
+    getShippingCost,
+    getCountryName,
+} from '../../utils/shippingUtils';
 
 export function CheckoutScreen() {
     const navigation = useNavigation<any>();
@@ -43,9 +49,20 @@ export function CheckoutScreen() {
     const [newCardComplete, setNewCardComplete] = useState(false);
     const [loadingCards, setLoadingCards] = useState(true);
 
-    // Shipping state
+    // Shipping address state
+    const [shippingName, setShippingName] = useState(profile?.full_name || '');
+    const [shippingPhone, setShippingPhone] = useState('');
+    const [shippingAddress, setShippingAddress] = useState('');
+    const [shippingCity, setShippingCity] = useState('');
+    const [shippingPostalCode, setShippingPostalCode] = useState('');
     const [shippingCountry, setShippingCountry] = useState('GB');
     const [showCountryPicker, setShowCountryPicker] = useState(false);
+    const [countrySearch, setCountrySearch] = useState('');
+
+    // Calculated values
+    const subtotal = getTotal();
+    const shippingCost = getShippingCost(shippingCountry);
+    const finalTotal = subtotal + shippingCost;
 
     useEffect(() => {
         fetchPaymentMethods();
@@ -84,6 +101,45 @@ export function CheckoutScreen() {
         }
     };
 
+    const validateShippingAddress = (): boolean => {
+        if (!shippingName.trim()) {
+            Alert.alert('Missing Info', 'Please enter the recipient\'s full name.');
+            return false;
+        }
+        if (!shippingPhone.trim()) {
+            Alert.alert('Missing Info', 'Please enter a phone number for delivery updates.');
+            return false;
+        }
+        if (!shippingAddress.trim()) {
+            Alert.alert('Missing Info', 'Please enter the street address.');
+            return false;
+        }
+        if (!shippingCity.trim()) {
+            Alert.alert('Missing Info', 'Please enter the city.');
+            return false;
+        }
+        if (!shippingPostalCode.trim()) {
+            Alert.alert('Missing Info', 'Please enter the postal code.');
+            return false;
+        }
+        return true;
+    };
+
+    const sendOwnerNotification = async (orderId: string, orderTotal: number) => {
+        try {
+            await supabase.functions.invoke('send-order-notification', {
+                body: {
+                    order_id: orderId,
+                    customer_name: shippingName || profile?.full_name || 'Customer',
+                    order_total: orderTotal,
+                },
+            });
+        } catch (error) {
+            // Non-critical — don't fail the order if notification fails
+            console.error('Failed to send owner notification:', error);
+        }
+    };
+
     const handlePlaceOrder = async () => {
         if (!user) {
             Alert.alert('Error', 'Please log in to place an order');
@@ -94,6 +150,9 @@ export function CheckoutScreen() {
             Alert.alert('Error', 'Your cart is empty');
             return;
         }
+
+        // Validate shipping address
+        if (!validateShippingAddress()) return;
 
         // Validate payment method
         if (!showNewCard && !selectedCardId) {
@@ -124,8 +183,8 @@ export function CheckoutScreen() {
                 }
             }
 
-            // 2. Process payment
-            const totalInCents = eurosToCents(getTotal());
+            // 2. Process payment — use FINAL TOTAL (subtotal + shipping)
+            const totalInCents = eurosToCents(finalTotal);
 
             // SIMULATION MODE: Bypass real Stripe payment for testing
             // Set to true to simulate payments without real charges
@@ -140,7 +199,7 @@ export function CheckoutScreen() {
                 const result = await createPaymentIntent({
                     amount: totalInCents,
                     customerId: profile?.stripe_customer_id || undefined,
-                    description: `Shop Order: ${items.length} item(s)`,
+                    description: `Shop Order: ${items.length} item(s) + shipping to ${getCountryName(shippingCountry)}`,
                     captureMethod: 'automatic', // Immediate charge for shop orders
                 });
                 paymentIntentId = result.paymentIntentId;
@@ -165,15 +224,24 @@ export function CheckoutScreen() {
                 }
             }
 
-            // 3. Create the order
+            // 3. Create the order (with shipping details)
             const { data: order, error: orderError } = await (supabase as any)
                 .from('orders')
                 .insert({
                     user_id: user.id,
-                    total: getTotal(),
+                    total: finalTotal,
                     notes: notes || null,
                     status: 'confirmed',
                     stripe_payment_intent_id: paymentIntentId,
+                    // Shipping fields
+                    shipping_name: shippingName.trim(),
+                    shipping_phone: shippingPhone.trim(),
+                    shipping_address: shippingAddress.trim(),
+                    shipping_city: shippingCity.trim(),
+                    shipping_postal_code: shippingPostalCode.trim(),
+                    shipping_country: shippingCountry,
+                    shipping_cost: shippingCost,
+                    shipping_status: 'pending',
                 })
                 .select()
                 .single();
@@ -220,12 +288,15 @@ export function CheckoutScreen() {
                 }
             }
 
-            // 6. Clear cart and show success
+            // 6. Send push notification to owner
+            await sendOwnerNotification(order.id, finalTotal);
+
+            // 7. Clear cart and show success
             clearCart();
 
             Alert.alert(
                 '🎉 Order Placed!',
-                `Your order #${order.id.slice(0, 8).toUpperCase()} has been confirmed and payment of €${getTotal().toFixed(2)} processed.`,
+                `Your order #${order.id.slice(0, 8).toUpperCase()} has been confirmed.\n\nSubtotal: €${subtotal.toFixed(2)}\nShipping: €${shippingCost.toFixed(2)}\nTotal: €${finalTotal.toFixed(2)}\n\nShipping to: ${shippingCity}, ${getCountryName(shippingCountry)}`,
                 [
                     {
                         text: 'View Orders',
@@ -245,6 +316,12 @@ export function CheckoutScreen() {
         }
     };
 
+    const filteredCountries = countrySearch.trim()
+        ? EUROPEAN_COUNTRIES_SORTED.filter(c =>
+            c.name.toLowerCase().includes(countrySearch.toLowerCase())
+        )
+        : EUROPEAN_COUNTRIES_SORTED;
+
     return (
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -256,171 +333,254 @@ export function CheckoutScreen() {
                     <View style={{ width: 40 }} />
                 </View>
 
-                <ScrollView
-                    style={styles.content}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
                 >
-                    {/* Order Summary */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Order Summary</Text>
-                        <View style={styles.summaryCard}>
-                            {items.map((item) => (
-                                <View key={item.id} style={styles.summaryItem}>
-                                    <Text style={styles.summaryItemName} numberOfLines={1}>
-                                        {item.quantity}x {item.name}
-                                    </Text>
-                                    <Text style={styles.summaryItemPrice}>
-                                        €{(item.price * item.quantity).toFixed(2)}
-                                    </Text>
+                    <ScrollView
+                        style={styles.content}
+                        contentContainerStyle={styles.scrollContent}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        {/* Order Summary */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Order Summary</Text>
+                            <View style={styles.summaryCard}>
+                                {items.map((item) => (
+                                    <View key={item.id} style={styles.summaryItem}>
+                                        <Text style={styles.summaryItemName} numberOfLines={1}>
+                                            {item.quantity}x {item.name}
+                                        </Text>
+                                        <Text style={styles.summaryItemPrice}>
+                                            €{(item.price * item.quantity).toFixed(2)}
+                                        </Text>
+                                    </View>
+                                ))}
+                                <View style={styles.divider} />
+                                <View style={styles.summaryItem}>
+                                    <Text style={styles.summarySubtotalLabel}>Subtotal</Text>
+                                    <Text style={styles.summarySubtotalPrice}>€{subtotal.toFixed(2)}</Text>
                                 </View>
-                            ))}
-                            <View style={styles.divider} />
-                            <View style={styles.summaryItem}>
-                                <Text style={styles.summaryTotal}>Total</Text>
-                                <Text style={styles.summaryTotalPrice}>€{getTotal().toFixed(2)}</Text>
+                                <View style={styles.summaryItem}>
+                                    <Text style={styles.summaryShippingLabel}>
+                                        Shipping ({getCountryName(shippingCountry)})
+                                    </Text>
+                                    <Text style={styles.summaryShippingPrice}>€{shippingCost.toFixed(2)}</Text>
+                                </View>
+                                <View style={styles.divider} />
+                                <View style={styles.summaryItem}>
+                                    <Text style={styles.summaryTotal}>Total</Text>
+                                    <Text style={styles.summaryTotalPrice}>€{finalTotal.toFixed(2)}</Text>
+                                </View>
                             </View>
                         </View>
-                    </View>
 
-                    {/* Shipping Country */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Shipping Country</Text>
-                        <TouchableOpacity
-                            style={styles.countrySelector}
-                            onPress={() => setShowCountryPicker(true)}
-                        >
-                            <Text style={styles.countrySelectorText}>
-                                {COMMON_COUNTRIES.find(c => c.value === shippingCountry)?.label || shippingCountry}
-                            </Text>
-                            <Text style={styles.countrySelectorArrow}>›</Text>
-                        </TouchableOpacity>
-                    </View>
+                        {/* Shipping Address */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>📦 Shipping Address</Text>
+                            <View style={styles.formCard}>
+                                {/* Full Name */}
+                                <Text style={styles.fieldLabel}>Full Name *</Text>
+                                <TextInput
+                                    style={styles.fieldInput}
+                                    placeholder="John Doe"
+                                    placeholderTextColor={colors.textMuted}
+                                    value={shippingName}
+                                    onChangeText={setShippingName}
+                                    autoCapitalize="words"
+                                />
 
-                    {/* Customer Info */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Customer</Text>
-                        <View style={styles.infoCard}>
-                            <Text style={styles.infoLabel}>Name</Text>
-                            <Text style={styles.infoValue}>{profile?.full_name || 'Guest'}</Text>
-                            <Text style={styles.infoLabel}>Email</Text>
-                            <Text style={styles.infoValue}>{profile?.email}</Text>
-                        </View>
-                    </View>
+                                {/* Phone Number */}
+                                <Text style={styles.fieldLabel}>Phone Number *</Text>
+                                <TextInput
+                                    style={styles.fieldInput}
+                                    placeholder="+44 7700 900000"
+                                    placeholderTextColor={colors.textMuted}
+                                    value={shippingPhone}
+                                    onChangeText={setShippingPhone}
+                                    keyboardType="phone-pad"
+                                />
 
-                    {/* Payment Method */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Payment Method</Text>
+                                {/* Street Address */}
+                                <Text style={styles.fieldLabel}>Street Address *</Text>
+                                <TextInput
+                                    style={styles.fieldInput}
+                                    placeholder="123 High Street, Apt 4B"
+                                    placeholderTextColor={colors.textMuted}
+                                    value={shippingAddress}
+                                    onChangeText={setShippingAddress}
+                                />
 
-                        {loadingCards ? (
-                            <ActivityIndicator size="small" color={colors.primary} />
-                        ) : (
-                            <>
-                                {/* Saved Cards */}
-                                {savedCards.map((card) => (
-                                    <TouchableOpacity
-                                        key={card.id}
-                                        style={[
-                                            styles.paymentOption,
-                                            selectedCardId === card.id && !showNewCard && styles.paymentOptionSelected
-                                        ]}
-                                        onPress={() => {
-                                            setSelectedCardId(card.id);
-                                            setShowNewCard(false);
-                                        }}
-                                    >
-                                        <View style={styles.paymentOptionInfo}>
-                                            <Text style={styles.paymentOptionIcon}>💳</Text>
-                                            <View>
-                                                <Text style={styles.paymentOptionTitle}>
-                                                    {formatCardBrand(card.brand)} •••• {card.last4}
-                                                </Text>
-                                                <Text style={styles.paymentOptionSubtitle}>
-                                                    Expires {card.expMonth}/{card.expYear}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                        <View style={[
-                                            styles.radioOuter,
-                                            selectedCardId === card.id && !showNewCard && styles.radioOuterSelected
-                                        ]}>
-                                            {selectedCardId === card.id && !showNewCard && (
-                                                <View style={styles.radioInner} />
-                                            )}
-                                        </View>
-                                    </TouchableOpacity>
-                                ))}
-
-                                {/* Add New Card Option */}
-                                <TouchableOpacity
-                                    style={[
-                                        styles.paymentOption,
-                                        showNewCard && styles.paymentOptionSelected
-                                    ]}
-                                    onPress={() => setShowNewCard(true)}
-                                >
-                                    <View style={styles.paymentOptionInfo}>
-                                        <Text style={styles.paymentOptionIcon}>➕</Text>
-                                        <Text style={styles.paymentOptionTitle}>Use a new card</Text>
-                                    </View>
-                                    <View style={[styles.radioOuter, showNewCard && styles.radioOuterSelected]}>
-                                        {showNewCard && <View style={styles.radioInner} />}
-                                    </View>
-                                </TouchableOpacity>
-
-                                {/* New Card Input */}
-                                {showNewCard && (
-                                    <View style={styles.newCardContainer}>
-                                        <CardField
-                                            postalCodeEnabled={false}
-                                            placeholders={{
-                                                number: '4242 4242 4242 4242',
-                                            }}
-                                            cardStyle={{
-                                                backgroundColor: colors.surface,
-                                                textColor: colors.text,
-                                                placeholderColor: colors.textMuted,
-                                                borderWidth: 1,
-                                                borderColor: colors.border,
-                                                borderRadius: 12,
-                                            }}
-                                            style={styles.cardField}
-                                            onCardChange={(cardDetails: any) => {
-                                                setNewCardComplete(cardDetails.complete);
-                                            }}
+                                {/* City & Postal Code — side by side */}
+                                <View style={styles.fieldRow}>
+                                    <View style={styles.fieldHalf}>
+                                        <Text style={styles.fieldLabel}>City *</Text>
+                                        <TextInput
+                                            style={styles.fieldInput}
+                                            placeholder="London"
+                                            placeholderTextColor={colors.textMuted}
+                                            value={shippingCity}
+                                            onChangeText={setShippingCity}
                                         />
                                     </View>
-                                )}
-                            </>
-                        )}
-                    </View>
+                                    <View style={styles.fieldHalf}>
+                                        <Text style={styles.fieldLabel}>Postal Code *</Text>
+                                        <TextInput
+                                            style={styles.fieldInput}
+                                            placeholder="SW1A 1AA"
+                                            placeholderTextColor={colors.textMuted}
+                                            value={shippingPostalCode}
+                                            onChangeText={setShippingPostalCode}
+                                            autoCapitalize="characters"
+                                        />
+                                    </View>
+                                </View>
 
-                    {/* Notes */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Order Notes (Optional)</Text>
-                        <TextInput
-                            style={styles.notesInput}
-                            placeholder="Any special instructions..."
-                            placeholderTextColor={colors.textMuted}
-                            value={notes}
-                            onChangeText={setNotes}
-                            multiline
-                            numberOfLines={3}
-                        />
-                    </View>
+                                {/* Country Picker */}
+                                <Text style={styles.fieldLabel}>Country *</Text>
+                                <TouchableOpacity
+                                    style={styles.countrySelector}
+                                    onPress={() => setShowCountryPicker(true)}
+                                >
+                                    <View style={styles.countrySelectorLeft}>
+                                        <Text style={styles.countrySelectorText}>
+                                            {getCountryName(shippingCountry)}
+                                        </Text>
+                                        <Text style={styles.countrySelectorCost}>
+                                            Shipping: €{shippingCost.toFixed(2)}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.countrySelectorArrow}>›</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
 
-                    {/* Security Note */}
-                    <View style={styles.securityNote}>
-                        <Text style={styles.securityIcon}>🔒</Text>
-                        <Text style={styles.securityText}>
-                            Your payment is processed securely by Stripe
-                        </Text>
-                    </View>
-                </ScrollView>
+                        {/* Payment Method */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Payment Method</Text>
+
+                            {loadingCards ? (
+                                <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                                <>
+                                    {/* Saved Cards */}
+                                    {savedCards.map((card) => (
+                                        <TouchableOpacity
+                                            key={card.id}
+                                            style={[
+                                                styles.paymentOption,
+                                                selectedCardId === card.id && !showNewCard && styles.paymentOptionSelected
+                                            ]}
+                                            onPress={() => {
+                                                setSelectedCardId(card.id);
+                                                setShowNewCard(false);
+                                            }}
+                                        >
+                                            <View style={styles.paymentOptionInfo}>
+                                                <Text style={styles.paymentOptionIcon}>💳</Text>
+                                                <View>
+                                                    <Text style={styles.paymentOptionTitle}>
+                                                        {formatCardBrand(card.brand)} •••• {card.last4}
+                                                    </Text>
+                                                    <Text style={styles.paymentOptionSubtitle}>
+                                                        Expires {card.expMonth}/{card.expYear}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                            <View style={[
+                                                styles.radioOuter,
+                                                selectedCardId === card.id && !showNewCard && styles.radioOuterSelected
+                                            ]}>
+                                                {selectedCardId === card.id && !showNewCard && (
+                                                    <View style={styles.radioInner} />
+                                                )}
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))}
+
+                                    {/* Add New Card Option */}
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.paymentOption,
+                                            showNewCard && styles.paymentOptionSelected
+                                        ]}
+                                        onPress={() => setShowNewCard(true)}
+                                    >
+                                        <View style={styles.paymentOptionInfo}>
+                                            <Text style={styles.paymentOptionIcon}>➕</Text>
+                                            <Text style={styles.paymentOptionTitle}>Use a new card</Text>
+                                        </View>
+                                        <View style={[styles.radioOuter, showNewCard && styles.radioOuterSelected]}>
+                                            {showNewCard && <View style={styles.radioInner} />}
+                                        </View>
+                                    </TouchableOpacity>
+
+                                    {/* New Card Input */}
+                                    {showNewCard && (
+                                        <View style={styles.newCardContainer}>
+                                            <CardField
+                                                postalCodeEnabled={false}
+                                                placeholders={{
+                                                    number: '4242 4242 4242 4242',
+                                                }}
+                                                cardStyle={{
+                                                    backgroundColor: colors.surface,
+                                                    textColor: colors.text,
+                                                    placeholderColor: colors.textMuted,
+                                                    borderWidth: 1,
+                                                    borderColor: colors.border,
+                                                    borderRadius: 12,
+                                                }}
+                                                style={styles.cardField}
+                                                onCardChange={(cardDetails: any) => {
+                                                    setNewCardComplete(cardDetails.complete);
+                                                }}
+                                            />
+                                        </View>
+                                    )}
+                                </>
+                            )}
+                        </View>
+
+                        {/* Notes */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Order Notes (Optional)</Text>
+                            <TextInput
+                                style={styles.notesInput}
+                                placeholder="Any special instructions..."
+                                placeholderTextColor={colors.textMuted}
+                                value={notes}
+                                onChangeText={setNotes}
+                                multiline
+                                numberOfLines={3}
+                            />
+                        </View>
+
+                        {/* Security Note */}
+                        <View style={styles.securityNote}>
+                            <Text style={styles.securityIcon}>🔒</Text>
+                            <Text style={styles.securityText}>
+                                Your payment is processed securely by Stripe
+                            </Text>
+                        </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
 
                 <View style={styles.footer}>
+                    <View style={styles.footerSummary}>
+                        <View style={styles.footerRow}>
+                            <Text style={styles.footerLabel}>Subtotal</Text>
+                            <Text style={styles.footerValue}>€{subtotal.toFixed(2)}</Text>
+                        </View>
+                        <View style={styles.footerRow}>
+                            <Text style={styles.footerLabel}>Shipping</Text>
+                            <Text style={styles.footerValue}>€{shippingCost.toFixed(2)}</Text>
+                        </View>
+                    </View>
                     <Button
-                        title={loading ? 'Processing...' : `Pay €${getTotal().toFixed(2)}`}
+                        title={loading ? 'Processing...' : `Pay €${finalTotal.toFixed(2)}`}
                         onPress={handlePlaceOrder}
                         fullWidth
                         disabled={loading || items.length === 0}
@@ -447,33 +607,50 @@ export function CheckoutScreen() {
                         activeOpacity={1}
                         onPress={() => setShowCountryPicker(false)}
                     >
-                        <View style={styles.modalContent}>
+                        <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>Select Country</Text>
                                 <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
                                     <Text style={styles.modalClose}>✕</Text>
                                 </TouchableOpacity>
                             </View>
-                            <ScrollView style={styles.countryList}>
-                                {COMMON_COUNTRIES.map((country) => (
+                            {/* Search bar */}
+                            <View style={styles.searchContainer}>
+                                <TextInput
+                                    style={styles.searchInput}
+                                    placeholder="Search countries..."
+                                    placeholderTextColor={colors.textMuted}
+                                    value={countrySearch}
+                                    onChangeText={setCountrySearch}
+                                    autoCapitalize="none"
+                                />
+                            </View>
+                            <ScrollView style={styles.countryList} keyboardShouldPersistTaps="handled">
+                                {filteredCountries.map((country) => (
                                     <TouchableOpacity
-                                        key={country.value}
+                                        key={country.code}
                                         style={[
                                             styles.countryOption,
-                                            shippingCountry === country.value && styles.countryOptionSelected
+                                            shippingCountry === country.code && styles.countryOptionSelected
                                         ]}
                                         onPress={() => {
-                                            setShippingCountry(country.value);
+                                            setShippingCountry(country.code);
                                             setShowCountryPicker(false);
+                                            setCountrySearch('');
                                         }}
                                     >
-                                        <Text style={[
-                                            styles.countryOptionText,
-                                            shippingCountry === country.value && styles.countryOptionTextSelected
-                                        ]}>
-                                            {country.label}
-                                        </Text>
-                                        {shippingCountry === country.value && (
+                                        <View style={styles.countryOptionLeft}>
+                                            <Text style={[
+                                                styles.countryOptionText,
+                                                shippingCountry === country.code && styles.countryOptionTextSelected
+                                            ]}>
+                                                {country.name}
+                                            </Text>
+                                            <Text style={styles.countryOptionCost}>
+                                                €{country.shippingCost.toFixed(2)}
+                                            </Text>
+                                        </View>
+                                        {shippingCountry === country.code && (
                                             <Text style={styles.checkmark}>✓</Text>
                                         )}
                                     </TouchableOpacity>
@@ -511,6 +688,7 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
+    // Order Summary
     summaryCard: {
         backgroundColor: colors.surface,
         borderRadius: 16,
@@ -535,6 +713,24 @@ const styles = StyleSheet.create({
         color: colors.text,
         fontWeight: '500',
     },
+    summarySubtotalLabel: {
+        fontSize: 14,
+        color: colors.textSecondary,
+    },
+    summarySubtotalPrice: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        fontWeight: '500',
+    },
+    summaryShippingLabel: {
+        fontSize: 14,
+        color: colors.textSecondary,
+    },
+    summaryShippingPrice: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        fontWeight: '500',
+    },
     divider: {
         height: 1,
         backgroundColor: colors.border,
@@ -550,23 +746,66 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: colors.primary,
     },
-    infoCard: {
+    // Shipping Form
+    formCard: {
         backgroundColor: colors.surface,
         borderRadius: 16,
         padding: spacing.lg,
         borderWidth: 1,
         borderColor: colors.border,
     },
-    infoLabel: {
+    fieldLabel: {
         fontSize: 12,
-        color: colors.textMuted,
-        marginBottom: 4,
+        fontWeight: '600',
+        color: colors.textSecondary,
+        marginBottom: 6,
+        textTransform: 'uppercase',
+        letterSpacing: 0.3,
     },
-    infoValue: {
-        fontSize: 16,
+    fieldInput: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 12,
+        padding: spacing.md,
         color: colors.text,
+        fontSize: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
         marginBottom: spacing.md,
     },
+    fieldRow: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+    },
+    fieldHalf: {
+        flex: 1,
+    },
+    countrySelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 12,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    countrySelectorLeft: {
+        flex: 1,
+    },
+    countrySelectorText: {
+        fontSize: 16,
+        color: colors.text,
+    },
+    countrySelectorCost: {
+        fontSize: 12,
+        color: colors.primary,
+        marginTop: 2,
+    },
+    countrySelectorArrow: {
+        fontSize: 20,
+        color: colors.textMuted,
+    },
+    // Payment
     paymentOption: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -651,12 +890,31 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: colors.textSecondary,
     },
+    // Footer
     footer: {
         padding: spacing.lg,
         borderTopWidth: 1,
         borderTopColor: colors.border,
         backgroundColor: colors.surface,
     },
+    footerSummary: {
+        marginBottom: spacing.md,
+    },
+    footerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+    },
+    footerLabel: {
+        fontSize: 13,
+        color: colors.textSecondary,
+    },
+    footerValue: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        fontWeight: '500',
+    },
+    // Loading
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.7)',
@@ -668,26 +926,7 @@ const styles = StyleSheet.create({
         marginTop: spacing.md,
         fontSize: 16,
     },
-    // Country selector styles
-    countrySelector: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: spacing.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    countrySelectorText: {
-        fontSize: 16,
-        color: colors.text,
-    },
-    countrySelectorArrow: {
-        fontSize: 20,
-        color: colors.textMuted,
-    },
-    // Modal styles
+    // Country Picker Modal
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.7)',
@@ -717,6 +956,19 @@ const styles = StyleSheet.create({
         color: colors.textMuted,
         padding: spacing.sm,
     },
+    searchContainer: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.sm,
+    },
+    searchInput: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 12,
+        padding: spacing.md,
+        color: colors.text,
+        fontSize: 15,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
     countryList: {
         padding: spacing.md,
     },
@@ -732,6 +984,9 @@ const styles = StyleSheet.create({
     countryOptionSelected: {
         backgroundColor: 'rgba(200, 160, 77, 0.2)',
     },
+    countryOptionLeft: {
+        flex: 1,
+    },
     countryOptionText: {
         fontSize: 16,
         color: colors.text,
@@ -739,6 +994,11 @@ const styles = StyleSheet.create({
     countryOptionTextSelected: {
         color: colors.primary,
         fontWeight: '500',
+    },
+    countryOptionCost: {
+        fontSize: 12,
+        color: colors.textMuted,
+        marginTop: 2,
     },
     checkmark: {
         fontSize: 18,

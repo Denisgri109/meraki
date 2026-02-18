@@ -9,6 +9,7 @@ import {
     Alert,
     Switch,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
@@ -127,8 +128,8 @@ export function ServiceFormScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Text style={styles.backButton}>← Back</Text>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <Text style={styles.title}>{isEditing ? 'Edit Service' : 'Add Service'}</Text>
                     <View style={{ width: 60 }} />
@@ -263,7 +264,16 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingBottom: spacing.md,
     },
-    backButton: { fontSize: 16, color: colors.text },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
     title: { fontSize: 20, fontWeight: '600', color: colors.text },
     content: { padding: spacing.lg },
     section: { marginBottom: spacing.xl },
