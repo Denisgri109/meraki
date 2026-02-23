@@ -1,4 +1,5 @@
 import React from 'react';
+import { StripeConnectGate } from '../components/StripeConnectGate';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CommonActions, getFocusedRouteNameFromRoute } from '@react-navigation/native';
@@ -25,7 +26,6 @@ import {
     BookingConsultationReviewScreen,
     ManageRewardsScreen,
     MasterMenuScreen,
-    MasterScheduleScreen,
 } from '../screens/master';
 import PhotoConsultationReviewScreen from '../screens/master/PhotoConsultationReviewScreen';
 import {
@@ -60,6 +60,7 @@ export type DashboardStackParamList = {
     BookingConsultations: undefined;
     ServiceSupplies: { serviceId?: string } | undefined;
     ManageRewards: undefined;
+    Notifications: undefined;
 };
 
 const DashboardStack = createNativeStackNavigator<DashboardStackParamList>();
@@ -84,6 +85,7 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
             <DashboardStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
             <DashboardStack.Screen name="ManageRewards" component={ManageRewardsScreen} />
+            <DashboardStack.Screen name="Notifications" component={NotificationsScreen} />
         </DashboardStack.Navigator>
     );
 }
@@ -105,30 +107,10 @@ function ShopStackNavigator() {
     );
 }
 
-// Supplies Stack
-export type SuppliesStackParamList = {
-    SuppliesMain: undefined;
-    AddSupply: { supply?: any } | undefined;
-    ServiceSupplies: undefined;
-};
-
-const SuppliesStack = createNativeStackNavigator<SuppliesStackParamList>();
-
-function SuppliesStackNavigator() {
-    return (
-        <SuppliesStack.Navigator screenOptions={{ headerShown: false }}>
-            <SuppliesStack.Screen name="SuppliesMain" component={SuppliesScreen} />
-            <SuppliesStack.Screen name="AddSupply" component={AddSupplyScreen} />
-            <SuppliesStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
-        </SuppliesStack.Navigator>
-    );
-}
-
 // Menu Stack (replacing Profile)
 export type MenuStackParamList = {
     MenuMain: undefined;
     Profile: undefined;
-    Schedule: undefined;
     Portfolio: undefined;
     MyServices: undefined;
     Availability: undefined;
@@ -158,7 +140,6 @@ function MenuStackNavigator() {
         <MenuStack.Navigator screenOptions={{ headerShown: false }}>
             <MenuStack.Screen name="MenuMain" component={MasterMenuScreen} />
             <MenuStack.Screen name="Profile" component={ProfileScreen} />
-            <MenuStack.Screen name="Schedule" component={MasterScheduleScreen} />
             <MenuStack.Screen name="Portfolio" component={PortfolioScreen} />
             <MenuStack.Screen name="MyServices" component={MyServicesScreen} />
             <MenuStack.Screen name="Availability" component={MasterAvailabilityScreen} />
@@ -186,7 +167,6 @@ function MenuStackNavigator() {
 export type MasterTabsParamList = {
     Dashboard: undefined;
     Appointments: undefined;
-    Supplies: undefined;
     Messages: undefined;
     Shop: undefined;
     Menu: undefined;
@@ -212,179 +192,156 @@ function MessagesStackNavigator() {
 
 export function MasterTabs() {
     return (
-        <Tab.Navigator
-            screenOptions={{
-                headerShown: false,
-                tabBarStyle: styles.tabBar,
-                tabBarActiveTintColor: colors.primary,
-                tabBarInactiveTintColor: 'rgba(139, 148, 158, 0.55)',
-                tabBarLabelStyle: styles.tabLabel,
-                tabBarShowLabel: true,
-                tabBarBackground: () => (
-                    <BlurView
-                        tint="dark"
-                        intensity={80}
-                        style={StyleSheet.absoluteFill}
-                    />
-                ),
-            }}
-        >
-            <Tab.Screen
-                name="Dashboard"
-                component={DashboardStackNavigator}
-                options={({ route }) => ({
-                    tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="grid-view" size={22} color={color} />
+        <>
+            <StripeConnectGate />
+            <Tab.Navigator
+                screenOptions={{
+                    headerShown: false,
+                    tabBarStyle: styles.tabBar,
+                    tabBarActiveTintColor: colors.primary,
+                    tabBarInactiveTintColor: 'rgba(139, 148, 158, 0.55)',
+                    tabBarLabelStyle: styles.tabLabel,
+                    tabBarShowLabel: true,
+                    tabBarBackground: () => (
+                        <BlurView
+                            tint="dark"
+                            intensity={80}
+                            style={StyleSheet.absoluteFill}
+                        />
                     ),
-                    tabBarStyle: ((route) => {
-                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'DashboardMain';
-                        if (routeName !== 'DashboardMain') {
-                            return { display: 'none' };
-                        }
-                        return styles.tabBar;
-                    })(route),
-                } as any)}
-                listeners={({ navigation, route }) => ({
-                    tabPress: (e) => {
-                        e.preventDefault();
-                        navigation.dispatch(
-                            CommonActions.reset({
-                                index: 0,
-                                routes: [{ name: route.name }],
-                            })
-                        );
-                    },
-                })}
-            />
-            <Tab.Screen
-                name="Appointments"
-                component={MasterAppointmentsScreen}
-                options={{
-                    tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="event-note" size={22} color={color} />
-                    ),
-                } as any}
-                listeners={({ navigation, route }) => ({
-                    tabPress: (e) => {
-                        e.preventDefault();
-                        navigation.dispatch(
-                            CommonActions.reset({
-                                index: 0,
-                                routes: [{ name: route.name }],
-                            })
-                        );
-                    },
-                })}
-            />
-            <Tab.Screen
-                name="Supplies"
-                component={SuppliesStackNavigator}
-                options={({ route }) => ({
-                    tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="inventory-2" size={22} color={color} />
-                    ),
-                    tabBarStyle: ((route) => {
-                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'SuppliesMain';
-                        if (routeName !== 'SuppliesMain') {
-                            return { display: 'none' };
-                        }
-                        return styles.tabBar;
-                    })(route),
-                } as any)}
-                listeners={({ navigation, route }) => ({
-                    tabPress: (e) => {
-                        e.preventDefault();
-                        navigation.dispatch(
-                            CommonActions.reset({
-                                index: 0,
-                                routes: [{ name: route.name }],
-                            })
-                        );
-                    },
-                })}
-            />
-            <Tab.Screen
-                name="Messages"
-                component={MessagesStackNavigator}
-                options={({ route }) => ({
-                    tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="forum" size={22} color={color} />
-                    ),
-                    tabBarStyle: ((route) => {
-                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'ChatList';
-                        if (routeName !== 'ChatList') {
-                            return { display: 'none' };
-                        }
-                        return styles.tabBar;
-                    })(route),
-                } as any)}
-                listeners={({ navigation, route }) => ({
-                    tabPress: (e) => {
-                        e.preventDefault();
-                        navigation.dispatch(
-                            CommonActions.reset({
-                                index: 0,
-                                routes: [{ name: route.name }],
-                            })
-                        );
-                    },
-                })}
-            />
-            <Tab.Screen
-                name="Shop"
-                component={ShopStackNavigator}
-                options={({ route }) => ({
-                    tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="storefront" size={22} color={color} />
-                    ),
-                    tabBarStyle: ((route) => {
-                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'ShopMain';
-                        if (routeName !== 'ShopMain') {
-                            return { display: 'none' };
-                        }
-                        return styles.tabBar;
-                    })(route),
-                } as any)}
-                listeners={({ navigation, route }) => ({
-                    tabPress: (e) => {
-                        e.preventDefault();
-                        navigation.dispatch(
-                            CommonActions.reset({
-                                index: 0,
-                                routes: [{ name: route.name }],
-                            })
-                        );
-                    },
-                })}
-            />
-            <Tab.Screen
-                name="Menu"
-                component={MenuStackNavigator}
-                options={({ route }) => ({
-                    tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="settings" size={22} color={color} />
-                    ),
-                    tabBarStyle: ((route) => {
-                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'MenuMain';
-                        if (routeName !== 'MenuMain') {
-                            return { display: 'none' };
-                        }
-                        return styles.tabBar;
-                    })(route),
-                } as any)}
-                listeners={({ navigation, route }) => ({
-                    tabPress: (e) => {
-                        e.preventDefault();
-                        navigation.dispatch(
-                            CommonActions.reset({
-                                index: 0,
-                                routes: [{ name: route.name }],
-                            })
-                        );
-                    },
-                })}
-            />
-        </Tab.Navigator>
+                }}
+            >
+                <Tab.Screen
+                    name="Dashboard"
+                    component={DashboardStackNavigator}
+                    options={({ route }) => ({
+                        tabBarIcon: ({ color }: { color: string }) => (
+                            <MaterialIcons name="grid-view" size={22} color={color} />
+                        ),
+                        tabBarStyle: ((route) => {
+                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'DashboardMain';
+                            if (routeName !== 'DashboardMain') {
+                                return { display: 'none' };
+                            }
+                            return styles.tabBar;
+                        })(route),
+                    } as any)}
+                    listeners={({ navigation, route }) => ({
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            navigation.dispatch(
+                                CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: route.name }],
+                                })
+                            );
+                        },
+                    })}
+                />
+                <Tab.Screen
+                    name="Appointments"
+                    component={MasterAppointmentsScreen}
+                    options={{
+                        tabBarIcon: ({ color }: { color: string }) => (
+                            <MaterialIcons name="event-note" size={22} color={color} />
+                        ),
+                    } as any}
+                    listeners={({ navigation, route }) => ({
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            navigation.dispatch(
+                                CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: route.name }],
+                                })
+                            );
+                        },
+                    })}
+                />
+
+                <Tab.Screen
+                    name="Messages"
+                    component={MessagesStackNavigator}
+                    options={({ route }) => ({
+                        tabBarIcon: ({ color }: { color: string }) => (
+                            <MaterialIcons name="forum" size={22} color={color} />
+                        ),
+                        tabBarStyle: ((route) => {
+                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'ChatList';
+                            if (routeName !== 'ChatList') {
+                                return { display: 'none' };
+                            }
+                            return styles.tabBar;
+                        })(route),
+                    } as any)}
+                    listeners={({ navigation, route }) => ({
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            navigation.dispatch(
+                                CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: route.name }],
+                                })
+                            );
+                        },
+                    })}
+                />
+                <Tab.Screen
+                    name="Shop"
+                    component={ShopStackNavigator}
+                    options={({ route }) => ({
+                        tabBarIcon: ({ color }: { color: string }) => (
+                            <MaterialIcons name="storefront" size={22} color={color} />
+                        ),
+                        tabBarStyle: ((route) => {
+                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'ShopMain';
+                            if (routeName !== 'ShopMain') {
+                                return { display: 'none' };
+                            }
+                            return styles.tabBar;
+                        })(route),
+                    } as any)}
+                    listeners={({ navigation, route }) => ({
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            navigation.dispatch(
+                                CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: route.name }],
+                                })
+                            );
+                        },
+                    })}
+                />
+                <Tab.Screen
+                    name="Menu"
+                    component={MenuStackNavigator}
+                    options={({ route }) => ({
+                        tabBarIcon: ({ color }: { color: string }) => (
+                            <MaterialIcons name="settings" size={22} color={color} />
+                        ),
+                        tabBarStyle: ((route) => {
+                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'MenuMain';
+                            if (routeName !== 'MenuMain') {
+                                return { display: 'none' };
+                            }
+                            return styles.tabBar;
+                        })(route),
+                    } as any)}
+                    listeners={({ navigation, route }) => ({
+                        tabPress: (e) => {
+                            e.preventDefault();
+                            navigation.dispatch(
+                                CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: route.name }],
+                                })
+                            );
+                        },
+                    })}
+                />
+            </Tab.Navigator>
+        </>
     );
 }
 
@@ -403,11 +360,6 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(48, 54, 61, 0.50)',
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
     },
     tabLabel: {
         fontSize: 10,

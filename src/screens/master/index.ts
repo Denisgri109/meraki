@@ -1,5 +1,4 @@
 export { MasterDashboardScreen } from './MasterDashboardScreen';
-export { MasterScheduleScreen } from './ScheduleScreen';
 export { MasterAppointmentsScreen } from './AppointmentsScreen';
 export { MasterAvailabilityScreen } from './AvailabilityScreen';
 export { MasterEarningsScreen } from './EarningsScreen';
