@@ -20,6 +20,7 @@ import { useModal } from '../../contexts/ModalContext';
 import { PreBookingQuestionnaireModal } from '../../components/booking';
 import { colors, spacing } from '../../theme';
 import { Service, Profile, BookingConsultation } from '../../types/database';
+import { useHideTabBar } from '../../hooks/useHideTabBar';
 
 type BookingStackParamList = {
     BookingMain: undefined;
@@ -35,6 +36,7 @@ type ServiceDetailScreenProps = {
 };
 
 export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenProps) {
+    useHideTabBar();
     const { serviceId } = route.params;
     const { profile } = useAuth();
     const userCountry = profile?.country || null;

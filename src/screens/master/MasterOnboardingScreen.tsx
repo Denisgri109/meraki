@@ -37,16 +37,22 @@ const ONBOARDING_STEPS = [
         icon: '💅',
     },
     {
-        id: 'supplies',
-        title: 'Track Your Supplies',
-        description: 'Set up your inventory to automatically track supply usage with each appointment.',
-        icon: '📦',
-    },
-    {
         id: 'availability',
         title: 'Set Your Availability',
         description: 'Choose when you\'re available for bookings and block off time as needed.',
         icon: '📅',
+    },
+    {
+        id: 'portfolio',
+        title: 'Build Your Portfolio',
+        description: 'Upload photos of your best work to attract more clients.',
+        icon: '📸',
+    },
+    {
+        id: 'business_settings',
+        title: 'Business Settings',
+        description: 'Configure your business details, cancellation policy, and payment methods.',
+        icon: '🏢',
     },
 ];
 
@@ -168,7 +174,10 @@ export function MasterOnboardingScreen() {
                                     <TouchableOpacity
                                         style={styles.actionCard}
                                         onPress={() => {
-                                            handleComplete();
+                                            (navigation as any).navigate('MasterApp', {
+                                                screen: 'Menu',
+                                                params: { screen: 'Profile' }
+                                            });
                                         }}
                                     >
                                         <Text style={styles.actionCardIcon}>✏️</Text>
@@ -181,7 +190,10 @@ export function MasterOnboardingScreen() {
                                     <TouchableOpacity
                                         style={styles.actionCard}
                                         onPress={() => {
-                                            handleComplete();
+                                            (navigation as any).navigate('MasterApp', {
+                                                screen: 'Menu',
+                                                params: { screen: 'MyServices' }
+                                            });
                                         }}
                                     >
                                         <Text style={styles.actionCardIcon}>➕</Text>
@@ -190,28 +202,50 @@ export function MasterOnboardingScreen() {
                                     </TouchableOpacity>
                                 )}
 
-                                {currentStepData.id === 'supplies' && (
-                                    <TouchableOpacity
-                                        style={styles.actionCard}
-                                        onPress={() => {
-                                            handleComplete();
-                                        }}
-                                    >
-                                        <Text style={styles.actionCardIcon}>📦</Text>
-                                        <Text style={styles.actionCardText}>Set Up Supplies Now</Text>
-                                        <Text style={styles.actionCardArrow}>→</Text>
-                                    </TouchableOpacity>
-                                )}
-
                                 {currentStepData.id === 'availability' && (
                                     <TouchableOpacity
                                         style={styles.actionCard}
                                         onPress={() => {
-                                            handleComplete();
+                                            (navigation as any).navigate('MasterApp', {
+                                                screen: 'Menu',
+                                                params: { screen: 'Availability' }
+                                            });
                                         }}
                                     >
                                         <Text style={styles.actionCardIcon}>🕐</Text>
                                         <Text style={styles.actionCardText}>Set Availability Now</Text>
+                                        <Text style={styles.actionCardArrow}>→</Text>
+                                    </TouchableOpacity>
+                                )}
+
+                                {currentStepData.id === 'portfolio' && (
+                                    <TouchableOpacity
+                                        style={styles.actionCard}
+                                        onPress={() => {
+                                            (navigation as any).navigate('MasterApp', {
+                                                screen: 'Menu',
+                                                params: { screen: 'Portfolio' }
+                                            });
+                                        }}
+                                    >
+                                        <Text style={styles.actionCardIcon}>📸</Text>
+                                        <Text style={styles.actionCardText}>Add Portfolio Photos</Text>
+                                        <Text style={styles.actionCardArrow}>→</Text>
+                                    </TouchableOpacity>
+                                )}
+
+                                {currentStepData.id === 'business_settings' && (
+                                    <TouchableOpacity
+                                        style={styles.actionCard}
+                                        onPress={() => {
+                                            (navigation as any).navigate('MasterApp', {
+                                                screen: 'Menu',
+                                                params: { screen: 'BusinessSettings' }
+                                            });
+                                        }}
+                                    >
+                                        <Text style={styles.actionCardIcon}>🏢</Text>
+                                        <Text style={styles.actionCardText}>Configure Business Settings</Text>
                                         <Text style={styles.actionCardArrow}>→</Text>
                                     </TouchableOpacity>
                                 )}

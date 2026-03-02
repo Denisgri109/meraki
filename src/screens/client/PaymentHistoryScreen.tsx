@@ -365,17 +365,12 @@ const styles = StyleSheet.create({
 
     // Card
     stitchCard: {
-        backgroundColor: 'rgba(30, 30, 35, 0.70)',
-        borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 20,
         padding: spacing.md,
         marginBottom: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.06)',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        borderColor: 'rgba(255,255,255,0.08)',
     },
     cardHeader: {
         flexDirection: 'row',

@@ -29,6 +29,7 @@ import {
     PaymentMethod,
 } from '../../services/stripeService';
 import { getTimezoneAbbreviation } from '../../utils/timezone';
+import { useHideTabBar } from '../../hooks/useHideTabBar';
 
 type BookingStackParamList = {
     BookingMain: undefined;
@@ -43,6 +44,7 @@ type BookingConfirmScreenProps = {
 };
 
 export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreenProps) {
+    useHideTabBar();
     const { serviceId, masterId, dateTime } = route.params;
     const { user, profile } = useAuth();
     const { confirmPayment } = useConfirmPayment();
@@ -50,20 +52,15 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
     const [service, setService] = useState<Service | null>(null);
     const [master, setMaster] = useState<Profile | null>(null);
+    const [masterSettings, setMasterSettings] = useState<any | null>(null);
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
 
     // Credit state
     const [availableCredits, setAvailableCredits] = useState<any[]>([]);
     const [appliedCredit, setAppliedCredit] = useState<any | null>(null);
-
-    // Deposit state
-    const [depositSettings, setDepositSettings] = useState<{
-        deposit_type: 'fixed' | 'percentage';
-        deposit_amount: number;
-        deposit_percentage: number;
-    } | null>(null);
 
     // Payment state
     const [savedCards, setSavedCards] = useState<PaymentMethod[]>([]);
@@ -72,6 +69,14 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
     const [newCardComplete, setNewCardComplete] = useState(false);
 
     const [loadingCards, setLoadingCards] = useState(true);
+
+    // Terms of Service state (specialist)
+    const [acceptedTOS, setAcceptedTOS] = useState(false);
+    const [showTOSModal, setShowTOSModal] = useState(false);
+
+    // App Terms of Service state
+    const [acceptedAppTOS, setAcceptedAppTOS] = useState(false);
+    const [showAppTOSModal, setShowAppTOSModal] = useState(false);
 
     // Modal state
     const [modalConfig, setModalConfig] = useState<{
@@ -97,30 +102,18 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
         try {
             const servicePromise = supabase.from('services').select('*').eq('id', serviceId).single();
             const masterPromise = supabase.from('profiles').select('*').eq('id', masterId).single();
-            const settingsPromise = supabase.from('master_settings').select('deposit_type, deposit_amount, deposit_percentage').eq('master_id', masterId).single();
+            const masterSettingsPromise = supabase.from('master_settings').select('*').eq('master_id', masterId).single();
 
-            const [serviceRes, masterRes, settingsRes] = await Promise.all([
+            const [serviceRes, masterRes, masterSettingsRes] = await Promise.all([
                 safeSupabaseFetch(servicePromise as any, { timeout: 5000 }),
                 safeSupabaseFetch(masterPromise as any, { timeout: 5000 }),
-                safeSupabaseFetch(settingsPromise as any, { timeout: 5000 })
+                safeSupabaseFetch(masterSettingsPromise as any, { timeout: 5000 }).catch(() => ({ data: null }))
             ]);
 
             setService(serviceRes.data as Service);
             setMaster(masterRes.data as Profile);
-
-            if (settingsRes.data) {
-                const settings = settingsRes.data as any;
-                setDepositSettings({
-                    deposit_type: (settings.deposit_type as 'fixed' | 'percentage') || 'percentage',
-                    deposit_amount: settings.deposit_amount || 0,
-                    deposit_percentage: settings.deposit_percentage ?? 100,
-                });
-            } else {
-                setDepositSettings({
-                    deposit_type: 'percentage',
-                    deposit_amount: 0,
-                    deposit_percentage: 100,
-                });
+            if (masterSettingsRes?.data) {
+                setMasterSettings(masterSettingsRes.data);
             }
 
             // Fetch available credits for the user
@@ -185,25 +178,11 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
         return Math.min(Number(appliedCredit.amount), service.base_price);
     };
 
-    const calculateDeposit = () => {
+    const calculatePayment = () => {
         const total = calculateFinalPrice();
-        if (!depositSettings) return { deposit: total, remaining: 0 };
-
-        let deposit = 0;
-        if (depositSettings.deposit_type === 'percentage') {
-            deposit = (total * (depositSettings.deposit_percentage || 100)) / 100;
-        } else {
-            deposit = depositSettings.deposit_amount || 0;
-        }
-
-        // Ensure deposit doesn't exceed total
-        deposit = Math.min(deposit, total);
-        // Round to 2 decimals
-        deposit = Math.round(deposit * 100) / 100;
-
         return {
-            deposit,
-            remaining: Math.max(0, total - deposit)
+            amountToPay: total, // Full upfront payment
+            remaining: 0,
         };
     };
 
@@ -235,12 +214,49 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             return;
         }
 
+        // Validate App Terms of Service (always required)
+        if (!acceptedAppTOS) {
+            setModalConfig({
+                visible: true,
+                title: 'Terms of Service',
+                message: 'Please accept the Merakí Terms of Service to continue.',
+                type: 'warning',
+                onConfirm: () => setModalConfig(prev => ({ ...prev, visible: false })),
+            });
+            return;
+        }
+
+        // Validate specialist Terms of Service (only if specialist has set them)
+        if (masterSettings?.terms_and_conditions && !acceptedTOS) {
+            setModalConfig({
+                visible: true,
+                title: 'Specialist Terms',
+                message: 'Please accept the specialist\'s terms of service to continue.',
+                type: 'warning',
+                onConfirm: () => setModalConfig(prev => ({ ...prev, visible: false })),
+            });
+            return;
+        }
+
         setSubmitting(true);
         try {
-            const { deposit } = calculateDeposit();
-            const depositInCents = eurosToCents(deposit);
+            const { amountToPay } = calculatePayment();
+            const amountInCents = eurosToCents(amountToPay);
 
-            // STEP 1: Create SetupIntent to save card (for potential no-show charge)
+            // STEP 0: Verify slot availability to prevent double booking
+            const { data: existingAppts, error: checkError } = await (supabase as any)
+                .from('appointments')
+                .select('id')
+                .eq('master_id', masterId)
+                .eq('start_time', startTime.toISOString())
+                .in('status', ['pending', 'confirmed', 'completed']);
+
+            if (checkError) throw new Error('Could not verify availability.');
+            if (existingAppts && existingAppts.length > 0) {
+                throw new Error('This time slot is no longer available. Please choose another time.');
+            }
+
+            // STEP 1: Create SetupIntent to save card
             console.log('Debug - user:', user);
             console.log('Debug - user.id:', user?.id);
             console.log('Debug - profile:', profile);
@@ -271,7 +287,6 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             // STEP 2: Confirm SetupIntent if using a new card
             let savedPaymentMethodId = selectedCardId;
             if (showNewCard && setupIntentData.client_secret) {
-                // Use confirmSetupIntent (not confirmPayment) for SetupIntent secrets
                 const setupResult = await confirmSetupIntent(setupIntentData.client_secret, {
                     paymentMethodType: 'Card',
                 });
@@ -280,22 +295,24 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                     throw new Error(setupResult.error.message);
                 }
 
-                // Get the newly saved payment method ID
                 savedPaymentMethodId = setupResult.setupIntent?.paymentMethodId || setupIntentData.payment_method_id;
             }
 
-            // STEP 3: Create PaymentIntent for DEPOSIT (if applicable)
+            // STEP 3: Create PaymentIntent for FULL service price
             let paymentIntentId: string | undefined;
 
-            if (depositInCents > 0) {
+            if (amountInCents > 0) {
+                console.log('Debug - Creating PaymentIntent for amount:', amountInCents, 'masterId:', masterId);
                 const { clientSecret, paymentIntentId: pId } = await createPaymentIntent({
-                    amount: depositInCents,
+                    amount: amountInCents,
                     customerId: profile?.stripe_customer_id || setupIntentData.customer_id,
                     paymentMethodId: savedPaymentMethodId || undefined,
-                    description: `Deposit: ${service.name} with ${master?.full_name}`,
-                    captureMethod: 'automatic', // Immediate charge
+                    masterId: masterId,
+                    description: `${service.name} with ${master?.full_name}`,
+                    captureMethod: 'automatic',
                 });
                 paymentIntentId = pId;
+                console.log('Debug - PaymentIntent created:', paymentIntentId);
 
                 // Confirm the payment
                 let paymentResult;
@@ -318,6 +335,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 if (paymentResult.error) {
                     throw new Error(paymentResult.error.message);
                 }
+                console.log('Debug - Payment confirmed successfully');
             }
 
             // STEP 4: Create appointment using the new confirmation flow
@@ -330,23 +348,28 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                     p_stripe_setup_intent_id: setupIntentData.setup_intent_id,
                     p_stripe_payment_intent_id: (paymentIntentId || null) as any,
                     p_notes: notes || undefined,
-                    p_deposit_amount: deposit,
-                    p_deposit_payment_intent_id: (paymentIntentId || null) as any
+                    p_deposit_amount: amountToPay,
+                    p_deposit_payment_intent_id: (paymentIntentId || null) as any,
+                    p_credit_id: appliedCredit?.id || null
                 }
             );
 
             if (bookError) throw bookError;
 
-            // Mark credit as used if one was applied
-            if (appliedCredit && appointmentId) {
+            // Record the payment in the payments table for Order History
+            if (amountInCents > 0) {
                 await (supabase as any)
-                    .from('user_credits')
-                    .update({
-                        is_used: true,
-                        used_at: new Date().toISOString(),
+                    .from('payments')
+                    .insert({
+                        user_id: user.id,
                         appointment_id: appointmentId,
-                    })
-                    .eq('id', appliedCredit.id);
+                        stripe_payment_intent_id: paymentIntentId,
+                        amount: amountInCents,
+                        currency: 'eur',
+                        status: 'succeeded',
+                        payment_type: 'booking',
+                        description: `Booking: ${service?.name || 'Service'} with ${master?.full_name || 'Specialist'}`,
+                    });
             }
 
             // Automatically create a conversation with the master if it doesn't exist
@@ -391,6 +414,8 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
             const discountMsg = appliedCredit ? `\n\n💰 Discount of €${getDiscountAmount().toFixed(2)} applied!` : '';
 
+            setIsSuccess(true);
+
             setModalConfig({
                 visible: true,
                 title: 'Request Sent! 📅',
@@ -398,9 +423,10 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 type: 'success',
                 onConfirm: () => {
                     setModalConfig(prev => ({ ...prev, visible: false }));
-                    navigation.popToTop();
+                    (navigation as any).navigate('Home');
                 },
             });
+
         } catch (error: any) {
             setModalConfig({
                 visible: true,
@@ -509,6 +535,47 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                             numberOfLines={3}
                         />
                     </View>
+
+                    {/* App Terms of Service — always required */}
+                    <View style={styles.tosSection}>
+                        <TouchableOpacity
+                            style={[styles.tosCheckboxContainer, acceptedAppTOS && styles.tosCheckboxContainerActive]}
+                            onPress={() => setAcceptedAppTOS(!acceptedAppTOS)}
+                            activeOpacity={0.7}
+                        >
+                            <View style={[styles.tosCheckbox, acceptedAppTOS && styles.tosCheckboxActive]}>
+                                {acceptedAppTOS && <MaterialIcons name="check" size={16} color="#fff" />}
+                            </View>
+                            <View style={styles.tosTextContainer}>
+                                <Text style={styles.tosText}>I agree to the Merakí{' '}</Text>
+                                <TouchableOpacity onPress={() => setShowAppTOSModal(true)}>
+                                    <Text style={styles.tosLink}>Terms of Service</Text>
+                                </TouchableOpacity>
+                                <Text style={styles.tosText}>{' '}& cancellation policy</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Specialist Terms of Service — only if specialist has set them */}
+                    {masterSettings?.terms_and_conditions && (
+                        <View style={styles.tosSection}>
+                            <TouchableOpacity
+                                style={[styles.tosCheckboxContainer, acceptedTOS && styles.tosCheckboxContainerActive]}
+                                onPress={() => setAcceptedTOS(!acceptedTOS)}
+                                activeOpacity={0.7}
+                            >
+                                <View style={[styles.tosCheckbox, acceptedTOS && styles.tosCheckboxActive]}>
+                                    {acceptedTOS && <MaterialIcons name="check" size={16} color="#fff" />}
+                                </View>
+                                <View style={styles.tosTextContainer}>
+                                    <Text style={styles.tosText}>I agree to the specialist's{' '}</Text>
+                                    <TouchableOpacity onPress={() => setShowTOSModal(true)}>
+                                        <Text style={styles.tosLink}>Terms of Service</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     {/* Available Credits */}
                     {availableCredits.length > 0 && (
@@ -628,9 +695,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                         <View style={styles.paymentInfo}>
                             <MaterialIcons name="info-outline" size={16} color={colors.textMuted} />
                             <Text style={styles.paymentInfoText}>
-                                {calculateDeposit().deposit > 0
-                                    ? `You will be charged a deposit of €${calculateDeposit().deposit.toFixed(2)} now. The remaining balance is paid at the appointment.`
-                                    : 'No deposit required. Payment will be collected at the appointment.'}
+                                {'You will be charged the full service amount at booking.'}
                             </Text>
                         </View>
                     </View>
@@ -649,17 +714,8 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                         )}
                         <View style={styles.priceDivider} />
                         <View style={styles.priceRow}>
-                            <Text style={styles.totalLabel}>Total</Text>
+                            <Text style={styles.totalLabel}>Total to Pay</Text>
                             <Text style={styles.totalValue}>€{calculateFinalPrice().toFixed(2)}</Text>
-                        </View>
-                        <View style={styles.priceDivider} />
-                        <View style={styles.priceRow}>
-                            <Text style={styles.priceLabel}>Deposit to Pay Now</Text>
-                            <Text style={[styles.priceValue, { color: colors.primary }]}>€{calculateDeposit().deposit.toFixed(2)}</Text>
-                        </View>
-                        <View style={styles.priceRow}>
-                            <Text style={styles.priceLabel}>Pay in Person</Text>
-                            <Text style={styles.priceValue}>€{calculateDeposit().remaining.toFixed(2)}</Text>
                         </View>
                     </Card>
                 </ScrollView>
@@ -667,21 +723,47 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 {/* Bottom Button */}
                 <View style={styles.bottomBar}>
                     <Button
-                        title={submitting ? 'Processing...' : (calculateDeposit().deposit > 0 ? `Pay Deposit €${calculateDeposit().deposit.toFixed(2)} & Confirm` : 'Confirm Booking')}
+                        title={submitting || isSuccess ? 'Processing...' : `Pay €${calculateFinalPrice().toFixed(2)} & Confirm`}
                         onPress={handleConfirmBooking}
-                        loading={submitting}
+                        loading={submitting || isSuccess}
+                        disabled={submitting || isSuccess}
                         fullWidth
                     />
                 </View>
 
-                {/* Confirm/Alert Modal */}
                 <AlertModal
                     visible={modalConfig.visible}
-                    onClose={() => setModalConfig(prev => ({ ...prev, visible: false }))}
+                    onClose={() => {
+                        if (modalConfig.onConfirm) {
+                            modalConfig.onConfirm();
+                        } else {
+                            setModalConfig(prev => ({ ...prev, visible: false }));
+                        }
+                    }}
                     title={modalConfig.title}
                     message={modalConfig.message}
                     buttonText={modalConfig.type === 'success' ? 'Done' : 'OK'}
                     type={modalConfig.type}
+                />
+
+                {/* Specialist Terms of Service Modal */}
+                <AlertModal
+                    visible={showTOSModal}
+                    onClose={() => setShowTOSModal(false)}
+                    title="Specialist Terms of Service"
+                    message={masterSettings?.terms_and_conditions || ''}
+                    buttonText="Close"
+                    type="info"
+                />
+
+                {/* App Terms of Service Modal */}
+                <AlertModal
+                    visible={showAppTOSModal}
+                    onClose={() => setShowAppTOSModal(false)}
+                    title="Merakí Terms of Service"
+                    message={`1. Acceptance of Terms\nBy using the Merakí app, you agree to be bound by these Terms of Service.\n\n2. Services\nMerakí connects clients with professional beauty specialists for appointments, product purchases, and educational content.\n\n3. User Accounts\nYou are responsible for keeping your account credentials secure. Notify us immediately of any unauthorized use.\n\n4. Booking & Cancellations\nCancellations made more than 24 hours before an appointment receive a full refund. Cancellations within 24 hours are subject to a 50% cancellation fee. No-shows will be charged 100% of the service amount.\n\n5. Payments\nAll payments are processed securely via Stripe. Prices are shown in Euros and include applicable taxes unless stated otherwise.\n\n6. Refunds\nRefunds are processed automatically where applicable. Allow 1–10 business days for funds to appear in your account depending on your bank.\n\n7. Intellectual Property\nAll content in the Merakí app is the property of Merakí and protected by applicable laws.\n\n8. Limitation of Liability\nMerakí is not liable for indirect, incidental, or consequential damages arising from your use of our services.\n\n9. Changes to Terms\nWe may update these terms at any time. Continued use constitutes acceptance of the updated terms.\n\n10. Contact\nFor questions: legal@meraki.com`}
+                    buttonText="I Understand"
+                    type="info"
                 />
             </SafeAreaView>
         </ScreenBackground >
@@ -769,6 +851,53 @@ const styles = StyleSheet.create({
         textAlignVertical: 'top',
         borderWidth: 1,
         borderColor: colors.border,
+    },
+    tosSection: {
+        paddingHorizontal: spacing.lg,
+        marginBottom: spacing.lg,
+    },
+    tosCheckboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        padding: spacing.md,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    tosCheckboxContainerActive: {
+        borderColor: colors.primary,
+        backgroundColor: 'rgba(200, 160, 77, 0.08)',
+    },
+    tosCheckbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: colors.border,
+        marginRight: spacing.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    tosCheckboxActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    tosTextContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+    },
+    tosText: {
+        fontSize: 14,
+        color: colors.text,
+    },
+    tosLink: {
+        fontSize: 14,
+        color: colors.primary,
+        fontWeight: '600',
+        textDecorationLine: 'underline',
     },
     sectionLabel: {
         fontSize: 14,

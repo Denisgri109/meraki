@@ -11,13 +11,16 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing } from '../../theme';
+import { MerakiText } from '../ui';
 import * as Haptics from 'expo-haptics';
 
 interface MessageContextMenuProps {
     visible: boolean;
     onClose: () => void;
     message: any; // Using any for now to avoid circular dependency or duplicating types, ideally import shared type
+    yPosition?: number | null;
     onReply: () => void;
     onCopy: () => void;
     onDelete?: () => void; // Optional, only if it's my message
@@ -29,6 +32,7 @@ export const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
     visible,
     onClose,
     message,
+    yPosition,
     onReply,
     onCopy,
     onDelete,
@@ -68,62 +72,51 @@ export const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
         setTimeout(action, 100);
     };
 
+    const screenHeight = Dimensions.get('window').height;
+    const safeY = yPosition ? Math.max(100, Math.min(yPosition - 50, screenHeight - 400)) : screenHeight / 2 - 150;
+
     return (
         <Modal transparent visible={visible} animationType="fade" statusBarTranslucent>
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={styles.overlay}>
-                    <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+                    <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
 
                     <Animated.View
                         style={[
-                            styles.menuContainer,
+                            styles.popupWrapper,
                             {
+                                top: safeY,
                                 opacity: opacityAnim,
                                 transform: [{ scale: scaleAnim }],
+                                alignItems: isMe ? 'flex-end' : 'flex-start'
                             },
                         ]}
                     >
-                        {/* Message Preview (Simplified) */}
-                        <View style={[styles.previewBubble, isMe ? styles.previewRight : styles.previewLeft]}>
-                            <Text style={styles.previewText} numberOfLines={3}>
-                                {message.content || (message.media_url ? '📷 Media' : '')}
-                            </Text>
-                        </View>
-
                         {/* Actions Menu */}
-                        <View style={styles.menuItems}>
-                            <TouchableOpacity style={styles.menuItem} onPress={() => handleAction(onReply)}>
-                                <Text style={styles.menuText}>Reply</Text>
-                                <Ionicons name="arrow-undo-outline" size={20} color={colors.text} />
-                            </TouchableOpacity>
+                        <View style={styles.menuContainer}>
+                            <View style={styles.menuItems}>
+                                <TouchableOpacity style={styles.menuItem} onPress={() => handleAction(onReply)}>
+                                    <Text style={styles.menuText}>Reply</Text>
+                                    <Ionicons name="arrow-undo-outline" size={20} color={colors.text} />
+                                </TouchableOpacity>
 
-                            <View style={styles.divider} />
+                                <View style={styles.divider} />
 
-                            <TouchableOpacity style={styles.menuItem} onPress={() => handleAction(onCopy)}>
-                                <Text style={styles.menuText}>Copy</Text>
-                                <Ionicons name="copy-outline" size={20} color={colors.text} />
-                            </TouchableOpacity>
+                                <TouchableOpacity style={styles.menuItem} onPress={() => handleAction(onCopy)}>
+                                    <Text style={styles.menuText}>Copy</Text>
+                                    <Ionicons name="copy-outline" size={20} color={colors.text} />
+                                </TouchableOpacity>
 
-                            <View style={styles.divider} />
-
-                            <TouchableOpacity style={styles.menuItem} onPress={() => {
-                                // Forward placeholder
-                                if (onForward) handleAction(onForward);
-                                else handleAction(() => { });
-                            }}>
-                                <Text style={styles.menuText}>Forward</Text>
-                                <Ionicons name="arrow-redo-outline" size={20} color={colors.text} />
-                            </TouchableOpacity>
-
-                            {isMe && onDelete && (
-                                <>
-                                    <View style={styles.divider} />
-                                    <TouchableOpacity style={styles.menuItem} onPress={() => handleAction(onDelete)}>
-                                        <Text style={[styles.menuText, styles.destructiveText]}>Delete</Text>
-                                        <Ionicons name="trash-outline" size={20} color={colors.error || '#FF453A'} />
-                                    </TouchableOpacity>
-                                </>
-                            )}
+                                {isMe && onDelete && (
+                                    <>
+                                        <View style={styles.divider} />
+                                        <TouchableOpacity style={styles.menuItem} onPress={() => handleAction(onDelete)}>
+                                            <Text style={[styles.menuText, styles.destructiveText]}>Delete</Text>
+                                            <Ionicons name="trash-outline" size={20} color={colors.error || '#FF453A'} />
+                                        </TouchableOpacity>
+                                    </>
+                                )}
+                            </View>
                         </View>
                     </Animated.View>
                 </View>
@@ -135,20 +128,38 @@ export const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
         backgroundColor: 'rgba(0,0,0,0.3)',
     },
+    popupWrapper: {
+        position: 'absolute',
+        width: '100%',
+        paddingHorizontal: spacing.lg,
+    },
     menuContainer: {
-        width: Dimensions.get('window').width * 0.7,
-        alignItems: 'center',
+        width: Dimensions.get('window').width * 0.65,
+        marginTop: 8,
     },
     previewBubble: {
-        padding: spacing.md,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        marginBottom: spacing.lg,
-        maxWidth: '100%',
+        maxWidth: Dimensions.get('window').width * 0.85,
+    },
+    bubbleGradient: {
+        shadowColor: '#d4145a',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    bubbleGlass: {
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
     },
     previewLeft: {
         alignSelf: 'flex-start',
@@ -157,11 +168,13 @@ const styles = StyleSheet.create({
     previewRight: {
         alignSelf: 'flex-end',
         borderBottomRightRadius: 4,
-        backgroundColor: colors.primary,
     },
     previewText: {
-        color: colors.text,
         fontSize: 16,
+        lineHeight: 24,
+        color: colors.text,
+        fontFamily: 'Manrope-Regular',
+        letterSpacing: 0.3,
     },
     menuItems: {
         width: '100%',

@@ -45,7 +45,7 @@ const CATEGORIES = [
 
 export function InventoryScreen() {
     const navigation = useNavigation<any>();
-    const { showAlert } = useModal();
+    const { showAlert, showConfirm } = useModal();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
@@ -284,6 +284,33 @@ export function InventoryScreen() {
         navigation.navigate('ProductDetail', { productId: product.id, product });
     };
 
+    const handleDeleteProduct = (product: Product) => {
+        showConfirm(
+            'Delete Product',
+            `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
+            async () => {
+                try {
+                    const { error } = await (supabase as any)
+                        .from('products')
+                        .delete()
+                        .eq('id', product.id);
+
+                    if (error) throw error;
+
+                    setProducts(prev => prev.filter(p => p.id !== product.id));
+                    showAlert('Success', 'Product deleted successfully', 'success');
+                } catch (error: any) {
+                    showAlert('Error', error.message || 'Failed to delete product', 'error');
+                }
+            },
+            {
+                type: 'error',
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+            }
+        );
+    };
+
     const getLowStockProducts = () => products.filter(p => p.stock_count < p.low_stock_threshold && p.stock_count > 0);
     const getOutOfStockProducts = () => products.filter(p => p.stock_count === 0);
 
@@ -461,20 +488,12 @@ export function InventoryScreen() {
                                                 </MerakiText>
                                             </View>
                                         </View>
-                                        <View style={styles.quickButtons}>
-                                            <TouchableOpacity
-                                                style={styles.quickButton}
-                                                onPress={() => handleQuickStockAdjust(product, -1)}
-                                            >
-                                                <MaterialCommunityIcons name="minus" size={16} color={colors.text} />
-                                            </TouchableOpacity>
-                                            <TouchableOpacity
-                                                style={styles.quickButton}
-                                                onPress={() => handleQuickStockAdjust(product, 1)}
-                                            >
-                                                <MaterialCommunityIcons name="plus" size={16} color={colors.text} />
-                                            </TouchableOpacity>
-                                        </View>
+                                        <TouchableOpacity
+                                            style={styles.deleteButton}
+                                            onPress={() => handleDeleteProduct(product)}
+                                        >
+                                            <MaterialCommunityIcons name="trash-can-outline" size={18} color={'#FF453A'} />
+                                        </TouchableOpacity>
                                     </View>
                                 </TouchableOpacity>
                             );
@@ -675,7 +694,7 @@ export function InventoryScreen() {
                     </ScreenBackground>
                 </Modal>
             </SafeAreaView>
-        </ScreenBackground>
+        </ScreenBackground >
     );
 }
 
@@ -825,6 +844,11 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
     },
     quickButtonText: { color: colors.text, fontSize: 16 },
+    deleteButton: {
+        padding: 6,
+        marginTop: 8,
+        alignSelf: 'flex-end',
+    },
     emptyState: {
         flex: 1,
         alignItems: 'center',

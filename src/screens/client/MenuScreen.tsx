@@ -18,12 +18,20 @@ import { safeGoBack } from '../../navigation/navigationUtils';
 
 const { width } = Dimensions.get('window');
 
+const QUICK_ACTIONS = [
+    { icon: 'receipt-long', label: 'Orders', route: 'Orders', gradient: ['#8B5CF6', '#6D28D9'] },
+    { icon: 'star-outline', label: 'Loyalty', route: 'LoyaltyPoints', gradient: ['#F59E0B', '#D97706'] },
+    { icon: 'credit-card', label: 'Payment', route: 'PaymentMethods', gradient: ['#3B82F6', '#2563EB'] },
+    { icon: 'history', label: 'History', route: 'PaymentHistory', gradient: ['#10B981', '#059669'] },
+];
+
 export function MenuScreen() {
     const navigation = useNavigation<any>();
     const { profile, signOut } = useAuth();
 
     const handleNavigate = (screen: string) => {
-        navigation.navigate('Home', { screen, params: { from: 'Menu' } });
+        // @ts-ignore - Dynamic navigation
+        navigation.navigate(screen);
     };
 
     return (
@@ -33,70 +41,75 @@ export function MenuScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity style={styles.backBtn} onPress={() => safeGoBack(navigation, 'Home')}>
-                            <MaterialIcons name="close" size={20} color="rgba(255,255,255,0.7)" />
-                        </TouchableOpacity>
-                        <MerakiText style={styles.headerTitle}>Menu</MerakiText>
-                        <View style={{ width: 40 }} />
-                    </View>
-
-                    {/* Profile Card */}
-                    <TouchableOpacity
-                        style={styles.profileCard}
-                        onPress={() => handleNavigate('Profile')}
-                        activeOpacity={0.8}
-                    >
-                        <LinearGradient
-                            colors={[...gradients.primary]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.profileGradient}
+                    {/* ── Profile Header Row ── */}
+                    <View style={styles.profileRow}>
+                        <TouchableOpacity
+                            style={styles.avatarWrap}
+                            onPress={() => handleNavigate('Profile')}
+                            activeOpacity={0.7}
                         >
-                            <View style={styles.profileAvatar}>
-                                <Text style={styles.profileInitial}>
+                            <LinearGradient
+                                colors={['#D4A853', '#B8912E']}
+                                style={styles.avatarGradient}
+                            >
+                                <Text style={styles.avatarInitial}>
                                     {profile?.full_name?.[0] || 'U'}
                                 </Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <MerakiText style={styles.profileName}>{profile?.full_name || 'Guest'}</MerakiText>
-                                <MerakiText style={styles.profileRole}>
-                                    {profile?.role === 'owner' ? 'Owner' : profile?.role === 'master' ? 'Beauty Master' : 'Client'}
-                                </MerakiText>
-                            </View>
-                            <View style={styles.editBadge}>
-                                <MaterialIcons name="edit" size={14} color="#fff" />
-                            </View>
-                        </LinearGradient>
-                    </TouchableOpacity>
+                            </LinearGradient>
+                        </TouchableOpacity>
 
-                    {/* Quick Actions */}
+                        <View style={styles.profileInfo}>
+                            <MerakiText style={styles.profileName}>
+                                {profile?.full_name || 'Guest'}
+                            </MerakiText>
+                            <MerakiText style={styles.profileRole}>Client</MerakiText>
+                        </View>
+
+                        <View style={styles.headerActions}>
+                            <TouchableOpacity
+                                style={styles.headerIconBtn}
+                                onPress={() => handleNavigate('Notifications')}
+                                activeOpacity={0.7}
+                            >
+                                <MaterialIcons name="notifications-none" size={22} color="rgba(255,255,255,0.7)" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.headerIconBtn}
+                                onPress={() => handleNavigate('Profile')}
+                                activeOpacity={0.7}
+                            >
+                                <MaterialIcons name="settings" size={22} color="rgba(255,255,255,0.7)" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* ── Quick Actions (horizontal scroll) ── */}
                     <MerakiText style={styles.sectionLabel}>QUICK ACTIONS</MerakiText>
-                    <View style={styles.quickGrid}>
-                        {[
-                            { icon: 'receipt-long', label: 'My Orders', desc: 'View appointments', route: 'Orders' },
-                            { icon: 'notifications-none', label: 'Notifications', desc: 'Stay updated', route: 'Notifications' },
-                            { icon: 'star-outline', label: 'Loyalty', desc: 'Earn rewards', route: 'LoyaltyPoints' },
-                            { icon: 'credit-card', label: 'Payment', desc: 'Manage cards', route: 'PaymentMethods' },
-                            { icon: 'history', label: 'History', desc: 'Payment history', route: 'PaymentHistory' },
-                        ].map((item) => (
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.quickRow}
+                        style={styles.quickRowOuter}
+                    >
+                        {QUICK_ACTIONS.map((item) => (
                             <TouchableOpacity
                                 key={item.label}
-                                style={styles.quickCard}
+                                style={styles.quickItem}
                                 onPress={() => handleNavigate(item.route)}
                                 activeOpacity={0.7}
                             >
-                                <View style={styles.quickIconWrap}>
-                                    <MaterialIcons name={item.icon as any} size={22} color={colors.primary} />
-                                </View>
+                                <LinearGradient
+                                    colors={item.gradient as [string, string]}
+                                    style={styles.quickCircle}
+                                >
+                                    <MaterialIcons name={item.icon as any} size={22} color="#fff" />
+                                </LinearGradient>
                                 <MerakiText style={styles.quickLabel}>{item.label}</MerakiText>
-                                <MerakiText style={styles.quickDesc}>{item.desc}</MerakiText>
                             </TouchableOpacity>
                         ))}
-                    </View>
+                    </ScrollView>
 
-                    {/* Support Section */}
+                    {/* ── Support ── */}
                     <MerakiText style={styles.sectionLabel}>SUPPORT</MerakiText>
                     <View style={styles.listGroup}>
                         {[
@@ -118,7 +131,7 @@ export function MenuScreen() {
                         ))}
                     </View>
 
-                    {/* Sign Out */}
+                    {/* ── Sign Out ── */}
                     <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.7}>
                         <MaterialIcons name="logout" size={20} color="#EF4444" />
                         <MerakiText style={styles.signOutText}>Sign Out</MerakiText>
@@ -135,60 +148,48 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1 },
     scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
 
-    header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingVertical: 16,
+    /* ── Profile Header Row ── */
+    profileRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 20,
+        gap: 14,
     },
-    backBtn: {
-        width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    avatarWrap: { borderRadius: 28, overflow: 'hidden' },
+    avatarGradient: {
+        width: 56, height: 56, borderRadius: 28,
         alignItems: 'center', justifyContent: 'center',
     },
-    headerTitle: { fontSize: 17, fontWeight: '600', color: '#fff' },
-
-    // Profile Card
-    profileCard: { marginBottom: 28, borderRadius: 20, overflow: 'hidden' },
-    profileGradient: {
-        flexDirection: 'row', alignItems: 'center', padding: 20, gap: 14,
-    },
-    profileAvatar: {
-        width: 52, height: 52, borderRadius: 26,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        alignItems: 'center', justifyContent: 'center',
-    },
-    profileInitial: { fontSize: 22, fontWeight: '700', color: '#fff' },
+    avatarInitial: { fontSize: 22, fontWeight: '700', color: '#fff' },
+    profileInfo: { flex: 1 },
     profileName: { fontSize: 18, fontWeight: '700', color: '#fff' },
-    profileRole: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-    editBadge: {
-        width: 32, height: 32, borderRadius: 16,
-        backgroundColor: 'rgba(255,255,255,0.2)',
+    profileRole: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+    headerActions: { flexDirection: 'row', gap: 8 },
+    headerIconBtn: {
+        width: 42, height: 42, borderRadius: 21,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
         alignItems: 'center', justifyContent: 'center',
     },
 
-    // Section Label
+    /* ── Section Label ── */
     sectionLabel: {
         fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.3)',
-        letterSpacing: 1.5, marginBottom: 12,
+        letterSpacing: 1.5, marginBottom: 14, marginTop: 4,
     },
 
-    // Quick Actions Grid
-    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 28 },
-    quickCard: {
-        width: (width - 50) / 2,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-        padding: 16,
+    /* ── Quick Actions Row ── */
+    quickRowOuter: { marginBottom: 28, marginHorizontal: -20 },
+    quickRow: { paddingHorizontal: 20, gap: 18 },
+    quickItem: { alignItems: 'center', width: 68 },
+    quickCircle: {
+        width: 56, height: 56, borderRadius: 28,
+        alignItems: 'center', justifyContent: 'center',
+        marginBottom: 8,
     },
-    quickIconWrap: {
-        width: 40, height: 40, borderRadius: 12,
-        backgroundColor: 'rgba(200, 160, 77, 0.1)',
-        alignItems: 'center', justifyContent: 'center', marginBottom: 10,
-    },
-    quickLabel: { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 2 },
-    quickDesc: { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
+    quickLabel: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
 
-    // List Group
+    /* ── List Group ── */
     listGroup: {
         backgroundColor: 'rgba(255,255,255,0.04)',
         borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
@@ -201,12 +202,12 @@ const styles = StyleSheet.create({
     },
     listIconWrap: {
         width: 36, height: 36, borderRadius: 10,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(212,168,83,0.08)',
         alignItems: 'center', justifyContent: 'center',
     },
     listLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: '#fff' },
 
-    // Sign Out
+    /* ── Sign Out ── */
     signOutBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         backgroundColor: 'rgba(239, 68, 68, 0.08)',

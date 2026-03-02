@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
+    Switch,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,6 +32,7 @@ export function CreateServiceScreen() {
     const [category, setCategory] = useState('Nails');
     const [basePrice, setBasePrice] = useState('');
     const [durationMinutes, setDurationMinutes] = useState('60');
+    const [requiresConsultation, setRequiresConsultation] = useState(false);
 
     const handleCreate = async () => {
         if (!name.trim()) {
@@ -58,6 +60,7 @@ export function CreateServiceScreen() {
                     base_price: Number(basePrice),
                     duration_minutes: Number(durationMinutes),
                     is_active: true,
+                    requires_consultation: requiresConsultation,
                     created_by: user!.id,
                 })
                 .select()
@@ -201,6 +204,24 @@ export function CreateServiceScreen() {
                                 </View>
                             </View>
 
+                            {/* Consultation Toggle */}
+                            <View style={styles.inputGroup}>
+                                <View style={styles.consultationRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>Require Consultation</MerakiText>
+                                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginTop: 2 }}>
+                                            Clients must answer questions and get approval before booking
+                                        </MerakiText>
+                                    </View>
+                                    <Switch
+                                        value={requiresConsultation}
+                                        onValueChange={setRequiresConsultation}
+                                        trackColor={{ false: colors.border, true: colors.primary }}
+                                        thumbColor={colors.text}
+                                    />
+                                </View>
+                            </View>
+
                             {/* Preview Card */}
                             <View style={styles.previewSection}>
                                 <MerakiText variant="caption" color={colors.textSecondary} style={{ fontWeight: '600', marginBottom: spacing.sm }}>Preview</MerakiText>
@@ -326,6 +347,16 @@ const styles = StyleSheet.create({
     },
     halfWidth: {
         flex: 1,
+    },
+    consultationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 12,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     previewSection: {
         marginTop: spacing.lg,

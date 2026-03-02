@@ -48,6 +48,7 @@ export function CoursePurchaseScreen() {
     const { confirmPayment } = useConfirmPayment();
 
     const [loading, setLoading] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
     const [savedCards, setSavedCards] = useState<PaymentMethod[]>([]);
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
     const [showNewCard, setShowNewCard] = useState(false);
@@ -158,11 +159,16 @@ export function CoursePurchaseScreen() {
                     description: `Course Purchase: ${course.title}`,
                 });
 
+            setIsSuccess(true);
+
             Alert.alert(
                 '🎉 Success!',
                 'You have successfully enrolled in the course.',
-                [{ text: 'Start Learning', onPress: () => navigation.replace('CourseDetail', { course }) }]
+                [{ text: 'OK' }]
             );
+
+            // Navigate immediately
+            navigation.navigate('Home');
 
         } catch (error: any) {
             Alert.alert('Purchase Failed', error.message || 'Something went wrong');
@@ -300,11 +306,12 @@ export function CoursePurchaseScreen() {
 
                 <View style={styles.footer}>
                     <Button
-                        title={loading ? 'Enrolling...' : `Pay & Unlock Course`}
+                        title={loading || isSuccess ? 'Enrolling...' : `Pay & Unlock Course`}
                         onPress={handlePurchase}
                         variant="primary"
                         fullWidth
-                        loading={loading}
+                        loading={loading || isSuccess}
+                        disabled={loading || isSuccess}
                     />
                 </View>
             </SafeAreaView>

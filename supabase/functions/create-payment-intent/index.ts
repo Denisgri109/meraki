@@ -13,6 +13,7 @@ interface RequestBody {
     currency: string;
     customer_id?: string;
     appointment_id: string;
+    master_id?: string;
     description?: string;
     capture_method?: "manual" | "automatic";
 }
@@ -63,6 +64,7 @@ Deno.serve(async (req: Request) => {
             currency = "eur",
             customer_id,
             appointment_id,
+            master_id,
             description = "Merakí Beauty Service",
             capture_method = "manual",
         } = body;
@@ -78,12 +80,41 @@ Deno.serve(async (req: Request) => {
         // Safety check for mock IDs here too
         if (stripeCustomerId && stripeCustomerId.startsWith('cus_mock_')) {
             console.warn("Mock customer ID detected in payment intent:", stripeCustomerId);
-            // We can't easily create a customer here without email/metadata, 
-            // but hopefully setup-intent already fixed it. 
-            // If we proceed with mock ID, it WILL fail.
-            // Better to strip it and let it fail with "missing customer" or attached to guest if logic allowed,
-            // but for now let's just null it so it doesn't cause a 400 from Stripe for invalid ID.
             stripeCustomerId = undefined;
+        }
+
+        // 2. Check if the master has a Stripe Connect account for destination charges
+        let masterConnectId: string | null = null;
+        if (master_id) {
+            const { data: masterProfile } = await supabase
+                .from("profiles")
+                .select("stripe_connect_id, stripe_connect_status")
+                .eq("id", master_id)
+                .single();
+
+            if (masterProfile?.stripe_connect_id && masterProfile?.stripe_connect_status === "active") {
+                masterConnectId = masterProfile.stripe_connect_id;
+                console.log("Master has active Connect account:", masterConnectId);
+            }
+        }
+
+        // Build PaymentIntent params
+        const params: Record<string, string> = {
+            amount: amount.toString(),
+            currency: currency,
+            capture_method: capture_method,
+            description: description,
+            "metadata[user_id]": user.id,
+        };
+
+        if (appointment_id) params["metadata[appointment_id]"] = appointment_id;
+        if (stripeCustomerId) params.customer = stripeCustomerId;
+
+        // If master has Connect account → destination charge (100% to master, zero platform fee)
+        if (masterConnectId) {
+            params["transfer_data[destination]"] = masterConnectId;
+            // No application_fee_amount → 100% goes to the master
+            console.log("Creating destination charge for master Connect:", masterConnectId);
         }
 
         // Create PaymentIntent with Stripe API
@@ -93,15 +124,7 @@ Deno.serve(async (req: Request) => {
                 "Authorization": `Bearer ${STRIPE_SECRET_KEY}`,
                 "Content-Type": "application/x-www-form-urlencoded",
             },
-            body: new URLSearchParams({
-                amount: amount.toString(),
-                currency: currency,
-                capture_method: capture_method,
-                description: description,
-                ...(appointment_id && { "metadata[appointment_id]": appointment_id }),
-                ...(stripeCustomerId && { customer: stripeCustomerId }),
-                "metadata[user_id]": user.id
-            }),
+            body: new URLSearchParams(params),
         });
 
         const paymentIntent = await stripeResponse.json();

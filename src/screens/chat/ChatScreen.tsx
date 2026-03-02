@@ -49,7 +49,8 @@ type ChatStackParamList = {
     ChatList: undefined;
     Chat: {
         conversationId: string;
-        otherUser: { full_name: string | null; avatar_url: string | null };
+        otherUser: { full_name: string | null; avatar_url: string | null; id?: string };
+        isSupportChat?: boolean;
     };
 };
 
@@ -57,7 +58,7 @@ export function ChatScreen() {
     const navigation = useNavigation();
     const route = useRoute<RouteProp<ChatStackParamList, 'Chat'>>();
     const { user } = useAuth();
-    const { conversationId, otherUser } = route.params;
+    const { conversationId, otherUser, isSupportChat } = route.params;
 
     const [loading, setLoading] = useState(true);
     const [messages, setMessages] = useState<Message[]>([]);
@@ -70,14 +71,55 @@ export function ChatScreen() {
     // Context Menu State
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
     const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+    const [contextMenuY, setContextMenuY] = useState<number | null>(null);
 
     // Bookings Modal State
     const [showBookingsModal, setShowBookingsModal] = useState(false);
     const [bookings, setBookings] = useState<any[]>([]);
     const [bookingsLoading, setBookingsLoading] = useState(false);
 
+    // Support chat auto-reply tracking
+    const autoReplySentRef = useRef(false);
+
     useEffect(() => {
+        const markMessagesAsRead = async () => {
+            if (!user?.id || !conversationId) return;
+
+            try {
+                // Determine other participant's ID accurately
+                const { data: conv } = await safeSupabaseFetch(
+                    (supabase as any)
+                        .from('conversations')
+                        .select('client_id, master_id')
+                        .eq('id', conversationId)
+                        .single()
+                );
+
+                if (!conv) return;
+
+                const otherParticipantId = user.id === (conv as any).client_id ? (conv as any).master_id : (conv as any).client_id;
+
+                if (!otherParticipantId) return;
+
+                const { error } = await safeSupabaseFetch(
+                    (supabase as any)
+                        .from('messages')
+                        .update({ is_read: true, read_at: new Date().toISOString() })
+                        .eq('conversation_id', conversationId)
+                        .eq('sender_id', otherParticipantId)
+                        .eq('is_read', false)
+                );
+
+                if (error) {
+                    console.error('Failed to mark messages as read:', error);
+                }
+            } catch (err) {
+                console.error('Exception marking messages as read:', err);
+            }
+        };
+
         fetchMessages();
+        markMessagesAsRead();
 
         // Real-time subscription for ALL messages in this conversation
         const subscription = supabase
@@ -94,13 +136,16 @@ export function ChatScreen() {
                     const filtered = prev.filter(m => !m.id.startsWith('temp-'));
                     return [newMsg, ...filtered];
                 });
+                if (newMsg.sender_id !== user?.id) {
+                    markMessagesAsRead();
+                }
             })
             .subscribe();
 
         return () => {
             subscription.unsubscribe();
         };
-    }, [conversationId]);
+    }, [conversationId, user?.id]);
 
     const fetchMessages = async () => {
         try {
@@ -163,12 +208,65 @@ export function ChatScreen() {
                 .update({ last_message_at: new Date().toISOString() })
                 .eq('id', conversationId);
 
+            // Auto-reply for support chats
+            if (isSupportChat && !autoReplySentRef.current) {
+                autoReplySentRef.current = true;
+                sendSupportAutoReply();
+            }
+
         } catch (error: any) {
             setMessages((prev) => prev.filter(m => m.id !== optimisticId));
             setNewMessage(messageText);
             Alert.alert('Error', error.message);
         } finally {
             setSending(false);
+        }
+    };
+
+    const sendSupportAutoReply = async () => {
+        if (!otherUser?.id) return;
+        try {
+            // Check if there's already an auto-reply in this conversation (within last hour)
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+            const { data: recentAutoReplies } = await (supabase as any)
+                .from('messages')
+                .select('id')
+                .eq('conversation_id', conversationId)
+                .eq('sender_id', otherUser.id)
+                .gte('created_at', oneHourAgo)
+                .ilike('content', '%received your message%will get back to you%')
+                .limit(1);
+
+            if (recentAutoReplies && recentAutoReplies.length > 0) return;
+
+            // Fetch owner's custom auto-reply (if configured)
+            let autoReplyText = 'Thank you for reaching out to Merakí Support! 💛\n\nWe\'ve received your message and will get back to you within 24–48 business hours.\n\nIf your matter is urgent, please use the phone or email options on the Help & Support page.';
+
+            const { data: ownerSettings } = await (supabase as any)
+                .from('master_settings')
+                .select('auto_reply_message')
+                .eq('master_id', otherUser.id)
+                .single();
+
+            if (ownerSettings?.auto_reply_message) {
+                autoReplyText = ownerSettings.auto_reply_message;
+            }
+
+            // Brief delay so the auto-reply appears after the user's message
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            await (supabase as any).from('messages').insert({
+                conversation_id: conversationId,
+                sender_id: otherUser.id,
+                content: autoReplyText,
+            });
+
+            await (supabase as any)
+                .from('conversations')
+                .update({ last_message_at: new Date().toISOString() })
+                .eq('id', conversationId);
+        } catch (err) {
+            console.error('Auto-reply error:', err);
         }
     };
 
@@ -307,9 +405,10 @@ export function ChatScreen() {
         }
     };
 
-    const handleLongPress = (message: Message) => {
+    const handleLongPress = (message: Message, pageY?: number) => {
         if (message.is_deleted) return;
         setSelectedMessage(message);
+        if (pageY) setContextMenuY(pageY);
         setContextMenuVisible(true);
     };
 
@@ -363,7 +462,7 @@ export function ChatScreen() {
         const MessageContent = (
             <TouchableOpacity
                 activeOpacity={0.8}
-                onLongPress={() => handleLongPress(item)}
+                onLongPress={(e) => handleLongPress(item, e.nativeEvent.pageY)}
             >
                 {isMe ? (
                     <LinearGradient
@@ -476,19 +575,20 @@ export function ChatScreen() {
         );
 
         return (
-            <View style={[
-                styles.messageContainer,
-                isMe ? styles.messageRight : styles.messageLeft
-            ]}>
+            <View style={styles.messageContainer}>
                 {!isDeleted ? (
                     <SwipeableMessage
                         onReply={() => handleReplyMessage(item)}
                         isMe={isMe}
                     >
-                        {MessageContent}
+                        <View style={{ width: '100%', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+                            {MessageContent}
+                        </View>
                     </SwipeableMessage>
                 ) : (
-                    MessageContent
+                    <View style={{ width: '100%', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+                        {MessageContent}
+                    </View>
                 )}
             </View>
         );
@@ -597,15 +697,6 @@ export function ChatScreen() {
 
                         {/* Glass Input Bar */}
                         <View style={styles.inputContainer}>
-                            <View style={styles.inputLeftActions}>
-                                <TouchableOpacity style={styles.inputActionButton} onPress={pickMedia} disabled={sending}>
-                                    <MerakiText style={styles.inputActionIcon}>📷</MerakiText>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.inputActionButton} disabled={sending}>
-                                    <MerakiText style={styles.inputActionIcon}>📎</MerakiText>
-                                </TouchableOpacity>
-                            </View>
-
                             <TextInput
                                 style={styles.input}
                                 value={newMessage}
@@ -745,6 +836,7 @@ export function ChatScreen() {
                 visible={contextMenuVisible}
                 onClose={() => setContextMenuVisible(false)}
                 message={selectedMessage}
+                yPosition={contextMenuY}
                 onReply={() => selectedMessage && handleReplyMessage(selectedMessage)}
                 onCopy={() => selectedMessage && handleCopyMessage(selectedMessage)}
                 onDelete={() => selectedMessage && handleDeleteMessage(selectedMessage)}
@@ -898,7 +990,7 @@ const styles = StyleSheet.create({
     },
     messageContainer: {
         marginBottom: spacing.md,
-        maxWidth: '85%',
+        width: '100%',
     },
     messageRight: {
         alignSelf: 'flex-end',
@@ -915,7 +1007,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderRadius: 20,
         overflow: 'hidden',
-        maxWidth: '85%',
+        maxWidth: Dimensions.get('window').width * 0.85,
     },
     bubbleGradient: {
         borderBottomRightRadius: 4,
@@ -1026,11 +1118,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 5 },
-        shadowOpacity: 0.3,
-        shadowRadius: 15,
-        elevation: 10,
         marginHorizontal: spacing.xs,
     },
     inputLeftActions: {

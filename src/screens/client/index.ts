@@ -24,6 +24,7 @@ export * from './BookAndChatScreen';
 export { NFCScannerScreen } from './NFCScannerScreen';
 export { RewardsCatalogScreen } from './RewardsCatalogScreen';
 export { PointsHistoryScreen } from './PointsHistoryScreen';
+export { ConsultationWaitingScreen } from './ConsultationWaitingScreen';
 
 
 

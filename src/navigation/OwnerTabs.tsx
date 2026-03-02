@@ -17,6 +17,10 @@ import {
     OwnerOrdersScreen,
     OwnerOrderDetailScreen,
     OwnerMenuScreen,
+    MasterManagementScreen,
+    MasterInviteScreen,
+    MasterDetailScreen,
+    SupportSettingsScreen,
 } from '../screens/owner';
 import {
     ManageAcademyScreen,
@@ -24,6 +28,8 @@ import {
     LessonEditorScreen,
     HomeworkReviewScreen,
     StudentDetailScreen,
+    LessonQAInboxScreen,
+    LessonQADetailScreen,
 } from '../screens/owner/academy';
 import {
     MasterAppointmentsScreen,
@@ -84,6 +90,12 @@ export type OwnerDashboardStackParamList = {
     PlatformAnalytics: undefined;
     CustomerOrders: undefined;
     OrderDetail: { order: any };
+    Notifications: undefined;
+    Earnings: undefined;
+    MasterManagement: undefined;
+    MasterInvite: undefined;
+    MasterDetail: { master: any };
+    SupportSettings: undefined;
 };
 
 const DashboardStack = createNativeStackNavigator<OwnerDashboardStackParamList>();
@@ -115,6 +127,12 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="PlatformAnalytics" component={PlatformAnalyticsScreen} />
             <DashboardStack.Screen name="CustomerOrders" component={OwnerOrdersScreen} />
             <DashboardStack.Screen name="OrderDetail" component={OwnerOrderDetailScreen} />
+            <DashboardStack.Screen name="Notifications" component={NotificationsScreen} />
+            <DashboardStack.Screen name="Earnings" component={MasterEarningsScreen} />
+            <DashboardStack.Screen name="MasterManagement" component={MasterManagementScreen} />
+            <DashboardStack.Screen name="MasterInvite" component={MasterInviteScreen} />
+            <DashboardStack.Screen name="MasterDetail" component={MasterDetailScreen} />
+            <DashboardStack.Screen name="SupportSettings" component={SupportSettingsScreen} />
         </DashboardStack.Navigator>
     );
 }
@@ -133,42 +151,6 @@ function MessagesStackNavigator() {
             <MessagesStack.Screen name="ChatList" component={ChatListScreen} />
 
         </MessagesStack.Navigator>
-    );
-}
-
-// Shop Stack
-export type ShopStackParamList = {
-    ShopMain: undefined;
-    ProductDetail: { productId: string; product: any };
-};
-
-const ShopStack = createNativeStackNavigator<ShopStackParamList>();
-
-function ShopStackNavigator() {
-    return (
-        <ShopStack.Navigator screenOptions={{ headerShown: false }}>
-            <ShopStack.Screen name="ShopMain" component={ShopScreen} />
-            <ShopStack.Screen name="ProductDetail" component={ProductDetailScreen} />
-        </ShopStack.Navigator>
-    );
-}
-
-// Supplies Stack
-export type SuppliesStackParamList = {
-    SuppliesMain: undefined;
-    AddSupply: { supply?: any } | undefined;
-    ServiceSupplies: undefined;
-};
-
-const SuppliesStack = createNativeStackNavigator<SuppliesStackParamList>();
-
-function SuppliesStackNavigator() {
-    return (
-        <SuppliesStack.Navigator screenOptions={{ headerShown: false }}>
-            <SuppliesStack.Screen name="SuppliesMain" component={SuppliesScreen} />
-            <SuppliesStack.Screen name="AddSupply" component={AddSupplyScreen} />
-            <SuppliesStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
-        </SuppliesStack.Navigator>
     );
 }
 
@@ -203,6 +185,12 @@ export type MenuStackParamList = {
     AddOwnerSupply: { supply?: any } | undefined;
     CreateService: undefined;
     ServiceSupplies: { serviceId?: string } | undefined;
+    ManageAcademy: undefined;
+    Earnings: undefined;
+    MasterManagement: undefined;
+    MasterInvite: undefined;
+    MasterDetail: { master: any };
+    SupportSettings: undefined;
 };
 
 const MenuStack = createNativeStackNavigator<MenuStackParamList>();
@@ -239,6 +227,12 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="AddOwnerSupply" component={AddOwnerSupplyScreen} />
             <MenuStack.Screen name="CreateService" component={CreateServiceScreen} />
             <MenuStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
+            <MenuStack.Screen name="ManageAcademy" component={ManageAcademyScreen} />
+            <MenuStack.Screen name="Earnings" component={MasterEarningsScreen} />
+            <MenuStack.Screen name="MasterManagement" component={MasterManagementScreen} />
+            <MenuStack.Screen name="MasterInvite" component={MasterInviteScreen} />
+            <MenuStack.Screen name="MasterDetail" component={MasterDetailScreen} />
+            <MenuStack.Screen name="SupportSettings" component={SupportSettingsScreen} />
         </MenuStack.Navigator>
     );
 }
@@ -250,6 +244,7 @@ export type AcademyStackParamList = {
     LessonEditor: { lessonId: string | null; chapterId: string; courseId: string };
     HomeworkReview: { submissionId: string };
     StudentDetail: { enrollment: any };
+    LessonQADetail: { lesson: any; courseId: string; instructorId: string; instructorName?: string };
 };
 
 const AcademyStack = createNativeStackNavigator<AcademyStackParamList>();
@@ -262,6 +257,7 @@ function AcademyStackNavigator() {
             <AcademyStack.Screen name="LessonEditor" component={LessonEditorScreen} />
             <AcademyStack.Screen name="HomeworkReview" component={HomeworkReviewScreen} />
             <AcademyStack.Screen name="StudentDetail" component={StudentDetailScreen} />
+            <AcademyStack.Screen name="LessonQADetail" component={LessonQADetailScreen} />
         </AcademyStack.Navigator>
     );
 }
@@ -270,8 +266,6 @@ export type OwnerTabsParamList = {
     Dashboard: undefined;
     Academy: undefined;
     Appointments: undefined;
-    Supplies: undefined;
-    Shop: undefined;
     Messages: undefined;
     Menu: undefined;
 };
@@ -371,60 +365,7 @@ export function OwnerTabs() {
                     },
                 })}
             />
-            <Tab.Screen
-                name="Supplies"
-                component={SuppliesStackNavigator}
-                options={({ route }) => ({
-                    tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="inventory-2" size={22} color={color} />
-                    ),
-                    tabBarStyle: ((route) => {
-                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'SuppliesMain';
-                        if (routeName !== 'SuppliesMain') {
-                            return { display: 'none' };
-                        }
-                        return styles.tabBar;
-                    })(route),
-                } as any)}
-                listeners={({ navigation, route }) => ({
-                    tabPress: (e) => {
-                        e.preventDefault();
-                        navigation.dispatch(
-                            CommonActions.reset({
-                                index: 0,
-                                routes: [{ name: route.name }],
-                            })
-                        );
-                    },
-                })}
-            />
-            <Tab.Screen
-                name="Shop"
-                component={ShopStackNavigator}
-                options={({ route }) => ({
-                    tabBarIcon: ({ color }: { color: string }) => (
-                        <MaterialIcons name="storefront" size={22} color={color} />
-                    ),
-                    tabBarStyle: ((route) => {
-                        const routeName = getFocusedRouteNameFromRoute(route) ?? 'ShopMain';
-                        if (routeName !== 'ShopMain') {
-                            return { display: 'none' };
-                        }
-                        return styles.tabBar;
-                    })(route),
-                } as any)}
-                listeners={({ navigation, route }) => ({
-                    tabPress: (e) => {
-                        e.preventDefault();
-                        navigation.dispatch(
-                            CommonActions.reset({
-                                index: 0,
-                                routes: [{ name: route.name }],
-                            })
-                        );
-                    },
-                })}
-            />
+
             <Tab.Screen
                 name="Messages"
                 component={MessagesStackNavigator}
@@ -498,11 +439,6 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(48, 54, 61, 0.50)',
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
     },
     tabLabel: {
         fontSize: 10,

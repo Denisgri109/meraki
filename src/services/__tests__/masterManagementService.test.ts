@@ -1,0 +1,214 @@
+/**
+ * Master Management Service Tests
+ * Tests all CRUD operations for managing masters
+ */
+
+// Mock supabase
+const mockSelect = jest.fn();
+const mockEq = jest.fn();
+const mockOrder = jest.fn();
+const mockInsert = jest.fn();
+const mockUpdate = jest.fn();
+const mockSingle = jest.fn();
+
+const createChainMock = () => {
+    const chain: any = {};
+    chain.select = jest.fn().mockReturnValue(chain);
+    chain.eq = jest.fn().mockReturnValue(chain);
+    chain.order = jest.fn().mockReturnValue(chain);
+    chain.insert = jest.fn().mockReturnValue(chain);
+    chain.update = jest.fn().mockReturnValue(chain);
+    chain.single = jest.fn().mockReturnValue(chain);
+    // Final resolution
+    chain.then = undefined; // Will be set per-test
+    return chain;
+};
+
+let mockChain: any;
+let mockFromFn: jest.Mock;
+
+jest.mock('../../lib/supabase', () => ({
+    supabase: {
+        from: (...args: any[]) => mockFromFn(...args),
+    },
+}));
+
+jest.mock('../../lib/supabaseApi', () => ({
+    safeSupabaseFetch: jest.fn((promise: any) => promise),
+}));
+
+import {
+    fetchActiveMasters,
+    fetchPendingMasters,
+    inviteMaster,
+    updateMasterProfile,
+    deactivateMaster,
+    reactivateMaster,
+    fetchMasterCounts,
+} from '../masterManagementService';
+
+beforeEach(() => {
+    jest.clearAllMocks();
+    mockChain = createChainMock();
+    mockFromFn = jest.fn().mockReturnValue(mockChain);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// fetchActiveMasters
+// ═══════════════════════════════════════════════════════════════════════════
+describe('fetchActiveMasters', () => {
+    it('queries profiles table with role=master', async () => {
+        const masters = [{ id: '1', full_name: 'Jane', role: 'master' }];
+        mockChain.order.mockResolvedValue({ data: masters, error: null });
+
+        const result = await fetchActiveMasters();
+        expect(mockFromFn).toHaveBeenCalledWith('profiles');
+        expect(result.data).toEqual(masters);
+        expect(result.error).toBeNull();
+    });
+
+    it('returns error when query fails', async () => {
+        const err = new Error('DB error');
+        mockChain.order.mockResolvedValue({ data: null, error: err });
+
+        const result = await fetchActiveMasters();
+        expect(result.data).toBeNull();
+        expect(result.error).toBe(err);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// fetchPendingMasters
+// ═══════════════════════════════════════════════════════════════════════════
+describe('fetchPendingMasters', () => {
+    it('queries pending_masters table', async () => {
+        const pending = [{ id: '1', full_name: 'John', master_status: 'invited' }];
+        mockChain.order.mockResolvedValue({ data: pending, error: null });
+
+        const result = await fetchPendingMasters();
+        expect(mockFromFn).toHaveBeenCalledWith('pending_masters');
+        expect(result.data).toEqual(pending);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// inviteMaster
+// ═══════════════════════════════════════════════════════════════════════════
+describe('inviteMaster', () => {
+    it('inserts into pending_masters table', async () => {
+        const newMaster = {
+            id: '1',
+            full_name: 'Jane Smith',
+            email: 'jane@test.com',
+            master_status: 'invited',
+        };
+        mockChain.single.mockResolvedValue({ data: newMaster, error: null });
+
+        const result = await inviteMaster(
+            { full_name: 'Jane Smith', email: 'jane@test.com' },
+            'owner-123'
+        );
+
+        expect(mockFromFn).toHaveBeenCalledWith('pending_masters');
+        expect(result.data).toEqual(newMaster);
+    });
+
+    it('returns error on insert failure', async () => {
+        const err = new Error('Insert failed');
+        mockChain.single.mockResolvedValue({ data: null, error: err });
+
+        const result = await inviteMaster(
+            { full_name: 'Jane', email: 'jane@test.com' },
+            'owner-123'
+        );
+        expect(result.error).toBe(err);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// updateMasterProfile
+// ═══════════════════════════════════════════════════════════════════════════
+describe('updateMasterProfile', () => {
+    it('updates profile successfully', async () => {
+        mockChain.eq.mockResolvedValue({ error: null });
+
+        const result = await updateMasterProfile('master-1', { is_verified: true });
+        expect(mockFromFn).toHaveBeenCalledWith('profiles');
+        expect(result.success).toBe(true);
+        expect(result.error).toBeNull();
+    });
+
+    it('returns error on update failure', async () => {
+        const err = new Error('Update failed');
+        mockChain.eq.mockResolvedValue({ error: err });
+
+        const result = await updateMasterProfile('master-1', { bio: 'New bio' });
+        expect(result.success).toBe(false);
+        expect(result.error).toBe(err);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// deactivateMaster
+// ═══════════════════════════════════════════════════════════════════════════
+describe('deactivateMaster', () => {
+    it('deactivates a master successfully', async () => {
+        mockChain.eq.mockResolvedValue({ error: null });
+
+        const result = await deactivateMaster('master-1');
+        expect(result.success).toBe(true);
+    });
+
+    it('returns error on failure', async () => {
+        mockChain.eq.mockResolvedValue({ error: new Error('Failed') });
+
+        const result = await deactivateMaster('master-1');
+        expect(result.success).toBe(false);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// reactivateMaster
+// ═══════════════════════════════════════════════════════════════════════════
+describe('reactivateMaster', () => {
+    it('reactivates a master successfully', async () => {
+        mockChain.eq.mockResolvedValue({ error: null });
+
+        const result = await reactivateMaster('master-1');
+        expect(result.success).toBe(true);
+    });
+
+    it('returns error on failure', async () => {
+        mockChain.eq.mockResolvedValue({ error: new Error('Failed') });
+
+        const result = await reactivateMaster('master-1');
+        expect(result.success).toBe(false);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// fetchMasterCounts
+// ═══════════════════════════════════════════════════════════════════════════
+describe('fetchMasterCounts', () => {
+    it('returns counts for active masters and pending invitations', async () => {
+        // mockFromFn will be called twice — one for profiles, one for pending_masters
+        // We need to handle sequential calls
+        let callCount = 0;
+        const profileChain = createChainMock();
+        const pendingChain = createChainMock();
+
+        mockFromFn.mockImplementation((table: string) => {
+            if (table === 'profiles') return profileChain;
+            if (table === 'pending_masters') return pendingChain;
+            return createChainMock();
+        });
+
+        // Resolve both Promise.all calls
+        profileChain.eq.mockResolvedValue({ count: 5, error: null });
+        pendingChain.eq.mockResolvedValue({ count: 3, error: null });
+
+        const result = await fetchMasterCounts();
+        expect(result.activeMasters).toBe(5);
+        expect(result.pendingInvitations).toBe(3);
+    });
+});

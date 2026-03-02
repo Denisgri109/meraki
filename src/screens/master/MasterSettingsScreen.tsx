@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     TextInput,
     Modal,
+    Linking,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -35,11 +36,6 @@ export function MasterSettingsScreen() {
     const [city, setCity] = useState(profile?.city || '');
     const [country, setCountry] = useState(profile?.country || '');
 
-    // Deposit settings
-    const [depositType, setDepositType] = useState<'fixed' | 'percentage'>('percentage');
-    const [depositAmount, setDepositAmount] = useState('0');
-    const [depositPercentage, setDepositPercentage] = useState('100');
-
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [pickerVisible, setPickerVisible] = useState<PickerType>(null);
@@ -60,27 +56,7 @@ export function MasterSettingsScreen() {
             setCity(profile.city || '');
             setCountry(profile.country || '');
         }
-        fetchDepositSettings();
     }, [profile]);
-
-    const fetchDepositSettings = async () => {
-        if (!user) return;
-        try {
-            const { data, error } = await supabase
-                .from('master_settings')
-                .select('deposit_type, deposit_amount, deposit_percentage')
-                .eq('master_id', user.id)
-                .single();
-
-            if (data) {
-                setDepositType((data.deposit_type as 'fixed' | 'percentage') || 'percentage');
-                setDepositAmount(String(data.deposit_amount || 0));
-                setDepositPercentage(String(data.deposit_percentage || 100));
-            }
-        } catch (error) {
-            // Use defaults if no settings exist
-        }
-    };
 
 
 
@@ -101,18 +77,6 @@ export function MasterSettingsScreen() {
                 .eq('id', user.id);
 
             if (profileError) throw profileError;
-
-            // Save deposit settings (upsert to master_settings)
-            const { error: depositError } = await supabase
-                .from('master_settings')
-                .upsert({
-                    master_id: user.id,
-                    deposit_type: depositType,
-                    deposit_amount: parseFloat(depositAmount) || 0,
-                    deposit_percentage: parseInt(depositPercentage) || 100,
-                }, { onConflict: 'master_id' });
-
-            if (depositError) throw depositError;
 
             await refreshProfile();
             showAlert('Success', 'Your settings have been saved', 'success');
@@ -314,85 +278,69 @@ export function MasterSettingsScreen() {
                         </View>
                     </Card>
 
-                    {/* Deposit Settings */}
-                    <Card style={styles.section}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
-                            <MaterialCommunityIcons name="cash-multiple" size={20} color={colors.accent} />
-                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Deposit Settings</MerakiText>
-                        </View>
-                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
-                            Collect a deposit upfront to protect against no-shows. This amount is charged when clients book.
-                        </MerakiText>
-
-                        {/* Deposit Type Toggle */}
-                        <View style={styles.depositToggleContainer}>
-                            <TouchableOpacity
-                                style={[
-                                    styles.depositToggle,
-                                    depositType === 'percentage' && styles.depositToggleActive
-                                ]}
-                                onPress={() => setDepositType('percentage')}
-                            >
-                                <Text style={[
-                                    styles.depositToggleText,
-                                    depositType === 'percentage' && styles.depositToggleTextActive
-                                ]}>Percentage</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[
-                                    styles.depositToggle,
-                                    depositType === 'fixed' && styles.depositToggleActive
-                                ]}
-                                onPress={() => setDepositType('fixed')}
-                            >
-                                <Text style={[
-                                    styles.depositToggleText,
-                                    depositType === 'fixed' && styles.depositToggleTextActive
-                                ]}>Fixed Amount</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Amount Input */}
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>
-                                {depositType === 'percentage' ? 'Deposit Percentage' : 'Deposit Amount'}
-                            </Text>
-                            <View style={styles.depositInputRow}>
-                                <TextInput
-                                    style={[styles.textInput, styles.depositInput]}
-                                    value={depositType === 'percentage' ? depositPercentage : depositAmount}
-                                    onChangeText={depositType === 'percentage' ? setDepositPercentage : setDepositAmount}
-                                    placeholder={depositType === 'percentage' ? '100' : '10.00'}
-                                    placeholderTextColor={colors.textMuted}
-                                    keyboardType="numeric"
-                                />
-                                <Text style={styles.depositSuffix}>
-                                    {depositType === 'percentage' ? '%' : currency}
-                                </Text>
+                    {/* Stripe Connect Payment Setup (Hidden for Owners) */}
+                    {profile?.role !== 'owner' && (
+                        <Card style={styles.section}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                                <MaterialCommunityIcons name="credit-card-outline" size={20} color={colors.accent} />
+                                <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Payment Setup</MerakiText>
                             </View>
-                            <Text style={styles.depositHint}>
-                                {depositType === 'percentage'
-                                    ? `Clients pay ${depositPercentage || 100}% of the service price upfront`
-                                    : `Clients pay ${currency} ${depositAmount || '0'} upfront for each booking`}
-                            </Text>
-                        </View>
-                    </Card>
+                            <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
+                                Manage your Stripe Connect account for receiving payouts.
+                            </MerakiText>
 
-                    {/* Stripe Connect Status (Read-only for now) */}
-                    <Card style={styles.section}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
-                            <MaterialCommunityIcons name="credit-card-outline" size={20} color={colors.accent} />
-                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Payment Setup</MerakiText>
-                        </View>
-                        <View style={styles.statusRow}>
-                            <View style={[styles.statusBadge, styles.statusPending]}>
-                                <Text style={styles.statusBadgeText}>Coming Soon</Text>
-                            </View>
-                            <Text style={styles.statusText}>
-                                Stripe Connect integration for direct payouts will be available soon.
-                            </Text>
-                        </View>
-                    </Card>
+                            {profile?.stripe_connect_status === 'active' ? (
+                                <>
+                                    <View style={styles.statusRow}>
+                                        <View style={[styles.statusBadge, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
+                                            <Text style={[styles.statusBadgeText, { color: '#34D399' }]}>Connected</Text>
+                                        </View>
+                                        <Text style={styles.statusText}>
+                                            Your payouts are set up. You receive 100% of your earnings.
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={[styles.selector, { marginTop: spacing.md }]}
+                                        onPress={async () => {
+                                            try {
+                                                const { data: { session } } = await supabase.auth.getSession();
+                                                if (!session) return;
+                                                const { data } = await supabase.functions.invoke('stripe-connect-dashboard', {
+                                                    headers: { Authorization: `Bearer ${session.access_token}` },
+                                                });
+                                                if (data?.url) {
+                                                    Linking.openURL(data.url);
+                                                }
+                                            } catch (e) {
+                                                showAlert('Error', 'Could not open Stripe dashboard', 'error');
+                                            }
+                                        }}
+                                    >
+                                        <Text style={styles.selectorText}>View Stripe Dashboard</Text>
+                                        <MaterialCommunityIcons name="open-in-new" size={18} color={colors.textMuted} />
+                                    </TouchableOpacity>
+                                </>
+                            ) : profile?.stripe_connect_status === 'pending' ? (
+                                <View style={styles.statusRow}>
+                                    <View style={[styles.statusBadge, styles.statusPending]}>
+                                        <Text style={styles.statusBadgeText}>Pending</Text>
+                                    </View>
+                                    <Text style={styles.statusText}>
+                                        Your setup is incomplete. Complete it via the blocking screen.
+                                    </Text>
+                                </View>
+                            ) : (
+                                <View style={styles.statusRow}>
+                                    <View style={[styles.statusBadge, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]}>
+                                        <Text style={[styles.statusBadgeText, { color: '#F87171' }]}>Not Connected</Text>
+                                    </View>
+                                    <Text style={styles.statusText}>
+                                        Set up your payout account via the setup screen.
+                                    </Text>
+                                </View>
+                            )}
+                        </Card>
+                    )}
                 </ScrollView>
 
                 <View style={styles.bottomBar}>
@@ -575,51 +523,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         color: colors.primary,
         fontWeight: '600',
-    },
-
-    // Deposit settings styles
-    depositToggleContainer: {
-        flexDirection: 'row',
-        marginBottom: spacing.md,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 12,
-        padding: 4,
-    },
-    depositToggle: {
-        flex: 1,
-        paddingVertical: spacing.sm,
-        paddingHorizontal: spacing.md,
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    depositToggleActive: {
-        backgroundColor: colors.primary,
-    },
-    depositToggleText: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        fontWeight: '500',
-    },
-    depositToggleTextActive: {
-        color: colors.text,
-    },
-    depositInputRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    depositInput: {
-        flex: 1,
-    },
-    depositSuffix: {
-        fontSize: 16,
-        color: colors.textSecondary,
-        marginLeft: spacing.md,
-        fontWeight: '500',
-    },
-    depositHint: {
-        fontSize: 13,
-        color: colors.textMuted,
-        marginTop: spacing.xs,
     },
 });
 

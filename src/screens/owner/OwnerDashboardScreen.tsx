@@ -21,6 +21,7 @@ import { useModal } from '../../contexts/ModalContext';
 import { Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing, layout, gradients } from '../../theme';
 import { getDeviceTimezone } from '../../utils/timezone';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -49,6 +50,8 @@ type Stats = {
     pendingAppointments: number;
     todayEarnings: number;
     unreadMessages: number;
+    totalClients: number;
+    pendingConsultations: number;
 };
 
 const getGreeting = () => {
@@ -71,6 +74,8 @@ export function OwnerDashboardScreen() {
         pendingAppointments: 0,
         todayEarnings: 0,
         unreadMessages: 0,
+        totalClients: 0,
+        pendingConsultations: 0,
     });
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([]);
@@ -174,6 +179,12 @@ export function OwnerDashboardScreen() {
 
             const { count: pendingCount } = await supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('master_id', user.id).eq('status', 'pending');
 
+            // Today's unique clients
+            const todayClients = new Set(
+                ((todayData as any[]) || []).filter(apt => apt.client?.full_name).map((apt: any) => apt.client?.full_name)
+            );
+            const totalClientsCount = todayClients.size;
+
             // Unread messages count
             let unreadCount = 0;
             const { data: conversations } = await safeSupabaseFetch(supabase.from('conversations').select('id').or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`) as any);
@@ -199,6 +210,20 @@ export function OwnerDashboardScreen() {
 
             const todayEarnings = ((todayData as any[]) || []).filter(apt => apt.status === 'completed').reduce((sum, apt) => sum + (apt.price || 0), 0);
 
+            // Fetch pending consultations count
+            const lastViewed = await AsyncStorage.getItem('last_consultations_view');
+            let consultationsQuery = supabase
+                .from('booking_consultations')
+                .select('*', { count: 'exact', head: true })
+                .eq('master_id', user.id)
+                .eq('status', 'pending');
+
+            if (lastViewed) {
+                consultationsQuery = consultationsQuery.gt('created_at', lastViewed);
+            }
+
+            const { count: pendingConsultationsCount } = await consultationsQuery;
+
             setAppointments((allAppointmentsData as unknown as Appointment[]) || []);
             setRecentMessages(recentMsgs);
             setStats({
@@ -208,6 +233,8 @@ export function OwnerDashboardScreen() {
                 pendingAppointments: pendingCount || 0,
                 todayEarnings,
                 unreadMessages: unreadCount,
+                totalClients: totalClientsCount,
+                pendingConsultations: pendingConsultationsCount || 0,
             });
         } catch (error) {
             console.error('Error fetching owner data:', error);
@@ -248,65 +275,61 @@ export function OwnerDashboardScreen() {
                         </View>
                     </View>
 
-                    {/* Business Stats Grid */}
-                    <View style={styles.statsGrid}>
-                        <Card variant="glass" style={styles.statCard}>
-                            <MerakiText variant="h2" color={colors.accent}>€{stats.todayEarnings}</MerakiText>
-                            <MerakiText variant="caption" color={colors.textMuted}>Daily Rev</MerakiText>
-                        </Card>
-                        <Card variant="glass" style={styles.statCard}>
-                            <MerakiText variant="h2" color={colors.success}>{stats.activeServices}</MerakiText>
-                            <MerakiText variant="caption" color={colors.textMuted}>Live Services</MerakiText>
-                        </Card>
-                        <Card variant="glass" style={[styles.statCard, stats.pendingAppointments > 0 && styles.pendingStat]}>
-                            <MerakiText variant="h2" color={stats.pendingAppointments > 0 ? colors.error : colors.text}>{stats.pendingAppointments}</MerakiText>
-                            <MerakiText variant="caption" color={colors.textMuted}>To Action</MerakiText>
-                        </Card>
-                    </View>
-
-                    {/* Business Control — from Master */}
-                    <View style={styles.section}>
-                        <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>BUSINESS CONTROL</MerakiText>
-                        <View style={styles.actionsGrid}>
-                            <ActionButton icon="calendar-month" label="Schedule" onPress={() => navigation.navigate('Availability')} color="#A78BFA" />
-                            <ActionButton icon="card-account-details-star" label="Portfolio" onPress={() => navigation.navigate('Portfolio')} color="#34D399" />
-                            <ActionButton icon="room-service" label="Services" onPress={() => navigation.navigate('MyServices')} color="#60A5FA" />
-                            <ActionButton icon="clock-check" label="Availability" onPress={() => navigation.navigate('Availability')} color="#F472B6" />
-                            <ActionButton icon="ticket-confirmation" label="Loyalty" onPress={() => navigation.navigate('LoyaltyCardBuilder')} color="#FBBF24" />
-                            <ActionButton icon="cog" label="Settings" onPress={() => navigation.navigate('Settings')} color="#94A3B8" />
-                        </View>
-                    </View>
-
-                    {/* Management Sections */}
-                    <View style={styles.section}>
-                        <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>INVENTORY & LOGISTICS</MerakiText>
-                        <View style={styles.actionsGrid}>
-                            <ManagementCard icon="package-variant-closed" label="Inventory" onPress={() => navigation.navigate('Inventory')} color="#F19A3E" halfWidth />
-                            <ManagementCard icon="truck-delivery" label="Supplies" onPress={() => navigation.navigate('OwnerSupplies')} color="#4ADE80" halfWidth />
-                        </View>
-                    </View>
-
-                    <View style={styles.section}>
-                        <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>MARKETING & LOYALTY</MerakiText>
-                        <View style={styles.actionsGrid}>
-                            <ManagementCard icon="bullhorn" label="Campaigns" onPress={() => navigation.navigate('AftercareCampaigns')} color="#F472B6" />
-                            <ManagementCard icon="card-bulleted" label="Loyalty" onPress={() => navigation.navigate('LoyaltyCardBuilder')} color="#FBBF24" />
-                            <ManagementCard icon="chat-question" label="Consultations" onPress={() => navigation.navigate('BookingConsultations')} color="#8B5CF6" />
+                    {/* Hero Stats */}
+                    <View style={styles.heroStats}>
+                        <LinearGradient
+                            colors={['rgba(212,168,83,0.12)', 'rgba(212,168,83,0.03)']}
+                            style={styles.heroCard}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <View style={styles.heroIconRow}>
+                                <View style={styles.heroIconCircle}>
+                                    <MaterialCommunityIcons name="cash-multiple" size={18} color={colors.accent} />
+                                </View>
+                            </View>
+                            <MerakiText style={styles.heroValue}>€{stats.todayEarnings}</MerakiText>
+                            <MerakiText style={styles.heroLabel}>Revenue Today</MerakiText>
+                        </LinearGradient>
+                        <View style={styles.heroSecondaryCol}>
+                            <LinearGradient
+                                colors={['rgba(63,185,80,0.10)', 'rgba(63,185,80,0.02)']}
+                                style={styles.heroSmallCard}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <MerakiText style={styles.heroSmallValue}>{stats.activeServices}</MerakiText>
+                                <MerakiText style={styles.heroSmallLabel}>{stats.activeServices === 1 ? 'Service' : 'Services'}</MerakiText>
+                            </LinearGradient>
+                            <LinearGradient
+                                colors={['rgba(88,166,255,0.10)', 'rgba(88,166,255,0.02)']}
+                                style={styles.heroSmallCard}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <MerakiText style={styles.heroSmallValue}>{stats.totalClients}</MerakiText>
+                                <MerakiText style={styles.heroSmallLabel}>{stats.totalClients === 1 ? 'Client Today' : 'Clients Today'}</MerakiText>
+                            </LinearGradient>
                         </View>
                     </View>
 
                     {/* Messages Banner */}
                     {stats.unreadMessages > 0 && (
                         <TouchableOpacity style={styles.messagesBanner} onPress={() => navigation.navigate('Messages')}>
-                            <LinearGradient colors={gradients.secondary as any} style={styles.bannerGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                            <LinearGradient colors={['rgba(40,40,45,0.95)', 'rgba(25,25,30,0.95)']} style={styles.bannerGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                                 <View style={styles.bannerContent}>
                                     <View style={styles.bannerLeft}>
-                                        <MaterialCommunityIcons name="message-alert" size={24} color="#FFF" />
-                                        <MerakiText variant="bodyBold" color="#FFF" style={{ marginLeft: 12 }}>
-                                            {stats.unreadMessages} Unread Messages
+                                        <View style={[styles.heroIconCircle, { backgroundColor: 'rgba(244, 114, 182, 0.15)', marginRight: 12 }]}>
+                                            <MaterialCommunityIcons name="message-alert" size={18} color="#F472B6" />
+                                        </View>
+                                        <MerakiText variant="bodyBold" color="#FFF">
+                                            {stats.unreadMessages} Unread Message{stats.unreadMessages !== 1 ? 's' : ''}
                                         </MerakiText>
                                     </View>
-                                    <MaterialCommunityIcons name="chevron-right" size={20} color="#FFF" />
+                                    <View style={styles.bannerRight}>
+                                        <MerakiText variant="caption" color="rgba(255,255,255,0.5)" style={{ marginRight: 8 }}>VIEW</MerakiText>
+                                        <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.5)" />
+                                    </View>
                                 </View>
                             </LinearGradient>
                         </TouchableOpacity>
@@ -342,31 +365,59 @@ export function OwnerDashboardScreen() {
                             </Card>
                         )}
                     </View>
+
+                    {/* Business Control */}
+                    <View style={styles.section}>
+                        <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>BUSINESS CONTROL</MerakiText>
+                        <View style={styles.buttonGrid}>
+                            <DashboardButton icon="account-group" label="Masters" onPress={() => navigation.navigate('MasterManagement')} color="#EE2B5B" />
+                            <DashboardButton icon="chat-question" label="Consultations" onPress={() => navigation.navigate('BookingConsultations')} color="#8B5CF6" badgeCount={stats.pendingConsultations} />
+                            <DashboardButton icon="card-account-details-star" label="Portfolio" onPress={() => navigation.navigate('Portfolio')} color="#34D399" />
+                            <DashboardButton icon="room-service" label="Services" onPress={() => navigation.navigate('MyServices')} color="#60A5FA" />
+                            <DashboardButton icon="clock-check" label="Availability" onPress={() => navigation.navigate('Availability')} color="#F472B6" />
+                            <DashboardButton icon="ticket-confirmation" label="Loyalty" onPress={() => navigation.navigate('LoyaltyCardBuilder')} color="#FBBF24" />
+                            <DashboardButton icon="cog" label="Settings" onPress={() => navigation.navigate('Settings')} color="#94A3B8" />
+                        </View>
+                    </View>
+
+                    {/* Management Sections */}
+                    <View style={styles.section}>
+                        <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>INVENTORY & LOGISTICS</MerakiText>
+                        <View style={styles.buttonGrid}>
+                            <DashboardButton icon="package-variant-closed" label="Inventory" onPress={() => navigation.navigate('Inventory')} color="#F19A3E" />
+                            <DashboardButton icon="truck-delivery" label="Supplies" onPress={() => navigation.navigate('OwnerSupplies')} color="#4ADE80" />
+                        </View>
+                    </View>
+
+                    <View style={styles.section}>
+                        <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>MARKETING & LOYALTY</MerakiText>
+                        <View style={styles.buttonGrid}>
+                            <DashboardButton icon="bullhorn" label="Campaigns" onPress={() => navigation.navigate('AftercareCampaigns')} color="#F472B6" />
+                            <DashboardButton icon="card-bulleted" label="Loyalty" onPress={() => navigation.navigate('LoyaltyCardBuilder')} color="#FBBF24" />
+                        </View>
+                    </View>
                 </ScrollView>
             </SafeAreaView>
         </ScreenBackground>
     );
 }
 
-const ActionButton = ({ icon, label, onPress, color }: any) => (
-    <TouchableOpacity style={styles.actionBtnContainer} onPress={onPress}>
-        <Card variant="glass" style={styles.actionCard} noPadding>
-            <View style={[styles.iconWrapper, { backgroundColor: `${color}15` }]}>
-                <MaterialCommunityIcons name={icon} size={24} color={color} />
-            </View>
-            <MerakiText variant="label" style={styles.actionLabel}>{label}</MerakiText>
-        </Card>
-    </TouchableOpacity>
-);
+const BUTTON_GAP = spacing.sm;
+const BUTTON_WIDTH = (width - spacing.lg * 2 - BUTTON_GAP * 2) / 3;
 
-const ManagementCard = ({ icon, label, onPress, color, halfWidth }: any) => (
-    <TouchableOpacity style={halfWidth ? styles.mgtCardContainerHalf : styles.mgtCardContainer} onPress={onPress}>
-        <Card variant="glass" style={styles.mgtCard} noPadding>
-            <View style={[styles.iconBox, { backgroundColor: `${color}15` }]}>
-                <MaterialCommunityIcons name={icon} size={28} color={color} />
+const DashboardButton = ({ icon, label, onPress, color, badgeCount }: any) => (
+    <TouchableOpacity style={styles.dashBtnWrap} onPress={onPress} activeOpacity={0.7}>
+        <View style={styles.dashBtn}>
+            <View style={[styles.dashBtnIcon, { backgroundColor: `${color}12` }]}>
+                <MaterialCommunityIcons name={icon} size={24} color={color} />
+                {badgeCount > 0 && (
+                    <View style={styles.badgeContainer}>
+                        <MerakiText style={styles.badgeText}>{badgeCount > 99 ? '99+' : badgeCount}</MerakiText>
+                    </View>
+                )}
             </View>
-            <MerakiText variant="bodyBold" style={styles.mgtLabel}>{label}</MerakiText>
-        </Card>
+            <MerakiText variant="body" numberOfLines={1} style={styles.dashBtnLabel}>{label}</MerakiText>
+        </View>
     </TouchableOpacity>
 );
 
@@ -384,29 +435,72 @@ const styles = StyleSheet.create({
         borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
         alignItems: 'center', justifyContent: 'center',
     },
-    statsGrid: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
-    statCard: { flex: 1, alignItems: 'center', paddingVertical: spacing.md },
-    pendingStat: { borderColor: colors.error, borderWidth: 1 },
+    heroStats: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
+    heroCard: {
+        flex: 1.2,
+        borderRadius: layout.borderRadius.xl,
+        padding: spacing.lg,
+        borderWidth: 1,
+        borderColor: 'rgba(212,168,83,0.15)',
+        justifyContent: 'flex-end',
+    },
+    heroIconRow: { marginBottom: 12 },
+    heroIconCircle: {
+        width: 32, height: 32, borderRadius: 10,
+        backgroundColor: 'rgba(212,168,83,0.12)',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    heroValue: { fontSize: 32, fontWeight: '800' as any, color: '#fff', letterSpacing: -1, marginBottom: 2 },
+    heroLabel: { fontSize: 12, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' as any, letterSpacing: 0.8 },
+    heroSecondaryCol: { flex: 0.8, gap: spacing.sm },
+    heroSmallCard: {
+        flex: 1,
+        borderRadius: layout.borderRadius.lg,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    heroSmallValue: { fontSize: 24, fontWeight: '700' as any, color: '#fff', letterSpacing: -0.5 },
+    heroSmallLabel: { fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' as any, letterSpacing: 0.5, marginTop: 2 },
     section: { marginBottom: spacing.xl },
-    sectionLabel: { marginBottom: spacing.md },
+    sectionLabel: { marginBottom: spacing.md, fontSize: 11, letterSpacing: 1 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
-    actionsGrid: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-    // Business Control action buttons
-    actionBtnContainer: { width: (width - spacing.lg * 2 - spacing.sm * 2) / 3 },
-    actionCard: { alignItems: 'center', paddingVertical: spacing.md },
-    iconWrapper: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-    actionLabel: { textAlign: 'center' },
-    // Management cards (original owner sections)
-    mgtCardContainer: { width: (width - spacing.lg * 2 - spacing.sm * 2) / 3 },
-    mgtCardContainerHalf: { width: (width - spacing.lg * 2 - spacing.sm) / 2 },
-    mgtCard: { alignItems: 'center', paddingVertical: spacing.lg },
-    iconBox: { width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-    mgtLabel: { fontSize: 13 },
+    // Dashboard buttons — vertical cards
+    buttonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: BUTTON_GAP },
+    dashBtnWrap: { width: BUTTON_WIDTH },
+    dashBtn: {
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.07)',
+        borderRadius: 16,
+        paddingVertical: 16,
+        paddingHorizontal: 8,
+        gap: 12,
+    },
+    dashBtnIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    dashBtnLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#fff',
+        textAlign: 'center',
+    },
+    badgeContainer: { position: 'absolute', top: -4, right: -4, backgroundColor: '#FF453A', borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: 'rgba(20,20,25,0.9)' },
+    badgeText: { color: '#FFF', fontSize: 9, fontWeight: '700' },
     // Messages banner
-    messagesBanner: { borderRadius: layout.borderRadius.md, overflow: 'hidden', marginBottom: spacing.xl },
-    bannerGradient: { padding: spacing.md },
+    messagesBanner: { borderRadius: layout.borderRadius.lg, overflow: 'hidden', marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    bannerGradient: { padding: spacing.lg },
     bannerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     bannerLeft: { flexDirection: 'row', alignItems: 'center' },
+    bannerRight: { flexDirection: 'row', alignItems: 'center' },
     // Appointment cards
     appointmentCard: { marginBottom: spacing.sm },
     aptRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md },

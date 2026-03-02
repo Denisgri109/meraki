@@ -9,6 +9,7 @@ import {
     ActivityIndicator,
     TextInput,
     Dimensions,
+    ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, borderRadius, gradients } from '../../theme';
@@ -85,12 +86,13 @@ export function MerakiModal({
             onRequestClose={onClose}
             statusBarTranslucent
         >
-            <TouchableWithoutFeedback onPress={onClose}>
-                <View style={styles.overlay}>
-                    <TouchableWithoutFeedback>
-                        <View style={styles.modalContainer}>
-                            {/* Premium Opaque Card Container */}
-                            <View style={styles.cardContainer}>
+            <View style={styles.overlay}>
+                <TouchableWithoutFeedback onPress={onClose}>
+                    <View style={StyleSheet.absoluteFill} />
+                </TouchableWithoutFeedback>
+                <View style={styles.modalContainer}>
+                    {/* Premium Opaque Card Container */}
+                    <View style={styles.cardContainer}>
                                 {/* Gradient Border */}
                                 <LinearGradient
                                     colors={['rgba(212, 138, 130, 0.5)', 'rgba(230, 192, 144, 0.3)']} /* Rose Gold to Champagne */
@@ -115,7 +117,9 @@ export function MerakiModal({
 
                                             {/* Message */}
                                             {message && (
-                                                <Text style={styles.message}>{message}</Text>
+                                                <ScrollView style={styles.messageScroll} indicatorStyle="white">
+                                                    <Text style={styles.message}>{message}</Text>
+                                                </ScrollView>
                                             )}
 
                                             {/* Custom Content */}
@@ -164,9 +168,7 @@ export function MerakiModal({
                                 </LinearGradient>
                             </View>
                         </View>
-                    </TouchableWithoutFeedback>
                 </View>
-            </TouchableWithoutFeedback>
         </Modal>
     );
 }
@@ -320,12 +322,16 @@ const styles = StyleSheet.create({
         marginBottom: spacing.sm,
         letterSpacing: 0.5,
     },
+    messageScroll: {
+        maxHeight: 400,
+        width: '100%',
+        marginBottom: spacing.xl,
+    },
     message: {
         fontSize: 15,
         color: colors.textSecondary,
         textAlign: 'center',
         lineHeight: 24,
-        marginBottom: spacing.xl,
     },
     actions: {
         flexDirection: 'row',

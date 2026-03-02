@@ -299,13 +299,9 @@ export function CheckoutScreen() {
                 `Your order #${order.id.slice(0, 8).toUpperCase()} has been confirmed.\n\nSubtotal: €${subtotal.toFixed(2)}\nShipping: €${shippingCost.toFixed(2)}\nTotal: €${finalTotal.toFixed(2)}\n\nShipping to: ${shippingCity}, ${getCountryName(shippingCountry)}`,
                 [
                     {
-                        text: 'View Orders',
-                        onPress: () => navigation.navigate('Menu', { screen: 'Orders' }),
-                    },
-                    {
-                        text: 'Continue Shopping',
-                        onPress: () => navigation.navigate('ShopMain'),
-                    },
+                        text: 'Go to Home',
+                        onPress: () => navigation.navigate('Home'),
+                    }
                 ]
             );
 

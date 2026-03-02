@@ -153,6 +153,12 @@ export function SuppliesScreen() {
                         </View>
                     </View>
                 </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteSupply(item)}
+                >
+                    <MaterialCommunityIcons name="trash-can-outline" size={18} color={'#FF453A'} />
+                </TouchableOpacity>
             </Card>
         );
     };
@@ -174,8 +180,7 @@ export function SuppliesScreen() {
                         style={styles.addButton}
                         onPress={() => (navigation as any).navigate('AddSupply')}
                     >
-                        <MaterialCommunityIcons name="plus" size={18} color={colors.text} />
-                        <MerakiText variant="label" color={colors.text} style={{ marginLeft: 4 }}>Add</MerakiText>
+                        <MaterialCommunityIcons name="plus" size={24} color={colors.text} />
                     </TouchableOpacity>
                 </View>
 
@@ -251,15 +256,12 @@ const styles = StyleSheet.create({
         color: colors.text,
     },
     addButton: {
-        backgroundColor: colors.primary,
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        borderRadius: 20,
-    },
-    addButtonText: {
-        color: colors.text,
-        fontSize: 14,
-        fontWeight: '600',
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     alertBanner: {
         flexDirection: 'row',
@@ -399,6 +401,12 @@ const styles = StyleSheet.create({
         color: colors.text,
         fontSize: 16,
         fontWeight: '600',
+    },
+    deleteButton: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        paddingTop: spacing.sm,
+        paddingRight: spacing.xs,
     },
 });
 

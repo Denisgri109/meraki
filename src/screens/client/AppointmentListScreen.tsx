@@ -20,7 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Card, Button, ScreenBackground } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
-import { eurosToCents } from '../../services/stripeService';
+import { eurosToCents, centsToEuros, cancelAndRefund, CancelAndRefundResult } from '../../services/stripeService';
 
 // Cancellation policy constants
 const CANCELLATION_WINDOW_HOURS = 24;
@@ -59,8 +59,11 @@ export function AppointmentListScreen() {
 
     // Reschedule/Cancel State
     const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
+    const [showCancelModal, setShowCancelModal] = useState(false);
     const [isLateCancellation, setIsLateCancellation] = useState(false);
     const [cancellationLoading, setCancellationLoading] = useState(false);
+    const [cancellationResult, setCancellationResult] = useState<CancelAndRefundResult | null>(null);
+    const [showRefundReceiptModal, setShowRefundReceiptModal] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -139,16 +142,10 @@ export function AppointmentListScreen() {
     // --- Appointment Handlers ---
 
     const handleCancel = (appointment: Appointment) => {
-        showConfirm(
-            'Cancel Appointment',
-            'Are you sure you want to cancel this appointment?',
-            () => confirmCancel(appointment),
-            {
-                confirmText: 'Yes, Cancel',
-                cancelText: 'No, Keep it',
-                type: 'info'
-            }
-        );
+        const late = isWithinCancellationWindow(appointment.start_time);
+        setAppointmentToCancel(appointment);
+        setIsLateCancellation(late);
+        setShowCancelModal(true);
     };
 
     // Send notification to Master about cancellation
@@ -176,45 +173,43 @@ export function AppointmentListScreen() {
         }
     };
 
-    const confirmCancel = async (appointment: Appointment) => {
+    const confirmCancel = async () => {
+        if (!appointmentToCancel) return;
         setCancellationLoading(true);
 
         try {
-            // Release payment hold, no charge
-            if (appointment.stripe_payment_intent_id) {
-                try {
-                    await supabase.functions.invoke('cancel-payment', {
-                        body: {
-                            payment_intent_id: appointment.stripe_payment_intent_id,
-                        }
-                    });
-                } catch (e) {
-                    console.error('Failed to release payment hold:', e);
-                }
-            }
-
-            // Update appointment status
-            const { error } = await supabase
-                .from('appointments')
-                .update({
-                    status: 'cancelled_free',
-                    cancellation_reason: 'Cancellation by client',
-                } as any)
-                .eq('id', appointment.id);
-
-            if (error) throw error;
+            // Call the unified cancel-and-refund Edge Function
+            const result = await cancelAndRefund(
+                appointmentToCancel.id,
+                'client',
+            );
 
             // Notify master
-            await notifyMasterOfCancellation(appointment);
+            await notifyMasterOfCancellation(appointmentToCancel);
 
-            showAlert('Appointment Canceled', 'Your appointment has been canceled successfully.', 'success');
+            // Close the cancel modal and show the refund receipt
+            setShowCancelModal(false);
+            setCancellationResult(result);
+            setShowRefundReceiptModal(true);
 
             fetchAppointments();
         } catch (error: any) {
-            showAlert('Error', error.message, 'error');
+            setShowCancelModal(false);
+            showAlert('Error', error.message || 'Failed to cancel appointment', 'error');
         } finally {
             setCancellationLoading(false);
         }
+    };
+
+    const closeCancelModal = () => {
+        setShowCancelModal(false);
+        setAppointmentToCancel(null);
+    };
+
+    const closeRefundReceipt = () => {
+        setShowRefundReceiptModal(false);
+        setCancellationResult(null);
+        setAppointmentToCancel(null);
     };
 
     const handleReschedule = (appointment: Appointment) => {
@@ -415,10 +410,10 @@ export function AppointmentListScreen() {
 
     const now = new Date();
     const upcomingAppointments = appointments.filter(
-        apt => new Date(apt.start_time) >= now && apt.status !== 'cancelled'
+        apt => new Date(apt.start_time) >= now && !apt.status.startsWith('cancelled')
     );
     const pastAppointments = appointments.filter(
-        apt => new Date(apt.start_time) < now || apt.status === 'cancelled'
+        apt => new Date(apt.start_time) < now || apt.status.startsWith('cancelled')
     );
 
     // Helpers
@@ -519,7 +514,7 @@ export function AppointmentListScreen() {
                         (subTab === 'upcoming' ? upcomingAppointments : pastAppointments).map((apt) => {
                             const date = new Date(apt.start_time);
                             const statusStyle = statusColors[apt.status] || statusColors.pending;
-                            const canModify = subTab === 'upcoming' && apt.status !== 'cancelled';
+                            const canModify = subTab === 'upcoming' && !apt.status.startsWith('cancelled');
 
                             return (
                                 <Card key={apt.id} style={styles.card} variant="glass">
@@ -735,6 +730,207 @@ export function AppointmentListScreen() {
                         </ScrollView>
                     </ScreenBackground>
                 </SafeAreaView>
+            </Modal>
+
+            {/* ── Cancellation Confirmation Modal ── */}
+            <Modal
+                visible={showCancelModal}
+                animationType="fade"
+                transparent
+                onRequestClose={closeCancelModal}
+            >
+                <View style={cancelStyles.overlay}>
+                    <TouchableOpacity style={cancelStyles.backdrop} activeOpacity={1} onPress={closeCancelModal} />
+                    <View style={cancelStyles.container}>
+                        {/* Header */}
+                        <View style={cancelStyles.headerRow}>
+                            <View style={[cancelStyles.iconCircle, isLateCancellation ? cancelStyles.iconCircleWarning : cancelStyles.iconCircleNormal]}>
+                                <MaterialIcons
+                                    name={isLateCancellation ? 'warning' : 'event-busy'}
+                                    size={28}
+                                    color={isLateCancellation ? '#F59E0B' : '#EF4444'}
+                                />
+                            </View>
+                        </View>
+                        <Text style={cancelStyles.title}>Cancel Appointment</Text>
+
+                        {appointmentToCancel && (
+                            <>
+                                {/* Appointment Details */}
+                                <View style={cancelStyles.detailsCard}>
+                                    <Text style={cancelStyles.serviceName}>
+                                        {appointmentToCancel.service?.name || 'Service'}
+                                    </Text>
+                                    <Text style={cancelStyles.masterName}>
+                                        with {appointmentToCancel.master?.full_name || 'Specialist'}
+                                    </Text>
+                                    <View style={cancelStyles.detailLine}>
+                                        <MaterialIcons name="event" size={14} color={colors.textSecondary} />
+                                        <Text style={cancelStyles.detailLineText}>
+                                            {format(new Date(appointmentToCancel.start_time), 'EEEE, MMMM d, yyyy')}
+                                        </Text>
+                                    </View>
+                                    <View style={cancelStyles.detailLine}>
+                                        <MaterialIcons name="schedule" size={14} color={colors.textSecondary} />
+                                        <Text style={cancelStyles.detailLineText}>
+                                            {format(new Date(appointmentToCancel.start_time), 'HH:mm')}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                {/* Late Cancellation Warning */}
+                                {isLateCancellation && (
+                                    <View style={cancelStyles.warningBanner}>
+                                        <MaterialIcons name="info-outline" size={18} color="#92400E" />
+                                        <Text style={cancelStyles.warningText}>
+                                            This appointment is within 24 hours. A 50% late cancellation fee will apply.
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {/* Refund Breakdown */}
+                                <View style={cancelStyles.refundBreakdown}>
+                                    <Text style={cancelStyles.breakdownTitle}>Refund Summary</Text>
+                                    <View style={cancelStyles.breakdownRow}>
+                                        <Text style={cancelStyles.breakdownLabel}>Amount Paid</Text>
+                                        <Text style={cancelStyles.breakdownValue}>
+                                            €{appointmentToCancel.deposit_amount ?? appointmentToCancel.price}
+                                        </Text>
+                                    </View>
+                                    {isLateCancellation && (
+                                        <View style={cancelStyles.breakdownRow}>
+                                            <Text style={[cancelStyles.breakdownLabel, { color: '#EF4444' }]}>
+                                                Late Cancellation Fee (50%)
+                                            </Text>
+                                            <Text style={[cancelStyles.breakdownValue, { color: '#EF4444' }]}>
+                                                -€{((appointmentToCancel.deposit_amount ?? appointmentToCancel.price) * 0.5).toFixed(2)}
+                                            </Text>
+                                        </View>
+                                    )}
+                                    <View style={cancelStyles.divider} />
+                                    <View style={cancelStyles.breakdownRow}>
+                                        <Text style={cancelStyles.breakdownTotalLabel}>You'll Receive</Text>
+                                        <Text style={cancelStyles.breakdownTotalValue}>
+                                            €{(
+                                                (appointmentToCancel.deposit_amount ?? appointmentToCancel.price) *
+                                                (isLateCancellation ? 0.5 : 1)
+                                            ).toFixed(2)}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                {/* Estimated Timeline */}
+                                <View style={cancelStyles.timelineBanner}>
+                                    <MaterialIcons name="access-time" size={16} color={colors.textSecondary} />
+                                    <Text style={cancelStyles.timelineText}>
+                                        {isLateCancellation
+                                            ? 'Your refund will appear in your account within 5-10 business days.'
+                                            : 'Your hold will be released. Funds typically appear within 1-3 business days.'}
+                                    </Text>
+                                </View>
+                            </>
+                        )}
+
+                        {/* Buttons */}
+                        <View style={cancelStyles.buttonRow}>
+                            <TouchableOpacity
+                                style={cancelStyles.keepButton}
+                                onPress={closeCancelModal}
+                                disabled={cancellationLoading}
+                            >
+                                <Text style={cancelStyles.keepButtonText}>Keep Appointment</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[cancelStyles.confirmCancelButton, cancellationLoading && { opacity: 0.6 }]}
+                                onPress={confirmCancel}
+                                disabled={cancellationLoading}
+                            >
+                                {cancellationLoading ? (
+                                    <ActivityIndicator size="small" color="#FFF" />
+                                ) : (
+                                    <Text style={cancelStyles.confirmCancelButtonText}>Confirm Cancellation</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ── Refund Receipt Modal (shown after successful cancellation) ── */}
+            <Modal
+                visible={showRefundReceiptModal}
+                animationType="fade"
+                transparent
+                onRequestClose={closeRefundReceipt}
+            >
+                <View style={cancelStyles.overlay}>
+                    <TouchableOpacity style={cancelStyles.backdrop} activeOpacity={1} onPress={closeRefundReceipt} />
+                    <View style={cancelStyles.container}>
+                        {/* Success Icon */}
+                        <View style={cancelStyles.headerRow}>
+                            <View style={cancelStyles.iconCircleSuccess}>
+                                <MaterialIcons name="check-circle" size={32} color="#10B981" />
+                            </View>
+                        </View>
+                        <Text style={cancelStyles.title}>Appointment Cancelled</Text>
+                        <Text style={cancelStyles.subtitle}>
+                            {cancellationResult?.is_late_cancellation
+                                ? 'A late cancellation fee has been applied.'
+                                : 'Your appointment has been successfully cancelled.'}
+                        </Text>
+
+                        {cancellationResult && (
+                            <>
+                                {/* Refund Details */}
+                                <View style={cancelStyles.refundBreakdown}>
+                                    <Text style={cancelStyles.breakdownTitle}>Refund Details</Text>
+                                    <View style={cancelStyles.breakdownRow}>
+                                        <Text style={cancelStyles.breakdownLabel}>Original Amount</Text>
+                                        <Text style={cancelStyles.breakdownValue}>
+                                            €{(cancellationResult.original_amount_cents / 100).toFixed(2)}
+                                        </Text>
+                                    </View>
+                                    {cancellationResult.fee_amount_cents > 0 && (
+                                        <View style={cancelStyles.breakdownRow}>
+                                            <Text style={[cancelStyles.breakdownLabel, { color: '#EF4444' }]}>
+                                                Cancellation Fee
+                                            </Text>
+                                            <Text style={[cancelStyles.breakdownValue, { color: '#EF4444' }]}>
+                                                -€{(cancellationResult.fee_amount_cents / 100).toFixed(2)}
+                                            </Text>
+                                        </View>
+                                    )}
+                                    <View style={cancelStyles.divider} />
+                                    <View style={cancelStyles.breakdownRow}>
+                                        <Text style={cancelStyles.breakdownTotalLabel}>Refund Amount</Text>
+                                        <Text style={[cancelStyles.breakdownTotalValue, { color: '#10B981' }]}>
+                                            €{(cancellationResult.refund_amount_cents / 100).toFixed(2)}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                {/* Timeline */}
+                                <View style={cancelStyles.timelineBanner}>
+                                    <MaterialIcons name="access-time" size={16} color={colors.textSecondary} />
+                                    <Text style={cancelStyles.timelineText}>
+                                        {cancellationResult.estimated_arrival}
+                                    </Text>
+                                </View>
+
+                                {cancellationResult.refund_id && (
+                                    <Text style={cancelStyles.refundIdText}>
+                                        Ref: {cancellationResult.refund_id}
+                                    </Text>
+                                )}
+                            </>
+                        )}
+
+                        {/* Done Button */}
+                        <TouchableOpacity style={cancelStyles.doneButton} onPress={closeRefundReceipt}>
+                            <Text style={cancelStyles.doneButtonText}>Done</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
             </Modal>
         </ScreenBackground >
     );
@@ -992,7 +1188,7 @@ const styles = StyleSheet.create({
     // Reschedule Modal
     modalContainer: {
         flex: 1,
-        backgroundColor: colors.background,
+        backgroundColor: colors.baseBackground,
     },
     modalHeader: {
         flexDirection: 'row',
@@ -1146,5 +1342,224 @@ const styles = StyleSheet.create({
         color: colors.text,
         fontSize: 14,
         fontWeight: '600',
+    },
+});
+
+// ── Cancellation Modal Styles ──
+const cancelStyles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    },
+    backdrop: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    container: {
+        width: '90%',
+        maxWidth: 400,
+        backgroundColor: colors.surface,
+        borderRadius: 24,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: colors.border,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 12,
+    },
+    headerRow: {
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    iconCircle: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    iconCircleNormal: {
+        backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    },
+    iconCircleWarning: {
+        backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    },
+    iconCircleSuccess: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: colors.text,
+        textAlign: 'center',
+        marginBottom: 4,
+    },
+    subtitle: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        marginBottom: 16,
+        lineHeight: 20,
+    },
+    detailsCard: {
+        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.06)',
+    },
+    serviceName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: 2,
+    },
+    masterName: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        marginBottom: 10,
+    },
+    detailLine: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 4,
+    },
+    detailLineText: {
+        fontSize: 13,
+        color: colors.textSecondary,
+    },
+    warningBanner: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        backgroundColor: '#FEF3C7',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 14,
+    },
+    warningText: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: '500',
+        color: '#92400E',
+        lineHeight: 18,
+    },
+    refundBreakdown: {
+        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.06)',
+    },
+    breakdownTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: 10,
+    },
+    breakdownRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    breakdownLabel: {
+        fontSize: 13,
+        color: colors.textSecondary,
+    },
+    breakdownValue: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: colors.text,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: colors.border,
+        marginVertical: 8,
+    },
+    breakdownTotalLabel: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: colors.text,
+    },
+    breakdownTotalValue: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: colors.primary,
+    },
+    timelineBanner: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 18,
+    },
+    timelineText: {
+        flex: 1,
+        fontSize: 12,
+        color: colors.textSecondary,
+        lineHeight: 17,
+    },
+    refundIdText: {
+        fontSize: 11,
+        color: colors.textMuted,
+        textAlign: 'center',
+        marginBottom: 14,
+        fontFamily: 'monospace',
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    keepButton: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 14,
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        borderWidth: 1,
+        borderColor: colors.border,
+        alignItems: 'center',
+    },
+    keepButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.text,
+    },
+    confirmCancelButton: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 14,
+        backgroundColor: '#EF4444',
+        alignItems: 'center',
+    },
+    confirmCancelButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#FFF',
+    },
+    doneButton: {
+        width: '100%',
+        paddingVertical: 14,
+        borderRadius: 14,
+        backgroundColor: colors.primary,
+        alignItems: 'center',
+    },
+    doneButtonText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#FFF',
     },
 });

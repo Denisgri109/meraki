@@ -10,6 +10,7 @@ import { colors, spacing } from '../../../theme';
 import { CoursesListScreen } from './CoursesListScreen';
 import { HomeworkInboxScreen } from './HomeworkInboxScreen';
 import { AcademyStudentsScreen } from './AcademyStudentsScreen';
+import { LessonQAInboxScreen } from './LessonQAInboxScreen';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -134,6 +135,7 @@ export function ManageAcademyScreen() {
                         }}
                     />
                     <Tab.Screen name="Students" component={AcademyStudentsScreen} />
+                    <Tab.Screen name="Q&A" component={LessonQAInboxScreen} />
                 </Tab.Navigator>
             </SafeAreaView>
         </View>

@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { useTabBar } from '../../contexts/TabBarContext';
 
 // Import Screens
 import { AppointmentListScreen } from './AppointmentListScreen';
@@ -15,6 +16,7 @@ import { ChatListScreen } from '../chat';
 import { ServiceDetailScreen } from './ServiceDetailScreen';
 import { SelectDateTimeScreen } from './SelectDateTimeScreen';
 import { BookingConfirmScreen } from './BookingConfirmScreen';
+import { ConsultationWaitingScreen } from './ConsultationWaitingScreen';
 
 // --- STACKS ---
 
@@ -23,6 +25,7 @@ export type BookingStackParamList = {
     ServiceDetail: { serviceId: string };
     SelectDateTime: { serviceId: string; masterId: string };
     BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
+    ConsultationWaiting: { consultationId: string; serviceId: string; masterId: string };
 };
 
 const BookingStack = createNativeStackNavigator<BookingStackParamList>();
@@ -34,6 +37,7 @@ function BookingStackNavigator() {
             <BookingStack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
             <BookingStack.Screen name="SelectDateTime" component={SelectDateTimeScreen} />
             <BookingStack.Screen name="BookingConfirm" component={BookingConfirmScreen} />
+            <BookingStack.Screen name="ConsultationWaiting" component={ConsultationWaitingScreen} />
         </BookingStack.Navigator>
     );
 }
@@ -87,116 +91,115 @@ const getLeafRouteName = (route: any): string => {
     return route.name;
 };
 
+const HIDDEN_SCREENS = [
+    'ServiceDetail',
+    'SelectDateTime',
+    'BookingConfirm',
+    'PhotoConsultationRequest',
+    'MasterDetail',
+    'ConsultationWaiting',
+];
+
 function CustomTabBar({ state, descriptors, navigation }: any) {
+    const { isTabBarVisible } = useTabBar();
+
     // Check if the current nested route should hide the tab bar
     const activeRoute = state.routes[state.index];
     const leafRouteName = getLeafRouteName(activeRoute);
 
-    const hiddenScreens = [
-        'ServiceDetail',
-        'SelectDateTime',
-        'BookingConfirm',
-        'PhotoConsultationRequest',
-        'MasterDetail',
-        'ConsultationWaiting',
-    ];
-
-    if (hiddenScreens.includes(leafRouteName)) {
+    // Hide when in booking flow screens OR when context says hidden
+    if (HIDDEN_SCREENS.includes(leafRouteName) || !isTabBarVisible) {
         return null;
     }
 
     return (
-        <View style={styles.tabContainer}>
-            <View style={styles.tabBar}>
-                {state.routes.map((route: any, index: number) => {
-                    const isFocused = state.index === index;
-                    const config = TAB_CONFIG[index];
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={styles.tabContainer}>
+                <View style={styles.tabBar}>
+                    {state.routes.map((route: any, index: number) => {
+                        const isFocused = state.index === index;
+                        const config = TAB_CONFIG[index];
 
-                    const onPress = () => {
-                        const event = navigation.emit({
-                            type: 'tabPress',
-                            target: route.key,
-                            canPreventDefault: true,
-                        });
-                        if (!isFocused && !event.defaultPrevented) {
-                            navigation.navigate(route.name, route.params);
-                        }
-                    };
+                        const onPress = () => {
+                            const event = navigation.emit({
+                                type: 'tabPress',
+                                target: route.key,
+                                canPreventDefault: true,
+                            });
+                            if (!isFocused && !event.defaultPrevented) {
+                                navigation.navigate(route.name, route.params);
+                            }
+                        };
 
-                    return (
-                        <TouchableOpacity
-                            key={route.key}
-                            accessibilityRole="button"
-                            accessibilityState={isFocused ? { selected: true } : {}}
-                            onPress={onPress}
-                            style={[styles.tabItem]}
-                        >
-                            {isFocused ? (
-                                <LinearGradient
-                                    colors={[colors.primary, colors.champagne]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={[StyleSheet.absoluteFillObject, { borderRadius: 11 }]}
+                        return (
+                            <TouchableOpacity
+                                key={route.key}
+                                accessibilityRole="button"
+                                accessibilityState={isFocused ? { selected: true } : {}}
+                                onPress={onPress}
+                                style={[styles.tabItem]}
+                            >
+                                {isFocused ? (
+                                    <LinearGradient
+                                        colors={[colors.primary, colors.champagne]}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={[StyleSheet.absoluteFillObject, { borderRadius: 11 }]}
+                                    />
+                                ) : null}
+
+                                <MaterialIcons
+                                    name={config.icon as any}
+                                    size={18}
+                                    color={isFocused ? '#fff' : 'rgba(255,255,255,0.4)'}
+                                    style={{ marginBottom: 2 }}
                                 />
-                            ) : null}
-
-                            <MaterialIcons
-                                name={config.icon as any}
-                                size={18}
-                                color={isFocused ? '#fff' : 'rgba(255,255,255,0.4)'}
-                                style={{ marginBottom: 2 }}
-                            />
-                            <Text style={[styles.tabText, isFocused && styles.tabTextActive]}>
-                                {config.label}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                })}
+                                <Text style={[styles.tabText, isFocused && styles.tabTextActive]}>
+                                    {config.label}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
             </View>
-        </View>
+        </SafeAreaView>
     );
 }
 
 export function BookAndChatScreen() {
+    const { isTabBarVisible } = useTabBar();
+
     return (
-        <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top']}>
-                <TopTab.Navigator
-                    tabBar={props => <CustomTabBar {...props} />}
-                    style={{ backgroundColor: colors.background }}
-                    screenOptions={{
-                        swipeEnabled: true,
-                        lazy: true,
-                        lazyPlaceholder: LazyPlaceholder,
-                        sceneStyle: { backgroundColor: colors.background },
-                    }}
-                >
-                    <TopTab.Screen
-                        name="Appointments"
-                        component={AppointmentStackNavigator}
-                        options={{ title: 'Appointments' }}
-                    />
-                    <TopTab.Screen
-                        name="BookNew"
-                        component={BookingStackNavigator}
-                        options={{ title: 'Book New' }}
-                    />
-                    <TopTab.Screen
-                        name="Messages"
-                        component={MessagesStackNavigator}
-                        options={{ title: 'Messages' }}
-                    />
-                </TopTab.Navigator>
-            </SafeAreaView>
-        </ScreenBackground>
+        <TopTab.Navigator
+            tabBar={props => <CustomTabBar {...props} />}
+            style={{ backgroundColor: colors.background }}
+            screenOptions={{
+                swipeEnabled: isTabBarVisible,
+                lazy: true,
+                lazyPlaceholder: LazyPlaceholder,
+                sceneStyle: { backgroundColor: colors.background },
+            }}
+        >
+            <TopTab.Screen
+                name="Appointments"
+                component={AppointmentStackNavigator}
+                options={{ title: 'Appointments' }}
+            />
+            <TopTab.Screen
+                name="BookNew"
+                component={BookingStackNavigator}
+                options={{ title: 'Book New' }}
+            />
+            <TopTab.Screen
+                name="Messages"
+                component={MessagesStackNavigator}
+                options={{ title: 'Messages' }}
+            />
+        </TopTab.Navigator>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.background, // Ensure this matches the screen background
-    },
     tabContainer: {
         paddingHorizontal: 20,
         paddingBottom: 8, // Reduced from 12

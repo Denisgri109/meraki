@@ -1,0 +1,813 @@
+/**
+ * LessonQAChat — Real-time, lesson-specific Q&A chat component.
+ *
+ * Embedded within the LessonScreen so students can ask questions and
+ * share photos while learning, and the instructor (owner) can respond instantly.
+ *
+ * Features:
+ *   - Real-time messaging via Supabase channel subscription
+ *   - Photo upload support (camera + gallery)
+ *   - Threaded replies (reply to a specific message)
+ *   - Pin important answers (owner only)
+ *   - Push notification trigger when a student asks a question
+ *   - Visual distinction between student questions and instructor answers
+ */
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+    View,
+    StyleSheet,
+    FlatList,
+    TouchableOpacity,
+    TextInput,
+    KeyboardAvoidingView,
+    Platform,
+    Image,
+    Alert,
+    ActivityIndicator,
+    Dimensions,
+} from 'react-native';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { MerakiText, Card } from '../../components/ui';
+import { colors, spacing, layout } from '../../theme';
+
+const { width } = Dimensions.get('window');
+
+type QAMessage = {
+    id: string;
+    lesson_id: string;
+    course_id: string;
+    sender_id: string;
+    content: string | null;
+    media_url: string | null;
+    media_type: string | null;
+    is_question: boolean;
+    is_pinned: boolean;
+    parent_message_id: string | null;
+    created_at: string;
+    sender?: {
+        full_name: string | null;
+        avatar_url: string | null;
+        role: string;
+    };
+};
+
+type Props = {
+    lessonId: string;
+    courseId: string;
+    instructorId: string | null;
+    isInstructor: boolean;
+};
+
+export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }: Props) {
+    const { user, profile } = useAuth();
+    const [messages, setMessages] = useState<QAMessage[]>([]);
+    const [messageText, setMessageText] = useState('');
+    const [sending, setSending] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [replyTo, setReplyTo] = useState<QAMessage | null>(null);
+    const [imageUploading, setImageUploading] = useState(false);
+    const flatListRef = useRef<FlatList>(null);
+
+    // ─── Load Messages ───────────────────────────────────────────────────────
+
+    const loadMessages = useCallback(async () => {
+        try {
+            const { data, error } = await supabase
+                .from('lesson_qa_messages')
+                .select('*, sender:profiles!lesson_qa_messages_sender_id_fkey(full_name, avatar_url, role)')
+                .eq('lesson_id', lessonId)
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+            setMessages((data as unknown as QAMessage[]) || []);
+        } catch (e) {
+            console.error('Error loading QA messages:', e);
+        } finally {
+            setLoading(false);
+        }
+    }, [lessonId]);
+
+    // ─── Real-Time Subscription ──────────────────────────────────────────────
+
+    useEffect(() => {
+        loadMessages();
+
+        const channel = supabase
+            .channel(`lesson_qa_${lessonId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'lesson_qa_messages',
+                    filter: `lesson_id=eq.${lessonId}`,
+                },
+                async (payload) => {
+                    // Fetch the full message with sender profile
+                    const { data } = await supabase
+                        .from('lesson_qa_messages')
+                        .select('*, sender:profiles!lesson_qa_messages_sender_id_fkey(full_name, avatar_url, role)')
+                        .eq('id', payload.new.id)
+                        .single();
+
+                    if (data) {
+                        setMessages(prev => {
+                            // Avoid duplicates
+                            if (prev.find(m => m.id === (data as any).id)) return prev;
+                            return [...prev, data as unknown as QAMessage];
+                        });
+                        // Auto-scroll to bottom
+                        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+                    }
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'lesson_qa_messages',
+                    filter: `lesson_id=eq.${lessonId}`,
+                },
+                async (payload) => {
+                    const { data } = await supabase
+                        .from('lesson_qa_messages')
+                        .select('*, sender:profiles!lesson_qa_messages_sender_id_fkey(full_name, avatar_url, role)')
+                        .eq('id', payload.new.id)
+                        .single();
+
+                    if (data) {
+                        setMessages(prev => prev.map(m =>
+                            m.id === (data as any).id ? (data as unknown as QAMessage) : m
+                        ));
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [lessonId, loadMessages]);
+
+    // ─── Send Message ────────────────────────────────────────────────────────
+
+    const sendMessage = async (content: string | null, mediaUrl: string | null = null, mediaType: string | null = null) => {
+        if (!user || (!content?.trim() && !mediaUrl)) return;
+
+        setSending(true);
+        try {
+            const { error } = await supabase
+                .from('lesson_qa_messages')
+                .insert({
+                    lesson_id: lessonId,
+                    course_id: courseId,
+                    sender_id: user.id,
+                    content: content?.trim() || null,
+                    media_url: mediaUrl,
+                    media_type: mediaType,
+                    is_question: !isInstructor,
+                    parent_message_id: replyTo?.id || null,
+                });
+
+            if (error) throw error;
+
+            setMessageText('');
+            setReplyTo(null);
+
+            // Send push notification to instructor when student asks a question
+            if (!isInstructor && instructorId) {
+                try {
+                    const { data: instructorProfile } = await supabase
+                        .from('profiles')
+                        .select('push_token')
+                        .eq('id', instructorId)
+                        .single();
+
+                    if (instructorProfile?.push_token) {
+                        await sendPushNotification(
+                            instructorProfile.push_token,
+                            `${profile?.full_name || 'A student'} asked a question`,
+                            content?.trim() || 'Sent a photo',
+                            { type: 'lesson_qa', lesson_id: lessonId, course_id: courseId }
+                        );
+                    }
+                } catch (pushErr) {
+                    console.log('Push notification skipped:', pushErr);
+                }
+            }
+
+            // Notify student when instructor responds
+            if (isInstructor && replyTo?.sender_id) {
+                try {
+                    const { data: studentProfile } = await supabase
+                        .from('profiles')
+                        .select('push_token')
+                        .eq('id', replyTo.sender_id)
+                        .single();
+
+                    if (studentProfile?.push_token) {
+                        await sendPushNotification(
+                            studentProfile.push_token,
+                            'Instructor replied to your question!',
+                            content?.trim() || 'Sent feedback',
+                            { type: 'lesson_qa', lesson_id: lessonId, course_id: courseId }
+                        );
+                    }
+                } catch (pushErr) {
+                    console.log('Push notification skipped:', pushErr);
+                }
+            }
+        } catch (err: any) {
+            Alert.alert('Error', err.message || 'Failed to send message');
+        } finally {
+            setSending(false);
+        }
+    };
+
+    // ─── Image Upload ────────────────────────────────────────────────────────
+
+    const pickImage = async () => {
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission Required', 'Please enable photo library access.');
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                quality: 0.7,
+                base64: true,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                const asset = result.assets[0];
+                await uploadAndSendImage(asset);
+            }
+        } catch (err) {
+            console.error('Image picker error:', err);
+        }
+    };
+
+    const takePhoto = async () => {
+        try {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission Required', 'Please enable camera access.');
+                return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: true,
+                quality: 0.7,
+                base64: true,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                const asset = result.assets[0];
+                await uploadAndSendImage(asset);
+            }
+        } catch (err) {
+            console.error('Camera error:', err);
+        }
+    };
+
+    const uploadAndSendImage = async (asset: ImagePicker.ImagePickerAsset) => {
+        if (!user || !asset.base64) return;
+        setImageUploading(true);
+        try {
+            const fileName = `${user.id}/${lessonId}/${Date.now()}.jpg`;
+            const { error: uploadError } = await supabase.storage
+                .from('lesson-qa-photos')
+                .upload(fileName, decode(asset.base64), {
+                    contentType: 'image/jpeg',
+                    upsert: false,
+                });
+
+            // If bucket doesn't exist, fall back to homework-submissions bucket
+            let publicUrl: string;
+            if (uploadError) {
+                const fallbackFileName = `qa_${user.id}_${lessonId}_${Date.now()}.jpg`;
+                const { error: fallbackError } = await supabase.storage
+                    .from('homework-submissions')
+                    .upload(fallbackFileName, decode(asset.base64), {
+                        contentType: 'image/jpeg',
+                        upsert: false,
+                    });
+                if (fallbackError) throw fallbackError;
+                const { data: urlData } = supabase.storage
+                    .from('homework-submissions')
+                    .getPublicUrl(fallbackFileName);
+                publicUrl = urlData.publicUrl;
+            } else {
+                const { data: urlData } = supabase.storage
+                    .from('lesson-qa-photos')
+                    .getPublicUrl(fileName);
+                publicUrl = urlData.publicUrl;
+            }
+
+            await sendMessage(messageText.trim() || null, publicUrl, 'image');
+        } catch (err: any) {
+            Alert.alert('Upload Failed', err.message || 'Could not upload image');
+        } finally {
+            setImageUploading(false);
+        }
+    };
+
+    // ─── Pin / Unpin ─────────────────────────────────────────────────────────
+
+    const togglePin = async (messageId: string, currentlyPinned: boolean) => {
+        if (!isInstructor) return;
+        try {
+            await supabase
+                .from('lesson_qa_messages')
+                .update({ is_pinned: !currentlyPinned })
+                .eq('id', messageId);
+        } catch (err) {
+            console.error('Toggle pin error:', err);
+        }
+    };
+
+    // ─── Render ──────────────────────────────────────────────────────────────
+
+    const renderMessage = ({ item }: { item: QAMessage }) => {
+        const isOwn = item.sender_id === user?.id;
+        const isInstructorMsg = item.sender?.role === 'owner' || item.sender_id === instructorId;
+        const parentMsg = item.parent_message_id
+            ? messages.find(m => m.id === item.parent_message_id)
+            : null;
+
+        return (
+            <View style={[styles.messageContainer, isOwn && styles.messageContainerOwn]}>
+                {item.is_pinned && (
+                    <View style={styles.pinnedBadge}>
+                        <MaterialIcons name="push-pin" size={12} color={colors.accent} />
+                        <MerakiText variant="caption" color={colors.accent}>Pinned</MerakiText>
+                    </View>
+                )}
+                <TouchableOpacity
+                    style={[
+                        styles.messageBubble,
+                        isOwn ? styles.bubbleOwn : styles.bubbleOther,
+                        isInstructorMsg && !isOwn && styles.bubbleInstructor,
+                        item.is_pinned && styles.bubblePinned,
+                    ]}
+                    onLongPress={() => {
+                        if (isInstructor) {
+                            Alert.alert(
+                                'Message Actions',
+                                undefined,
+                                [
+                                    { text: item.is_pinned ? 'Unpin' : 'Pin', onPress: () => togglePin(item.id, item.is_pinned) },
+                                    { text: 'Reply', onPress: () => setReplyTo(item) },
+                                    { text: 'Cancel', style: 'cancel' },
+                                ]
+                            );
+                        } else {
+                            setReplyTo(item);
+                        }
+                    }}
+                    activeOpacity={0.8}
+                >
+                    {/* Sender name */}
+                    {!isOwn && (
+                        <View style={styles.senderRow}>
+                            <MerakiText variant="caption" color={isInstructorMsg ? colors.accent : '#F472B6'} style={{ fontWeight: '700' }}>
+                                {item.sender?.full_name || 'Anonymous'}
+                            </MerakiText>
+                            {isInstructorMsg && (
+                                <View style={styles.instructorBadge}>
+                                    <MerakiText style={styles.instructorBadgeText}>Instructor</MerakiText>
+                                </View>
+                            )}
+                        </View>
+                    )}
+
+                    {/* Reply context */}
+                    {parentMsg && (
+                        <View style={styles.replyContext}>
+                            <View style={styles.replyBar} />
+                            <MerakiText variant="caption" color={colors.textMuted} numberOfLines={2}>
+                                {parentMsg.sender?.full_name}: {parentMsg.content || '📷 Photo'}
+                            </MerakiText>
+                        </View>
+                    )}
+
+                    {/* Media */}
+                    {item.media_url && (
+                        <Image source={{ uri: item.media_url }} style={styles.messageImage} resizeMode="cover" />
+                    )}
+
+                    {/* Content */}
+                    {item.content && (
+                        <MerakiText variant="body" color={isOwn ? '#FFF' : colors.text}>
+                            {item.content}
+                        </MerakiText>
+                    )}
+
+                    {/* Timestamp */}
+                    <MerakiText variant="caption" color={isOwn ? 'rgba(255,255,255,0.5)' : colors.textMuted} style={styles.timestamp}>
+                        {formatTime(item.created_at)}
+                    </MerakiText>
+                </TouchableOpacity>
+            </View>
+        );
+    };
+
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator color={colors.accent} />
+                <MerakiText variant="caption" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
+                    Loading Q&A...
+                </MerakiText>
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.container}>
+            {/* Header */}
+            <View style={styles.qaHeader}>
+                <MaterialCommunityIcons name="chat-question" size={18} color={colors.accent} />
+                <MerakiText variant="bodyBold" style={{ marginLeft: 8 }}>Live Q&A</MerakiText>
+                <View style={styles.liveIndicator}>
+                    <View style={styles.liveDot} />
+                    <MerakiText variant="caption" color={colors.success}>Live</MerakiText>
+                </View>
+                <MerakiText variant="caption" color={colors.textMuted} style={{ marginLeft: 'auto' }}>
+                    {messages.length} {messages.length === 1 ? 'message' : 'messages'}
+                </MerakiText>
+            </View>
+
+            {/* Pinned Messages */}
+            {messages.filter(m => m.is_pinned).length > 0 && (
+                <View style={styles.pinnedSection}>
+                    {messages.filter(m => m.is_pinned).map(msg => (
+                        <View key={msg.id} style={styles.pinnedItem}>
+                            <MaterialIcons name="push-pin" size={14} color={colors.accent} />
+                            <MerakiText variant="caption" color={colors.textSecondary} numberOfLines={2} style={{ flex: 1, marginLeft: 6 }}>
+                                <MerakiText variant="caption" color={colors.accent}>{msg.sender?.full_name}: </MerakiText>
+                                {msg.content || '📷 Photo'}
+                            </MerakiText>
+                        </View>
+                    ))}
+                </View>
+            )}
+
+            {/* Messages List */}
+            <FlatList
+                ref={flatListRef}
+                data={messages}
+                keyExtractor={(item) => item.id}
+                renderItem={renderMessage}
+                contentContainerStyle={styles.messagesList}
+                showsVerticalScrollIndicator={false}
+                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+                ListEmptyComponent={
+                    <View style={styles.emptyChat}>
+                        <MaterialCommunityIcons name="chat-question-outline" size={40} color={colors.textMuted} style={{ opacity: 0.3 }} />
+                        <MerakiText variant="body" color={colors.textMuted} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
+                            {isInstructor
+                                ? 'Students can ask questions here during the lesson.'
+                                : 'Ask a question or share your work for instant feedback!'}
+                        </MerakiText>
+                    </View>
+                }
+            />
+
+            {/* Reply Bar */}
+            {replyTo && (
+                <View style={styles.replyBar2}>
+                    <View style={styles.replyContent}>
+                        <View style={styles.replyAccent} />
+                        <View style={{ flex: 1 }}>
+                            <MerakiText variant="caption" color={colors.accent}>
+                                Replying to {replyTo.sender?.full_name || 'message'}
+                            </MerakiText>
+                            <MerakiText variant="caption" color={colors.textMuted} numberOfLines={1}>
+                                {replyTo.content || '📷 Photo'}
+                            </MerakiText>
+                        </View>
+                    </View>
+                    <TouchableOpacity onPress={() => setReplyTo(null)}>
+                        <MaterialIcons name="close" size={18} color={colors.textMuted} />
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {/* Input Bar */}
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                <View style={styles.inputBar}>
+                    {/* Camera button */}
+                    <TouchableOpacity
+                        style={styles.mediaBtn}
+                        onPress={() => {
+                            Alert.alert('Add Photo', 'Choose a source', [
+                                { text: 'Camera', onPress: takePhoto },
+                                { text: 'Gallery', onPress: pickImage },
+                                { text: 'Cancel', style: 'cancel' },
+                            ]);
+                        }}
+                        disabled={imageUploading}
+                    >
+                        {imageUploading ? (
+                            <ActivityIndicator size="small" color={colors.accent} />
+                        ) : (
+                            <MaterialIcons name="add-a-photo" size={20} color={colors.textSecondary} />
+                        )}
+                    </TouchableOpacity>
+
+                    <TextInput
+                        style={styles.textInput}
+                        placeholder={isInstructor ? "Reply to students..." : "Ask a question..."}
+                        placeholderTextColor={colors.textMuted}
+                        value={messageText}
+                        onChangeText={setMessageText}
+                        multiline
+                        maxLength={1000}
+                    />
+
+                    <TouchableOpacity
+                        style={[styles.sendBtn, (!messageText.trim() || sending) && styles.sendBtnDisabled]}
+                        onPress={() => sendMessage(messageText)}
+                        disabled={!messageText.trim() || sending}
+                    >
+                        {sending ? (
+                            <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                            <MaterialIcons name="send" size={18} color="#FFF" />
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView>
+        </View>
+    );
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function formatTime(dateString: string): string {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+
+    const hours = date.getHours().toString().padStart(2, '0');
+    const mins = date.getMinutes().toString().padStart(2, '0');
+
+    if (date.toDateString() === now.toDateString()) return `${hours}:${mins}`;
+    return `${date.getDate()}/${date.getMonth() + 1} ${hours}:${mins}`;
+}
+
+async function sendPushNotification(
+    pushToken: string,
+    title: string,
+    body: string,
+    data: Record<string, string>
+) {
+    try {
+        await fetch('https://exp.host/--/api/v2/push/send', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                to: pushToken,
+                sound: 'default',
+                title,
+                body,
+                data,
+                channelId: 'messages',
+            }),
+        });
+    } catch (err) {
+        console.log('Push notification send error:', err);
+    }
+}
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: 'rgba(15,15,19,0.5)',
+        borderRadius: layout.borderRadius.xl,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
+        overflow: 'hidden',
+        maxHeight: 500,
+    },
+    loadingContainer: {
+        padding: spacing.xl,
+        alignItems: 'center',
+    },
+
+    // Header
+    qaHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm + 2,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.06)',
+    },
+    liveIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: spacing.sm,
+        gap: 4,
+    },
+    liveDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: colors.success,
+    },
+
+    // Pinned
+    pinnedSection: {
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(212,168,83,0.04)',
+    },
+    pinnedItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 4,
+    },
+
+    // Messages
+    messagesList: {
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+    },
+    messageContainer: {
+        marginBottom: spacing.sm,
+        maxWidth: '85%',
+        alignSelf: 'flex-start',
+    },
+    messageContainerOwn: {
+        alignSelf: 'flex-end',
+    },
+    messageBubble: {
+        padding: spacing.sm + 2,
+        borderRadius: layout.borderRadius.lg,
+        maxWidth: '100%',
+    },
+    bubbleOwn: {
+        backgroundColor: 'rgba(212,168,83,0.20)',
+        borderBottomRightRadius: 4,
+    },
+    bubbleOther: {
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        borderBottomLeftRadius: 4,
+    },
+    bubbleInstructor: {
+        backgroundColor: 'rgba(212,168,83,0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(212,168,83,0.15)',
+    },
+    bubblePinned: {
+        borderWidth: 1,
+        borderColor: 'rgba(212,168,83,0.25)',
+    },
+
+    senderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+        gap: 6,
+    },
+    instructorBadge: {
+        backgroundColor: 'rgba(212,168,83,0.15)',
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        borderRadius: 6,
+    },
+    instructorBadgeText: {
+        fontSize: 9,
+        fontWeight: '700' as any,
+        color: colors.accent,
+        textTransform: 'uppercase' as any,
+        letterSpacing: 0.5,
+    },
+
+    replyContext: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 6,
+        paddingLeft: 8,
+    },
+    replyBar: {
+        width: 2,
+        backgroundColor: colors.accent,
+        marginRight: 8,
+        borderRadius: 1,
+        minHeight: 16,
+    },
+
+    messageImage: {
+        width: width * 0.55,
+        height: width * 0.55 * 0.75,
+        borderRadius: layout.borderRadius.md,
+        marginBottom: 6,
+    },
+
+    timestamp: { marginTop: 4, fontSize: 10 },
+
+    pinnedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 2,
+    },
+
+    // Reply bar
+    replyBar2: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(212,168,83,0.04)',
+    },
+    replyContent: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    replyAccent: {
+        width: 3,
+        height: '100%',
+        backgroundColor: colors.accent,
+        borderRadius: 2,
+        marginRight: 8,
+        minHeight: 30,
+    },
+
+    // Input
+    inputBar: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.06)',
+        gap: spacing.sm,
+    },
+    mediaBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    textInput: {
+        flex: 1,
+        color: colors.text,
+        fontSize: 14,
+        maxHeight: 80,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: layout.borderRadius.lg,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    sendBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.accent,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    sendBtnDisabled: {
+        opacity: 0.4,
+    },
+
+    // Empty
+    emptyChat: {
+        alignItems: 'center',
+        paddingVertical: spacing.xl,
+        paddingHorizontal: spacing.lg,
+    },
+});
+
+export default LessonQAChat;

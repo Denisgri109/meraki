@@ -8,6 +8,10 @@ import {
     ActivityIndicator,
     RefreshControl,
     Dimensions,
+    TextInput,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, ScreenBackground, Button, MerakiText } from '../../components/ui';
@@ -34,6 +39,9 @@ export function PortfolioScreen() {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<Portfolio | null>(null);
+    const [editDescription, setEditDescription] = useState('');
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -171,6 +179,7 @@ export function PortfolioScreen() {
 
                     if (error) throw error;
                     setImages(prev => prev.filter(img => img.id !== item.id));
+                    setSelectedItem(null);
                 } catch (error: any) {
                     showAlert('Error', 'Failed to delete image', 'error');
                 }
@@ -183,10 +192,42 @@ export function PortfolioScreen() {
         );
     };
 
+    const openDetail = (item: Portfolio) => {
+        setSelectedItem(item);
+        setEditDescription(item.description || '');
+    };
+
+    const saveDescription = async () => {
+        if (!selectedItem) return;
+        setSaving(true);
+        try {
+            const { error } = await supabase
+                .from('portfolios')
+                .update({ description: editDescription.trim() || null })
+                .eq('id', selectedItem.id);
+
+            if (error) throw error;
+
+            setImages(prev =>
+                prev.map(img =>
+                    img.id === selectedItem.id
+                        ? { ...img, description: editDescription.trim() || null }
+                        : img
+                )
+            );
+            setSelectedItem(prev => prev ? { ...prev, description: editDescription.trim() || null } : null);
+            showAlert('Saved', 'Description updated successfully', 'success');
+        } catch (error: any) {
+            showAlert('Error', error.message || 'Failed to save description', 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const renderItem = ({ item }: { item: Portfolio }) => (
         <TouchableOpacity
             style={styles.itemContainer}
-            onPress={() => deleteImage(item)}
+            onPress={() => openDetail(item)}
             activeOpacity={0.8}
         >
             <Image
@@ -194,11 +235,104 @@ export function PortfolioScreen() {
                 style={styles.image}
                 resizeMode="cover"
             />
-            <View style={styles.deleteOverlay}>
-                <MaterialCommunityIcons name="trash-can-outline" size={14} color="#FFF" />
-            </View>
+            {item.description ? (
+                <View style={styles.descriptionBadge}>
+                    <MaterialCommunityIcons name="text" size={12} color="#fff" />
+                </View>
+            ) : null}
         </TouchableOpacity>
     );
+
+    const renderDetailModal = () => {
+        if (!selectedItem) return null;
+
+        const descriptionChanged = (editDescription.trim() || '') !== (selectedItem.description || '');
+
+        return (
+            <View style={styles.modalOverlay}>
+                <TouchableOpacity
+                    style={StyleSheet.absoluteFill}
+                    activeOpacity={1}
+                    onPress={() => setSelectedItem(null)}
+                />
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    style={styles.modalKeyboard}
+                >
+                    <View style={styles.modalContent}>
+                        <View style={styles.dragHandle} />
+
+                        <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+                            {/* Image */}
+                            <Image
+                                source={{ uri: selectedItem.image_url }}
+                                style={styles.modalImage}
+                                resizeMode="cover"
+                            />
+
+                            {/* Description Input */}
+                            <View style={styles.descriptionSection}>
+                                <MerakiText variant="label" color={colors.textMuted} style={styles.descriptionLabel}>
+                                    DESCRIPTION
+                                </MerakiText>
+                                <TextInput
+                                    style={styles.descriptionInput}
+                                    value={editDescription}
+                                    onChangeText={setEditDescription}
+                                    placeholder="Add a description for this work..."
+                                    placeholderTextColor={colors.textMuted}
+                                    multiline
+                                    maxLength={500}
+                                    textAlignVertical="top"
+                                />
+                                <MerakiText variant="caption" color={colors.textMuted} style={{ alignSelf: 'flex-end', marginTop: 4 }}>
+                                    {editDescription.length}/500
+                                </MerakiText>
+                            </View>
+
+                            <View style={{ height: 80 }} />
+                        </ScrollView>
+
+                        {/* Actions */}
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={styles.deleteButton}
+                                onPress={() => deleteImage(selectedItem)}
+                                activeOpacity={0.7}
+                            >
+                                <MaterialCommunityIcons name="trash-can-outline" size={20} color="#F85149" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                activeOpacity={0.7}
+                                onPress={saveDescription}
+                                disabled={saving || !descriptionChanged}
+                                style={{ flex: 1 }}
+                            >
+                                <LinearGradient
+                                    colors={descriptionChanged ? ['#D4A853', '#B8912E'] : ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.04)']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={[styles.saveButton, !descriptionChanged && { opacity: 0.5 }]}
+                                >
+                                    {saving ? (
+                                        <ActivityIndicator color="#fff" size="small" />
+                                    ) : (
+                                        <>
+                                            <MaterialCommunityIcons name="content-save-outline" size={18} color="#fff" />
+                                            <MerakiText variant="body" style={{ color: '#fff', fontWeight: '600' }}>
+                                                Save Description
+                                            </MerakiText>
+                                        </>
+                                    )}
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </View>
+        );
+    };
 
     return (
         <ScreenBackground>
@@ -260,6 +394,8 @@ export function PortfolioScreen() {
                         disabled={uploading}
                     />
                 </View>
+                {/* Detail Modal */}
+                {selectedItem && renderDetailModal()}
             </SafeAreaView>
         </ScreenBackground>
     );
@@ -319,14 +455,14 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
-    deleteOverlay: {
+    descriptionBadge: {
         position: 'absolute',
-        top: 8,
-        right: 8,
+        bottom: 8,
+        left: 8,
         backgroundColor: 'rgba(0,0,0,0.6)',
         borderRadius: 10,
-        width: 28,
-        height: 28,
+        width: 24,
+        height: 24,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -352,6 +488,85 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: colors.border,
         backgroundColor: colors.surface,
+    },
+    // ─── Detail Modal ──────────────────────────────────────────────
+    modalOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        justifyContent: 'flex-end',
+    },
+    modalKeyboard: {
+        flex: 1,
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: colors.surface,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        maxHeight: '85%',
+        paddingHorizontal: spacing.lg,
+        paddingBottom: spacing.lg,
+    },
+    dragHandle: {
+        width: 36,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        alignSelf: 'center',
+        marginTop: spacing.md,
+        marginBottom: spacing.md,
+    },
+    modalImage: {
+        width: '100%',
+        height: 280,
+        borderRadius: 16,
+        marginBottom: spacing.lg,
+    },
+    descriptionSection: {
+        marginBottom: spacing.md,
+    },
+    descriptionLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 1.2,
+        marginBottom: spacing.sm,
+    },
+    descriptionInput: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 14,
+        padding: spacing.md,
+        color: colors.text,
+        fontSize: 14,
+        minHeight: 100,
+        lineHeight: 22,
+    },
+    modalActions: {
+        flexDirection: 'row',
+        gap: 12,
+        paddingTop: spacing.md,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.06)',
+    },
+    deleteButton: {
+        width: 50,
+        height: 50,
+        borderRadius: 14,
+        backgroundColor: 'rgba(248, 81, 73, 0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(248, 81, 73, 0.25)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    saveButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        height: 50,
+        borderRadius: 14,
     },
 });
 

@@ -153,6 +153,12 @@ export function OwnerSuppliesScreen() {
                         </View>
                     </View>
                 </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteSupply(item)}
+                >
+                    <MaterialCommunityIcons name="trash-can-outline" size={18} color={'#FF453A'} />
+                </TouchableOpacity>
             </Card>
         );
     };
@@ -174,10 +180,7 @@ export function OwnerSuppliesScreen() {
                         style={styles.addButton}
                         onPress={() => (navigation as any).navigate('AddOwnerSupply')}
                     >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                            <MaterialCommunityIcons name="plus" size={16} color={colors.text} />
-                            <MerakiText variant="caption" style={styles.addButtonText}>Add</MerakiText>
-                        </View>
+                        <MaterialCommunityIcons name="plus" size={24} color={colors.text} />
                     </TouchableOpacity>
                 </View>
 
@@ -246,14 +249,12 @@ const styles = StyleSheet.create({
         color: colors.text,
     },
     addButton: {
-        backgroundColor: colors.primary,
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        borderRadius: 20,
-    },
-    addButtonText: {
-        color: colors.text,
-        fontWeight: '600',
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     alertBanner: {
         flexDirection: 'row',
@@ -373,6 +374,12 @@ const styles = StyleSheet.create({
     emptyButtonText: {
         color: colors.text,
         fontWeight: '600',
+    },
+    deleteButton: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        paddingTop: spacing.sm,
+        paddingRight: spacing.xs,
     },
 });
 

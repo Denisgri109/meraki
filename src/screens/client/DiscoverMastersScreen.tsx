@@ -15,8 +15,18 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing, gradients } from '../../theme';
+
+// Haversine distance in km between two lat/lng points
+function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 type Master = {
     id: string;
@@ -24,6 +34,8 @@ type Master = {
     avatar_url: string | null;
     city: string | null;
     country: string | null;
+    latitude: number | null;
+    longitude: number | null;
     bio: string | null;
     services_count: number;
     rating: number | null;
@@ -33,41 +45,25 @@ type Master = {
 
 export function DiscoverMastersScreen() {
     const navigation = useNavigation<any>();
+    const { profile } = useAuth();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [masters, setMasters] = useState<Master[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [userCity, setUserCity] = useState<string | null>(null);
-    const [userCountry, setUserCountry] = useState<string | null>(null);
+
+    // Use profile as fallback
+    const [userCity, setUserCity] = useState<string | null>(profile?.city || null);
+    const [userCountry, setUserCountry] = useState<string | null>(profile?.country || null);
+    const [userLat, setUserLat] = useState<number | null>((profile as any)?.latitude || null);
+    const [userLng, setUserLng] = useState<number | null>((profile as any)?.longitude || null);
+    const searchRadiusKm: number = (profile as any)?.search_radius_km ?? 50;
 
     useEffect(() => {
         const init = async () => {
-            // 1. Try to get location from device first
             await detectUserLocation();
-            // 2. Then load masters (which will use the location state if set, or we might need to rely on the effect dependency if we want it to react)
-            // Actually, better to chain them or use separate effects. 
-            // Let's keep it simple: detect location, then load masters. 
-            // But detectUserLocation is async and sets state.
-            // So we should depend on userCountry/userCity or just load initially.
-
-            // To ensure we filter correctly on first load with location, we should wait for location or timeout, then load.
-            // But for now, let's just trigger loadMasters. The filter is client-side so we can just re-filter when location updates.
         };
         init();
     }, []);
-
-    // Re-filter when user location changes
-    useEffect(() => {
-        if (userCountry) {
-            // Optionally reload or just rely on the existing 'masters' state if we were fetching all. 
-            // But we are doing client side filtering on 'masters' state? 
-            // No, 'masters' state is the raw list. 'filteredMasters' is derived. 
-            // Wait, 'loadMasters' sets 'masters'. 
-            // Let's check 'loadMasters'. It fetches *all* masters. 
-            // So we can just use derived state for filtering.
-        }
-    }, [userCountry]);
-
 
     const detectUserLocation = async () => {
         try {
@@ -86,21 +82,18 @@ export function DiscoverMastersScreen() {
                 if (address?.country) {
                     setUserCountry(address.country);
                 }
+                setUserLat(location.coords.latitude);
+                setUserLng(location.coords.longitude);
             }
         } catch (error) {
             console.log('Location detection failed:', error);
         } finally {
-            // Load masters after attempting location to avoid flash of unfiltered content if possible, 
-            // but 'masters' is fetched independently. 
             loadMasters();
         }
     };
 
     const loadMasters = async () => {
         try {
-            // Get all visible masters 
-            // Note: In a real app with many users, we should filter by country on the SERVER side (Supabase).
-            // But for now, client-side filtering as per current architecture.
             const { data: mastersData, error } = await supabase
                 .from('profiles')
                 .select(`
@@ -109,6 +102,8 @@ export function DiscoverMastersScreen() {
                     avatar_url,
                     city,
                     country,
+                    latitude,
+                    longitude,
                     bio
                 `)
                 .in('role', ['master', 'owner'])
@@ -161,17 +156,24 @@ export function DiscoverMastersScreen() {
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        // Re-detect location on refresh too, in case user moved
         detectUserLocation();
     }, []);
 
     const filteredMasters = masters.filter((master) => {
-        // 1. Country Filter (Strict)
+        // 1. Country & Radius Filter (Strict)
         if (userCountry) {
             if (!master.country) return false;
             const uCountry = userCountry.toLowerCase().trim();
             const mCountry = master.country.toLowerCase().trim();
             if (uCountry !== mCountry) return false;
+
+            if (searchRadiusKm > 0 && userLat && userLng && master.latitude && master.longitude) {
+                const dist = haversineDistanceKm(userLat, userLng, master.latitude, master.longitude);
+                if (dist > searchRadiusKm) return false;
+            }
+        } else {
+            // Must have a known user country to display masters nearby
+            return false;
         }
 
         // 2. Search Query Filter

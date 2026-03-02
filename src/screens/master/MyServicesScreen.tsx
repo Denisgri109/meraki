@@ -28,7 +28,7 @@ type ServiceWithConfig = Service & {
 export function MyServicesScreen() {
     const navigation = useNavigation();
     const { user } = useAuth();
-    const { showAlert } = useModal();
+    const { showAlert, showConfirm } = useModal();
     const [services, setServices] = useState<ServiceWithConfig[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -148,6 +148,38 @@ export function MyServicesScreen() {
         }
     };
 
+    const handleDelete = (service: ServiceWithConfig) => {
+        showConfirm(
+            'Delete Service',
+            `Are you sure you want to delete "${service.name}"? This action cannot be undone.`,
+            async () => {
+                try {
+                    setUpdating(service.id);
+                    const { error } = await supabase
+                        .from('services')
+                        .delete()
+                        .eq('id', service.id);
+
+                    if (error) throw error;
+
+                    // Refresh list
+                    fetchData();
+                    showAlert('Success', 'Service deleted successfully', 'success');
+                } catch (error: any) {
+                    console.error('Delete error:', error);
+                    showAlert('Error', error.message || 'Failed to delete service', 'error');
+                } finally {
+                    setUpdating(null);
+                }
+            },
+            {
+                type: 'error',
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+            }
+        );
+    };
+
     const renderItem = ({ item }: { item: ServiceWithConfig }) => {
         const isEnabled = item.config?.is_available ?? false;
         const currentPrice = item.config?.custom_price?.toString() ?? '';
@@ -163,12 +195,20 @@ export function MyServicesScreen() {
                             Base: €{item.base_price} • {item.duration_minutes} min
                         </MerakiText>
                     </View>
-                    <Switch
-                        value={isEnabled}
-                        onValueChange={() => handleToggle(item)}
-                        trackColor={{ false: colors.textMuted, true: colors.primary }}
-                        thumbColor={'#fff'}
-                    />
+                    <View style={styles.actionRow}>
+                        <Switch
+                            value={isEnabled}
+                            onValueChange={() => handleToggle(item)}
+                            trackColor={{ false: colors.textMuted, true: colors.primary }}
+                            thumbColor={'#fff'}
+                        />
+                        <TouchableOpacity
+                            onPress={() => handleDelete(item)}
+                            style={styles.deleteButton}
+                        >
+                            <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.error || '#FF453A'} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {isEnabled && (
@@ -223,8 +263,7 @@ export function MyServicesScreen() {
                         onPress={() => (navigation as any).navigate('CreateService')}
                         style={styles.addButton}
                     >
-                        <MaterialCommunityIcons name="plus" size={18} color={colors.text} />
-                        <MerakiText variant="label" color={colors.text} style={{ marginLeft: 4 }}>New</MerakiText>
+                        <MaterialCommunityIcons name="plus" size={24} color={colors.text} />
                     </TouchableOpacity>
                 </View>
 
@@ -271,8 +310,24 @@ const styles = StyleSheet.create({
     inputGroup: { flex: 1 },
     label: { fontSize: 12, color: colors.textSecondary, marginBottom: spacing.xs },
     input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: spacing.sm, color: colors.text, borderWidth: 1, borderColor: colors.border },
-    addButton: { backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 20 },
+    addButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     addButtonText: { color: colors.text, fontSize: 14, fontWeight: '600' },
+    actionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm
+    },
+    deleteButton: {
+        padding: 4,
+        marginLeft: spacing.xs
+    },
     linkSuppliesButton: {
         flexDirection: 'row',
         alignItems: 'center',

@@ -1,0 +1,45 @@
+  ● Test suite failed to run
+
+    [BABEL] C:\Users\denis\Desktop\meraki_app\node_modules\react-native\jest\react-native-env.js: Cannot find module 'react-native-worklets/plugin'
+    Require stack:
+    - C:\Users\denis\Desktop\meraki_app\node_modules\react-native-reanimated\plugin\index.js
+    - C:\Users\denis\Desktop\meraki_app\node_modules\babel-preset-expo\build\index.js
+    - C:\Users\denis\Desktop\meraki_app\node_modules\@babel\core\lib\config\files\module-types.js
+    - C:\Users\denis\Desktop\meraki_app\node_modules\@babel\core\lib\config\files\configuration.js
+    - C:\Users\denis\Desktop\meraki_app\node_modules\@babel\core\lib\config\files\index.js
+    - C:\Users\denis\Desktop\meraki_app\node_modules\@babel\core\lib\index.js
+    - C:\Users\denis\Desktop\meraki_app\node_modules\jest-snapshot\build\index.js
+    - C:\Users\denis\Desktop\meraki_app\node_modules\jest-runtime\build\index.js
+    - C:\Users\denis\Desktop\meraki_app\node_modules\@jest\core\build\index.js
+    - C:\Users\denis\Desktop\meraki_app\node_modules\jest-cli\build\index.js
+    - C:\Users\denis\Desktop\meraki_app\node_modules\jest-cli\bin\jest.js
+    - C:\Users\denis\Desktop\meraki_app\node_modules\jest\bin\jest.js (While processing: "C:\\Users\\denis\\Desktop\\meraki_app\\node_modules\\babel-preset-expo\\build\\index.js")
+
+      at Object.<anonymous> (node_modules/react-native-reanimated/plugin/index.js:2:16)
+      at Object.newLoader (node_modules/pirates/lib/index.js:134:7)
+      at babelPresetExpo (node_modules/babel-preset-expo/build/index.js:291:62)
+      at sync (node_modules/@babel/core/lib/gensync-utils/async.js:30:25)
+      at sync (node_modules/gensync/index.js:182:19)
+      at node_modules/gensync/index.js:210:24
+      at node_modules/@babel/core/lib/config/full.js:180:21
+      at Function.<anonymous> (node_modules/@babel/core/lib/gensync-utils/async.js:21:3)
+      at evaluateSync (node_modules/gensync/index.js:251:28)
+      at Function.sync (node_modules/gensync/index.js:89:14)
+      at sync (node_modules/@babel/core/lib/gensync-utils/async.js:61:25)
+      at sync (node_modules/gensync/index.js:182:19)
+      at onFirstPause (node_modules/gensync/index.js:210:24)
+      at cachedFunction (node_modules/@babel/core/lib/config/caching.js:52:46)
+          at cachedFunction.next (<anonymous>)
+      at loadPresetDescriptor (node_modules/@babel/core/lib/config/full.js:292:43)
+          at loadPresetDescriptor.next (<anonymous>)
+      at recursePresetDescriptors (node_modules/@babel/core/lib/config/full.js:77:31)
+          at recursePresetDescriptors.next (<anonymous>)
+      at node_modules/@babel/core/lib/config/full.js:156:21
+      at loadFullConfig (node_modules/@babel/core/lib/config/full.js:113:5)
+          at loadFullConfig.next (<anonymous>)
+      at transform (node_modules/@babel/core/lib/transform.js:20:44)
+          at transform.next (<anonymous>)
+      at evaluateSync (node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at stopHiding - secret - don't use this - v1 (node_modules/@babel/core/lib/errors/rewrite-stack-trace.js:47:12)
+      at transformSync (node_modules/@babel/core/lib/transform.js:40:76)

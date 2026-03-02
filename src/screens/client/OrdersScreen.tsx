@@ -23,7 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Card, Button, ScreenBackground, MerakiText } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
-import { cancelPaymentIntent, capturePayment, eurosToCents } from '../../services/stripeService';
+import { cancelPaymentIntent, capturePayment, eurosToCents, processRefund } from '../../services/stripeService';
 
 // Cancellation policy constants
 const CANCELLATION_WINDOW_HOURS = 24;
@@ -59,7 +59,7 @@ export function OrdersScreen() {
     const navigation = useNavigation<any>();
     const handleBack = useMenuBackHandler();
     const { user, checkSession } = useAuth();
-    const { showAlert, showConfirm } = useModal();
+    const { showAlert, showModal } = useModal();
 
     // State
     const pagerRef = React.useRef<PagerView>(null);
@@ -201,16 +201,23 @@ export function OrdersScreen() {
     // --- Appointment Handlers ---
 
     const handleCancel = (appointment: Appointment) => {
-        showConfirm(
-            'Cancel Appointment',
-            'Are you sure you want to cancel this appointment?',
-            () => confirmCancel(appointment),
-            {
-                confirmText: 'Yes, Cancel',
-                cancelText: 'No, Keep it',
-                type: 'info'
-            }
-        );
+        const isLate = isWithinCancellationWindow(appointment.start_time);
+
+        let message = 'Are you sure you want to cancel this appointment?';
+        if (isLate) {
+            message = 'You are cancelling within 24 hours of the appointment. A 50% cancellation fee will apply. Only half of your payment will be refunded. Do you wish to proceed?';
+        } else {
+            message = 'You are cancelling more than 24 hours in advance. You will receive a full refund. Do you wish to proceed?';
+        }
+
+        showModal({
+            title: 'Cancel Appointment',
+            message,
+            confirmText: 'Yes, Cancel',
+            cancelText: 'No, Keep it',
+            type: 'warning', // changed from info to warning for cancellations
+            onConfirm: () => confirmCancel(appointment, isLate),
+        });
     };
 
     // Send notification to Master about cancellation
@@ -238,28 +245,40 @@ export function OrdersScreen() {
         }
     };
 
-    const confirmCancel = async (appointment: Appointment) => {
-        setCancellationLoading(true);
+    const confirmCancel = async (appointment: Appointment, isLate: boolean) => {
+        // Morph the modal into a loading state
+        showModal({
+            title: 'Cancelling...',
+            message: 'Processing your cancellation and refund...',
+            loading: true,
+            hideCancel: true,
+            type: 'warning',
+        });
 
         try {
-            // Release payment hold, no charge
+            // Process refund
             if (appointment.stripe_payment_intent_id) {
                 try {
-                    await supabase.functions.invoke('cancel-payment', {
-                        body: {
-                            payment_intent_id: appointment.stripe_payment_intent_id,
-                        }
-                    });
+                    if (isLate) {
+                        // 50% refund
+                        const refundAmount = Math.round(eurosToCents(appointment.price) / 2);
+                        await processRefund(appointment.stripe_payment_intent_id, refundAmount, 'requested_by_customer');
+                    } else {
+                        // Full refund
+                        await processRefund(appointment.stripe_payment_intent_id, undefined, 'requested_by_customer');
+                    }
                 } catch (e) {
-                    console.error('Failed to release payment hold:', e);
+                    console.error('Failed to process refund:', e);
+                    throw new Error('Failed to process refund. Please try again or contact support.');
                 }
             }
 
             // Update appointment status
+            const newStatus = isLate ? 'cancelled_charge' : 'cancelled_free';
             const { error } = await supabase
                 .from('appointments')
                 .update({
-                    status: 'cancelled_free',
+                    status: newStatus,
                     cancellation_reason: 'Cancellation by client',
                 } as any)
                 .eq('id', appointment.id);
@@ -274,8 +293,6 @@ export function OrdersScreen() {
             fetchData();
         } catch (error: any) {
             showAlert('Error', error.message, 'error');
-        } finally {
-            setCancellationLoading(false);
         }
     };
 
@@ -414,10 +431,10 @@ export function OrdersScreen() {
 
     const now = new Date();
     const upcomingAppointments = appointments.filter(
-        apt => new Date(apt.start_time) >= now && apt.status !== 'cancelled'
+        apt => new Date(apt.start_time) >= now && !apt.status.startsWith('cancelled')
     );
     const pastAppointments = appointments.filter(
-        apt => new Date(apt.start_time) < now || apt.status === 'cancelled'
+        apt => new Date(apt.start_time) < now || apt.status.startsWith('cancelled')
     );
 
     // Helpers
@@ -551,7 +568,7 @@ export function OrdersScreen() {
                                 (subTab === 'upcoming' ? upcomingAppointments : pastAppointments).map((apt) => {
                                     const date = new Date(apt.start_time);
                                     const statusStyle = statusColors[apt.status] || statusColors.pending;
-                                    const canModify = subTab === 'upcoming' && apt.status !== 'cancelled';
+                                    const canModify = subTab === 'upcoming' && !apt.status.startsWith('cancelled');
 
                                     return (
                                         <View key={apt.id} style={styles.stitchCard}>
@@ -978,7 +995,10 @@ const styles = StyleSheet.create({
     shopNowButtonText: { color: 'white', fontWeight: '600' },
 
     // Modals
-    modalContainer: { flex: 1 },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: colors.baseBackground,
+    },
     modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
     modalCancel: { color: colors.textSecondary, fontSize: 16 },
     modalTitle: { fontSize: 18, fontWeight: '600', color: colors.text },

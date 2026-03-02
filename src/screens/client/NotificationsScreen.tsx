@@ -108,6 +108,19 @@ export function NotificationsScreen() {
         if (!user) { setLoading(false); return; }
 
         try {
+            // First fetch the latest profile preferences to ensure cleared_at is fresh
+            let clearedAt = 0;
+            try {
+                const { data: profileData } = await safeSupabaseFetch(
+                    supabase.from('profiles').select('notification_preferences').eq('id', user.id).single() as any,
+                    { timeout: 3000 }
+                );
+                const prefs = (profileData as any)?.notification_preferences || {};
+                if (prefs.cleared_at) {
+                    clearedAt = new Date(prefs.cleared_at).getTime();
+                }
+            } catch (e) { console.log('Error fetching cleared_at:', e); }
+
             const field = isMaster ? 'master_id' : 'client_id';
             const allNotifications: Notification[] = [];
 
@@ -195,7 +208,7 @@ export function NotificationsScreen() {
                                     body: product.stock_count === 0
                                         ? `${product.name} is out of stock!`
                                         : `${product.name} has only ${product.stock_count} units left`,
-                                    type: 'low_stock', read: false, created_at: new Date().toISOString(), productId: product.id,
+                                    type: 'low_stock', read: false, created_at: product.updated_at || product.created_at || new Date().toISOString(), productId: product.id,
                                 });
                             }
                         }
@@ -204,7 +217,11 @@ export function NotificationsScreen() {
             }
 
             allNotifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-            setNotifications(allNotifications);
+
+            // Filter out notifications older than clearedAt
+            const activeNotifications = allNotifications.filter(n => new Date(n.created_at).getTime() > clearedAt);
+
+            setNotifications(activeNotifications);
         } catch (error) { console.error('Error fetching notifications:', error); }
         finally { setLoading(false); setRefreshing(false); }
     };
@@ -225,6 +242,7 @@ export function NotificationsScreen() {
     };
 
     const markAllAsRead = async () => {
+        // Mark messages as read in DB
         const unreadMessages = notifications.filter(n => n.type === 'message' && !n.read);
         for (const n of unreadMessages) {
             try {
@@ -232,7 +250,19 @@ export function NotificationsScreen() {
                 await (supabase as any).from('messages').update({ read_at: new Date().toISOString() }).eq('id', msgId);
             } catch (e) { /* Ignore */ }
         }
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+
+        // Save cleared_at time to db to hide everything up to now
+        if (user?.id) {
+            try {
+                const now = new Date().toISOString();
+                const currentPrefs = profile?.notification_preferences as any || {};
+                const updatedPrefs = { ...currentPrefs, cleared_at: now };
+                await supabase.from('profiles').update({ notification_preferences: updatedPrefs }).eq('id', user.id);
+            } catch (e) { console.log('Error saving cleared_at:', e); }
+        }
+
+        // Clear local UI instantly
+        setNotifications([]);
     };
 
     const toggleSetting = async (key: keyof typeof settings) => {

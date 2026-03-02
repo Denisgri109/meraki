@@ -60,6 +60,8 @@ export function MasterDashboardScreen() {
         todayEarnings: 0,
         pendingRequests: 0,
         unreadMessages: 0,
+        activeServices: 0,
+        totalClients: 0,
     });
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([]);
@@ -143,6 +145,14 @@ export function MasterDashboardScreen() {
             const pendingPromise = supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('master_id', user.id).eq('status', 'pending');
             const { count: pendingCount } = await safeSupabaseFetch(pendingPromise as any) as any;
 
+            // Active services
+            const { count: activeServicesCount } = await supabase.from('services').select('*', { count: 'exact', head: true }).eq('created_by', user.id).eq('is_active', true);
+
+            // Total unique clients
+            const { data: clientsData } = await supabase.from('appointments').select('client_id').eq('master_id', user.id).not('client_id', 'is', null);
+            const uniqueClients = new Set((clientsData || []).map((a: any) => a.client_id));
+            const totalClientsCount = uniqueClients.size;
+
             // Messages
             const convsPromise = (supabase as any).from('conversations').select('id').eq('master_id', user.id);
             const { data: conversations } = await safeSupabaseFetch(convsPromise);
@@ -150,7 +160,8 @@ export function MasterDashboardScreen() {
             let recentMsgs: RecentMessage[] = [];
             if (conversations && (conversations as any[]).length > 0) {
                 const convIds = (conversations as any[]).map(c => c.id);
-                const msgsPromise = (supabase as any).from('messages').select('*').in('conversation_id', convIds).neq('sender_id', user.id).is('read_at', null).order('created_at', { ascending: false });
+                // Changed `is('read_at', null)` to `eq('is_read', false)` since the db has an is_read property now.
+                const msgsPromise = (supabase as any).from('messages').select('*').in('conversation_id', convIds).neq('sender_id', user.id).eq('is_read', false).order('created_at', { ascending: false });
                 const { data: messages } = await safeSupabaseFetch(msgsPromise);
                 const latestBySender = new Map<string, any>();
                 for (const msg of ((messages as any[]) || [])) { if (!latestBySender.has(msg.sender_id)) latestBySender.set(msg.sender_id, msg); }
@@ -164,7 +175,7 @@ export function MasterDashboardScreen() {
             const todayEarnings = ((todayData as any[]) || []).filter(apt => apt.status === 'completed').reduce((sum, apt) => sum + (apt.price || 0), 0);
             setAppointments((allAppointmentsData as unknown as Appointment[]) || []);
             setRecentMessages(recentMsgs);
-            setStats({ todayAppointments: ((todayData as any[]) || []).filter(apt => apt.status !== 'completed').length, todayEarnings, pendingRequests: pendingCount || 0, unreadMessages: unreadCount });
+            setStats({ todayAppointments: ((todayData as any[]) || []).filter(apt => apt.status !== 'completed').length, todayEarnings, pendingRequests: pendingCount || 0, unreadMessages: unreadCount, activeServices: activeServicesCount || 0, totalClients: totalClientsCount });
         } catch (error) { console.error('Error fetching dashboard:', error); } finally { setLoading(false); setRefreshing(false); }
     };
 
@@ -196,47 +207,61 @@ export function MasterDashboardScreen() {
                         </View>
                     </View>
 
-                    {/* Quick Stats Grid */}
-                    <View style={styles.statsGrid}>
-                        <Card variant="glass" style={styles.statCard}>
-                            <MerakiText variant="h2" color={colors.accent}>{stats.todayAppointments}</MerakiText>
-                            <MerakiText variant="caption" color={colors.textMuted}>Today</MerakiText>
-                        </Card>
-                        <Card variant="glass" style={styles.statCard}>
-                            <MerakiText variant="h2" color={colors.success}>€{stats.todayEarnings}</MerakiText>
-                            <MerakiText variant="caption" color={colors.textMuted}>Earned</MerakiText>
-                        </Card>
-                        <Card variant="glass" style={[styles.statCard, stats.pendingRequests > 0 && styles.activeStat]}>
-                            <MerakiText variant="h2" color={stats.pendingRequests > 0 ? colors.error : colors.text}>{stats.pendingRequests}</MerakiText>
-                            <MerakiText variant="caption" color={colors.textMuted}>Pending</MerakiText>
-                        </Card>
-                    </View>
-
-                    {/* Quick Actions */}
-                    <View style={styles.section}>
-                        <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>BUSINESS CONTROL</MerakiText>
-                        <View style={styles.actionsGrid}>
-                            <ActionButton icon="calendar-month" label="Schedule" onPress={() => navigation.navigate('Schedule')} color="#A78BFA" />
-                            <ActionButton icon="card-account-details-star" label="Portfolio" onPress={() => navigation.navigate('Portfolio')} color="#34D399" />
-                            <ActionButton icon="room-service" label="Services" onPress={() => navigation.navigate('MyServices')} color="#60A5FA" />
-                            <ActionButton icon="clock-check" label="Availability" onPress={() => navigation.navigate('Availability')} color="#F472B6" />
-                            <ActionButton icon="ticket-confirmation" label="Loyalty" onPress={() => navigation.navigate('LoyaltyCardBuilder')} color="#FBBF24" />
-                            <ActionButton icon="cog" label="Settings" onPress={() => navigation.navigate('BusinessSettings')} color="#94A3B8" />
+                    {/* Hero Stats */}
+                    <View style={styles.heroStats}>
+                        <LinearGradient
+                            colors={['rgba(212,168,83,0.12)', 'rgba(212,168,83,0.03)']}
+                            style={styles.heroCard}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <View style={styles.heroIconRow}>
+                                <View style={styles.heroIconCircle}>
+                                    <MaterialCommunityIcons name="cash-multiple" size={18} color={colors.accent} />
+                                </View>
+                            </View>
+                            <MerakiText style={styles.heroValue}>€{stats.todayEarnings}</MerakiText>
+                            <MerakiText style={styles.heroLabel}>Revenue Today</MerakiText>
+                        </LinearGradient>
+                        <View style={styles.heroSecondaryCol}>
+                            <LinearGradient
+                                colors={['rgba(63,185,80,0.10)', 'rgba(63,185,80,0.02)']}
+                                style={styles.heroSmallCard}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <MerakiText style={styles.heroSmallValue}>{stats.activeServices}</MerakiText>
+                                <MerakiText style={styles.heroSmallLabel}>{stats.activeServices === 1 ? 'Service' : 'Services'}</MerakiText>
+                            </LinearGradient>
+                            <LinearGradient
+                                colors={['rgba(88,166,255,0.10)', 'rgba(88,166,255,0.02)']}
+                                style={styles.heroSmallCard}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <MerakiText style={styles.heroSmallValue}>{stats.totalClients}</MerakiText>
+                                <MerakiText style={styles.heroSmallLabel}>{stats.totalClients === 1 ? 'Client' : 'Clients'}</MerakiText>
+                            </LinearGradient>
                         </View>
                     </View>
 
                     {/* Messages Banner */}
                     {stats.unreadMessages > 0 && (
                         <TouchableOpacity style={styles.messagesBanner} onPress={() => navigation.navigate('Messages')}>
-                            <LinearGradient colors={gradients.secondary as any} style={styles.bannerGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                            <LinearGradient colors={['rgba(40,40,45,0.95)', 'rgba(25,25,30,0.95)']} style={styles.bannerGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                                 <View style={styles.bannerContent}>
                                     <View style={styles.bannerLeft}>
-                                        <MaterialCommunityIcons name="message-alert" size={24} color="#FFF" />
-                                        <MerakiText variant="bodyBold" color="#FFF" style={{ marginLeft: 12 }}>
-                                            {stats.unreadMessages} Unread Messages
+                                        <View style={[styles.heroIconCircle, { backgroundColor: 'rgba(244, 114, 182, 0.15)', marginRight: 12 }]}>
+                                            <MaterialCommunityIcons name="message-alert" size={18} color="#F472B6" />
+                                        </View>
+                                        <MerakiText variant="bodyBold" color="#FFF">
+                                            {stats.unreadMessages} Unread Message{stats.unreadMessages !== 1 ? 's' : ''}
                                         </MerakiText>
                                     </View>
-                                    <MaterialCommunityIcons name="chevron-right" size={20} color="#FFF" />
+                                    <View style={styles.bannerRight}>
+                                        <MerakiText variant="caption" color="rgba(255,255,255,0.5)" style={{ marginRight: 8 }}>VIEW</MerakiText>
+                                        <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.5)" />
+                                    </View>
                                 </View>
                             </LinearGradient>
                         </TouchableOpacity>
@@ -274,20 +299,35 @@ export function MasterDashboardScreen() {
                             </Card>
                         )}
                     </View>
+
+                    {/* Quick Actions */}
+                    <View style={styles.section}>
+                        <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>BUSINESS CONTROL</MerakiText>
+                        <View style={styles.buttonGrid}>
+                            <DashboardButton icon="card-account-details-star" label="Portfolio" onPress={() => navigation.navigate('Portfolio')} color="#34D399" />
+                            <DashboardButton icon="room-service" label="Services" onPress={() => navigation.navigate('MyServices')} color="#60A5FA" />
+                            <DashboardButton icon="clock-check" label="Availability" onPress={() => navigation.navigate('Availability')} color="#F472B6" />
+                            <DashboardButton icon="ticket-confirmation" label="Loyalty" onPress={() => navigation.navigate('LoyaltyCardBuilder')} color="#FBBF24" />
+                            <DashboardButton icon="cog" label="Settings" onPress={() => navigation.navigate('BusinessSettings')} color="#94A3B8" />
+                        </View>
+                    </View>
                 </ScrollView>
             </SafeAreaView>
         </ScreenBackground>
     );
 }
 
-const ActionButton = ({ icon, label, onPress, color }: any) => (
-    <TouchableOpacity style={styles.actionBtnContainer} onPress={onPress}>
-        <Card variant="glass" style={styles.actionCard} noPadding>
-            <View style={[styles.iconWrapper, { backgroundColor: `${color}15` }]}>
+const BUTTON_GAP = spacing.sm;
+const BUTTON_WIDTH = (width - spacing.lg * 2 - BUTTON_GAP * 2) / 3;
+
+const DashboardButton = ({ icon, label, onPress, color }: any) => (
+    <TouchableOpacity style={styles.dashBtnWrap} onPress={onPress} activeOpacity={0.7}>
+        <View style={styles.dashBtn}>
+            <View style={[styles.dashBtnIcon, { backgroundColor: `${color}12` }]}>
                 <MaterialCommunityIcons name={icon} size={24} color={color} />
             </View>
-            <MerakiText variant="label" style={styles.actionLabel}>{label}</MerakiText>
-        </Card>
+            <MerakiText variant="body" numberOfLines={1} style={styles.dashBtnLabel}>{label}</MerakiText>
+        </View>
     </TouchableOpacity>
 );
 
@@ -305,27 +345,75 @@ const styles = StyleSheet.create({
         borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
         alignItems: 'center', justifyContent: 'center',
     },
-    statsGrid: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
-    statCard: { flex: 1, alignItems: 'center', paddingVertical: spacing.md },
-    activeStat: { borderColor: colors.error, borderWidth: 1 },
+    heroStats: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
+    heroCard: {
+        flex: 1.2,
+        borderRadius: layout.borderRadius.xl,
+        padding: spacing.lg,
+        borderWidth: 1,
+        borderColor: 'rgba(212,168,83,0.15)',
+        justifyContent: 'flex-end',
+    } as any,
+    heroIconRow: { marginBottom: 12 },
+    heroIconCircle: {
+        width: 32, height: 32, borderRadius: 10,
+        backgroundColor: 'rgba(212,168,83,0.12)',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    heroValue: { fontSize: 32, fontWeight: '800' as any, color: '#fff', letterSpacing: -1, marginBottom: 2 },
+    heroLabel: { fontSize: 12, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' as any, letterSpacing: 0.8 },
+    heroSecondaryCol: { flex: 0.8, gap: spacing.sm },
+    heroSmallCard: {
+        flex: 1,
+        borderRadius: layout.borderRadius.lg,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    } as any,
+    heroSmallValue: { fontSize: 24, fontWeight: '700' as any, color: '#fff', letterSpacing: -0.5 },
+    heroSmallLabel: { fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' as any, letterSpacing: 0.5, marginTop: 2 },
     section: { marginBottom: spacing.xl },
-    sectionLabel: { marginBottom: spacing.md },
+    sectionLabel: { marginBottom: spacing.md, fontSize: 11, letterSpacing: 1 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
-    actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-    actionBtnContainer: { width: (width - spacing.lg * 2 - spacing.sm * 2) / 3 },
-    actionCard: { alignItems: 'center', paddingVertical: spacing.md },
-    iconWrapper: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-    actionLabel: { textAlign: 'center' },
-    messagesBanner: { borderRadius: layout.borderRadius.md, overflow: 'hidden', marginBottom: spacing.xl },
-    bannerGradient: { padding: spacing.md },
+    // Dashboard buttons — vertical cards
+    buttonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: BUTTON_GAP },
+    dashBtnWrap: { width: BUTTON_WIDTH },
+    dashBtn: {
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.07)',
+        borderRadius: 16,
+        paddingVertical: 16,
+        paddingHorizontal: 8,
+        gap: 12,
+    },
+    dashBtnIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    dashBtnLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#fff',
+        textAlign: 'center',
+    },
+    messagesBanner: { borderRadius: layout.borderRadius.lg, overflow: 'hidden', marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    bannerGradient: { padding: spacing.lg },
     bannerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     bannerLeft: { flexDirection: 'row', alignItems: 'center' },
-    appointmentCard: { marginBottom: spacing.sm },
+    bannerRight: { flexDirection: 'row', alignItems: 'center' },
+    appointmentCard: { marginBottom: spacing.sm, borderRadius: layout.borderRadius.lg },
     appointmentRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md },
     timeBlock: { width: 60, alignItems: 'center' },
     divider: { width: 1, height: '80%', backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: spacing.md },
     aptInfo: { flex: 1 },
-    emptyCard: { alignItems: 'center', padding: spacing.xl },
+    emptyCard: { alignItems: 'center', padding: spacing.xl, borderRadius: layout.borderRadius.lg },
     emptyEmoji: { fontSize: 40, marginBottom: spacing.sm, opacity: 0.3 },
 });
 

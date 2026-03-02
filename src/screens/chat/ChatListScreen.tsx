@@ -79,15 +79,25 @@ export function ChatListScreen() {
                 const location = await Location.getCurrentPositionAsync({
                     accuracy: Location.Accuracy.Balanced,
                 });
-                const [address] = await Location.reverseGeocodeAsync({
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
-                });
-                if (address) {
-                    setUserLocation({
-                        city: address.city || null,
-                        country: address.country || null,
+
+                // Guard against reverseGeocodeAsync crashing on some Android devices
+                // when lat/lng produce a null country code
+                try {
+                    const results = await Location.reverseGeocodeAsync({
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
                     });
+                    const address = results?.[0];
+                    if (address) {
+                        setUserLocation({
+                            city: address.city || null,
+                            country: address.country || null,
+                        });
+                    }
+                } catch (geocodeError) {
+                    // reverseGeocodeAsync can throw NullPointerException on some devices
+                    // when getCountryCode() returns null — safe to ignore
+                    console.log('Reverse geocode failed (non-critical):', geocodeError);
                 }
             }
         } catch (error) {
@@ -111,6 +121,9 @@ export function ChatListScreen() {
                     // If user is client, filter for masters/owners
                     if (!isMaster) {
                         query = query.in('role', ['master', 'owner']);
+                        if (userLocation.country) {
+                            query = query.eq('country', userLocation.country);
+                        }
                     }
                     // If user is master, filter for clients (optional, depending on requirements)
                     // Existing logic was broad, but let's keep it broad for masters for now or filter for clients if preferred
@@ -131,7 +144,7 @@ export function ChatListScreen() {
         }, 500);
 
         return () => clearTimeout(timer);
-    }, [searchQuery, isMaster, user?.id]);
+    }, [searchQuery, isMaster, user?.id, userLocation.country]);
 
     const fetchData = async () => {
         if (!user?.id) {
@@ -412,7 +425,7 @@ export function ChatListScreen() {
                             <MerakiText style={styles.searchIcon}>🔍</MerakiText>
                             <TextInput
                                 style={styles.searchInput}
-                                placeholder={isMaster ? "Search clients..." : "Search masters globally..."}
+                                placeholder={isMaster ? "Search clients..." : userLocation.country ? `Search masters in ${userLocation.country}...` : "Search masters near you..."}
                                 placeholderTextColor={colors.textSecondary}
                                 value={searchQuery}
                                 onChangeText={setSearchQuery}
@@ -430,7 +443,9 @@ export function ChatListScreen() {
                 {/* Search Results Overlay */}
                 {searchQuery.length > 0 ? (
                     <View style={styles.searchResultsContainer}>
-                        <MerakiText style={styles.sectionTitle} variant="label">Global Results</MerakiText>
+                        <MerakiText style={styles.sectionTitle} variant="label">
+                            {isMaster ? 'Search Results' : userLocation.country ? `Results in ${userLocation.country}` : 'Search Results'}
+                        </MerakiText>
                         {isSearching ? (
                             <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
                         ) : searchResults.length > 0 ? (

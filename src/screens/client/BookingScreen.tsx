@@ -17,6 +17,15 @@ import { Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { Service } from '../../types/database';
 
+// Haversine distance in km between two lat/lng points
+function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
@@ -38,6 +47,10 @@ const CATEGORIES = [
 export function BookingScreen({ navigation }: BookingScreenProps) {
     const { profile } = useAuth();
     const userCountry = profile?.country || null;
+    const userLat = (profile as any)?.latitude || null;
+    const userLng = (profile as any)?.longitude || null;
+    const searchRadiusKm: number = (profile as any)?.search_radius_km ?? 50;
+
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -45,30 +58,40 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
 
     useEffect(() => {
         fetchServices();
-    }, [userCountry]);
+    }, [userCountry, userLat, userLng]);
 
     const fetchServices = async () => {
         try {
             // Fetch services with master country info for filtering
             const { data } = await supabase
                 .from('services')
-                .select('*, master_services!inner(is_available, profiles:master_id(country))')
+                .select('*, master_services!inner(is_available, profiles:master_id(country, latitude, longitude))')
                 .eq('is_active', true)
                 .eq('master_services.is_available', true)
                 .order('name');
 
             let filtered = (data as any[]) || [];
 
-            // Country filter: only show services that have at least one master in the client's country
+            // Country and radius filter: only show services that have at least one master nearby
             if (userCountry) {
                 const uCountry = userCountry.toLowerCase().trim();
                 filtered = filtered.filter((service: any) => {
                     const masterServices = service.master_services || [];
                     return masterServices.some((ms: any) => {
-                        const masterCountry = ms.profiles?.country;
-                        return masterCountry && masterCountry.toLowerCase().trim() === uCountry;
+                        const masterProfile = ms.profiles;
+                        if (!masterProfile || !masterProfile.country) return false;
+                        if (masterProfile.country.toLowerCase().trim() !== uCountry) return false;
+
+                        if (searchRadiusKm > 0 && userLat && userLng && masterProfile.latitude && masterProfile.longitude) {
+                            const dist = haversineDistanceKm(userLat, userLng, masterProfile.latitude, masterProfile.longitude);
+                            if (dist > searchRadiusKm) return false;
+                        }
+                        return true;
                     });
                 });
+            } else {
+                // Must have a known user country to view local booking options
+                filtered = [];
             }
 
             // Strip the master_services join data before setting state

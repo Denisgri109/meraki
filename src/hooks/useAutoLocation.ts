@@ -24,7 +24,7 @@ export function useAutoLocation() {
 
         const detectAndSave = async () => {
             try {
-                const updates: Record<string, string> = {};
+                const updates: Record<string, any> = {};
 
                 // 1. Auto-detect timezone (no permission needed)
                 const deviceTimezone = getDeviceTimezone();
@@ -47,6 +47,10 @@ export function useAutoLocation() {
                                 latitude: location.coords.latitude,
                                 longitude: location.coords.longitude,
                             });
+
+                            // Store GPS coordinates in profile for distance-based filtering
+                            updates.latitude = location.coords.latitude;
+                            updates.longitude = location.coords.longitude;
 
                             if (reverseGeocode?.country) {
                                 setDetectedCountry(reverseGeocode.country);

@@ -34,6 +34,7 @@ interface CreatePaymentIntentParams {
     appointmentId?: string;
     orderId?: string;
     paymentMethodId?: string;
+    masterId?: string; // ID of the master performing the service for destination routing
     description?: string;
     captureMethod?: 'manual' | 'automatic';
 }
@@ -157,6 +158,7 @@ export async function createPaymentIntent(params: CreatePaymentIntentParams): Pr
             appointment_id: params.appointmentId,
             order_id: params.orderId,
             payment_method_id: params.paymentMethodId,
+            master_id: params.masterId,
             description: params.description || 'Merakí Payment',
             capture_method: params.captureMethod || 'automatic',
         },
@@ -299,6 +301,52 @@ export function formatCardBrand(brand: string): string {
     return brands[brand.toLowerCase()] || brand;
 }
 
+// ============================================
+// CANCEL & REFUND (Unified)
+// ============================================
+
+export interface CancelAndRefundResult {
+    success: boolean;
+    appointment_id: string;
+    cancelled_by: 'client' | 'master';
+    is_late_cancellation: boolean;
+    hours_until_appointment: number;
+    refund_percentage: number;
+    original_amount_cents: number;
+    refund_amount_cents: number;
+    fee_amount_cents: number;
+    stripe_action: 'cancelled' | 'partial_capture' | 'full_refund' | 'partial_refund' | 'no_payment';
+    refund_id: string | null;
+    estimated_arrival: string;
+    status: string;
+}
+
+/**
+ * Cancel an appointment and process the appropriate refund.
+ * Backend handles all time calculations and Stripe logic securely.
+ *
+ * - Client cancels > 24hrs → 100% refund
+ * - Client cancels < 24hrs → 50% refund (late cancellation fee)
+ * - Master cancels → always 100% refund
+ */
+export async function cancelAndRefund(
+    appointmentId: string,
+    cancelledBy: 'client' | 'master',
+    reason?: string,
+): Promise<CancelAndRefundResult> {
+    const { data, error } = await supabase.functions.invoke('cancel-and-refund', {
+        body: {
+            appointment_id: appointmentId,
+            cancelled_by: cancelledBy,
+            reason,
+        },
+    });
+
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data as CancelAndRefundResult;
+}
+
 export default {
     // Setup Intent
     createSetupIntent,
@@ -313,6 +361,7 @@ export default {
     handleNoShow,
     // Refunds
     processRefund,
+    cancelAndRefund,
     // Helpers
     eurosToCents,
     centsToEuros,

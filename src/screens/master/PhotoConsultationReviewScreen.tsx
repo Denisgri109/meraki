@@ -8,17 +8,34 @@ import {
     RefreshControl,
     TextInput,
     Switch,
+    Dimensions,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
-import { Button, ScreenBackground, MerakiText } from '../../components/ui';
+import { Button, Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 import { PhotoConsultation, Profile } from '../../types/database';
 
 type ConsultationStatus = 'pending' | 'in_review' | 'responded' | 'closed' | 'all';
+
+const STATUS_CONFIG: Record<string, { gradient: [string, string]; icon: string; label: string }> = {
+    pending: { gradient: ['#D29922', '#B8860B'], icon: 'clock-outline', label: 'Pending' },
+    in_review: { gradient: ['#58A6FF', '#388BFD'], icon: 'eye-outline', label: 'In Review' },
+    responded: { gradient: ['#3FB950', '#2EA043'], icon: 'check-circle', label: 'Responded' },
+    closed: { gradient: ['#8B949E', '#6E7681'], icon: 'lock-outline', label: 'Closed' },
+};
+
+const FILTER_TABS: { value: ConsultationStatus; label: string; icon: string }[] = [
+    { value: 'pending', label: 'Pending', icon: 'clock-outline' },
+    { value: 'in_review', label: 'In Review', icon: 'eye-outline' },
+    { value: 'responded', label: 'Responded', icon: 'check-circle-outline' },
+    { value: 'closed', label: 'Closed', icon: 'lock-outline' },
+    { value: 'all', label: 'All', icon: 'format-list-bulleted' },
+];
 
 export function PhotoConsultationReviewScreen() {
     const navigation = useNavigation<any>();
@@ -76,7 +93,6 @@ export function PhotoConsultationReviewScreen() {
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            // If master (not owner), only show consultations assigned to them or unassigned
             if (userRole === 'master') {
                 query = query.or(`master_id.eq.${user.id},master_id.is.null`);
             }
@@ -92,7 +108,6 @@ export function PhotoConsultationReviewScreen() {
             const consultationsData = data || [];
             setConsultations(consultationsData);
 
-            // Fetch client details
             const clientIds = [...new Set(consultationsData.map(c => c.client_id))];
             if (clientIds.length > 0) {
                 const { data: clientsData } = await supabase
@@ -109,7 +124,6 @@ export function PhotoConsultationReviewScreen() {
                 }
             }
 
-            // If there's a preselected ID, select it
             if (preselectedId) {
                 const selected = consultationsData.find(c => c.id === preselectedId);
                 if (selected) {
@@ -155,7 +169,6 @@ export function PhotoConsultationReviewScreen() {
             }
         }
 
-        // Pre-fill response data if already responded
         if (consultation.status === 'responded' || consultation.status === 'closed') {
             setResponseData({
                 isDoable: consultation.is_doable ?? true,
@@ -206,8 +219,6 @@ export function PhotoConsultationReviewScreen() {
 
             if (error) throw error;
 
-            // TODO: Send notification to client
-
             showAlert('Success', 'Your professional response has been submitted!', 'success');
             setSelectedConsultation(null);
             fetchConsultations();
@@ -253,45 +264,68 @@ export function PhotoConsultationReviewScreen() {
         );
     };
 
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diff = now.getTime() - date.getTime();
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+        if (days === 0) return 'Today';
+        if (days === 1) return 'Yesterday';
+        if (days < 7) return `${days}d ago`;
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    };
+
     const renderStatusBadge = (status: string) => {
-        const statusStyles: Record<string, { backgroundColor: string; color: string }> = {
-            pending: { backgroundColor: '#FEF3C7', color: '#92400E' },
-            in_review: { backgroundColor: '#DBEAFE', color: '#1E40AF' },
-            responded: { backgroundColor: '#D1FAE5', color: '#065F46' },
-            closed: { backgroundColor: '#E5E7EB', color: '#374151' },
-        };
-
-        const style = statusStyles[status] || statusStyles.pending;
-        const label = status.replace('_', ' ').toUpperCase();
-
+        const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
         return (
-            <View style={[styles.statusBadge, { backgroundColor: style.backgroundColor }]}>
-                <MerakiText variant="caption" color={style.color} style={{ fontWeight: '700', fontSize: 10 }}>{label}</MerakiText>
-            </View>
+            <LinearGradient
+                colors={config.gradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.statusBadge}
+            >
+                <MaterialCommunityIcons name={config.icon as any} size={12} color="#fff" />
+                <MerakiText variant="caption" color="#fff" style={{ fontWeight: '700', fontSize: 10, letterSpacing: 0.5 }}>
+                    {config.label.toUpperCase()}
+                </MerakiText>
+            </LinearGradient>
         );
     };
 
     const renderFilterTabs = () => (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
-            {(['pending', 'in_review', 'responded', 'closed', 'all'] as ConsultationStatus[]).map((status) => (
+        <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterContainer}
+            contentContainerStyle={styles.filterContent}
+        >
+            {FILTER_TABS.map((tab) => (
                 <TouchableOpacity
-                    key={status}
-                    style={[
-                        styles.filterTab,
-                        filter === status && styles.filterTabActive
-                    ]}
-                    onPress={() => setFilter(status)}
+                    key={tab.value}
+                    activeOpacity={0.7}
+                    onPress={() => setFilter(tab.value)}
                 >
-                    <MerakiText
-                        variant="caption"
-                        color={filter === status ? '#fff' : colors.text}
-                        style={[
-                            { textTransform: 'capitalize' },
-                            filter === status && { fontWeight: '600' }
-                        ]}
-                    >
-                        {status === 'all' ? 'All' : status.replace('_', ' ')}
-                    </MerakiText>
+                    {filter === tab.value ? (
+                        <LinearGradient
+                            colors={['#D4A853', '#B8912E']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.filterTab}
+                        >
+                            <MaterialCommunityIcons name={tab.icon as any} size={14} color="#fff" />
+                            <MerakiText variant="caption" color="#fff" style={{ fontWeight: '600' }}>
+                                {tab.label}
+                            </MerakiText>
+                        </LinearGradient>
+                    ) : (
+                        <View style={styles.filterTab}>
+                            <MaterialCommunityIcons name={tab.icon as any} size={14} color={colors.textSecondary} />
+                            <MerakiText variant="caption" color={colors.textSecondary} style={{ fontWeight: '500' }}>
+                                {tab.label}
+                            </MerakiText>
+                        </View>
+                    )}
                 </TouchableOpacity>
             ))}
         </ScrollView>
@@ -299,12 +333,20 @@ export function PhotoConsultationReviewScreen() {
 
     const renderConsultationList = () => (
         <ScrollView
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+            }
             contentContainerStyle={styles.listContainer}
         >
             {consultations.length === 0 ? (
                 <View style={styles.emptyState}>
-                    <MerakiText variant="body" color={colors.textSecondary}>No consultations found</MerakiText>
+                    <View style={styles.emptyIcon}>
+                        <MaterialCommunityIcons name="camera-off" size={48} color={colors.textMuted} />
+                    </View>
+                    <MerakiText variant="h2" style={{ marginBottom: spacing.xs }}>No consultations</MerakiText>
+                    <MerakiText variant="body" color={colors.textSecondary} style={{ textAlign: 'center', maxWidth: 260, lineHeight: 20 }}>
+                        No photo consultations found for this filter.
+                    </MerakiText>
                 </View>
             ) : (
                 consultations.map((consultation) => {
@@ -313,59 +355,89 @@ export function PhotoConsultationReviewScreen() {
                     return (
                         <TouchableOpacity
                             key={consultation.id}
-                            style={styles.consultationCard}
+                            activeOpacity={0.7}
                             onPress={() => handleStartReview(consultation)}
                         >
-                            <View style={styles.cardHeader}>
-                                <View style={styles.clientInfo}>
-                                    {client?.avatar_url ? (
-                                        <Image source={{ uri: client.avatar_url }} style={styles.clientAvatar} />
-                                    ) : (
-                                        <View style={styles.clientAvatarPlaceholder}>
-                                            <MerakiText variant="h2" color="#fff" style={{ fontSize: 20 }}>
-                                                {client?.full_name?.charAt(0).toUpperCase() || '?'}
+                            <Card variant="glass" style={styles.consultationCard}>
+                                {/* Card Header */}
+                                <View style={styles.cardHeader}>
+                                    <View style={styles.clientInfo}>
+                                        {client?.avatar_url ? (
+                                            <Image source={{ uri: client.avatar_url }} style={styles.clientAvatar} />
+                                        ) : (
+                                            <LinearGradient
+                                                colors={['#D4A853', '#B8912E']}
+                                                style={styles.clientAvatarPlaceholder}
+                                            >
+                                                <MerakiText variant="h2" color="#fff" style={{ fontSize: 18 }}>
+                                                    {client?.full_name?.charAt(0).toUpperCase() || '?'}
+                                                </MerakiText>
+                                            </LinearGradient>
+                                        )}
+                                        <View style={{ flex: 1 }}>
+                                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 15 }}>
+                                                {client?.full_name || 'Unknown'}
+                                            </MerakiText>
+                                            <MerakiText variant="caption" color={colors.textSecondary} numberOfLines={1} style={{ marginTop: 2 }}>
+                                                {consultation.title}
                                             </MerakiText>
                                         </View>
-                                    )}
-                                    <View>
-                                        <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>{client?.full_name || 'Unknown'}</MerakiText>
-                                        <MerakiText variant="caption" color={colors.textSecondary} numberOfLines={1} style={{ maxWidth: 200, marginTop: 2 }}>
-                                            {consultation.title}
+                                    </View>
+                                    {renderStatusBadge(consultation.status || 'pending')}
+                                </View>
+
+                                {/* Service & Description */}
+                                <View style={styles.cardDetails}>
+                                    <View style={styles.serviceTag}>
+                                        <MaterialCommunityIcons name="tag-outline" size={13} color={colors.primary} />
+                                        <MerakiText variant="caption" color={colors.primary} style={{ fontWeight: '600' }}>
+                                            {consultation.service_type}
                                         </MerakiText>
                                     </View>
+                                    <MerakiText variant="caption" color={colors.textSecondary} numberOfLines={2} style={{ lineHeight: 20, marginTop: spacing.xs }}>
+                                        {consultation.description}
+                                    </MerakiText>
                                 </View>
-                                {renderStatusBadge(consultation.status || 'pending')}
-                            </View>
 
-                            <View style={styles.cardDetails}>
-                                <MerakiText variant="body" color={colors.primary} style={{ fontWeight: '600', marginBottom: spacing.xs }}>{consultation.service_type}</MerakiText>
-                                <MerakiText variant="caption" color={colors.textSecondary} numberOfLines={2} style={{ lineHeight: 20 }}>
-                                    {consultation.description}
-                                </MerakiText>
-                            </View>
-
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoPreview}>
-                                {(consultation.photo_urls || []).slice(0, 3).map((url: string, idx: number) => (
-                                    <Image key={idx} source={{ uri: url }} style={styles.previewPhoto} />
-                                ))}
-                                {(consultation.photo_urls?.length || 0) > 3 && (
-                                    <View style={styles.morePhotosBadge}>
-                                        <MerakiText variant="body" color={colors.textSecondary} style={{ fontWeight: '600' }}>+{(consultation.photo_urls?.length || 0) - 3}</MerakiText>
-                                    </View>
+                                {/* Photos Preview */}
+                                {(consultation.photo_urls || []).length > 0 && (
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        style={styles.photoPreview}
+                                        contentContainerStyle={{ gap: 8 }}
+                                    >
+                                        {(consultation.photo_urls || []).slice(0, 3).map((url: string, idx: number) => (
+                                            <Image key={idx} source={{ uri: url }} style={styles.previewPhoto} />
+                                        ))}
+                                        {(consultation.photo_urls?.length || 0) > 3 && (
+                                            <View style={styles.morePhotosBadge}>
+                                                <MerakiText variant="body" color={colors.textSecondary} style={{ fontWeight: '700', fontSize: 16 }}>
+                                                    +{(consultation.photo_urls?.length || 0) - 3}
+                                                </MerakiText>
+                                            </View>
+                                        )}
+                                    </ScrollView>
                                 )}
-                            </ScrollView>
 
-                            <View style={styles.cardFooter}>
-                                <MerakiText variant="caption" color={colors.textMuted}>
-                                    {new Date(consultation.created_at || '').toLocaleDateString()}
-                                </MerakiText>
-                                {consultation.status === 'pending' && (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                        <MerakiText variant="caption" color={colors.primary} style={{ fontWeight: '600' }}>Tap to review</MerakiText>
-                                        <MaterialCommunityIcons name="arrow-right" size={14} color={colors.primary} />
+                                {/* Card Footer */}
+                                <View style={styles.cardFooter}>
+                                    <View style={styles.footerLeft}>
+                                        <MaterialCommunityIcons name="clock-outline" size={13} color={colors.textMuted} />
+                                        <MerakiText variant="caption" color={colors.textMuted}>
+                                            {formatDate(consultation.created_at || '')}
+                                        </MerakiText>
                                     </View>
-                                )}
-                            </View>
+                                    {consultation.status === 'pending' && (
+                                        <View style={styles.tapHint}>
+                                            <MerakiText variant="caption" color={colors.primary} style={{ fontWeight: '600' }}>
+                                                Tap to review
+                                            </MerakiText>
+                                            <MaterialCommunityIcons name="chevron-right" size={16} color={colors.primary} />
+                                        </View>
+                                    )}
+                                </View>
+                            </Card>
                         </TouchableOpacity>
                     );
                 })
@@ -380,71 +452,111 @@ export function PhotoConsultationReviewScreen() {
         const isResponded = selectedConsultation.status === 'responded' || selectedConsultation.status === 'closed';
 
         return (
-            <ScrollView style={styles.detailContainer}>
+            <ScrollView style={styles.detailContainer} showsVerticalScrollIndicator={false}>
+                {/* Back to List */}
                 <TouchableOpacity
                     style={styles.backToList}
                     onPress={() => setSelectedConsultation(null)}
+                    activeOpacity={0.7}
                 >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <View style={styles.backToListInner}>
                         <MaterialCommunityIcons name="arrow-left" size={18} color={colors.primary} />
-                        <MerakiText variant="body" color={colors.primary}>Back to List</MerakiText>
+                        <MerakiText variant="body" color={colors.primary} style={{ fontWeight: '500' }}>Back to List</MerakiText>
                     </View>
                 </TouchableOpacity>
 
                 {/* Client Info */}
-                <View style={styles.detailSection}>
+                <Card variant="glass" style={styles.detailSection}>
                     <View style={styles.clientHeader}>
                         {client?.avatar_url ? (
                             <Image source={{ uri: client.avatar_url }} style={styles.detailAvatar} />
                         ) : (
-                            <View style={styles.detailAvatarPlaceholder}>
-                                <MerakiText variant="h2" color="#fff" style={{ fontSize: 24 }}>
+                            <LinearGradient
+                                colors={['#D4A853', '#B8912E']}
+                                style={styles.detailAvatarPlaceholder}
+                            >
+                                <MerakiText variant="h2" color="#fff" style={{ fontSize: 22 }}>
                                     {client?.full_name?.charAt(0).toUpperCase() || '?'}
                                 </MerakiText>
-                            </View>
+                            </LinearGradient>
                         )}
                         <View style={styles.clientHeaderText}>
-                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>{client?.full_name || 'Unknown'}</MerakiText>
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 17 }}>
+                                {client?.full_name || 'Unknown'}
+                            </MerakiText>
                             <MerakiText variant="caption" color={colors.textSecondary}>{client?.email}</MerakiText>
                         </View>
                         {renderStatusBadge(selectedConsultation.status || 'pending')}
                     </View>
-                </View>
+                </Card>
 
                 {/* Consultation Details */}
-                <View style={styles.detailSection}>
-                    <MerakiText variant="h2" style={{ marginBottom: spacing.md }}>{selectedConsultation.title}</MerakiText>
-                    <MerakiText variant="body" color={colors.primary} style={{ fontWeight: '600', marginBottom: spacing.xs }}>{selectedConsultation.service_type}</MerakiText>
-                    <MerakiText variant="body" color={colors.textSecondary} style={{ lineHeight: 24 }}>{selectedConsultation.description}</MerakiText>
-                </View>
+                <Card variant="glass" style={styles.detailSection}>
+                    <MerakiText variant="h2" style={{ marginBottom: spacing.sm, fontSize: 18 }}>
+                        {selectedConsultation.title}
+                    </MerakiText>
+                    <View style={styles.serviceTag}>
+                        <MaterialCommunityIcons name="tag-outline" size={13} color={colors.primary} />
+                        <MerakiText variant="caption" color={colors.primary} style={{ fontWeight: '600' }}>
+                            {selectedConsultation.service_type}
+                        </MerakiText>
+                    </View>
+                    <MerakiText variant="body" color={colors.textSecondary} style={{ lineHeight: 24, marginTop: spacing.sm }}>
+                        {selectedConsultation.description}
+                    </MerakiText>
+                </Card>
 
                 {/* Photos */}
-                <View style={styles.detailSection}>
-                    <MerakiText variant="h2" style={{ marginBottom: spacing.md }}>Client Photos</MerakiText>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {(selectedConsultation.photo_urls || []).map((url: string, idx: number) => (
-                            <TouchableOpacity key={idx} onPress={() => { }}>
-                                <Image source={{ uri: url }} style={styles.detailPhoto} />
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
+                {(selectedConsultation.photo_urls || []).length > 0 && (
+                    <Card variant="glass" style={styles.detailSection}>
+                        <View style={styles.sectionLabelRow}>
+                            <MaterialCommunityIcons name="image-multiple" size={16} color={colors.textMuted} />
+                            <MerakiText variant="caption" color={colors.textMuted} style={styles.sectionLabelText}>
+                                CLIENT PHOTOS
+                            </MerakiText>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                            {(selectedConsultation.photo_urls || []).map((url: string, idx: number) => (
+                                <TouchableOpacity key={idx} activeOpacity={0.8}>
+                                    <Image source={{ uri: url }} style={styles.detailPhoto} />
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </Card>
+                )}
 
                 {/* Response Form */}
                 {(selectedConsultation.status === 'in_review' || selectedConsultation.status === 'pending') && (
-                    <View style={styles.detailSection}>
-                        <MerakiText variant="h2" style={{ marginBottom: spacing.md }}>Your Professional Response</MerakiText>
+                    <Card variant="glass" style={styles.detailSection}>
+                        <View style={styles.sectionLabelRow}>
+                            <MaterialCommunityIcons name="pencil-outline" size={16} color={colors.textMuted} />
+                            <MerakiText variant="caption" color={colors.textMuted} style={styles.sectionLabelText}>
+                                YOUR PROFESSIONAL RESPONSE
+                            </MerakiText>
+                        </View>
 
                         <View style={styles.switchRow}>
-                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '500' }}>Is this doable?</MerakiText>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <MaterialCommunityIcons
+                                    name={responseData.isDoable ? 'check-circle' : 'close-circle'}
+                                    size={20}
+                                    color={responseData.isDoable ? '#3FB950' : '#F85149'}
+                                />
+                                <MerakiText variant="body" color={colors.text} style={{ fontWeight: '500' }}>
+                                    Is this doable?
+                                </MerakiText>
+                            </View>
                             <Switch
                                 value={responseData.isDoable}
                                 onValueChange={(value) => setResponseData({ ...responseData, isDoable: value })}
-                                trackColor={{ false: colors.border, true: colors.primary }}
+                                trackColor={{ false: colors.border, true: 'rgba(63, 185, 80, 0.4)' }}
+                                thumbColor={responseData.isDoable ? '#3FB950' : colors.textMuted}
                             />
                         </View>
 
-                        <MerakiText variant="caption" color={colors.textSecondary} style={{ fontWeight: '500', marginBottom: spacing.xs }}>Professional Notes *</MerakiText>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={styles.inputLabel}>
+                            Professional Notes *
+                        </MerakiText>
                         <TextInput
                             style={[styles.input, styles.textArea]}
                             value={responseData.professionalNotes}
@@ -455,9 +567,11 @@ export function PhotoConsultationReviewScreen() {
                             numberOfLines={6}
                         />
 
-                        <MerakiText variant="caption" color={colors.textSecondary} style={{ fontWeight: '500', marginBottom: spacing.xs }}>Recommendations</MerakiText>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={styles.inputLabel}>
+                            Recommendations
+                        </MerakiText>
                         <TextInput
-                            style={[styles.input, styles.textArea]}
+                            style={[styles.input, styles.textArea, { height: 100 }]}
                             value={responseData.recommendations}
                             onChangeText={(text) => setResponseData({ ...responseData, recommendations: text })}
                             placeholder="What do you recommend for this client?"
@@ -468,7 +582,9 @@ export function PhotoConsultationReviewScreen() {
 
                         <View style={styles.rowInputs}>
                             <View style={styles.rowInput}>
-                                <MerakiText variant="caption" color={colors.textSecondary} style={{ fontWeight: '500', marginBottom: spacing.xs }}>Est. Price Range</MerakiText>
+                                <MerakiText variant="caption" color={colors.textSecondary} style={styles.inputLabel}>
+                                    Est. Price Range
+                                </MerakiText>
                                 <TextInput
                                     style={styles.input}
                                     value={responseData.estimatedPrice}
@@ -478,7 +594,9 @@ export function PhotoConsultationReviewScreen() {
                                 />
                             </View>
                             <View style={styles.rowInput}>
-                                <MerakiText variant="caption" color={colors.textSecondary} style={{ fontWeight: '500', marginBottom: spacing.xs }}>Est. Duration</MerakiText>
+                                <MerakiText variant="caption" color={colors.textSecondary} style={styles.inputLabel}>
+                                    Est. Duration
+                                </MerakiText>
                                 <TextInput
                                     style={styles.input}
                                     value={responseData.estimatedDuration}
@@ -489,68 +607,126 @@ export function PhotoConsultationReviewScreen() {
                             </View>
                         </View>
 
-                        <Button
-                            title="Submit Professional Response"
+                        <TouchableOpacity
+                            activeOpacity={0.7}
                             onPress={handleSubmitResponse}
-                            loading={loading}
-                            style={styles.submitBtn}
-                        />
-                    </View>
+                            disabled={loading}
+                        >
+                            <LinearGradient
+                                colors={['#D4A853', '#B8912E']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.submitBtn}
+                            >
+                                {loading ? (
+                                    <View style={{ paddingVertical: 2 }}>
+                                        <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#fff', borderTopColor: 'transparent' }} />
+                                    </View>
+                                ) : (
+                                    <>
+                                        <MaterialCommunityIcons name="send" size={18} color="#fff" />
+                                        <MerakiText variant="body" color="#fff" style={{ fontWeight: '600' }}>
+                                            Submit Professional Response
+                                        </MerakiText>
+                                    </>
+                                )}
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </Card>
                 )}
 
                 {/* Previous Response */}
                 {isResponded && selectedConsultation.professional_notes && (
-                    <View style={styles.detailSection}>
-                        <MerakiText variant="h2" style={{ marginBottom: spacing.md }}>Your Response</MerakiText>
+                    <Card variant="glass" style={styles.detailSection}>
+                        <View style={styles.sectionLabelRow}>
+                            <MaterialCommunityIcons name="clipboard-check-outline" size={16} color={colors.textMuted} />
+                            <MerakiText variant="caption" color={colors.textMuted} style={styles.sectionLabelText}>
+                                YOUR RESPONSE
+                            </MerakiText>
+                        </View>
 
                         <View style={styles.responseBox}>
-                            <View style={styles.doableBadge}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <MaterialCommunityIcons name={selectedConsultation.is_doable ? 'check-circle' : 'close-circle'} size={16} color={selectedConsultation.is_doable ? colors.success : colors.error} />
-                                    <MerakiText variant="body" color="#10B981" style={{ fontWeight: '600' }}>
-                                        {selectedConsultation.is_doable ? 'Doable' : 'Not Doable'}
-                                    </MerakiText>
-                                </View>
+                            {/* Doable Badge */}
+                            <View style={[
+                                styles.doableBadge,
+                                {
+                                    backgroundColor: selectedConsultation.is_doable
+                                        ? 'rgba(63, 185, 80, 0.12)'
+                                        : 'rgba(248, 81, 73, 0.12)',
+                                    borderColor: selectedConsultation.is_doable
+                                        ? 'rgba(63, 185, 80, 0.25)'
+                                        : 'rgba(248, 81, 73, 0.25)',
+                                }
+                            ]}>
+                                <MaterialCommunityIcons
+                                    name={selectedConsultation.is_doable ? 'check-circle' : 'close-circle'}
+                                    size={16}
+                                    color={selectedConsultation.is_doable ? '#3FB950' : '#F85149'}
+                                />
+                                <MerakiText
+                                    variant="body"
+                                    color={selectedConsultation.is_doable ? '#3FB950' : '#F85149'}
+                                    style={{ fontWeight: '600' }}
+                                >
+                                    {selectedConsultation.is_doable ? 'Doable' : 'Not Doable'}
+                                </MerakiText>
                             </View>
 
                             <MerakiText variant="caption" color={colors.textMuted} style={{ marginBottom: 4 }}>Professional Notes:</MerakiText>
-                            <MerakiText variant="body" color={colors.text} style={{ marginBottom: spacing.md, lineHeight: 24 }}>{selectedConsultation.professional_notes}</MerakiText>
+                            <MerakiText variant="body" color={colors.text} style={{ marginBottom: spacing.md, lineHeight: 24 }}>
+                                {selectedConsultation.professional_notes}
+                            </MerakiText>
 
                             {selectedConsultation.recommendations && (
                                 <>
                                     <MerakiText variant="caption" color={colors.textMuted} style={{ marginBottom: 4 }}>Recommendations:</MerakiText>
-                                    <MerakiText variant="body" color={colors.text} style={{ marginBottom: spacing.md, lineHeight: 24 }}>{selectedConsultation.recommendations}</MerakiText>
+                                    <MerakiText variant="body" color={colors.text} style={{ marginBottom: spacing.md, lineHeight: 24 }}>
+                                        {selectedConsultation.recommendations}
+                                    </MerakiText>
                                 </>
                             )}
 
-                            <View style={styles.estimateRow}>
-                                {selectedConsultation.estimated_price_range && (
-                                    <MerakiText variant="body" color={colors.primary} style={{ fontWeight: '500' }}>
-                                        Est. Price: {selectedConsultation.estimated_price_range}
-                                    </MerakiText>
-                                )}
-                                {selectedConsultation.estimated_duration && (
-                                    <MerakiText variant="body" color={colors.primary} style={{ fontWeight: '500' }}>
-                                        Est. Duration: {selectedConsultation.estimated_duration}
-                                    </MerakiText>
-                                )}
-                            </View>
+                            {(selectedConsultation.estimated_price_range || selectedConsultation.estimated_duration) && (
+                                <View style={styles.estimateRow}>
+                                    {selectedConsultation.estimated_price_range && (
+                                        <View style={styles.estimateItem}>
+                                            <MaterialCommunityIcons name="cash" size={16} color={colors.primary} />
+                                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '500' }}>
+                                                {selectedConsultation.estimated_price_range}
+                                            </MerakiText>
+                                        </View>
+                                    )}
+                                    {selectedConsultation.estimated_duration && (
+                                        <View style={styles.estimateItem}>
+                                            <MaterialCommunityIcons name="clock-outline" size={16} color={colors.primary} />
+                                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '500' }}>
+                                                {selectedConsultation.estimated_duration}
+                                            </MerakiText>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
 
                             <MerakiText variant="caption" color={colors.textMuted} style={{ marginTop: spacing.md, textAlign: 'right' }}>
-                                Responded: {new Date(selectedConsultation.replied_at || '').toLocaleDateString()}
+                                Responded: {formatDate(selectedConsultation.replied_at || '')}
                             </MerakiText>
                         </View>
 
                         {selectedConsultation.status === 'responded' && (
                             <TouchableOpacity
-                                style={styles.closeBtn}
+                                style={styles.closeConsultationBtn}
                                 onPress={handleCloseConsultation}
+                                activeOpacity={0.7}
                             >
-                                <MerakiText variant="body" color="#EF4444" style={{ fontWeight: '600' }}>Close Consultation</MerakiText>
+                                <MaterialCommunityIcons name="lock-outline" size={16} color="#F85149" />
+                                <MerakiText variant="body" color="#F85149" style={{ fontWeight: '600' }}>Close Consultation</MerakiText>
                             </TouchableOpacity>
                         )}
-                    </View>
+                    </Card>
                 )}
+
+                {/* Spacer */}
+                <View style={{ height: 40 }} />
             </ScrollView>
         );
     };
@@ -561,10 +737,15 @@ export function PhotoConsultationReviewScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+                        <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
                     </TouchableOpacity>
-                    <MerakiText variant="h2">Photo Consultations</MerakiText>
-                    <View style={{ width: 50 }} />
+                    <View style={styles.headerCenter}>
+                        <MerakiText variant="h2" style={{ fontSize: 18 }}>Photo Consultations</MerakiText>
+                        <MerakiText variant="caption" color={colors.textMuted} style={{ marginTop: 2 }}>
+                            {consultations.length} request{consultations.length !== 1 ? 's' : ''}
+                        </MerakiText>
+                    </View>
+                    <View style={{ width: 40 }} />
                 </View>
 
                 {/* Filter Tabs */}
@@ -583,45 +764,67 @@ const styles = StyleSheet.create({
     },
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        padding: spacing.lg,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-    },
-    filterContainer: {
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
+    },
+    headerCenter: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    backBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    filterContainer: {
+        maxHeight: 56,
+    },
+    filterContent: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.sm,
+        gap: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     filterTab: {
-        paddingVertical: spacing.sm,
-        paddingHorizontal: spacing.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
         borderRadius: 20,
-        backgroundColor: colors.surface,
-        marginRight: spacing.sm,
+        backgroundColor: 'rgba(255,255,255,0.05)',
         borderWidth: 1,
-        borderColor: colors.border,
-    },
-    filterTabActive: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
+        borderColor: 'rgba(255,255,255,0.08)',
     },
     listContainer: {
         padding: spacing.lg,
+        paddingBottom: 100,
     },
     emptyState: {
         alignItems: 'center',
         paddingVertical: spacing.xl * 2,
     },
-    consultationCard: {
-        backgroundColor: colors.surface,
-        borderRadius: 12,
-        padding: spacing.lg,
-        marginBottom: spacing.md,
+    emptyIcon: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(255,255,255,0.03)',
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: 'rgba(255,255,255,0.06)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: spacing.lg,
+    },
+    // ─── Consultation Card ─────────────────────────────────────────
+    consultationCard: {
+        marginBottom: spacing.md,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -633,29 +836,46 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
+        marginRight: spacing.sm,
     },
     clientAvatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         marginRight: spacing.md,
+        borderWidth: 1.5,
+        borderColor: 'rgba(212, 168, 83, 0.3)',
     },
     clientAvatarPlaceholder: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: colors.primary,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: spacing.md,
     },
     statusBadge: {
-        paddingVertical: spacing.xs,
-        paddingHorizontal: spacing.sm,
-        borderRadius: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 12,
     },
     cardDetails: {
         marginBottom: spacing.md,
+    },
+    serviceTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        alignSelf: 'flex-start',
+        backgroundColor: 'rgba(212, 168, 83, 0.1)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(212, 168, 83, 0.15)',
     },
     photoPreview: {
         marginBottom: spacing.md,
@@ -663,27 +883,39 @@ const styles = StyleSheet.create({
     previewPhoto: {
         width: 80,
         height: 80,
-        borderRadius: 8,
-        marginRight: spacing.sm,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
     },
     morePhotosBadge: {
         width: 80,
         height: 80,
-        borderRadius: 8,
-        backgroundColor: colors.surface,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.03)',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: 'rgba(255,255,255,0.08)',
     },
     cardFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingTop: spacing.md,
+        paddingTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: colors.border,
+        borderTopColor: 'rgba(255,255,255,0.06)',
     },
+    footerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    tapHint: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 2,
+    },
+    // ─── Detail View ──────────────────────────────────────────────
     detailContainer: {
         flex: 1,
         padding: spacing.lg,
@@ -691,37 +923,37 @@ const styles = StyleSheet.create({
     backToList: {
         marginBottom: spacing.md,
     },
-    backBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+    backToListInner: {
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        gap: 6,
+        alignSelf: 'flex-start',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+        backgroundColor: 'rgba(212, 168, 83, 0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(212, 168, 83, 0.15)',
     },
     detailSection: {
-        marginBottom: spacing.lg,
-        backgroundColor: colors.surface,
-        borderRadius: 12,
-        padding: spacing.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
+        marginBottom: spacing.md,
     },
     clientHeader: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     detailAvatar: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         marginRight: spacing.md,
+        borderWidth: 1.5,
+        borderColor: 'rgba(212, 168, 83, 0.3)',
     },
     detailAvatarPlaceholder: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: colors.primary,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: spacing.md,
@@ -730,26 +962,49 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     detailPhoto: {
-        width: 200,
-        height: 200,
+        width: 180,
+        height: 180,
         borderRadius: 12,
-        marginRight: spacing.md,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
     },
+    sectionLabelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: spacing.md,
+    },
+    sectionLabelText: {
+        fontWeight: '700',
+        letterSpacing: 1.2,
+        fontSize: 11,
+    },
+    // ─── Form Styles ──────────────────────────────────────────────
     switchRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: spacing.lg,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        padding: spacing.md,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
+    },
+    inputLabel: {
+        fontWeight: '600',
+        marginBottom: spacing.xs,
+        letterSpacing: 0.3,
     },
     input: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 8,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 12,
         padding: spacing.md,
         color: colors.text,
-        fontSize: 16,
+        fontSize: 15,
         borderWidth: 1,
-        borderColor: colors.border,
-        marginBottom: spacing.lg,
+        borderColor: 'rgba(255,255,255,0.08)',
+        marginBottom: spacing.md,
     },
     textArea: {
         height: 120,
@@ -763,19 +1018,31 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     submitBtn: {
-        marginTop: spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 16,
+        borderRadius: 14,
+        marginTop: spacing.xs,
     },
+    // ─── Response Box ─────────────────────────────────────────────
     responseBox: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 8,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderRadius: 12,
         padding: spacing.md,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
     },
     doableBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
         alignSelf: 'flex-start',
-        backgroundColor: 'rgba(16, 185, 129, 0.2)',
-        paddingHorizontal: spacing.sm,
-        paddingVertical: 4,
-        borderRadius: 4,
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 10,
+        borderWidth: 1,
         marginBottom: spacing.md,
     },
     estimateRow: {
@@ -784,16 +1051,24 @@ const styles = StyleSheet.create({
         marginTop: spacing.sm,
         paddingTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        borderTopColor: 'rgba(255,255,255,0.06)',
     },
-    closeBtn: {
-        marginTop: spacing.lg,
-        alignSelf: 'center',
-        paddingVertical: spacing.sm,
-        paddingHorizontal: spacing.lg,
+    estimateItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    closeConsultationBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: spacing.md,
+        paddingVertical: 12,
+        borderRadius: 14,
         borderWidth: 1,
-        borderColor: '#EF4444',
-        borderRadius: 20,
+        borderColor: 'rgba(248, 81, 73, 0.25)',
+        backgroundColor: 'rgba(248, 81, 73, 0.08)',
     },
 });
 

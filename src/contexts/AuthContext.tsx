@@ -110,22 +110,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
                     setLoading(false);
                     setSessionError(null);
                 } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                    setSession(session);
-                    setUser(session?.user ?? null);
+                    setLoading(true);
                     setSessionError(null);
+
                     if (session?.user) {
-                        // Only fetch profile if we don't have it or if it's a new user
+                        // Fetch profile first so we don't flash default routes
                         if (!profile || profile.id !== session.user.id) {
                             await fetchProfile(session.user.id);
                         }
+
+                        setSession(session);
+                        setUser(session.user);
                     } else {
+                        setSession(session);
+                        setUser(null);
                         setLoading(false);
                     }
                 } else if (event === 'USER_UPDATED') {
-                    setSession(session);
-                    setUser(session?.user ?? null);
+                    setLoading(true);
                     if (session?.user) {
                         await fetchProfile(session.user.id);
+                        setSession(session);
+                        setUser(session.user);
+                    } else {
+                        setSession(session);
+                        setUser(null);
+                        setLoading(false);
                     }
                 }
             }
@@ -227,6 +237,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const signOut = async () => {
         try {
+            if (user?.id) {
+                // Remove push token so this device stops receiving this user's notifications
+                await supabase
+                    .from('profiles')
+                    .update({ push_token: null })
+                    .eq('id', user.id);
+            }
             await supabase.auth.signOut();
         } catch (error) {
             console.error('Error signing out:', error);

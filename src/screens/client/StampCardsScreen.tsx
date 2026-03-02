@@ -154,7 +154,6 @@ export function StampCardsScreen() {
     return (
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-                {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity
                         onPress={() => navigation.goBack()}
@@ -163,12 +162,20 @@ export function StampCardsScreen() {
                         <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
                     </TouchableOpacity>
                     <MerakiText style={styles.headerTitle}>Stamp Cards</MerakiText>
-                    <TouchableOpacity
-                        onPress={() => navigation.navigate('QRScanner')}
-                        style={styles.qrButton}
-                    >
-                        <MaterialIcons name="qr-code-scanner" size={20} color={colors.primary} />
-                    </TouchableOpacity>
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate('NFCScanner')}
+                            style={[styles.actionButton, { marginRight: 8 }]}
+                        >
+                            <MaterialIcons name="nfc" size={20} color={colors.primary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate('QRScanner')}
+                            style={styles.actionButton}
+                        >
+                            <MaterialIcons name="qr-code-scanner" size={20} color={colors.primary} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <ScrollView
@@ -308,7 +315,11 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
     },
     headerTitle: { fontSize: 17, fontWeight: '600', color: '#fff' },
-    qrButton: {
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    actionButton: {
         width: 40, height: 40, borderRadius: 20,
         backgroundColor: 'rgba(200, 160, 77, 0.1)',
         borderWidth: 1, borderColor: 'rgba(200, 160, 77, 0.2)',

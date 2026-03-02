@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -6,18 +6,124 @@ import {
     ScrollView,
     TouchableOpacity,
     Linking,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useMenuBackHandler } from '../../hooks/useMenuBackHandler';
 import { safeGoBack } from '../../navigation/navigationUtils';
 import { Card, Button } from '../../components/ui';
 import { ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function HelpSupportScreen() {
     const navigation = useNavigation<any>();
     const handleBack = useMenuBackHandler();
+    const { user, profile } = useAuth();
+
+    const [supportPhone, setSupportPhone] = useState<string>('');
+    const [supportEmail, setSupportEmail] = useState<string>('');
+    const [ownerProfile, setOwnerProfile] = useState<any>(null);
+    const [loadingChat, setLoadingChat] = useState(false);
+    const [loadingSettings, setLoadingSettings] = useState(true);
+
+    useEffect(() => {
+        loadSupportSettings();
+    }, []);
+
+    const loadSupportSettings = async () => {
+        try {
+            // 1. Find the owner's profile
+            const { data: ownerData } = await supabase
+                .from('profiles')
+                .select('id, full_name, avatar_url, role')
+                .eq('role', 'owner')
+                .limit(1)
+                .single();
+
+            if (ownerData) {
+                setOwnerProfile(ownerData);
+
+                // 2. Load support settings from owner's master_settings
+                const { data: settingsData } = await (supabase as any)
+                    .from('master_settings')
+                    .select('support_phone, support_email')
+                    .eq('master_id', ownerData.id)
+                    .single();
+
+                if (settingsData) {
+                    if (settingsData.support_phone) setSupportPhone(settingsData.support_phone);
+                    if (settingsData.support_email) setSupportEmail(settingsData.support_email);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading support settings:', error);
+        } finally {
+            setLoadingSettings(false);
+        }
+    };
+
+    const handleChatWithSupport = async () => {
+        if (!user?.id || !ownerProfile?.id) return;
+
+        // Don't open a chat with yourself if you're the owner
+        if (user.id === ownerProfile.id) return;
+
+        setLoadingChat(true);
+        try {
+            const isUserMaster = profile?.is_master || profile?.role === 'master';
+            const field1 = isUserMaster ? 'master_id' : 'client_id';
+            const field2 = isUserMaster ? 'client_id' : 'master_id';
+
+            // Check if a conversation with the owner already exists
+            const { data: existing } = await (supabase as any)
+                .from('conversations')
+                .select('id')
+                .eq(field1, user.id)
+                .eq(field2, ownerProfile.id)
+                .single();
+
+            let conversationId = existing?.id;
+
+            // Create if doesn't exist
+            if (!conversationId) {
+                const insertData = isUserMaster
+                    ? { master_id: user.id, client_id: ownerProfile.id }
+                    : { client_id: user.id, master_id: ownerProfile.id };
+
+                const { data: newConv, error } = await (supabase as any)
+                    .from('conversations')
+                    .insert(insertData)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                conversationId = newConv.id;
+            }
+
+            // Navigate to Chat screen with isSupportChat flag
+            navigation.dispatch(
+                CommonActions.navigate({
+                    name: 'Chat',
+                    params: {
+                        conversationId,
+                        otherUser: {
+                            full_name: ownerProfile.full_name,
+                            avatar_url: ownerProfile.avatar_url,
+                            id: ownerProfile.id,
+                        },
+                        isSupportChat: true,
+                    },
+                })
+            );
+        } catch (error) {
+            console.error('Error opening support chat:', error);
+        } finally {
+            setLoadingChat(false);
+        }
+    };
 
     const faqs = [
         {
@@ -34,29 +140,55 @@ export function HelpSupportScreen() {
         },
     ];
 
+    const isOwner = profile?.role === 'owner';
+
+    // Show real values, or "Not set up yet" after loading, or "Loading…" while still loading
+    const displayPhone = loadingSettings
+        ? 'Loading…'
+        : supportPhone || (isOwner ? 'Not configured — tap Support Settings' : 'Not available yet');
+    const displayEmail = loadingSettings
+        ? 'Loading…'
+        : supportEmail || (isOwner ? 'Not configured — tap Support Settings' : 'Not available yet');
+
+    const handleChatAction = () => {
+        if (isOwner) {
+            // Owner taps this → go to Support Settings to configure
+            navigation.navigate('SupportSettings');
+        } else {
+            handleChatWithSupport();
+        }
+    };
+
     const contactOptions = [
         {
             icon: '💬',
-            title: 'Chat with Support',
-            subtitle: 'Instant help from our team',
-            action: () => {
-                // In a real app, this would start a chat with admin
-                // For now, let's navigate to home or show an alert
-                // navigation.navigate('Chat', { ... });
-            }
+            title: isOwner ? 'Support Settings' : 'Chat with Support',
+            subtitle: isOwner
+                ? 'Configure your support contact details'
+                : loadingChat
+                    ? 'Opening chat…'
+                    : 'Get help from our team',
+            action: handleChatAction,
+            loading: loadingChat && !isOwner,
         },
         {
             icon: '📞',
             title: 'Call Us',
-            subtitle: '+1 (555) 123-4567',
-            action: () => Linking.openURL('tel:+15551234567')
+            subtitle: displayPhone,
+            action: () => {
+                if (supportPhone) Linking.openURL(`tel:${supportPhone.replace(/\s/g, '')}`);
+            },
+            loading: false,
         },
         {
             icon: '✉️',
             title: 'Email Support',
-            subtitle: 'support@meraki.com',
-            action: () => Linking.openURL('mailto:support@meraki.com')
-        }
+            subtitle: displayEmail,
+            action: () => {
+                if (supportEmail) Linking.openURL(`mailto:${supportEmail}`);
+            },
+            loading: false,
+        },
     ];
 
     return (
@@ -74,10 +206,18 @@ export function HelpSupportScreen() {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Contact Us</Text>
                         {contactOptions.map((option, index) => (
-                            <TouchableOpacity key={index} onPress={option.action}>
+                            <TouchableOpacity
+                                key={index}
+                                onPress={option.action}
+                                disabled={option.loading || loadingSettings}
+                            >
                                 <Card style={styles.contactCard} variant="glass">
                                     <View style={styles.contactIcon}>
-                                        <Text style={styles.iconText}>{option.icon}</Text>
+                                        {option.loading ? (
+                                            <ActivityIndicator size="small" color={colors.primary} />
+                                        ) : (
+                                            <Text style={styles.iconText}>{option.icon}</Text>
+                                        )}
                                     </View>
                                     <View style={styles.contactInfo}>
                                         <Text style={styles.contactTitle}>{option.title}</Text>

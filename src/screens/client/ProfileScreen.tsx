@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Location from 'expo-location';
 import { decode } from 'base64-arraybuffer';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, Button, ScreenBackground, SearchablePicker, MerakiText } from '../../components/ui';
@@ -108,6 +109,20 @@ export function ProfileScreen() {
     const [emailNotifications, setEmailNotifications] = useState(true);
     const [pushNotifications, setPushNotifications] = useState(true);
 
+    // Change Password
+    const [changePasswordVisible, setChangePasswordVisible] = useState(false);
+    const [passwordMode, setPasswordMode] = useState<'change' | 'forgot' | 'verify'>('change');
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmNewPassword, setConfirmNewPassword] = useState('');
+    const [changingPassword, setChangingPassword] = useState(false);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [otpCode, setOtpCode] = useState('');
+    const [sendingOtp, setSendingOtp] = useState(false);
+    const [otpSent, setOtpSent] = useState(false);
+
     // Location API data
     const [countries, setCountries] = useState<Country[]>([]);
     const [cities, setCities] = useState<City[]>([]);
@@ -148,6 +163,130 @@ export function ProfileScreen() {
             } finally {
                 setLoadingCountries(false);
             }
+        }
+    };
+
+    const handleChangePassword = async () => {
+        if (!currentPassword) {
+            showAlert('Error', 'Please enter your current password.', 'error');
+            return;
+        }
+        if (!newPassword) {
+            showAlert('Error', 'Please enter a new password.', 'error');
+            return;
+        }
+        if (newPassword.length < 6) {
+            showAlert('Error', 'New password must be at least 6 characters.', 'error');
+            return;
+        }
+        if (newPassword !== confirmNewPassword) {
+            showAlert('Error', 'New passwords do not match.', 'error');
+            return;
+        }
+        if (currentPassword === newPassword) {
+            showAlert('Error', 'New password must be different from your current password.', 'error');
+            return;
+        }
+
+        setChangingPassword(true);
+        try {
+            // Verify current password by re-authenticating
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: profile?.email || '',
+                password: currentPassword,
+            });
+
+            if (signInError) {
+                showAlert('Error', 'Current password is incorrect.', 'error');
+                setChangingPassword(false);
+                return;
+            }
+
+            // Update to the new password
+            const { error: updateError } = await supabase.auth.updateUser({
+                password: newPassword,
+            });
+
+            if (updateError) {
+                showAlert('Error', updateError.message, 'error');
+            } else {
+                setChangePasswordVisible(false);
+                showAlert('Success', 'Your password has been updated successfully.', 'success');
+            }
+        } catch (err: any) {
+            showAlert('Error', err.message || 'Failed to change password.', 'error');
+        } finally {
+            setChangingPassword(false);
+        }
+    };
+
+    const handleSendOtp = async () => {
+        const email = profile?.email;
+        if (!email) {
+            showAlert('Error', 'No email found on your profile.', 'error');
+            return;
+        }
+        setSendingOtp(true);
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email);
+            if (error) {
+                showAlert('Error', error.message, 'error');
+            } else {
+                setOtpSent(true);
+                setPasswordMode('verify');
+                showAlert('Email Sent', `A 6-digit verification code has been sent to ${email}.`, 'success');
+            }
+        } catch (err: any) {
+            showAlert('Error', err.message || 'Failed to send verification code.', 'error');
+        } finally {
+            setSendingOtp(false);
+        }
+    };
+
+    const handleVerifyOtpAndReset = async () => {
+        if (!otpCode || otpCode.length < 6) {
+            showAlert('Error', 'Please enter the 6-digit verification code.', 'error');
+            return;
+        }
+        if (!newPassword) {
+            showAlert('Error', 'Please enter a new password.', 'error');
+            return;
+        }
+        if (newPassword.length < 6) {
+            showAlert('Error', 'New password must be at least 6 characters.', 'error');
+            return;
+        }
+        if (newPassword !== confirmNewPassword) {
+            showAlert('Error', 'New passwords do not match.', 'error');
+            return;
+        }
+
+        setChangingPassword(true);
+        try {
+            const { error } = await supabase.auth.verifyOtp({
+                email: profile?.email || '',
+                token: otpCode,
+                type: 'recovery',
+            });
+            if (error) {
+                showAlert('Error', 'Invalid or expired verification code.', 'error');
+                setChangingPassword(false);
+                return;
+            }
+
+            const { error: updateError } = await supabase.auth.updateUser({
+                password: newPassword,
+            });
+            if (updateError) {
+                showAlert('Error', updateError.message, 'error');
+            } else {
+                setChangePasswordVisible(false);
+                showAlert('Success', 'Your password has been reset successfully.', 'success');
+            }
+        } catch (err: any) {
+            showAlert('Error', err.message || 'Failed to reset password.', 'error');
+        } finally {
+            setChangingPassword(false);
         }
     };
 
@@ -424,8 +563,6 @@ export function ProfileScreen() {
                             { label: '10 km', value: 10 },
                             { label: '25 km', value: 25 },
                             { label: '50 km', value: 50 },
-                            { label: '100 km', value: 100 },
-                            { label: '200 km', value: 200 },
                             { label: 'Whole Country', value: 0 },
                         ].map((opt) => (
                             <TouchableOpacity
@@ -593,7 +730,18 @@ export function ProfileScreen() {
 
             <View style={styles.passwordSection}>
                 <MerakiText variant="h3" style={styles.sectionSubtitle}>Security</MerakiText>
-                <TouchableOpacity onPress={() => {/* Change Password logic */ }}>
+                <TouchableOpacity onPress={() => {
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmNewPassword('');
+                    setShowCurrentPassword(false);
+                    setShowNewPassword(false);
+                    setShowConfirmPassword(false);
+                    setPasswordMode('change');
+                    setOtpCode('');
+                    setOtpSent(false);
+                    setChangePasswordVisible(true);
+                }}>
                     <Card variant="glass" style={styles.passwordCard}>
                         <MaterialIcons name="lock-reset" size={20} color={colors.primary} />
                         <MerakiText style={styles.passwordButtonText}>Change Password</MerakiText>
@@ -703,7 +851,27 @@ export function ProfileScreen() {
                 >
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <TouchableOpacity
+                            onPress={() => {
+                                if (navigation.canGoBack()) {
+                                    navigation.goBack();
+                                } else {
+                                    // Fallback if we somehow end up here without history
+                                    // For Client, it might be HomeMain or MenuMain depending on where we are
+                                    // Safest is to just go to MenuMain if we are in Menu stack, or HomeMain if in Home stack?
+                                    // Or just let the user use the bottom tabs.
+                                    // But to be safe vs "not handled" crash:
+                                    if (profile?.role === 'client') {
+                                        // @ts-ignore
+                                        navigation.navigate('Menu');
+                                    } else {
+                                        // @ts-ignore
+                                        navigation.navigate('MenuMain');
+                                    }
+                                }
+                            }}
+                            style={styles.backButton}
+                        >
                             <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
                         </TouchableOpacity>
                         <MerakiText variant="h1" style={styles.title}>Profile</MerakiText>
@@ -838,6 +1006,260 @@ export function ProfileScreen() {
                 />
                 {renderCurrencyModal()}
                 {renderTimezoneModal()}
+
+                {/* Change Password Modal */}
+                <Modal
+                    visible={changePasswordVisible}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => setChangePasswordVisible(false)}
+                    statusBarTranslucent
+                >
+                    <View style={cpStyles.overlay}>
+                        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setChangePasswordVisible(false)} />
+                        <View style={cpStyles.container}>
+                            <LinearGradient
+                                colors={['rgba(212, 138, 130, 0.5)', 'rgba(230, 192, 144, 0.3)']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={cpStyles.gradientBorder}
+                            >
+                                <View style={cpStyles.innerCard}>
+                                    {/* Header */}
+                                    <View style={cpStyles.header}>
+                                        <View style={cpStyles.iconGlow}>
+                                            <MaterialIcons name="lock" size={28} color={colors.primary} />
+                                        </View>
+                                        <MerakiText variant="h2" style={cpStyles.title}>
+                                            {passwordMode === 'change' ? 'Change Password' : passwordMode === 'forgot' ? 'Reset via Email' : 'Enter Verification Code'}
+                                        </MerakiText>
+                                        <MerakiText style={cpStyles.subtitle}>
+                                            {passwordMode === 'change'
+                                                ? 'Enter your current password and choose a new one'
+                                                : passwordMode === 'forgot'
+                                                    ? `We\'ll send a verification code to ${profile?.email}`
+                                                    : 'Enter the code sent to your email and set a new password'}
+                                        </MerakiText>
+                                    </View>
+
+                                    <ScrollView style={cpStyles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                                        {/* Mode: Change with current password */}
+                                        {passwordMode === 'change' && (
+                                            <>
+                                                <View style={cpStyles.fieldGroup}>
+                                                    <MerakiText style={cpStyles.fieldLabel}>Current Password</MerakiText>
+                                                    <View style={cpStyles.inputRow}>
+                                                        <TextInput
+                                                            style={cpStyles.fieldInput}
+                                                            value={currentPassword}
+                                                            onChangeText={setCurrentPassword}
+                                                            secureTextEntry={!showCurrentPassword}
+                                                            placeholder="Enter current password"
+                                                            placeholderTextColor={colors.textMuted}
+                                                            autoCapitalize="none"
+                                                        />
+                                                        <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)} style={cpStyles.eyeBtn}>
+                                                            <MaterialIcons name={showCurrentPassword ? 'visibility-off' : 'visibility'} size={20} color={colors.textSecondary} />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+
+                                                <View style={cpStyles.fieldGroup}>
+                                                    <MerakiText style={cpStyles.fieldLabel}>New Password</MerakiText>
+                                                    <View style={cpStyles.inputRow}>
+                                                        <TextInput
+                                                            style={cpStyles.fieldInput}
+                                                            value={newPassword}
+                                                            onChangeText={setNewPassword}
+                                                            secureTextEntry={!showNewPassword}
+                                                            placeholder="Enter new password"
+                                                            placeholderTextColor={colors.textMuted}
+                                                            autoCapitalize="none"
+                                                        />
+                                                        <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)} style={cpStyles.eyeBtn}>
+                                                            <MaterialIcons name={showNewPassword ? 'visibility-off' : 'visibility'} size={20} color={colors.textSecondary} />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                    <MerakiText style={cpStyles.hint}>Minimum 6 characters</MerakiText>
+                                                </View>
+
+                                                <View style={cpStyles.fieldGroup}>
+                                                    <MerakiText style={cpStyles.fieldLabel}>Confirm New Password</MerakiText>
+                                                    <View style={cpStyles.inputRow}>
+                                                        <TextInput
+                                                            style={cpStyles.fieldInput}
+                                                            value={confirmNewPassword}
+                                                            onChangeText={setConfirmNewPassword}
+                                                            secureTextEntry={!showConfirmPassword}
+                                                            placeholder="Confirm new password"
+                                                            placeholderTextColor={colors.textMuted}
+                                                            autoCapitalize="none"
+                                                        />
+                                                        <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={cpStyles.eyeBtn}>
+                                                            <MaterialIcons name={showConfirmPassword ? 'visibility-off' : 'visibility'} size={20} color={colors.textSecondary} />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+
+                                                <Button
+                                                    title={changingPassword ? 'Updating...' : 'Update Password'}
+                                                    onPress={handleChangePassword}
+                                                    loading={changingPassword}
+                                                    fullWidth
+                                                    style={{ marginTop: spacing.sm }}
+                                                />
+
+                                                {/* Divider */}
+                                                <View style={cpStyles.dividerRow}>
+                                                    <View style={cpStyles.dividerLine} />
+                                                    <MerakiText style={cpStyles.dividerText}>or</MerakiText>
+                                                    <View style={cpStyles.dividerLine} />
+                                                </View>
+
+                                                {/* Forgot password button */}
+                                                <TouchableOpacity
+                                                    style={cpStyles.forgotBtn}
+                                                    onPress={() => {
+                                                        setPasswordMode('forgot');
+                                                        setNewPassword('');
+                                                        setConfirmNewPassword('');
+                                                        setOtpCode('');
+                                                        setOtpSent(false);
+                                                    }}
+                                                >
+                                                    <MaterialIcons name="email" size={18} color={colors.primary} />
+                                                    <MerakiText style={cpStyles.forgotBtnText}>Forgot Password? Reset via Email</MerakiText>
+                                                </TouchableOpacity>
+                                            </>
+                                        )}
+
+                                        {/* Mode: Forgot password - send OTP */}
+                                        {passwordMode === 'forgot' && (
+                                            <>
+                                                <View style={cpStyles.emailPreview}>
+                                                    <MaterialIcons name="mail-outline" size={22} color={colors.primary} />
+                                                    <MerakiText style={cpStyles.emailText}>{profile?.email}</MerakiText>
+                                                </View>
+
+                                                <MerakiText style={cpStyles.infoText}>
+                                                    Tap the button below to receive a 6-digit verification code at your registered email address.
+                                                </MerakiText>
+
+                                                <Button
+                                                    title={sendingOtp ? 'Sending...' : 'Send Verification Code'}
+                                                    onPress={handleSendOtp}
+                                                    loading={sendingOtp}
+                                                    fullWidth
+                                                    style={{ marginTop: spacing.md }}
+                                                />
+
+                                                <TouchableOpacity
+                                                    style={cpStyles.backLink}
+                                                    onPress={() => setPasswordMode('change')}
+                                                >
+                                                    <MaterialIcons name="arrow-back" size={16} color={colors.textSecondary} />
+                                                    <MerakiText style={cpStyles.backLinkText}>Back to Change Password</MerakiText>
+                                                </TouchableOpacity>
+                                            </>
+                                        )}
+
+                                        {/* Mode: Verify OTP + set new password */}
+                                        {passwordMode === 'verify' && (
+                                            <>
+                                                <View style={cpStyles.fieldGroup}>
+                                                    <MerakiText style={cpStyles.fieldLabel}>Verification Code</MerakiText>
+                                                    <View style={cpStyles.inputRow}>
+                                                        <TextInput
+                                                            style={[cpStyles.fieldInput, { letterSpacing: 8, fontSize: 20, textAlign: 'center' }]}
+                                                            value={otpCode}
+                                                            onChangeText={(text) => setOtpCode(text.replace(/[^0-9]/g, '').slice(0, 6))}
+                                                            placeholder="000000"
+                                                            placeholderTextColor={colors.textMuted}
+                                                            keyboardType="number-pad"
+                                                            maxLength={6}
+                                                            autoCapitalize="none"
+                                                        />
+                                                    </View>
+                                                    <MerakiText style={cpStyles.hint}>Enter the 6-digit code from your email</MerakiText>
+                                                </View>
+
+                                                <View style={cpStyles.fieldGroup}>
+                                                    <MerakiText style={cpStyles.fieldLabel}>New Password</MerakiText>
+                                                    <View style={cpStyles.inputRow}>
+                                                        <TextInput
+                                                            style={cpStyles.fieldInput}
+                                                            value={newPassword}
+                                                            onChangeText={setNewPassword}
+                                                            secureTextEntry={!showNewPassword}
+                                                            placeholder="Enter new password"
+                                                            placeholderTextColor={colors.textMuted}
+                                                            autoCapitalize="none"
+                                                        />
+                                                        <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)} style={cpStyles.eyeBtn}>
+                                                            <MaterialIcons name={showNewPassword ? 'visibility-off' : 'visibility'} size={20} color={colors.textSecondary} />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                    <MerakiText style={cpStyles.hint}>Minimum 6 characters</MerakiText>
+                                                </View>
+
+                                                <View style={cpStyles.fieldGroup}>
+                                                    <MerakiText style={cpStyles.fieldLabel}>Confirm New Password</MerakiText>
+                                                    <View style={cpStyles.inputRow}>
+                                                        <TextInput
+                                                            style={cpStyles.fieldInput}
+                                                            value={confirmNewPassword}
+                                                            onChangeText={setConfirmNewPassword}
+                                                            secureTextEntry={!showConfirmPassword}
+                                                            placeholder="Confirm new password"
+                                                            placeholderTextColor={colors.textMuted}
+                                                            autoCapitalize="none"
+                                                        />
+                                                        <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={cpStyles.eyeBtn}>
+                                                            <MaterialIcons name={showConfirmPassword ? 'visibility-off' : 'visibility'} size={20} color={colors.textSecondary} />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+
+                                                <Button
+                                                    title={changingPassword ? 'Resetting...' : 'Reset Password'}
+                                                    onPress={handleVerifyOtpAndReset}
+                                                    loading={changingPassword}
+                                                    fullWidth
+                                                    style={{ marginTop: spacing.sm }}
+                                                />
+
+                                                {/* Resend code */}
+                                                <TouchableOpacity
+                                                    style={cpStyles.backLink}
+                                                    onPress={handleSendOtp}
+                                                    disabled={sendingOtp}
+                                                >
+                                                    <MaterialIcons name="refresh" size={16} color={colors.textSecondary} />
+                                                    <MerakiText style={cpStyles.backLinkText}>
+                                                        {sendingOtp ? 'Sending...' : "Didn't receive it? Resend code"}
+                                                    </MerakiText>
+                                                </TouchableOpacity>
+
+                                                <TouchableOpacity
+                                                    style={[cpStyles.backLink, { marginTop: 0 }]}
+                                                    onPress={() => setPasswordMode('change')}
+                                                >
+                                                    <MaterialIcons name="arrow-back" size={16} color={colors.textSecondary} />
+                                                    <MerakiText style={cpStyles.backLinkText}>Back to Change Password</MerakiText>
+                                                </TouchableOpacity>
+                                            </>
+                                        )}
+                                    </ScrollView>
+
+                                    {/* Close button */}
+                                    <TouchableOpacity style={cpStyles.closeBtn} onPress={() => setChangePasswordVisible(false)}>
+                                        <MerakiText style={cpStyles.closeBtnText}>Cancel</MerakiText>
+                                    </TouchableOpacity>
+                                </View>
+                            </LinearGradient>
+                        </View>
+                    </View>
+                </Modal>
             </SafeAreaView>
         </ScreenBackground>
     );
@@ -1049,8 +1471,6 @@ const styles = StyleSheet.create({
     },
     passwordButtonText: { color: colors.primary, fontSize: 15, fontWeight: '700' },
 
-
-
     // Dropdown modals (kept similar for consistency)
     dropdownOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
     dropdownContent: { backgroundColor: colors.background, borderTopLeftRadius: 30, borderTopRightRadius: 30, maxHeight: '80%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
@@ -1063,6 +1483,189 @@ const styles = StyleSheet.create({
     dropdownItemText: { fontSize: 16, color: colors.text, flex: 1 },
     dropdownItemTextSelected: { color: colors.primary, fontWeight: '700' },
     checkmark: { fontSize: 18, color: colors.primary, fontWeight: '800' },
+});
+
+// ─── Change Password Modal Styles ──────────────────────────────────
+const cpStyles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: spacing.lg,
+    },
+    container: {
+        width: '100%',
+        maxWidth: 380,
+        borderRadius: 20,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.5,
+        shadowRadius: 24,
+        elevation: 12,
+    },
+    gradientBorder: {
+        padding: 1,
+        borderRadius: 20,
+    },
+    innerCard: {
+        backgroundColor: '#1F242C',
+        borderRadius: 19,
+        overflow: 'hidden',
+    },
+    header: {
+        alignItems: 'center',
+        paddingTop: spacing.xl,
+        paddingHorizontal: spacing.xl,
+        paddingBottom: spacing.md,
+    },
+    iconGlow: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: 'rgba(212, 168, 83, 0.12)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing.md,
+        borderWidth: 1,
+        borderColor: 'rgba(212, 168, 83, 0.2)',
+    },
+    title: {
+        color: colors.text,
+        fontSize: 20,
+        fontWeight: '700',
+        textAlign: 'center',
+        marginBottom: spacing.xs,
+        letterSpacing: 0.3,
+    },
+    subtitle: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 18,
+    },
+    body: {
+        paddingHorizontal: spacing.xl,
+        maxHeight: 450,
+    },
+    fieldGroup: {
+        marginBottom: spacing.md,
+    },
+    fieldLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: colors.textSecondary,
+        marginBottom: spacing.xs,
+        letterSpacing: 0.3,
+        textTransform: 'uppercase',
+    },
+    inputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#161B22',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#30363D',
+        overflow: 'hidden',
+    },
+    fieldInput: {
+        flex: 1,
+        paddingVertical: 13,
+        paddingHorizontal: spacing.md,
+        fontSize: 15,
+        color: colors.text,
+    },
+    eyeBtn: {
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+    },
+    hint: {
+        fontSize: 11,
+        color: colors.textMuted,
+        marginTop: spacing.xs,
+        marginLeft: 2,
+    },
+    dividerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: spacing.lg,
+        gap: spacing.md,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+    },
+    dividerText: {
+        fontSize: 12,
+        color: colors.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    forgotBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.sm,
+        paddingVertical: spacing.md,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(212, 168, 83, 0.25)',
+        backgroundColor: 'rgba(212, 168, 83, 0.06)',
+    },
+    forgotBtnText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.primary,
+    },
+    emailPreview: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.md,
+        borderRadius: 10,
+        backgroundColor: 'rgba(212, 168, 83, 0.06)',
+        borderWidth: 1,
+        borderColor: 'rgba(212, 168, 83, 0.15)',
+        marginBottom: spacing.md,
+    },
+    emailText: {
+        fontSize: 14,
+        color: colors.text,
+        fontWeight: '600',
+    },
+    infoText: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        lineHeight: 20,
+        textAlign: 'center',
+    },
+    backLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.xs,
+        marginTop: spacing.lg,
+        paddingVertical: spacing.sm,
+    },
+    backLinkText: {
+        fontSize: 13,
+        color: colors.textSecondary,
+    },
+    closeBtn: {
+        paddingVertical: spacing.md,
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.06)',
+        marginTop: spacing.md,
+    },
+    closeBtnText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: colors.textSecondary,
+    },
 });
 
 export default ProfileScreen;

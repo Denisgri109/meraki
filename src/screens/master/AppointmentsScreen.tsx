@@ -23,6 +23,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button, ScreenBackground, MerakiModal, MerakiModalProps, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { processRefund } from '../../services/stripeService';
 
 type Appointment = {
     id: string;
@@ -198,7 +199,13 @@ export function MasterAppointmentsScreen() {
             type: 'success',
             onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
             onConfirm: async () => {
-                setModalConfig(prev => ({ ...prev, visible: false })); // Close modal first
+                setModalConfig(prev => ({
+                    ...prev,
+                    title: 'Completing Appointment...',
+                    message: 'Capturing payment and finishing...',
+                    loading: true,
+                    hideCancel: true
+                }));
                 // Capture the payment on completion
                 const apt = appointments.find(a => a.id === id);
                 if (apt?.stripe_payment_intent_id) {
@@ -229,9 +236,15 @@ export function MasterAppointmentsScreen() {
             confirmDestructive: true,
             type: 'warning',
             onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
-            onConfirm: () => {
-                updateAppointmentStatus(id, 'cancelled_free');
-                setModalConfig(prev => ({ ...prev, visible: false }));
+            onConfirm: async () => {
+                setModalConfig(prev => ({
+                    ...prev,
+                    title: 'Approving...',
+                    message: 'Processing cancellation approval...',
+                    loading: true,
+                    hideCancel: true
+                }));
+                await updateAppointmentStatus(id, 'cancelled_free');
             }
         });
     };
@@ -263,7 +276,13 @@ export function MasterAppointmentsScreen() {
             type: 'info',
             onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
             onConfirm: async () => {
-                setModalConfig(prev => ({ ...prev, visible: false }));
+                setModalConfig(prev => ({
+                    ...prev,
+                    title: 'Approving...',
+                    message: 'Approving rescheduled time...',
+                    loading: true,
+                    hideCancel: true
+                }));
                 try {
                     const { error } = await supabase
                         .from('appointments')
@@ -312,7 +331,13 @@ export function MasterAppointmentsScreen() {
             type: 'info',
             onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
             onConfirm: async () => {
-                setModalConfig(prev => ({ ...prev, visible: false }));
+                setModalConfig(prev => ({
+                    ...prev,
+                    title: 'Rejecting...',
+                    message: 'Rejecting rescheduled time...',
+                    loading: true,
+                    hideCancel: true
+                }));
                 try {
                     const { error } = await supabase
                         .from('appointments')
@@ -355,14 +380,41 @@ export function MasterAppointmentsScreen() {
         setModalConfig({
             visible: true,
             title: 'Cancel Appointment',
-            message: 'Are you sure you want to cancel this appointment? The client will be notified.',
+            message: 'Are you sure you want to cancel this appointment? The client will be fully refunded and notified.',
             confirmText: 'Yes, Cancel',
             confirmDestructive: true,
             type: 'warning',
             onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
-            onConfirm: () => {
+            onConfirm: async () => {
+                setModalConfig(prev => ({
+                    ...prev,
+                    title: 'Cancelling...',
+                    message: 'Processing cancellation and refund...',
+                    loading: true,
+                    hideCancel: true
+                }));
+
+                const apt = appointments.find(a => a.id === id);
+                if (apt?.stripe_payment_intent_id) {
+                    try {
+                        // Issue full refund to client automatically
+                        await processRefund(apt.stripe_payment_intent_id, undefined, 'requested_by_customer');
+                    } catch (e: any) {
+                        console.error('Failed to process refund:', e);
+                        setModalConfig({
+                            visible: true,
+                            title: 'Refund Error',
+                            message: e.message || 'Could not process refund.',
+                            type: 'error',
+                            onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+                            confirmText: 'OK',
+                            hideCancel: true
+                        });
+                        return; // Stop cancellation process if refund fails
+                    }
+                }
+
                 updateAppointmentStatus(id, 'cancelled');
-                setModalConfig(prev => ({ ...prev, visible: false }));
             }
         });
     };
@@ -621,17 +673,13 @@ export function MasterAppointmentsScreen() {
                 {/* Confirmed — Quick Action Row */}
                 {isConfirmed && new Date(apt.start_time) > now && (
                     <View style={styles.stitchActionRow}>
-                        <View style={styles.stitchActionIcons}>
-                            <TouchableOpacity style={styles.stitchIconBtn} onPress={() => handleRescheduleAppointment(apt)}>
-                                <MaterialCommunityIcons name="calendar-clock" size={20} color={colors.textSecondary} />
-                            </TouchableOpacity>
-                        </View>
+                        <View style={styles.stitchActionIcons} />
                         <View style={styles.stitchActionButtons}>
                             <TouchableOpacity style={styles.stitchSmallBtn} onPress={() => handleCancelAppointment(apt.id)}>
                                 <MerakiText variant="caption" color={colors.textSecondary} style={styles.stitchSmallBtnText}>Cancel</MerakiText>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.stitchSmallBtnPrimary} onPress={() => handleComplete(apt.id)}>
-                                <MerakiText variant="caption" color={colors.primary} style={styles.stitchSmallBtnText}>Complete</MerakiText>
+                            <TouchableOpacity style={styles.stitchSmallBtnPrimary} onPress={() => handleRescheduleAppointment(apt)}>
+                                <MerakiText variant="caption" color={colors.primary} style={styles.stitchSmallBtnText}>Reschedule</MerakiText>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -1132,7 +1180,10 @@ const styles = StyleSheet.create({
     emptyText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xl },
 
     // ─── Modal & Picker ───
-    modalContainer: { flex: 1 },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: colors.baseBackground,
+    },
     modalHeader: {
         flexDirection: 'row',
         alignItems: 'center',

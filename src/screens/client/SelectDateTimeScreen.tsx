@@ -18,6 +18,7 @@ import { Button, Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { Service, Profile } from '../../types/database';
 import { getDeviceTimezone, getTimezoneAbbreviation, COMMON_TIMEZONES } from '../../utils/timezone';
+import { useHideTabBar } from '../../hooks/useHideTabBar';
 
 type BookingStackParamList = {
     BookingMain: undefined;
@@ -52,6 +53,7 @@ const generateTimeSlots = () => {
 };
 
 export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreenProps) {
+    useHideTabBar();
     const { serviceId, masterId } = route.params;
     const [service, setService] = useState<Service | null>(null);
     const [master, setMaster] = useState<Profile | null>(null);

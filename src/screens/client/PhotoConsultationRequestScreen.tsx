@@ -19,6 +19,7 @@ import { Button, ScreenBackground } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 import { PhotoConsultation } from '../../types/database';
+import { useHideTabBar } from '../../hooks/useHideTabBar';
 
 const SERVICE_TYPES = [
     'Eyelash Extensions',
@@ -30,6 +31,7 @@ const SERVICE_TYPES = [
 ];
 
 export function PhotoConsultationRequestScreen() {
+    useHideTabBar();
     const navigation = useNavigation<any>();
     const route = useRoute<RouteProp<{ params: { masterId?: string } }, 'params'>>();
     const { showAlert, showModal, hideModal } = useModal();
@@ -98,11 +100,6 @@ export function PhotoConsultationRequestScreen() {
 
                     uploadedUrls.push(publicUrl);
                 }
-
-                setFormData(prev => ({
-                    ...prev,
-                    photos: [...prev.photos, ...uploadedUrls].slice(0, 5)
-                }));
 
                 setFormData(prev => ({
                     ...prev,

@@ -6,3 +6,5 @@ export { HomeworkInboxScreen } from './HomeworkInboxScreen';
 export { HomeworkReviewScreen } from './HomeworkReviewScreen';
 export { AcademyStudentsScreen } from './AcademyStudentsScreen';
 export { StudentDetailScreen } from './StudentDetailScreen';
+export { LessonQAInboxScreen } from './LessonQAInboxScreen';
+export { LessonQADetailScreen } from './LessonQADetailScreen';

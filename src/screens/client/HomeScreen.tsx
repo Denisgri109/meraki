@@ -50,6 +50,17 @@ interface FeaturedMaster {
     avatar_url: string | null;
     bio: string | null;
     country: string | null;
+    latitude: number | null;
+    longitude: number | null;
+}
+
+// Haversine distance in km between two lat/lng points
+function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 interface Master {
@@ -109,13 +120,22 @@ export function ClientHomeScreen() {
     const [serviceResults, setServiceResults] = useState<SearchServiceResult[]>([]);
     const [courseResults, setCourseResults] = useState<SearchCourseResult[]>([]);
 
-    const [userCountry, setUserCountry] = useState<string | null>(null);
+    const [userCountry, setUserCountry] = useState<string | null>(profile?.country || null);
+    const [userLat, setUserLat] = useState<number | null>((profile as any)?.latitude || null);
+    const [userLng, setUserLng] = useState<number | null>((profile as any)?.longitude || null);
+    const searchRadiusKm: number = (profile as any)?.search_radius_km ?? 50;
     const [searchLoading, setSearchLoading] = useState(false);
+    const [locationReady, setLocationReady] = useState(false);
 
-    const fetchHomeData = async () => {
+    const fetchHomeData = async (loc?: { country: string | null; lat: number | null; lng: number | null }) => {
         if (!user) return;
         const isSessionValid = await checkSession();
         if (!isSessionValid) { setLoading(false); setRefreshing(false); return; }
+
+        // Use passed-in location (fresh from detectUserLocation) over stale state
+        const effectiveCountry = loc?.country || profile?.country || userCountry;
+        const effectiveLat = loc?.lat ?? userLat;
+        const effectiveLng = loc?.lng ?? userLng;
 
         try {
             const profilePromise = (supabase as any).from('profiles').select('loyalty_points').eq('id', user.id).single();
@@ -139,25 +159,88 @@ export function ClientHomeScreen() {
             const { data: orders } = await safeSupabaseFetch(ordersPromise, { timeout: 5000 });
             setRecentOrders((orders as any) || []);
 
-            const mastersPromise = (supabase as any).from('profiles').select('id, full_name, avatar_url, bio, country').or('is_master.eq.true,role.eq.master,role.eq.owner').limit(50);
+            // Fetch featured masters with their lat/lng for distance filtering
+            // Exclude the logged-in user so owners/masters never see themselves in the client view
+            const mastersPromise = (supabase as any).from('profiles').select('id, full_name, avatar_url, bio, country, latitude, longitude').or('is_master.eq.true,role.eq.master,role.eq.owner').neq('id', user.id).limit(50);
             const { data: masters } = await safeSupabaseFetch(mastersPromise, { timeout: 5000 });
-            setFeaturedMasters((masters as FeaturedMaster[]) || []);
 
+            // Filter masters by country + radius
+            let filteredMasters = (masters as FeaturedMaster[]) || [];
+            if (effectiveCountry) {
+                const uCountry = effectiveCountry.toLowerCase().trim();
+                filteredMasters = filteredMasters.filter(m => {
+                    if (!m.country || m.country.toLowerCase().trim() !== uCountry) return false;
+                    if (searchRadiusKm > 0 && effectiveLat && effectiveLng && m.latitude && m.longitude) {
+                        const dist = haversineDistanceKm(effectiveLat, effectiveLng, m.latitude, m.longitude);
+                        if (dist > searchRadiusKm) return false;
+                    }
+                    return true;
+                });
+            } else {
+                // No country detected at all — show nothing rather than unfiltered data
+                filteredMasters = [];
+            }
+            setFeaturedMasters(filteredMasters);
+
+            // Fetch services with master country info for filtering
             const servicesPromise = (supabase as any)
                 .from('services')
-                .select('*, master_services!inner(is_available)')
+                .select('*, master_services!inner(is_available, master_id, master:profiles!master_services_master_id_fkey(country, latitude, longitude))')
                 .eq('is_active', true)
                 .eq('master_services.is_available', true)
                 .order('name')
-                .limit(6);
+                .limit(20);
             const { data: servicesData } = await safeSupabaseFetch(servicesPromise, { timeout: 5000 });
-            setAvailableServices((servicesData as any) || []);
+
+            // Filter services: exclude the logged-in user's own services + keep only those with at least one master in the user's country + radius
+            let filteredServices = (servicesData as any[]) || [];
+            // Remove services that only belong to the current user
+            filteredServices = filteredServices.filter(service => {
+                const masterServices = service.master_services || [];
+                const hasOtherMaster = masterServices.some((ms: any) => ms.master_id !== user.id);
+                return hasOtherMaster;
+            });
+            if (effectiveCountry) {
+                const uCountry = effectiveCountry.toLowerCase().trim();
+                filteredServices = filteredServices.filter(service => {
+                    const masterServices = service.master_services || [];
+                    return masterServices.some((ms: any) => {
+                        if (ms.master_id === user.id) return false; // Skip self
+                        const masterProfile = ms.master;
+                        if (!masterProfile?.country) return false;
+                        if (masterProfile.country.toLowerCase().trim() !== uCountry) return false;
+                        if (searchRadiusKm > 0 && effectiveLat && effectiveLng && masterProfile.latitude && masterProfile.longitude) {
+                            const dist = haversineDistanceKm(effectiveLat, effectiveLng, masterProfile.latitude, masterProfile.longitude);
+                            if (dist > searchRadiusKm) return false;
+                        }
+                        return true;
+                    });
+                });
+            } else {
+                // No country detected — show nothing rather than unfiltered data
+                filteredServices = [];
+            }
+            setAvailableServices(filteredServices.slice(0, 6));
         } catch (error) {
             console.error('Error fetching home data:', error);
         } finally { setLoading(false); setRefreshing(false); }
     };
 
-    const detectUserLocation = async () => {
+    // Fast location: returns profile data immediately, no GPS wait
+    const getProfileLocation = (): { country: string | null; lat: number | null; lng: number | null } => {
+        return {
+            country: profile?.country || null,
+            lat: (profile as any)?.latitude || null,
+            lng: (profile as any)?.longitude || null,
+        };
+    };
+
+    // Background GPS detection — updates state for future renders, returns resolved location
+    const detectUserLocationInBackground = async () => {
+        // Sync profile values into state
+        if (profile?.country && !userCountry) setUserCountry(profile.country);
+        if ((profile as any)?.latitude) setUserLat((profile as any).latitude);
+        if ((profile as any)?.longitude) setUserLng((profile as any).longitude);
         try {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status === 'granted') {
@@ -169,10 +252,20 @@ export function ClientHomeScreen() {
                 if (address?.country) {
                     setUserCountry(address.country);
                 }
+                setUserLat(location.coords.latitude);
+                setUserLng(location.coords.longitude);
+                // Return the GPS-resolved location for optional re-fetch
+                return {
+                    country: address?.country || profile?.country || null,
+                    lat: location.coords.latitude,
+                    lng: location.coords.longitude,
+                };
             }
         } catch (error) {
             console.log('Location detection failed:', error);
         }
+        setLocationReady(true);
+        return null;
     };
 
     const fetchAllSearchData = async () => {
@@ -319,11 +412,25 @@ export function ClientHomeScreen() {
     };
 
     useFocusEffect(useCallback(() => {
-        fetchHomeData();
-        detectUserLocation();
+        // Use profile location instantly (no GPS wait), then refine with GPS in background
+        const profileLoc = getProfileLocation();
+        setLocationReady(true);
+        fetchHomeData(profileLoc);
         fetchAllSearchData();
+
+        // Background: refine with GPS (only re-fetches if country changes)
+        detectUserLocationInBackground().then(gpsLoc => {
+            if (gpsLoc && gpsLoc.country && gpsLoc.country !== profileLoc.country) {
+                // GPS country differs from profile — re-fetch with updated location
+                fetchHomeData(gpsLoc);
+            }
+        });
     }, [user]));
-    const onRefresh = async () => { setRefreshing(true); await fetchHomeData(); };
+    const onRefresh = async () => {
+        setRefreshing(true);
+        const profileLoc = getProfileLocation();
+        await fetchHomeData(profileLoc);
+    };
 
     const getGreeting = () => {
         const hour = new Date().getHours();
@@ -410,9 +517,9 @@ export function ClientHomeScreen() {
                             onChangeText={handleSearch}
                             onFocus={() => setIsSearching(true)}
                         />
-                        {isSearching && searchQuery.length > 0 ? (
+                        {isSearching ? (
                             <TouchableOpacity onPress={clearSearch}>
-                                <MaterialIcons name="close" size={20} color="rgba(255,255,255,0.5)" />
+                                <MerakiText style={{ color: colors.primary, fontWeight: '600', fontSize: 14 }}>Cancel</MerakiText>
                             </TouchableOpacity>
                         ) : (
                             <View style={styles.searchFilter}>
@@ -423,7 +530,7 @@ export function ClientHomeScreen() {
 
                     {/* Search Results Overlay */}
                     {isSearching ? (
-                        <ScrollView style={{ maxHeight: Dimensions.get('window').height * 0.7 }} showsVerticalScrollIndicator={false}>
+                        <View style={{ paddingBottom: 100 }}>
                             {searchResults.length === 0 && serviceResults.length === 0 && courseResults.length === 0 ? (
                                 <View style={{ alignItems: 'center', marginTop: 40 }}>
                                     <MaterialIcons name="search-off" size={48} color="rgba(255,255,255,0.2)" />
@@ -542,7 +649,7 @@ export function ClientHomeScreen() {
                                     )}
                                 </>
                             )}
-                        </ScrollView>
+                        </View>
                     ) : (
                         <>
 
@@ -598,7 +705,7 @@ export function ClientHomeScreen() {
                             )}
 
                             {/* Featured Masters */}
-                            {featuredMasters.length > 0 && (
+                            {featuredMasters.length > 0 && !loading && locationReady && (
                                 <View style={styles.section}>
                                     <View style={styles.sectionHeader}>
                                         <MerakiText style={styles.sectionTitle}>Featured Masters</MerakiText>
@@ -608,7 +715,6 @@ export function ClientHomeScreen() {
                                     </View>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 24 }}>
                                         {featuredMasters
-                                            .filter(m => !userCountry || (m.country && m.country.toLowerCase().trim() === userCountry.toLowerCase().trim()))
                                             .slice(0, 10)
                                             .map((master) => (
                                                 <TouchableOpacity
@@ -633,7 +739,7 @@ export function ClientHomeScreen() {
                                 </View>
                             )}
 
-                            {/* Services */}
+                            {/* Services — only show after location + data are resolved */}
                             <View style={styles.section}>
                                 <View style={styles.sectionHeader}>
                                     <MerakiText style={styles.sectionTitle}>Services</MerakiText>
@@ -642,7 +748,7 @@ export function ClientHomeScreen() {
                                     </TouchableOpacity>
                                 </View>
                                 <View style={styles.servicesGrid}>
-                                    {availableServices.length > 0 ? (
+                                    {loading || !locationReady ? null : availableServices.length > 0 ? (
                                         availableServices.map((service) => (
                                             <TouchableOpacity
                                                 key={service.id}

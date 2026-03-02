@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ScreenBackground, Button, MerakiText, Card } from '../../components/ui';
+import { LessonQAChat } from '../../components/academy/LessonQAChat';
 import { colors, spacing, layout, gradients } from '../../theme';
 
 const { width } = Dimensions.get('window');
@@ -99,10 +100,12 @@ const getEmbedUrl = (url: string, provider?: string | null): string | null => {
 export function LessonScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<RouteProp<AcademyStackParamList, 'Lesson'>>();
-    const { user } = useAuth();
-    const { lesson, instructorId, instructorName } = route.params;
+    const { user, profile } = useAuth();
+    const { lesson, courseId, instructorId, instructorName } = route.params;
+    const isInstructor = profile?.role === 'owner' || user?.id === instructorId;
 
     const videoRef = useRef<Video>(null);
+    const [showQA, setShowQA] = useState(false);
     const [progress, setProgress] = useState(0);
     const [videoDuration, setVideoDuration] = useState<number>(0);
     const [chatLoading, setChatLoading] = useState(false);
@@ -303,6 +306,34 @@ export function LessonScreen() {
                                 </TouchableOpacity>
                             )}
                         </View>
+
+                        {/* Live Q&A Section */}
+                        <View style={styles.qaSection}>
+                            <TouchableOpacity
+                                style={styles.qaToggle}
+                                onPress={() => setShowQA(!showQA)}
+                            >
+                                <View style={styles.qaToggleLeft}>
+                                    <MerakiText style={{ fontSize: 18 }}>💬</MerakiText>
+                                    <MerakiText variant="bodyBold">Live Q&A</MerakiText>
+                                    <View style={styles.liveIndicatorSmall}>
+                                        <View style={styles.liveDotSmall} />
+                                    </View>
+                                </View>
+                                <MerakiText variant="caption" color={colors.accent}>
+                                    {showQA ? 'Hide' : 'Open'}
+                                </MerakiText>
+                            </TouchableOpacity>
+
+                            {showQA && courseId && (
+                                <LessonQAChat
+                                    lessonId={lesson.id}
+                                    courseId={courseId}
+                                    instructorId={instructorId || null}
+                                    isInstructor={isInstructor}
+                                />
+                            )}
+                        </View>
                     </View>
                 </ScrollView>
             </SafeAreaView>
@@ -368,6 +399,34 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         padding: spacing.md,
+    },
+    // Q&A Section
+    qaSection: { marginTop: spacing.xl },
+    qaToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'rgba(212,168,83,0.06)',
+        padding: spacing.md,
+        borderRadius: layout.borderRadius.lg,
+        borderWidth: 1,
+        borderColor: 'rgba(212,168,83,0.15)',
+        marginBottom: spacing.md,
+    },
+    qaToggleLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+    },
+    liveIndicatorSmall: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    liveDotSmall: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: colors.success,
     },
 });
 

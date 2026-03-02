@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { colors, spacing, layout } from '../theme';
+import { TabBarProvider, useTabBar } from '../contexts/TabBarContext';
 import {
     ClientHomeScreen as HomeScreen,
     ProfileScreen,
@@ -189,11 +190,45 @@ export type ClientTabsParamList = {
 const Tab = createBottomTabNavigator<ClientTabsParamList>();
 
 // Menu placeholder component that opens drawer
+// Menu Stack
+export type MenuStackParamList = {
+    MenuMain: undefined;
+    Profile: undefined;
+    Orders: undefined;
+    HelpSupport: undefined;
+    TermsOfService: undefined;
+    PrivacyPolicy: undefined;
+    LoyaltyPoints: undefined;
+    PaymentMethods: undefined;
+    PaymentHistory: undefined;
+    Notifications: undefined;
+    StampCards: undefined;
+    RewardsCatalog: undefined;
+    PointsHistory: undefined;
+    QRScanner: undefined;
+    NFCScanner: undefined;
+};
+
+const MenuStack = createNativeStackNavigator<MenuStackParamList>();
+
 function MenuStackNavigator() {
-    const MenuStack = createNativeStackNavigator();
     return (
         <MenuStack.Navigator screenOptions={{ headerShown: false }}>
             <MenuStack.Screen name="MenuMain" component={MenuScreen} />
+            <MenuStack.Screen name="Profile" component={ProfileScreen} />
+            <MenuStack.Screen name="Orders" component={OrdersScreen} />
+            <MenuStack.Screen name="HelpSupport" component={HelpSupportScreen} />
+            <MenuStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
+            <MenuStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+            <MenuStack.Screen name="LoyaltyPoints" component={LoyaltyPointsScreen} />
+            <MenuStack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+            <MenuStack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
+            <MenuStack.Screen name="Notifications" component={NotificationsScreen} />
+            <MenuStack.Screen name="StampCards" component={StampCardsScreen} />
+            <MenuStack.Screen name="RewardsCatalog" component={RewardsCatalogScreen} />
+            <MenuStack.Screen name="PointsHistory" component={PointsHistoryScreen} />
+            <MenuStack.Screen name="QRScanner" component={QRScannerScreen} />
+            <MenuStack.Screen name="NFCScanner" component={NFCScannerScreen} />
         </MenuStack.Navigator>
     );
 }
@@ -215,7 +250,9 @@ function BookAndChatNavigator() {
 }
 
 
-export function ClientTabs() {
+function ClientTabsInner() {
+    const { isTabBarVisible } = useTabBar();
+
     return (
         <>
             <Tab.Navigator
@@ -278,10 +315,13 @@ export function ClientTabs() {
                             <MaterialIcons name="explore" size={22} color={color} />
                         ),
                         tabBarLabel: 'Book & Chat',
-                        tabBarStyle: ((route) => {
+                        tabBarStyle: (() => {
+                            // Always respect context — booking flow screens set isTabBarVisible=false
+                            if (!isTabBarVisible) {
+                                return { display: 'none' as const };
+                            }
+                            // Also check leaf route name as fallback
                             const leafRouteName = getLeafRouteName(route);
-
-                            // Screens where the tab bar should be HIDDEN
                             const hiddenScreens = [
                                 'ServiceDetail',
                                 'SelectDateTime',
@@ -290,13 +330,11 @@ export function ClientTabs() {
                                 'MasterDetail',
                                 'ConsultationWaiting',
                             ];
-
                             if (hiddenScreens.includes(leafRouteName)) {
-                                return { display: 'none' };
+                                return { display: 'none' as const };
                             }
-
                             return styles.tabBar;
-                        })(route),
+                        })(),
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
@@ -397,6 +435,14 @@ export function ClientTabs() {
     );
 }
 
+export function ClientTabs() {
+    return (
+        <TabBarProvider>
+            <ClientTabsInner />
+        </TabBarProvider>
+    );
+}
+
 const styles = StyleSheet.create({
     tabBar: {
         position: 'absolute',
@@ -412,11 +458,6 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(48, 54, 61, 0.50)',
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
     },
     tabLabel: {
         fontSize: 10,

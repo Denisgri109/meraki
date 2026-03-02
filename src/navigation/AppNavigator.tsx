@@ -56,7 +56,7 @@ export type RootStackParamList = {
     MasterApp: undefined;
     MasterOnboarding: undefined;
     OwnerApp: undefined;
-    Chat: { conversationId: string; otherUser: any };
+    Chat: { conversationId: string; otherUser: any; isSupportChat?: boolean };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -100,7 +100,9 @@ export function AppNavigator() {
         if (profile?.role === 'master') {
             return (
                 <>
-                    <Stack.Screen name="MasterOnboarding" component={MasterOnboardingScreen} />
+                    {profile?.onboarding_completed !== true && (
+                        <Stack.Screen name="MasterOnboarding" component={MasterOnboardingScreen} />
+                    )}
                     <Stack.Screen name="MasterApp" component={MasterTabs} />
                 </>
             );
