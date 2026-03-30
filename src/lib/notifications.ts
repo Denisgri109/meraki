@@ -16,10 +16,11 @@ Notifications.setNotificationHandler({
 });
 
 export interface NotificationData {
-    type: 'appointment_reminder' | 'confirmation_request' | 'message' | 'promotion' | 'aftercare';
+    type: 'appointment_reminder' | 'confirmation_request' | 'message' | 'promotion' | 'aftercare' | 'consultation_response';
     appointmentId?: string;
     conversationId?: string;
     masterId?: string;
+    consultationId?: string;
 }
 
 /**

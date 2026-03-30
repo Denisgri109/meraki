@@ -195,7 +195,7 @@ export function MasterDetailScreen() {
                     {/* Save Button */}
                     <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
                         <LinearGradient
-                            colors={['#D4A853', '#B8912E']}
+                            colors={['#E8A0B4', '#C47A90']}
                             style={styles.saveBtnGradient}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
@@ -248,8 +248,8 @@ const styles = StyleSheet.create({
     },
     backBtn: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     headerTitle: { flex: 1, marginLeft: spacing.md },
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
     },
-    avatarText: { fontSize: 36, fontWeight: '700' as any, color: '#fff' },
+    avatarText: { fontSize: 36, fontWeight: '700' as any, color: '#FFFFFF' },
     statusRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
     statusChip: {
         flexDirection: 'row',
@@ -280,14 +280,14 @@ const styles = StyleSheet.create({
     toggleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     toggle: {
         width: 48, height: 28, borderRadius: 14,
-        backgroundColor: 'rgba(255,255,255,0.10)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
         padding: 2,
         justifyContent: 'center',
     },
     toggleActive: { backgroundColor: 'rgba(212,168,83,0.30)' },
     toggleKnob: {
         width: 24, height: 24, borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.40)',
     },
     toggleKnobActive: {
         backgroundColor: colors.accent,

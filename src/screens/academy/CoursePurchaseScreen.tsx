@@ -283,7 +283,7 @@ export function CoursePurchaseScreen() {
                                         <CardField
                                             postalCodeEnabled={false}
                                             cardStyle={{
-                                                backgroundColor: 'rgba(255,255,255,0.05)',
+                                                backgroundColor: colors.surfaceLight,
                                                 textColor: colors.text,
                                                 placeholderColor: colors.textMuted,
                                             }}
@@ -326,13 +326,19 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: colors.surfaceGlass,
+        backgroundColor: '#FFFFFF',
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 5,
     },
-    backIcon: { fontSize: 24 },
+    backIcon: {
+        fontSize: 24,
+        color: '#1A1A1A',
+    },
     scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: 20 },
     courseCard: { borderRadius: layout.borderRadius.lg, marginBottom: spacing.xl },
     thumbnailContainer: { height: 160, width: '100%', backgroundColor: colors.surfaceLight },
@@ -341,7 +347,7 @@ const styles = StyleSheet.create({
     thumbnailEmoji: { fontSize: 50 },
     cardInfo: { padding: spacing.lg },
     courseTitle: { marginBottom: 4 },
-    divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: spacing.md },
+    divider: { height: 1, backgroundColor: 'rgba(0, 0, 0, 0.04)', marginVertical: spacing.md },
     summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
     priceSection: { marginBottom: spacing.xl },
     priceText: { marginTop: 4 },
@@ -351,14 +357,14 @@ const styles = StyleSheet.create({
     selectedCard: { borderColor: colors.accent, borderWidth: 1 },
     cardRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     cardIcon: { fontSize: 24 },
-    radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+    radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(0, 0, 0, 0.12)', alignItems: 'center', justifyContent: 'center' },
     radioActive: { borderColor: colors.accent },
     radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.accent },
     cardFieldWrapper: { marginTop: spacing.sm, paddingHorizontal: 4 },
     cardField: { width: '100%', height: 50 },
     securityNote: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.05)', padding: spacing.md, borderRadius: layout.borderRadius.md, gap: spacing.md },
     shieldIcon: { fontSize: 24 },
-    footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+    footer: { padding: spacing.lg, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: 'rgba(0, 0, 0, 0.04)' },
 });
 
 export default CoursePurchaseScreen;

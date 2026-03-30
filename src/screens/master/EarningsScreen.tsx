@@ -10,6 +10,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, ScreenBackground, MerakiText } from '../../components/ui';
@@ -18,6 +19,7 @@ import { colors, spacing } from '../../theme';
 type Period = 'week' | 'month' | 'all';
 
 export function MasterEarningsScreen() {
+    const navigation = useNavigation<any>();
     const { user } = useAuth();
     const [earnings, setEarnings] = useState({
         total: 0,
@@ -115,12 +117,19 @@ export function MasterEarningsScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <MerakiText variant="h1">Earnings</MerakiText>
-                    <MerakiText variant="caption" color={colors.textMuted}>
-                        {period === 'week' && format(new Date(), "'Week of' MMM d")}
-                        {period === 'month' && format(new Date(), 'MMMM yyyy')}
-                        {period === 'all' && 'Lifetime'}
-                    </MerakiText>
+                    <View style={styles.headerTopRow}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+                        </TouchableOpacity>
+                        <View style={styles.headerTitleContainer}>
+                            <MerakiText variant="h1">Earnings</MerakiText>
+                            <MerakiText variant="caption" color={colors.textMuted}>
+                                {period === 'week' && format(new Date(), "'Week of' MMM d")}
+                                {period === 'month' && format(new Date(), 'MMMM yyyy')}
+                                {period === 'all' && 'Lifetime'}
+                            </MerakiText>
+                        </View>
+                    </View>
                 </View>
 
                 {/* Period Selector Pills */}
@@ -228,6 +237,24 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
         paddingTop: spacing.lg,
         paddingBottom: spacing.sm,
+    },
+    headerTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
+    },
+    headerTitleContainer: {
+        flex: 1,
     },
     pillContainer: {
         paddingHorizontal: spacing.lg,

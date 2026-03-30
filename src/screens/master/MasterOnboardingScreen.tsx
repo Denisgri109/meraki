@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: 'rgba(0, 0, 0, 0.12)',
     },
     progressDotActive: {
         backgroundColor: colors.primary,
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     actionCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         borderWidth: 1,

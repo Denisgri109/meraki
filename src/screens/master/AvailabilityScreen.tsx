@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.xs,
     },
     timeButton: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 8,
         padding: spacing.sm,
         borderWidth: 1,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     timeOption: {
         width: '23%',
         paddingVertical: spacing.md,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 8,
         alignItems: 'center',
         borderWidth: 1,

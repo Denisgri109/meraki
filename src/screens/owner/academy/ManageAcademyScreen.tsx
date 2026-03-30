@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingHorizontal: 4,
     },
-    badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+    badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
 
     // Lazy Placeholder
     lazyPlaceholder: {

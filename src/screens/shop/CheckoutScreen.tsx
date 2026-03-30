@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.3,
     },
     fieldInput: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         color: colors.text,
@@ -779,7 +779,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         borderWidth: 1,
@@ -957,7 +957,7 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.sm,
     },
     searchInput: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         color: colors.text,

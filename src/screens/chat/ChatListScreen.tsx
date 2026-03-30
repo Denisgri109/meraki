@@ -426,7 +426,7 @@ export function ChatListScreen() {
                             <TextInput
                                 style={styles.searchInput}
                                 placeholder={isMaster ? "Search clients..." : userLocation.country ? `Search masters in ${userLocation.country}...` : "Search masters near you..."}
-                                placeholderTextColor={colors.textSecondary}
+                                placeholderTextColor="rgba(0, 0, 0, 0.30)"
                                 value={searchQuery}
                                 onChangeText={setSearchQuery}
                                 autoCapitalize="none"
@@ -549,17 +549,17 @@ const styles = StyleSheet.create({
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.surfaceGlass,
+        backgroundColor: '#FFFFFF',
         borderRadius: 16,
         paddingHorizontal: spacing.md,
         height: 50,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+        elevation: 2,
     },
     searchIcon: {
         fontSize: 18,
@@ -682,7 +682,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginRight: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     conversationAvatarImage: {
         width: 52,
@@ -690,7 +690,7 @@ const styles = StyleSheet.create({
         borderRadius: 26,
         marginRight: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     conversationAvatarText: {
         fontSize: 20,

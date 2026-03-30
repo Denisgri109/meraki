@@ -8,6 +8,7 @@ import {
     Image,
     RefreshControl,
     Dimensions,
+    Modal,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -50,6 +51,7 @@ export function BookingConsultationReviewScreen() {
     const [statusFilter, setStatusFilter] = useState('pending');
     const [selectedConsultation, setSelectedConsultation] = useState<ConsultationWithDetails | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
+    const [fullScreenPhoto, setFullScreenPhoto] = useState<string | null>(null);
 
     const fetchConsultations = async () => {
         try {
@@ -107,6 +109,37 @@ export function BookingConsultationReviewScreen() {
         fetchConsultations();
     };
 
+    // Send push notification to client
+    const notifyClient = async (clientId: string, title: string, body: string, data?: Record<string, any>) => {
+        try {
+            const { data: clientProfile } = await supabase
+                .from('profiles')
+                .select('push_token')
+                .eq('id', clientId)
+                .single();
+
+            const pushToken = clientProfile?.push_token;
+            if (!pushToken) return;
+
+            await fetch('https://exp.host/--/api/v2/push/send', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    to: pushToken,
+                    sound: 'default',
+                    title,
+                    body,
+                    data: { type: 'consultation_response', ...data },
+                }),
+            });
+        } catch (e) {
+            console.error('Failed to send client notification:', e);
+        }
+    };
+
     const handleApprove = async (consultation: ConsultationWithDetails) => {
         setActionLoading(true);
         try {
@@ -128,6 +161,14 @@ export function BookingConsultationReviewScreen() {
 
             if (error) throw error;
 
+            // Notify client
+            await notifyClient(
+                consultation.client_id,
+                'Consultation Approved ✓',
+                `Your consultation for ${consultation.service?.name || 'the service'} has been approved! You can now book your appointment.`,
+                { consultationId: consultation.id }
+            );
+
             showAlert(
                 'Approved!',
                 `Client can now proceed with booking. The approval is valid for 7 days.`,
@@ -145,41 +186,9 @@ export function BookingConsultationReviewScreen() {
     };
 
     const handleRequestChat = async (consultation: ConsultationWithDetails) => {
-        setActionLoading(true);
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
-
-            const { error } = await supabase
-                .from('booking_consultations')
-                .update({
-                    status: 'chat_requested',
-                    master_id: user.id,
-                    responded_at: new Date().toISOString(),
-                })
-                .eq('id', consultation.id);
-
-            if (error) throw error;
-
-            showConfirm(
-                'Chat Requested',
-                'The client has been notified. You can now start a conversation.',
-                () => openChatWithClient(consultation),
-                {
-                    confirmText: 'Open Chat',
-                    cancelText: 'Later',
-                    type: 'success'
-                }
-            );
-
-            setSelectedConsultation(null);
-            fetchConsultations();
-        } catch (error: any) {
-            console.error('Error requesting chat:', error);
-            showAlert('Error', error.message || 'Failed to request chat', 'error');
-        } finally {
-            setActionLoading(false);
-        }
+        // Just open chat directly without changing consultation status
+        setSelectedConsultation(null);
+        await openChatWithClient(consultation);
     };
 
     const handleDecline = async (consultation: ConsultationWithDetails) => {
@@ -201,6 +210,14 @@ export function BookingConsultationReviewScreen() {
                         .eq('id', consultation.id);
 
                     if (error) throw error;
+
+                    // Notify client
+                    await notifyClient(
+                        consultation.client_id,
+                        'Consultation Update',
+                        `Your consultation for ${consultation.service?.name || 'the service'} was not approved. Please contact us for more details.`,
+                        { consultationId: consultation.id }
+                    );
 
                     setSelectedConsultation(null);
                     fetchConsultations();
@@ -228,7 +245,8 @@ export function BookingConsultationReviewScreen() {
             const { data: existingConv } = await (supabase as any)
                 .from('conversations')
                 .select('id')
-                .or(`and(participant_1.eq.${user.id},participant_2.eq.${consultation.client.id}),and(participant_1.eq.${consultation.client.id},participant_2.eq.${user.id})`)
+                .eq('master_id', user.id)
+                .eq('client_id', consultation.client.id)
                 .single();
 
             let conversationId = existingConv?.id;
@@ -237,8 +255,8 @@ export function BookingConsultationReviewScreen() {
                 const { data: newConv } = await (supabase as any)
                     .from('conversations')
                     .insert({
-                        participant_1: user.id,
-                        participant_2: consultation.client.id,
+                        master_id: user.id,
+                        client_id: consultation.client.id,
                     })
                     .select()
                     .single();
@@ -247,9 +265,13 @@ export function BookingConsultationReviewScreen() {
             }
 
             if (conversationId) {
-                navigation.navigate('MasterChat', {
+                navigation.navigate('Chat' as any, {
                     conversationId,
-                    otherUser: consultation.client,
+                    otherUser: {
+                        full_name: consultation.client.full_name,
+                        avatar_url: consultation.client.avatar_url,
+                        id: consultation.client.id,
+                    },
                 });
             }
         } catch (error) {
@@ -302,7 +324,7 @@ export function BookingConsultationReviewScreen() {
                                 />
                             ) : (
                                 <LinearGradient
-                                    colors={['#D4A853', '#B8912E']}
+                                    colors={['#E8A0B4', '#C47A90']}
                                     style={styles.clientAvatarPlaceholder}
                                 >
                                     <MerakiText style={styles.clientAvatarText}>
@@ -364,7 +386,9 @@ export function BookingConsultationReviewScreen() {
                             contentContainerStyle={{ gap: 8 }}
                         >
                             {consultation.photo_urls!.map((url, idx) => (
-                                <Image key={idx} source={{ uri: url }} style={styles.photoThumb} />
+                                <TouchableOpacity key={idx} activeOpacity={0.8} onPress={() => setFullScreenPhoto(url)}>
+                                    <Image source={{ uri: url }} style={styles.photoThumb} />
+                                </TouchableOpacity>
                             ))}
                         </ScrollView>
                     )}
@@ -433,7 +457,7 @@ export function BookingConsultationReviewScreen() {
                                     />
                                 ) : (
                                     <LinearGradient
-                                        colors={['#D4A853', '#B8912E']}
+                                        colors={['#E8A0B4', '#C47A90']}
                                         style={styles.modalAvatarPlaceholder}
                                     >
                                         <MerakiText style={styles.modalAvatarText}>
@@ -543,11 +567,15 @@ export function BookingConsultationReviewScreen() {
                                     contentContainerStyle={{ gap: 10 }}
                                 >
                                     {selectedConsultation.photo_urls!.map((url, idx) => (
-                                        <Image
-                                            key={idx}
-                                            source={{ uri: url }}
-                                            style={styles.modalPhoto}
-                                        />
+                                        <TouchableOpacity key={idx} activeOpacity={0.8} onPress={() => setFullScreenPhoto(url)}>
+                                            <Image
+                                                source={{ uri: url }}
+                                                style={styles.modalPhoto}
+                                            />
+                                            <View style={styles.photoZoomHint}>
+                                                <MaterialCommunityIcons name="magnify-plus-outline" size={16} color="#fff" />
+                                            </View>
+                                        </TouchableOpacity>
                                     ))}
                                 </ScrollView>
                             </Card>
@@ -696,7 +724,7 @@ export function BookingConsultationReviewScreen() {
                         >
                             {statusFilter === filter.value ? (
                                 <LinearGradient
-                                    colors={['#D4A853', '#B8912E']}
+                                    colors={['#E8A0B4', '#C47A90']}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 0 }}
                                     style={styles.filterTab}
@@ -747,6 +775,36 @@ export function BookingConsultationReviewScreen() {
 
                 {/* Detail Modal */}
                 {selectedConsultation && renderDetailModal()}
+
+                {/* Full Screen Photo Modal */}
+                <Modal
+                    visible={!!fullScreenPhoto}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => setFullScreenPhoto(null)}
+                >
+                    <TouchableOpacity
+                        style={styles.fullScreenOverlay}
+                        activeOpacity={1}
+                        onPress={() => setFullScreenPhoto(null)}
+                    >
+                        <View style={styles.fullScreenHeader}>
+                            <TouchableOpacity
+                                onPress={() => setFullScreenPhoto(null)}
+                                style={styles.fullScreenCloseBtn}
+                            >
+                                <MaterialCommunityIcons name="close" size={24} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                        {fullScreenPhoto && (
+                            <Image
+                                source={{ uri: fullScreenPhoto }}
+                                style={styles.fullScreenImage}
+                                resizeMode="contain"
+                            />
+                        )}
+                    </TouchableOpacity>
+                </Modal>
             </SafeAreaView>
         </ScreenBackground>
     );
@@ -771,9 +829,9 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -798,9 +856,9 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     filterTabText: {
         fontSize: 13,
@@ -853,7 +911,7 @@ const styles = StyleSheet.create({
     clientAvatarText: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#fff',
+        color: '#FFFFFF',
     },
     clientDetails: {
         flex: 1,
@@ -874,13 +932,13 @@ const styles = StyleSheet.create({
     statusBadgeText: {
         fontSize: 11,
         fontWeight: '700',
-        color: '#fff',
+        color: '#1A1A1A',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
     // ─── Questionnaire Preview ─────────────────────────────────────
     questionnairePreview: {
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 10,
         padding: spacing.md,
         marginBottom: spacing.md,
@@ -910,7 +968,7 @@ const styles = StyleSheet.create({
         height: 64,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     // ─── Card Footer ──────────────────────────────────────────────
     cardFooter: {
@@ -919,7 +977,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     footerLeft: {
         flexDirection: 'row',
@@ -940,9 +998,9 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: spacing.lg,
@@ -972,7 +1030,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 4,
         borderRadius: 2,
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: 'rgba(0, 0, 0, 0.12)',
         alignSelf: 'center',
         marginTop: spacing.md,
         marginBottom: spacing.md,
@@ -987,9 +1045,9 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -1028,7 +1086,7 @@ const styles = StyleSheet.create({
     modalAvatarText: {
         fontSize: 20,
         fontWeight: '700',
-        color: '#fff',
+        color: '#FFFFFF',
     },
     modalClientName: {
         fontSize: 16,
@@ -1053,7 +1111,7 @@ const styles = StyleSheet.create({
     serviceMetaDivider: {
         width: 1,
         height: 14,
-        backgroundColor: 'rgba(255,255,255,0.12)',
+        backgroundColor: 'rgba(0, 0, 0, 0.10)',
         marginHorizontal: spacing.md,
     },
     answerRow: {
@@ -1062,7 +1120,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 8,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.04)',
+        borderBottomColor: 'rgba(0, 0, 0, 0.03)',
     },
     answerValue: {
         fontSize: 14,
@@ -1079,12 +1137,12 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     notesBox: {
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 10,
         padding: spacing.md,
         marginTop: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     notesHeader: {
         flexDirection: 'row',
@@ -1109,7 +1167,39 @@ const styles = StyleSheet.create({
         height: 130,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
+    },
+    photoZoomHint: {
+        position: 'absolute',
+        bottom: 6,
+        right: 6,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        borderRadius: 10,
+        padding: 4,
+    },
+    fullScreenOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.95)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    fullScreenHeader: {
+        position: 'absolute',
+        top: 50,
+        right: 20,
+        zIndex: 10,
+    },
+    fullScreenCloseBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.10)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    fullScreenImage: {
+        width: SCREEN_WIDTH,
+        height: SCREEN_WIDTH,
     },
     // ─── Action Bar ───────────────────────────────────────────────
     actionBar: {
@@ -1117,7 +1207,7 @@ const styles = StyleSheet.create({
         gap: 10,
         paddingTop: spacing.md,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     declineButton: {
         flex: 1,
@@ -1149,7 +1239,7 @@ const styles = StyleSheet.create({
     chatButtonText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#fff',
+        color: '#1A1A1A',
     },
     approveButton: {
         flexDirection: 'row',
@@ -1162,13 +1252,13 @@ const styles = StyleSheet.create({
     approveButtonText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#fff',
+        color: '#1A1A1A',
     },
     // ─── Status Bars ──────────────────────────────────────────────
     statusBar: {
         paddingTop: spacing.md,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     statusBarContent: {
         flexDirection: 'row',
@@ -1195,7 +1285,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 15,
         fontWeight: '600',
-        color: '#fff',
+        color: '#1A1A1A',
     },
 });
 

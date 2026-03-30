@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
         height: '100%',
         backgroundColor: colors.background,
         borderRightWidth: 1,
-        borderRightColor: 'rgba(255,255,255,0.1)',
+        borderRightColor: 'rgba(0, 0, 0, 0.08)',
         shadowColor: "#000",
         shadowOffset: {
             width: 5,
@@ -227,8 +227,8 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingTop: spacing.xl,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.1)',
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderBottomColor: 'rgba(0, 0, 0, 0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
     },
     userInfo: {
         flexDirection: 'row',
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 16,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
     },
     closeIcon: {
         fontSize: 14,
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: spacing.md,
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     },
     menuArrow: {
         fontSize: 18,
-        color: 'rgba(255,255,255,0.2)',
+        color: 'rgba(0, 0, 0, 0.12)',
     },
     badge: {
         backgroundColor: colors.primary,
@@ -340,8 +340,8 @@ const styles = StyleSheet.create({
     footer: {
         padding: spacing.lg,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderTopColor: 'rgba(0, 0, 0, 0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
     },
     logoutButton: {
         flexDirection: 'row',
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     versionText: {
         textAlign: 'center',
         fontSize: 11,
-        color: 'rgba(255,255,255,0.3)',
+        color: 'rgba(0, 0, 0, 0.25)',
     },
 });
 

@@ -9,10 +9,14 @@ import {
     KeyboardAvoidingView,
     Platform,
     Switch,
+    Image,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ScreenBackground, Card, Button, MerakiText } from '../../components/ui';
@@ -33,6 +37,52 @@ export function CreateServiceScreen() {
     const [basePrice, setBasePrice] = useState('');
     const [durationMinutes, setDurationMinutes] = useState('60');
     const [requiresConsultation, setRequiresConsultation] = useState(false);
+    const [imageUrl, setImageUrl] = useState('');
+    const [uploading, setUploading] = useState(false);
+
+    const pickServiceImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            showAlert('Permission needed', 'Please grant gallery access to upload service photos.', 'warning');
+            return;
+        }
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [16, 9],
+                quality: 0.8,
+            });
+            if (!result.canceled && result.assets[0]) {
+                uploadServiceImage(result.assets[0]);
+            }
+        } catch (error) {
+            showAlert('Error', 'Failed to pick image', 'error');
+        }
+    };
+
+    const uploadServiceImage = async (asset: ImagePicker.ImagePickerAsset) => {
+        setUploading(true);
+        try {
+            const fileExt = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+            const fileName = `service-images/${Date.now()}.${fileExt}`;
+            const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
+
+            const { error: uploadError } = await supabase.storage
+                .from('services')
+                .upload(fileName, decode(base64), { contentType: `image/${fileExt}`, upsert: false });
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage.from('services').getPublicUrl(fileName);
+            setImageUrl(urlData.publicUrl);
+        } catch (error: any) {
+            console.error('Upload error:', error);
+            showAlert('Error', error.message || 'Failed to upload image', 'error');
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const handleCreate = async () => {
         if (!name.trim()) {
@@ -61,6 +111,7 @@ export function CreateServiceScreen() {
                     duration_minutes: Number(durationMinutes),
                     is_active: true,
                     requires_consultation: requiresConsultation,
+                    image_url: imageUrl || null,
                     created_by: user!.id,
                 })
                 .select()
@@ -204,6 +255,35 @@ export function CreateServiceScreen() {
                                 </View>
                             </View>
 
+                            {/* Service Image (Optional) */}
+                            <View style={styles.inputGroup}>
+                                <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', marginBottom: spacing.sm }}>Service Image (Optional)</MerakiText>
+                                <View style={styles.imageUploadRow}>
+                                    <View style={styles.imagePreviewContainer}>
+                                        {imageUrl ? (
+                                            <Image source={{ uri: imageUrl }} style={styles.uploadedImage} />
+                                        ) : (
+                                            <View style={styles.imagePlaceholder}>
+                                                <MaterialCommunityIcons name="camera" size={24} color={colors.textMuted} />
+                                            </View>
+                                        )}
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.uploadButton}
+                                        onPress={pickServiceImage}
+                                        disabled={uploading}
+                                    >
+                                        {uploading ? (
+                                            <ActivityIndicator size="small" color={colors.text} />
+                                        ) : (
+                                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '500' }}>
+                                                {imageUrl ? 'Change Photo' : 'Upload Photo'}
+                                            </MerakiText>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
                             {/* Consultation Toggle */}
                             <View style={styles.inputGroup}>
                                 <View style={styles.consultationRow}>
@@ -274,11 +354,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         marginBottom: spacing.md,
     },
     title: {
@@ -305,7 +385,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.sm,
     },
     input: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         fontSize: 16,
@@ -352,7 +432,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         borderWidth: 1,
@@ -402,6 +482,39 @@ const styles = StyleSheet.create({
     previewDuration: {
         fontSize: 14,
         color: colors.textMuted,
+    },
+    // Image upload
+    imageUploadRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+    },
+    imagePreviewContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    uploadedImage: {
+        width: '100%',
+        height: '100%',
+    },
+    imagePlaceholder: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    uploadButton: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        borderRadius: 12,
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     bottomBar: {
         padding: spacing.lg,

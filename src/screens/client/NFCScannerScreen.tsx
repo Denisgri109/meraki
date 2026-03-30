@@ -188,7 +188,7 @@ export function NFCScannerScreen() {
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
+                        <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Scan NFC Tag</Text>
                     <View style={{ width: 40 }} />
@@ -239,12 +239,12 @@ const styles = StyleSheet.create({
     },
     backButton: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     headerTitle: {
-        fontSize: 17, fontWeight: '600', color: '#fff',
+        fontSize: 17, fontWeight: '600', color: '#1A1A1A',
     },
     content: {
         flex: 1,

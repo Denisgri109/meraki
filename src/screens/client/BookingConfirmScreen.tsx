@@ -459,7 +459,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                     {/* Header */}
                     <View style={styles.header}>
                         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                            <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
+                            <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                         <Text style={styles.title}>Confirm Booking</Text>
                         <Text style={styles.subtitle}>Review your appointment details</Text>
@@ -787,8 +787,8 @@ const styles = StyleSheet.create({
     },
     backButton: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     title: {
@@ -842,7 +842,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.sm,
     },
     notesInput: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         color: colors.text,
@@ -859,7 +859,7 @@ const styles = StyleSheet.create({
     tosCheckboxContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         padding: spacing.md,
         borderRadius: 12,
         borderWidth: 1,
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         marginBottom: spacing.sm,
@@ -951,7 +951,7 @@ const styles = StyleSheet.create({
         borderColor: '#22C55E',
     },
     creditCheckText: {
-        color: '#fff',
+        color: '#1A1A1A',
         fontSize: 14,
         fontWeight: '600',
     },
@@ -963,7 +963,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         marginBottom: spacing.sm,

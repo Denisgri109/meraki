@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     rejectBtn: { backgroundColor: 'rgba(245,158,11,0.1)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)' },
     rejectBtnText: { fontWeight: '600', color: '#F59E0B' },
     approveBtn: { backgroundColor: colors.success },
-    approveBtnText: { fontWeight: '600', color: '#fff' },
+    approveBtnText: { fontWeight: '600', color: '#1A1A1A' },
     statusBanner: {
         paddingVertical: spacing.md,
         borderRadius: 12,

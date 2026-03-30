@@ -8,7 +8,7 @@ import * as Location from 'expo-location';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { getDeviceTimezone } from '../utils/timezone';
-import { getAllCountries, getCitiesOfCountry, type Country, type City } from '../utils/locationApi';
+import { getAllCountries, type Country } from '../utils/locationApi';
 
 export function useAutoLocation() {
     const { profile, refreshProfile } = useAuth();

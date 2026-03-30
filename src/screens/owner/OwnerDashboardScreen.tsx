@@ -54,6 +54,16 @@ type Stats = {
     pendingConsultations: number;
 };
 
+type ActivityFeedItem = {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    iconColor: string;
+    iconBg: string;
+    route?: string;
+};
+
 const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -79,6 +89,7 @@ export function OwnerDashboardScreen() {
     });
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([]);
+    const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
 
     useFocusEffect(
         useCallback(() => {
@@ -242,6 +253,54 @@ export function OwnerDashboardScreen() {
             setLoading(false);
             setRefreshing(false);
         }
+
+        // --- Activity Feed (runs after main data, non-blocking) ---
+        try {
+            const feedItems: ActivityFeedItem[] = [];
+
+            // Pending consultations
+            const { data: pendingConsultsData } = await supabase
+                .from('booking_consultations')
+                .select(`id, created_at, service:services(name), client:profiles!booking_consultations_client_id_fkey(full_name)`)
+                .eq('master_id', user.id)
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            (pendingConsultsData || []).forEach((c: any) => {
+                feedItems.push({
+                    id: `consult-${c.id}`,
+                    title: 'New Consultation Request',
+                    description: `${c.client?.full_name || 'Client'} wants a consultation for ${c.service?.name || 'a service'}.`,
+                    icon: 'assignment',
+                    iconColor: '#F59E0B',
+                    iconBg: 'rgba(245, 158, 11, 0.12)',
+                    route: 'BookingConsultations',
+                });
+            });
+
+            // Recent reschedules
+            const { data: rescheduleData } = await supabase
+                .from('appointments')
+                .select(`id, proposed_start_time, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`)
+                .eq('master_id', user.id)
+                .not('proposed_start_time', 'is', null)
+                .in('status', ['confirmed', 'pending', 'reschedule_pending']);
+
+            (rescheduleData || []).forEach((apt: any) => {
+                feedItems.push({
+                    id: `reschedule-${apt.id}`,
+                    title: 'Appointment Rescheduled',
+                    description: `${apt.client?.full_name || 'Client'} rescheduled ${apt.service?.name || 'appointment'} to ${format(new Date(apt.proposed_start_time), 'MMM d, HH:mm')}.`,
+                    icon: 'swap-horiz',
+                    iconColor: '#60A5FA',
+                    iconBg: 'rgba(96, 165, 250, 0.12)',
+                    route: 'Appointments',
+                });
+            });
+
+            setActivityFeed(feedItems);
+        } catch (e) { console.log('Activity feed error:', e); }
     };
 
     const handleRefresh = () => { setRefreshing(true); fetchDashboardData(); };
@@ -264,13 +323,13 @@ export function OwnerDashboardScreen() {
                         </View>
                         <View style={styles.headerIcons}>
                             <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('LoyaltyQR')}>
-                                <MaterialIcons name="qr-code-scanner" size={20} color="rgba(255,255,255,0.7)" />
+                                <MaterialIcons name="qr-code-scanner" size={20} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('PlatformAnalytics')}>
-                                <MaterialCommunityIcons name="finance" size={20} color="rgba(255,255,255,0.7)" />
+                                <MaterialCommunityIcons name="finance" size={20} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
-                                <MaterialIcons name="notifications-none" size={22} color="rgba(255,255,255,0.7)" />
+                                <MaterialIcons name="notifications-none" size={22} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -327,12 +386,41 @@ export function OwnerDashboardScreen() {
                                         </MerakiText>
                                     </View>
                                     <View style={styles.bannerRight}>
-                                        <MerakiText variant="caption" color="rgba(255,255,255,0.5)" style={{ marginRight: 8 }}>VIEW</MerakiText>
-                                        <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.5)" />
+                                        <MerakiText variant="caption" color="rgba(0, 0, 0, 0.40)" style={{ marginRight: 8 }}>VIEW</MerakiText>
+                                        <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.40)" />
                                     </View>
                                 </View>
                             </LinearGradient>
                         </TouchableOpacity>
+                    )}
+
+                    {/* Activity Feed */}
+                    {activityFeed.length > 0 && (
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <MerakiText variant="label" color={colors.textMuted}>ACTIVITY</MerakiText>
+                                <TouchableOpacity onPress={() => navigation.navigate('Appointments')}>
+                                    <MerakiText variant="caption" color={colors.accent}>VIEW ALL</MerakiText>
+                                </TouchableOpacity>
+                            </View>
+                            {activityFeed.slice(0, 4).map((item) => (
+                                <TouchableOpacity
+                                    key={item.id}
+                                    style={styles.feedCard}
+                                    onPress={() => item.route && navigation.navigate(item.route)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={[styles.feedIconWrap, { backgroundColor: item.iconBg }]}>
+                                        <MaterialIcons name={item.icon as any} size={20} color={item.iconColor} />
+                                    </View>
+                                    <View style={{ flex: 1, marginLeft: 12 }}>
+                                        <MerakiText variant="bodyBold" style={{ fontSize: 13 }}>{item.title}</MerakiText>
+                                        <MerakiText variant="caption" color="rgba(0, 0, 0, 0.35)" numberOfLines={2}>{item.description}</MerakiText>
+                                    </View>
+                                    <MaterialCommunityIcons name="chevron-right" size={18} color="rgba(0, 0, 0, 0.12)" />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
                     )}
 
                     {/* Appointment Overview */}
@@ -384,6 +472,7 @@ export function OwnerDashboardScreen() {
                     <View style={styles.section}>
                         <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>INVENTORY & LOGISTICS</MerakiText>
                         <View style={styles.buttonGrid}>
+                            <DashboardButton icon="shopping" label="Orders" onPress={() => navigation.navigate('CustomerOrders')} color="#EC4899" />
                             <DashboardButton icon="package-variant-closed" label="Inventory" onPress={() => navigation.navigate('Inventory')} color="#F19A3E" />
                             <DashboardButton icon="truck-delivery" label="Supplies" onPress={() => navigation.navigate('OwnerSupplies')} color="#4ADE80" />
                         </View>
@@ -402,8 +491,10 @@ export function OwnerDashboardScreen() {
     );
 }
 
-const BUTTON_GAP = spacing.sm;
-const BUTTON_WIDTH = (width - spacing.lg * 2 - BUTTON_GAP * 2) / 3;
+const GRID_COLUMNS = 3;
+const GRID_GAP = 10;
+const GRID_PADDING = spacing.lg * 2;
+const BUTTON_WIDTH = (width - GRID_PADDING - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
 
 const DashboardButton = ({ icon, label, onPress, color, badgeCount }: any) => (
     <TouchableOpacity style={styles.dashBtnWrap} onPress={onPress} activeOpacity={0.7}>
@@ -426,13 +517,13 @@ const styles = StyleSheet.create({
     loader: { flex: 1, justifyContent: 'center' },
     scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: 100 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, marginBottom: 24 },
-    greeting: { fontSize: 13, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
-    userName: { fontSize: 28, fontWeight: '700', color: '#fff', letterSpacing: -0.5 },
+    greeting: { fontSize: 13, color: 'rgba(0, 0, 0, 0.35)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
+    userName: { fontSize: 28, fontWeight: '700', color: '#1A1A1A', letterSpacing: -0.5 },
     headerIcons: { flexDirection: 'row', gap: 8 },
     iconBtn: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     heroStats: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
@@ -450,31 +541,31 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(212,168,83,0.12)',
         alignItems: 'center', justifyContent: 'center',
     },
-    heroValue: { fontSize: 32, fontWeight: '800' as any, color: '#fff', letterSpacing: -1, marginBottom: 2 },
-    heroLabel: { fontSize: 12, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' as any, letterSpacing: 0.8 },
+    heroValue: { fontSize: 32, fontWeight: '800' as any, color: '#1A1A1A', letterSpacing: -1, marginBottom: 2 },
+    heroLabel: { fontSize: 12, color: 'rgba(0, 0, 0, 0.35)', textTransform: 'uppercase' as any, letterSpacing: 0.8 },
     heroSecondaryCol: { flex: 0.8, gap: spacing.sm },
     heroSmallCard: {
         flex: 1,
         borderRadius: layout.borderRadius.lg,
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    heroSmallValue: { fontSize: 24, fontWeight: '700' as any, color: '#fff', letterSpacing: -0.5 },
-    heroSmallLabel: { fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' as any, letterSpacing: 0.5, marginTop: 2 },
+    heroSmallValue: { fontSize: 24, fontWeight: '700' as any, color: '#1A1A1A', letterSpacing: -0.5 },
+    heroSmallLabel: { fontSize: 11, color: 'rgba(0, 0, 0, 0.25)', textTransform: 'uppercase' as any, letterSpacing: 0.5, marginTop: 2 },
     section: { marginBottom: spacing.xl },
     sectionLabel: { marginBottom: spacing.md, fontSize: 11, letterSpacing: 1 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
     // Dashboard buttons — vertical cards
-    buttonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: BUTTON_GAP },
-    dashBtnWrap: { width: BUTTON_WIDTH },
+    buttonGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -(GRID_GAP / 2) },
+    dashBtnWrap: { width: BUTTON_WIDTH, marginHorizontal: GRID_GAP / 2, marginBottom: GRID_GAP },
     dashBtn: {
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.07)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
         borderRadius: 16,
         paddingVertical: 16,
         paddingHorizontal: 8,
@@ -490,13 +581,13 @@ const styles = StyleSheet.create({
     dashBtnLabel: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#fff',
+        color: '#1A1A1A',
         textAlign: 'center',
     },
     badgeContainer: { position: 'absolute', top: -4, right: -4, backgroundColor: '#FF453A', borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: 'rgba(20,20,25,0.9)' },
-    badgeText: { color: '#FFF', fontSize: 9, fontWeight: '700' },
+    badgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
     // Messages banner
-    messagesBanner: { borderRadius: layout.borderRadius.lg, overflow: 'hidden', marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    messagesBanner: { borderRadius: layout.borderRadius.lg, overflow: 'hidden', marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.04)' },
     bannerGradient: { padding: spacing.lg },
     bannerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     bannerLeft: { flexDirection: 'row', alignItems: 'center' },
@@ -508,6 +599,17 @@ const styles = StyleSheet.create({
     infoBlock: { flex: 1 },
     statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
     emptyCard: { alignItems: 'center', paddingVertical: spacing.xxl },
+    // Activity Feed
+    feedCard: {
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)', borderRadius: 14,
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
+        padding: 14, marginBottom: 8, gap: 0,
+    },
+    feedIconWrap: {
+        width: 40, height: 40, borderRadius: 12,
+        alignItems: 'center', justifyContent: 'center',
+    },
 });
 
 export default OwnerDashboardScreen;

@@ -131,7 +131,7 @@ export function CourseDetailScreen() {
                                 <View style={styles.heroContent}>
                                     <MerakiText variant="h1" color="#FFF" style={styles.heroTitle}>{course.title}</MerakiText>
                                     <View style={styles.instructorBadge}>
-                                        <MerakiText variant="caption" color="rgba(255,255,255,0.9)">
+                                        <MerakiText variant="caption" color="rgba(0, 0, 0, 0.07)">
                                             by {course.instructor?.full_name || 'Merakí Expert'}
                                         </MerakiText>
                                     </View>
@@ -271,15 +271,18 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: colors.surfaceGlass,
+        backgroundColor: '#FFFFFF',
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 5,
     },
     backIcon: {
         fontSize: 24,
-        color: colors.text,
+        color: '#1A1A1A',
     },
 
     // Hero
@@ -322,7 +325,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     instructorBadge: {
-        backgroundColor: 'rgba(255,255,255,0.15)',
+        backgroundColor: 'rgba(0, 0, 0, 0.10)',
         paddingHorizontal: spacing.sm,
         paddingVertical: 4,
         borderRadius: layout.borderRadius.sm,
@@ -350,7 +353,7 @@ const styles = StyleSheet.create({
     },
     progressBar: {
         height: 8,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
         borderRadius: 4,
         overflow: 'hidden',
     },

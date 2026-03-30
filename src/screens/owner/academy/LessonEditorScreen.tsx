@@ -79,7 +79,7 @@ export function LessonEditorScreen() {
 
     const pickVideo = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+            mediaTypes: ['videos'],
             allowsEditing: false,
             quality: 0.5, // Lower quality for smaller file size
         });

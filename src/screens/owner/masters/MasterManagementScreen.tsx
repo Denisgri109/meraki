@@ -284,8 +284,8 @@ const styles = StyleSheet.create({
     },
     backBtn: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     headerTitle: { flex: 1, marginLeft: spacing.md },
@@ -307,10 +307,10 @@ const styles = StyleSheet.create({
         borderRadius: layout.borderRadius.lg,
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
         alignItems: 'center',
     },
-    statValue: { fontSize: 24, fontWeight: '700' as any, color: '#fff', letterSpacing: -0.5 },
+    statValue: { fontSize: 24, fontWeight: '700' as any, color: '#1A1A1A', letterSpacing: -0.5 },
 
     tabBar: {
         flexDirection: 'row',
@@ -325,9 +325,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: spacing.sm + 2,
         borderRadius: layout.borderRadius.md,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
         gap: 6,
     },
     tabActive: {
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(212,168,83,0.20)',
     },
     tabBadge: {
-        backgroundColor: 'rgba(255,255,255,0.10)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
         borderRadius: 10,
         minWidth: 20,
         height: 20,
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 6,
     },
     tabBadgeActive: { backgroundColor: 'rgba(212,168,83,0.20)' },
-    tabBadgeText: { fontSize: 11, fontWeight: '700' as any, color: '#fff' },
+    tabBadgeText: { fontSize: 11, fontWeight: '700' as any, color: '#FFFFFF' },
 
     listContent: { paddingHorizontal: spacing.lg, paddingBottom: 120 },
 
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
     },
-    avatarInitial: { fontSize: 20, fontWeight: '700' as any, color: '#fff' },
+    avatarInitial: { fontSize: 20, fontWeight: '700' as any, color: '#FFFFFF' },
     statusDot: {
         position: 'absolute',
         bottom: 0,

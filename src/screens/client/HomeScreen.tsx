@@ -16,8 +16,8 @@ import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialIcons } from '@expo/vector-icons';
 import { format, isToday, isTomorrow, parseISO, differenceInDays } from 'date-fns';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { supabase } from '../../lib/supabase';
@@ -25,6 +25,7 @@ import { ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing, gradients } from '../../theme';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { Service } from '../../types/database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -94,6 +95,18 @@ interface SearchCourseResult {
     description: string | null;
 }
 
+interface ActivityFeedItem {
+    id: string;
+    type: 'reschedule_request' | 'consultation_approved' | 'consultation_declined' | 'consultation_chat';
+    title: string;
+    description: string;
+    timestamp: string;
+    icon: string;
+    iconColor: string;
+    iconBg: string;
+    route?: string;
+}
+
 export function ClientHomeScreen() {
     const navigation = useNavigation<any>();
     const { profile, user, checkSession } = useAuth();
@@ -108,6 +121,7 @@ export function ClientHomeScreen() {
     const [availableServices, setAvailableServices] = useState<Service[]>([]);
     const [totalVisits, setTotalVisits] = useState(0);
     const [totalOrders, setTotalOrders] = useState(0);
+    const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
 
     // Search State
     const [searchQuery, setSearchQuery] = useState('');
@@ -221,6 +235,89 @@ export function ClientHomeScreen() {
                 filteredServices = [];
             }
             setAvailableServices(filteredServices.slice(0, 6));
+
+            // --- Activity Feed: Pending reschedules + consultation updates ---
+            const feedItems: ActivityFeedItem[] = [];
+
+            // 1. Pending reschedule proposals from masters
+            const { data: rescheduleData } = await supabase
+                .from('appointments')
+                .select(`id, start_time, proposed_start_time, proposed_end_time, reschedule_initiated_by, service:services(name), master:profiles!appointments_master_id_fkey(full_name)`)
+                .eq('client_id', user.id)
+                .not('proposed_start_time', 'is', null)
+                .neq('reschedule_initiated_by', user.id)
+                .in('status', ['confirmed', 'pending', 'reschedule_pending', 'pending_reschedule']);
+
+            (rescheduleData || []).forEach((apt: any) => {
+                feedItems.push({
+                    id: `reschedule-${apt.id}`,
+                    type: 'reschedule_request',
+                    title: 'Reschedule Request',
+                    description: `${apt.master?.full_name || 'Master'} proposed a new time for ${apt.service?.name || 'your appointment'}: ${format(new Date(apt.proposed_start_time), 'MMM d, HH:mm')}`,
+                    timestamp: apt.proposed_start_time,
+                    icon: 'swap-horiz',
+                    iconColor: '#F59E0B',
+                    iconBg: 'rgba(245, 158, 11, 0.12)',
+                    route: 'Book',
+                });
+            });
+
+            // 2. Consultation status changes (approved, declined, chat_requested)
+            const { data: consultData } = await supabase
+                .from('booking_consultations')
+                .select(`id, status, created_at, responded_at, service:services(name), master:profiles!booking_consultations_master_id_fkey(full_name)`)
+                .eq('client_id', user.id)
+                .in('status', ['approved', 'declined', 'chat_requested']);
+
+            (consultData || []).forEach((c: any) => {
+                const ts = c.responded_at || c.created_at;
+                if (c.status === 'approved') {
+                    feedItems.push({
+                        id: `consult-${c.id}`,
+                        type: 'consultation_approved',
+                        title: 'Consultation Approved',
+                        description: `${c.master?.full_name || 'Master'} approved your consultation for ${c.service?.name || 'a service'}. You can now book!`,
+                        timestamp: ts,
+                        icon: 'check-circle',
+                        iconColor: '#10B981',
+                        iconBg: 'rgba(16, 185, 129, 0.12)',
+                        route: 'Book',
+                    });
+                } else if (c.status === 'declined') {
+                    feedItems.push({
+                        id: `consult-${c.id}`,
+                        type: 'consultation_declined',
+                        title: 'Consultation Declined',
+                        description: `${c.master?.full_name || 'Master'} declined your consultation for ${c.service?.name || 'a service'}.`,
+                        timestamp: ts,
+                        icon: 'cancel',
+                        iconColor: '#EF4444',
+                        iconBg: 'rgba(239, 68, 68, 0.12)',
+                        route: 'Book',
+                    });
+                } else if (c.status === 'chat_requested') {
+                    feedItems.push({
+                        id: `consult-${c.id}`,
+                        type: 'consultation_chat',
+                        title: 'Chat Requested',
+                        description: `${c.master?.full_name || 'Master'} wants to chat about your ${c.service?.name || 'service'} consultation.`,
+                        timestamp: ts,
+                        icon: 'chat',
+                        iconColor: '#60A5FA',
+                        iconBg: 'rgba(96, 165, 250, 0.12)',
+                        route: 'Messages',
+                    });
+                }
+            });
+
+            // Sort by most recent first
+            feedItems.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+            const lastClearedStr = await AsyncStorage.getItem('client_activity_cleared_at');
+            const lastClearedTime = lastClearedStr ? new Date(lastClearedStr).getTime() : 0;
+            const visibleFeed = feedItems.filter(item => new Date(item.timestamp).getTime() > lastClearedTime);
+
+            setActivityFeed(visibleFeed);
         } catch (error) {
             console.error('Error fetching home data:', error);
         } finally { setLoading(false); setRefreshing(false); }
@@ -432,6 +529,15 @@ export function ClientHomeScreen() {
         await fetchHomeData(profileLoc);
     };
 
+    const handleClearActivity = async () => {
+        try {
+            await AsyncStorage.setItem('client_activity_cleared_at', new Date().toISOString());
+            setActivityFeed([]);
+        } catch (e) {
+            console.log('Error clearing activity', e);
+        }
+    };
+
     const getGreeting = () => {
         const hour = new Date().getHours();
         if (hour < 12) return 'Good Morning';
@@ -470,6 +576,27 @@ export function ClientHomeScreen() {
         }
     };
 
+    // Category gradient palettes for service banner cards
+    const getCategoryGradient = (category: string | null): [string, string] => {
+        switch (category) {
+            case 'Nails': return ['#FADADD', '#F8C8D4'];
+            case 'Lashes': return ['#E8D5FF', '#D4B8F0'];
+            case 'Brows': return ['#FFF3D6', '#F5E0A0'];
+            case 'Hair': return ['#D4F0E7', '#B8E6D4'];
+            default: return ['#F0F0F0', '#E5E5E5'];
+        }
+    };
+
+    const getCategoryIconColor = (category: string | null): string => {
+        switch (category) {
+            case 'Nails': return '#9B4D6A';
+            case 'Lashes': return '#6B3FA0';
+            case 'Brows': return '#9B7A1C';
+            case 'Hair': return '#2D7A5A';
+            default: return '#555555';
+        }
+    };
+
 
     const cartCount = getItemCount();
 
@@ -489,17 +616,17 @@ export function ClientHomeScreen() {
                         </View>
                         <View style={styles.headerIcons}>
                             <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('QRScanner')}>
-                                <MaterialIcons name="qr-code-scanner" size={20} color="rgba(255,255,255,0.7)" />
+                                <MaterialIcons name="qr-code-scanner" size={20} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('NFCScanner')}>
-                                <MaterialIcons name="nfc" size={20} color="rgba(255,255,255,0.7)" />
+                                <MaterialIcons name="nfc" size={20} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
-                                <MaterialIcons name="notifications-none" size={22} color="rgba(255,255,255,0.7)" />
+                                <MaterialIcons name="notifications-none" size={22} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
                             {cartCount > 0 && (
                                 <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Shop', { screen: 'Cart' })}>
-                                    <MaterialIcons name="shopping-bag" size={20} color="rgba(255,255,255,0.7)" />
+                                    <MaterialIcons name="shopping-bag" size={20} color="rgba(0, 0, 0, 0.55)" />
                                     <View style={styles.badge}><Text style={styles.badgeText}>{cartCount}</Text></View>
                                 </TouchableOpacity>
                             )}
@@ -508,11 +635,11 @@ export function ClientHomeScreen() {
 
                     {/* Search Bar - Inline */}
                     <View style={styles.searchBar}>
-                        <MaterialIcons name="search" size={20} color="rgba(255,255,255,0.3)" />
+                        <MaterialIcons name="search" size={20} color="rgba(0, 0, 0, 0.25)" />
                         <TextInput
                             style={styles.searchInput}
                             placeholder="Search masters, services..."
-                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            placeholderTextColor="rgba(0, 0, 0, 0.25)"
                             value={searchQuery}
                             onChangeText={handleSearch}
                             onFocus={() => setIsSearching(true)}
@@ -523,7 +650,7 @@ export function ClientHomeScreen() {
                             </TouchableOpacity>
                         ) : (
                             <View style={styles.searchFilter}>
-                                <MaterialIcons name="tune" size={18} color="rgba(255,255,255,0.5)" />
+                                <MaterialIcons name="tune" size={18} color="rgba(0, 0, 0, 0.40)" />
                             </View>
                         )}
                     </View>
@@ -533,8 +660,8 @@ export function ClientHomeScreen() {
                         <View style={{ paddingBottom: 100 }}>
                             {searchResults.length === 0 && serviceResults.length === 0 && courseResults.length === 0 ? (
                                 <View style={{ alignItems: 'center', marginTop: 40 }}>
-                                    <MaterialIcons name="search-off" size={48} color="rgba(255,255,255,0.2)" />
-                                    <MerakiText style={{ color: 'rgba(255,255,255,0.5)', marginTop: 16 }}>No results found for "{searchQuery}"</MerakiText>
+                                    <MaterialIcons name="search-off" size={48} color="rgba(0, 0, 0, 0.12)" />
+                                    <MerakiText style={{ color: 'rgba(0, 0, 0, 0.40)', marginTop: 16 }}>No results found for "{searchQuery}"</MerakiText>
                                 </View>
                             ) : (
                                 <>
@@ -565,7 +692,7 @@ export function ClientHomeScreen() {
                                                                 {master.services_count} services
                                                             </MerakiText>
                                                         </View>
-                                                        <MaterialIcons name="chevron-right" size={20} color="rgba(255,255,255,0.3)" />
+                                                        <MaterialIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.25)" />
                                                     </View>
                                                 </TouchableOpacity>
                                             ))}
@@ -595,7 +722,7 @@ export function ClientHomeScreen() {
                                                                 {service.currency === 'USD' ? '$' : '€'}{service.price}
                                                             </MerakiText>
                                                         </View>
-                                                        <MaterialIcons name="chevron-right" size={20} color="rgba(255,255,255,0.3)" />
+                                                        <MaterialIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.25)" />
                                                     </View>
                                                 </TouchableOpacity>
                                             ))}
@@ -641,7 +768,7 @@ export function ClientHomeScreen() {
                                                                 {typeof course.price === 'number' && course.price > 0 ? `€${course.price}` : 'Free'}
                                                             </MerakiText>
                                                         </View>
-                                                        <MaterialIcons name="chevron-right" size={20} color="rgba(255,255,255,0.3)" />
+                                                        <MaterialIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.25)" />
                                                     </View>
                                                 </TouchableOpacity>
                                             ))}
@@ -661,29 +788,183 @@ export function ClientHomeScreen() {
                                         <MerakiText style={styles.alertTitle}>Complete Your Profile</MerakiText>
                                         <MerakiText style={styles.alertSubtitle}>Add your city to see masters near you</MerakiText>
                                     </View>
-                                    <MaterialIcons name="chevron-right" size={20} color="rgba(255,255,255,0.3)" />
+                                    <MaterialIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.25)" />
                                 </TouchableOpacity>
                             )}
 
-                            {/* Quick Actions */}
-                            <View style={styles.quickActions}>
-                                {[
-                                    { icon: 'calendar-today', label: 'Book', route: 'Book' },
-                                    { icon: 'explore', label: 'Discover', route: 'DiscoverMasters' },
-                                    { icon: 'star-outline', label: 'Loyalty', route: 'LoyaltyPoints' },
-                                    { icon: 'local-mall', label: 'Shop', route: 'Shop' },
-                                ].map((action) => (
-                                    <TouchableOpacity
-                                        key={action.label}
-                                        style={styles.quickAction}
-                                        onPress={() => navigation.navigate(action.route)}
-                                    >
-                                        <View style={styles.quickActionIcon}>
-                                            <MaterialIcons name={action.icon as any} size={22} color={colors.primary} />
+                            {/* Hero Banner — Beauty Bay Inspired with Image */}
+                            <TouchableOpacity
+                                style={styles.heroBanner}
+                                activeOpacity={0.9}
+                                onPress={() => navigation.navigate('Shop')}
+                            >
+                                <View style={styles.heroBannerGradient}>
+                                    <Image
+                                        source={require('../../assets/hero_beauty_banner.png')}
+                                        style={StyleSheet.absoluteFillObject}
+                                        resizeMode="cover"
+                                    />
+                                    <LinearGradient
+                                        colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.45)', 'rgba(0,0,0,0.7)']}
+                                        style={StyleSheet.absoluteFillObject}
+                                    />
+                                    <View style={styles.heroContent}>
+                                        <MerakiText style={[styles.heroTagline, { color: '#FFFFFF' }]}>
+                                            WE'RE OBSESSED{'\n'}WITH YOU
+                                        </MerakiText>
+                                        <MerakiText style={[styles.heroSubtext, { color: 'rgba(255,255,255,0.8)' }]}>
+                                            Discover the skincare, lash, and{'\n'}beauty products curated for you
+                                        </MerakiText>
+                                        <View style={[styles.heroButton, { backgroundColor: '#FFFFFF' }]}>
+                                            <MerakiText style={[styles.heroButtonText, { color: '#1A1A1A' }]}>Shop Now</MerakiText>
                                         </View>
-                                        <MerakiText style={styles.quickActionLabel}>{action.label}</MerakiText>
-                                    </TouchableOpacity>
-                                ))}
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+
+                            {/* Editorial Cards Row */}
+                            <View style={styles.editorialRow}>
+                                <TouchableOpacity
+                                    style={styles.editorialCard}
+                                    activeOpacity={0.85}
+                                    onPress={() => navigation.navigate('Shop')}
+                                >
+                                    <View style={styles.editorialGradient}>
+                                        <Image
+                                            source={require('../../assets/editorial_new_arrivals.png')}
+                                            style={StyleSheet.absoluteFillObject}
+                                            resizeMode="cover"
+                                        />
+                                        <LinearGradient
+                                            colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0.05)']}
+                                            style={StyleSheet.absoluteFillObject}
+                                        />
+                                        <MerakiText style={styles.editorialLabel}>NEW ARRIVALS</MerakiText>
+                                        <MerakiText style={styles.editorialTitle}>Fresh Drops</MerakiText>
+                                        <MerakiText style={styles.editorialCta}>SHOP NOW →</MerakiText>
+                                    </View>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.editorialCard}
+                                    activeOpacity={0.85}
+                                    onPress={() => navigation.navigate('Academy')}
+                                >
+                                    <View style={styles.editorialGradient}>
+                                        <Image
+                                            source={require('../../assets/editorial_academy.png')}
+                                            style={StyleSheet.absoluteFillObject}
+                                            resizeMode="cover"
+                                        />
+                                        <LinearGradient
+                                            colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0.05)']}
+                                            style={StyleSheet.absoluteFillObject}
+                                        />
+                                        <MerakiText style={styles.editorialLabel}>ACADEMY</MerakiText>
+                                        <MerakiText style={styles.editorialTitle}>Learn & Grow</MerakiText>
+                                        <MerakiText style={styles.editorialCta}>EXPLORE →</MerakiText>
+                                    </View>
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Activity Feed */}
+                            {activityFeed.length > 0 && (
+                                <View style={styles.section}>
+                                    <View style={styles.sectionHeader}>
+                                        <MerakiText style={styles.sectionTitle}>Activity</MerakiText>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                                            <TouchableOpacity onPress={handleClearActivity}>
+                                                <MerakiText style={styles.seeAll}>Clear All</MerakiText>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity onPress={() => navigation.navigate('Book')}>
+                                                <MerakiText style={styles.seeAll}>View All</MerakiText>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                    {activityFeed.slice(0, 5).map((item) => (
+                                        <TouchableOpacity
+                                            key={item.id}
+                                            style={styles.feedCard}
+                                            onPress={() => item.route && navigation.navigate(item.route)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <View style={[styles.feedIconWrap, { backgroundColor: item.iconBg }]}>
+                                                <MaterialIcons name={item.icon as any} size={20} color={item.iconColor} />
+                                            </View>
+                                            <View style={{ flex: 1, marginLeft: 12 }}>
+                                                <MerakiText style={styles.feedTitle}>{item.title}</MerakiText>
+                                                <MerakiText style={styles.feedDescription} numberOfLines={2}>{item.description}</MerakiText>
+                                            </View>
+                                            <MaterialIcons name="chevron-right" size={18} color="rgba(0, 0, 0, 0.12)" />
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
+
+                            {/* Quick Actions — Each with unique design */}
+                            <View style={styles.quickActions}>
+                                <TouchableOpacity
+                                    style={styles.quickAction}
+                                    onPress={() => navigation.navigate('Book')}
+                                    activeOpacity={0.85}
+                                >
+                                    <LinearGradient
+                                        colors={['#FADADD', '#F8C8D4']}
+                                        style={styles.quickActionIcon}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <MaterialIcons name="calendar-today" size={22} color="#9B4D6A" />
+                                    </LinearGradient>
+                                    <MerakiText style={styles.quickActionLabel}>Book</MerakiText>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.quickAction}
+                                    onPress={() => navigation.navigate('DiscoverMasters')}
+                                    activeOpacity={0.85}
+                                >
+                                    <LinearGradient
+                                        colors={['#E8D5FF', '#D4B8F0']}
+                                        style={styles.quickActionIcon}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <MaterialIcons name="explore" size={22} color="#6B3FA0" />
+                                    </LinearGradient>
+                                    <MerakiText style={styles.quickActionLabel}>Discover</MerakiText>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.quickAction}
+                                    onPress={() => navigation.navigate('LoyaltyPoints')}
+                                    activeOpacity={0.85}
+                                >
+                                    <LinearGradient
+                                        colors={['#FFF3D6', '#F5E0A0']}
+                                        style={styles.quickActionIcon}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <MaterialIcons name="star" size={22} color="#9B7A1C" />
+                                    </LinearGradient>
+                                    <MerakiText style={styles.quickActionLabel}>Loyalty</MerakiText>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.quickAction}
+                                    onPress={() => navigation.navigate('Shop')}
+                                    activeOpacity={0.85}
+                                >
+                                    <LinearGradient
+                                        colors={['#D4F0E7', '#B8E6D4']}
+                                        style={styles.quickActionIcon}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <MaterialIcons name="local-mall" size={22} color="#2D7A5A" />
+                                    </LinearGradient>
+                                    <MerakiText style={styles.quickActionLabel}>Shop</MerakiText>
+                                </TouchableOpacity>
                             </View>
 
                             {/* Next Appointment */}
@@ -700,7 +981,7 @@ export function ClientHomeScreen() {
                                             {formatNextVisit()} • {nextAppointment.master?.full_name}
                                         </MerakiText>
                                     </View>
-                                    <MaterialIcons name="chevron-right" size={20} color="rgba(255,255,255,0.3)" />
+                                    <MaterialIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.25)" />
                                 </TouchableOpacity>
                             )}
 
@@ -739,7 +1020,7 @@ export function ClientHomeScreen() {
                                 </View>
                             )}
 
-                            {/* Services — only show after location + data are resolved */}
+                            {/* Services — Academy-style gradient banners */}
                             <View style={styles.section}>
                                 <View style={styles.sectionHeader}>
                                     <MerakiText style={styles.sectionTitle}>Services</MerakiText>
@@ -749,20 +1030,66 @@ export function ClientHomeScreen() {
                                 </View>
                                 <View style={styles.servicesGrid}>
                                     {loading || !locationReady ? null : availableServices.length > 0 ? (
-                                        availableServices.map((service) => (
-                                            <TouchableOpacity
-                                                key={service.id}
-                                                style={styles.serviceCard}
-                                                onPress={() => navigation.navigate('ServiceDetail', { serviceId: service.id })}
-                                            >
-                                                <View style={[styles.serviceIcon, { backgroundColor: `${getServiceColor(service.category)}15` }]}>
-                                                    <MaterialIcons name={getServiceIcon(service.category) as any} size={24} color={getServiceColor(service.category)} />
-                                                </View>
-                                                <MerakiText style={styles.serviceLabel} numberOfLines={2}>{service.name}</MerakiText>
-                                            </TouchableOpacity>
-                                        ))
+                                        availableServices.map((service) => {
+                                            const gradient = getCategoryGradient(service.category);
+                                            const iconColor = getCategoryIconColor(service.category);
+                                            return (
+                                                <TouchableOpacity
+                                                    key={service.id}
+                                                    style={styles.serviceCardWrapper}
+                                                    onPress={() => navigation.navigate('ServiceDetail', { serviceId: service.id })}
+                                                    activeOpacity={0.85}
+                                                >
+                                                    <View style={styles.serviceCard}>
+                                                        {/* Blurred background image (when available) */}
+                                                        {(service as any).image_url && (
+                                                            <Image
+                                                                source={{ uri: (service as any).image_url }}
+                                                                style={StyleSheet.absoluteFillObject}
+                                                                resizeMode="cover"
+                                                                blurRadius={20}
+                                                            />
+                                                        )}
+
+                                                        {/* Gradient overlay */}
+                                                        <LinearGradient
+                                                            colors={
+                                                                (service as any).image_url
+                                                                    ? ['rgba(255,255,255,0.88)', 'rgba(255,255,255,0.65)', 'rgba(255,255,255,0.3)']
+                                                                    : gradient
+                                                            }
+                                                            start={{ x: 0, y: 0 }}
+                                                            end={{ x: 1, y: 0 }}
+                                                            style={StyleSheet.absoluteFillObject}
+                                                        />
+
+                                                        <View style={styles.serviceTextContent}>
+                                                            <MerakiText style={styles.serviceLabel} numberOfLines={1}>
+                                                                {service.name.toUpperCase()}
+                                                            </MerakiText>
+                                                            <MerakiText style={styles.servicePrice}>
+                                                                from €{service.base_price?.toFixed(0) || '...'}
+                                                            </MerakiText>
+                                                        </View>
+
+                                                        {/* Sharp thumbnail on right or fallback icon */}
+                                                        {(service as any).image_url ? (
+                                                            <Image
+                                                                source={{ uri: (service as any).image_url }}
+                                                                style={styles.serviceImageThumb}
+                                                                resizeMode="cover"
+                                                            />
+                                                        ) : (
+                                                            <View style={[styles.serviceIconBlock, { backgroundColor: `${iconColor}15` }]}>
+                                                                <MaterialIcons name={getServiceIcon(service.category) as any} size={24} color={iconColor} />
+                                                            </View>
+                                                        )}
+                                                    </View>
+                                                </TouchableOpacity>
+                                            );
+                                        })
                                     ) : (
-                                        <MerakiText style={{ color: 'rgba(255,255,255,0.5)', marginLeft: 4 }}>No services available at the moment.</MerakiText>
+                                        <MerakiText style={{ color: 'rgba(0, 0, 0, 0.40)', marginLeft: 4 }}>No services available at the moment.</MerakiText>
                                     )}
                                 </View>
                             </View>
@@ -826,13 +1153,13 @@ const styles = StyleSheet.create({
 
     // Header
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, marginBottom: 24 },
-    greeting: { fontSize: 13, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
-    userName: { fontSize: 28, fontWeight: '700', color: '#fff', letterSpacing: -0.5 },
+    greeting: { fontSize: 13, color: 'rgba(0, 0, 0, 0.35)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
+    userName: { fontSize: 28, fontWeight: '700', color: '#1A1A1A', letterSpacing: -0.5 },
     headerIcons: { flexDirection: 'row', gap: 8 },
     iconBtn: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     badge: {
@@ -840,20 +1167,20 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary, borderRadius: 8, minWidth: 16, height: 16,
         alignItems: 'center', justifyContent: 'center',
     },
-    badgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
+    badgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
 
     // Search
     searchBar: {
         flexDirection: 'row', alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 9999,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)', borderRadius: 9999,
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         paddingHorizontal: 20, paddingVertical: 14, marginBottom: 24, gap: 12,
     },
 
-    searchInput: { flex: 1, fontSize: 14, color: '#fff', paddingVertical: 4 },
+    searchInput: { flex: 1, fontSize: 14, color: '#1A1A1A', paddingVertical: 4 },
     searchFilter: {
         width: 32, height: 32, borderRadius: 16,
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
         alignItems: 'center', justifyContent: 'center',
     },
 
@@ -865,24 +1192,22 @@ const styles = StyleSheet.create({
         padding: 16, marginBottom: 24,
     },
     alertTitle: { fontSize: 14, fontWeight: '600', color: '#fb923c' },
-    alertSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+    alertSubtitle: { fontSize: 12, color: 'rgba(0, 0, 0, 0.40)', marginTop: 2 },
 
     // Quick Actions
     quickActions: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
     quickAction: { alignItems: 'center', gap: 8 },
     quickActionIcon: {
-        width: 56, height: 56, borderRadius: 16,
-        backgroundColor: 'rgba(200, 160, 77, 0.08)',
-        borderWidth: 1, borderColor: 'rgba(200, 160, 77, 0.15)',
+        width: 58, height: 58, borderRadius: 16,
         alignItems: 'center', justifyContent: 'center',
     },
-    quickActionLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: '500' },
+    quickActionLabel: { fontSize: 11, color: 'rgba(0, 0, 0, 0.50)', fontWeight: '600' },
 
     // Appointment Card
     appointmentCard: {
         flexDirection: 'row', alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)', borderRadius: 16,
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         padding: 16, marginBottom: 28, gap: 14,
     },
     appointmentIconWrap: {
@@ -890,20 +1215,20 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(200, 160, 77, 0.1)',
         alignItems: 'center', justifyContent: 'center',
     },
-    appointmentTitle: { fontSize: 15, fontWeight: '600', color: '#fff' },
-    appointmentMeta: { fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 },
+    appointmentTitle: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
+    appointmentMeta: { fontSize: 12, color: 'rgba(0, 0, 0, 0.35)', marginTop: 2 },
 
     // Section
     section: { marginBottom: 28 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    sectionTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+    sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1A1A1A' },
     seeAll: { fontSize: 13, color: colors.primary, fontWeight: '600' },
 
     // Featured Masters
     masterCard: {
         width: 120, marginRight: 12,
-        backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)', borderRadius: 16,
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         padding: 16, alignItems: 'center',
     },
     masterAvatar: {
@@ -912,39 +1237,56 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     masterInitial: { color: '#fff', fontSize: 22, fontWeight: '700' },
-    masterName: { fontSize: 13, fontWeight: '600', color: '#fff', textAlign: 'center' },
-    masterBio: { fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 2 },
+    masterName: { fontSize: 13, fontWeight: '600', color: '#1A1A1A', textAlign: 'center' },
+    masterBio: { fontSize: 11, color: 'rgba(0, 0, 0, 0.35)', textAlign: 'center', marginTop: 2 },
 
-    // Services Grid
-    servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    // Services Grid — Academy-style gradient banners
+    servicesGrid: { gap: 10 },
+    serviceCardWrapper: {
+        borderRadius: 10,
+        overflow: 'hidden',
+    },
     serviceCard: {
-        width: (width - 52) / 2, // 2 columns with gap
-        backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-        padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        minHeight: 80,
     },
-    serviceIcon: {
-        width: 44, height: 44, borderRadius: 12,
-        alignItems: 'center', justifyContent: 'center',
+    serviceTextContent: {
+        flex: 1,
+        paddingVertical: 14,
+        paddingLeft: 20,
+        paddingRight: 12,
+        justifyContent: 'center',
     },
-    serviceLabel: { fontSize: 13, fontWeight: '600', color: '#fff', flex: 1 },
+    serviceLabel: { fontSize: 14, fontWeight: '700', color: '#1A1A1A', letterSpacing: 0.3 },
+    servicePrice: { fontSize: 11, color: 'rgba(0, 0, 0, 0.40)', fontWeight: '500', marginTop: 4 },
+    serviceIconBlock: {
+        width: 70,
+        minHeight: 80,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    serviceImageThumb: {
+        width: 100,
+        minHeight: 80,
+    },
 
     // Stats
     statsRow: { flexDirection: 'row', gap: 10, marginBottom: 28 },
     statCard: {
         flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)', borderRadius: 16,
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         padding: 16, alignItems: 'center',
     },
-    statValue: { fontSize: 22, fontWeight: '700', color: '#fff' },
-    statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 },
+    statValue: { fontSize: 22, fontWeight: '700', color: '#1A1A1A' },
+    statLabel: { fontSize: 11, color: 'rgba(0, 0, 0, 0.35)', marginTop: 4 },
 
     // Orders
     orderRow: {
         flexDirection: 'row', alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)', borderRadius: 14,
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.05)',
         padding: 14, marginBottom: 8, gap: 12,
     },
     orderIconWrap: {
@@ -952,21 +1294,35 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(200, 160, 77, 0.1)',
         alignItems: 'center', justifyContent: 'center',
     },
-    orderTitle: { fontSize: 14, fontWeight: '600', color: '#fff' },
-    orderDate: { fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 },
-    orderTotal: { fontSize: 14, fontWeight: '700', color: '#fff' },
+    orderTitle: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
+    orderDate: { fontSize: 12, color: 'rgba(0, 0, 0, 0.25)', marginTop: 2 },
+    orderTotal: { fontSize: 14, fontWeight: '700', color: '#1A1A1A' },
     statusBadge: {
         paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
-        backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 4,
+        backgroundColor: 'rgba(0, 0, 0, 0.06)', marginTop: 4,
     },
     statusDelivered: { backgroundColor: 'rgba(34,197,94,0.15)' },
-    statusText: { fontSize: 10, color: 'rgba(255,255,255,0.5)', textTransform: 'capitalize', fontWeight: '600' },
+    statusText: { fontSize: 10, color: 'rgba(0, 0, 0, 0.40)', textTransform: 'capitalize', fontWeight: '600' },
 
+
+    // Activity Feed
+    feedCard: {
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)', borderRadius: 14,
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
+        padding: 14, marginBottom: 8, gap: 0,
+    },
+    feedIconWrap: {
+        width: 40, height: 40, borderRadius: 12,
+        alignItems: 'center', justifyContent: 'center',
+    },
+    feedTitle: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
+    feedDescription: { fontSize: 12, color: 'rgba(0, 0, 0, 0.35)', marginTop: 2, lineHeight: 16 },
 
     // Search Results
     masterCardFull: {
-        backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)', borderRadius: 16,
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         padding: 16, marginBottom: 12,
     },
     masterRow: { flexDirection: 'row', alignItems: 'center' },
@@ -976,6 +1332,92 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     masterInitialSmall: { color: '#fff', fontSize: 18, fontWeight: '700' },
+
+    // Hero Banner
+    heroBanner: {
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginBottom: 16,
+    },
+    heroBannerGradient: {
+        paddingHorizontal: 24,
+        paddingVertical: 32,
+        minHeight: 180,
+        justifyContent: 'center',
+    },
+    heroContent: {},
+    heroTagline: {
+        fontSize: 26,
+        fontWeight: '800',
+        color: '#1A1A1A',
+        letterSpacing: -0.5,
+        lineHeight: 32,
+        marginBottom: 8,
+    },
+    heroSubtext: {
+        fontSize: 13,
+        color: 'rgba(26, 26, 26, 0.55)',
+        lineHeight: 18,
+        marginBottom: 16,
+    },
+    heroButton: {
+        backgroundColor: '#1A1A1A',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 6,
+    },
+    heroButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        letterSpacing: 0.5,
+    },
+
+    // Editorial Cards Row
+    editorialRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 20,
+    },
+    editorialCard: {
+        flex: 1,
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 4,
+    },
+    editorialGradient: {
+        paddingHorizontal: 18,
+        paddingVertical: 20,
+        minHeight: 140,
+        justifyContent: 'flex-end',
+    },
+    editorialLabel: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: 'rgba(26, 26, 26, 0.4)',
+        letterSpacing: 1.5,
+        marginBottom: 4,
+    },
+    editorialTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#1A1A1A',
+        marginBottom: 8,
+    },
+    editorialCta: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#1A1A1A',
+        letterSpacing: 0.5,
+    },
 });
 
 export default ClientHomeScreen;

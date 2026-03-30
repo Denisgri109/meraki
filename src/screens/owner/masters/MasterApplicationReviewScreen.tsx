@@ -334,7 +334,7 @@ export function MasterApplicationReviewScreen() {
                                 disabled={processing}
                             >
                                 <LinearGradient
-                                    colors={['#D4A853', '#B8912E']}
+                                    colors={['#E8A0B4', '#C47A90']}
                                     style={styles.approveBtnGradient}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 0 }}
@@ -404,8 +404,8 @@ const styles = StyleSheet.create({
     },
     backBtn: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     headerTitle: { flex: 1, marginLeft: spacing.md },
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         marginBottom: spacing.md,
     },
-    avatarLargeText: { fontSize: 40, fontWeight: '700' as any, color: '#fff' },
+    avatarLargeText: { fontSize: 40, fontWeight: '700' as any, color: '#FFFFFF' },
     applicantName: { marginBottom: 4 },
     timeBadge: {
         flexDirection: 'row',
@@ -443,9 +443,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: spacing.sm + 2,
         borderRadius: layout.borderRadius.md,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     tabActive: {
         backgroundColor: 'rgba(212,168,83,0.08)',

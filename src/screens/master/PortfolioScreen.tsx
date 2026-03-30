@@ -42,12 +42,51 @@ export function PortfolioScreen() {
     const [selectedItem, setSelectedItem] = useState<Portfolio | null>(null);
     const [editDescription, setEditDescription] = useState('');
     const [saving, setSaving] = useState(false);
+    const [bio, setBio] = useState('');
+    const [originalBio, setOriginalBio] = useState('');
+    const [savingBio, setSavingBio] = useState(false);
 
     useEffect(() => {
         if (user) {
             fetchPortfolio();
+            fetchBio();
         }
     }, [user]);
+
+    const fetchBio = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('bio')
+                .eq('id', user!.id)
+                .single();
+
+            if (error) throw error;
+            setBio(data?.bio || '');
+            setOriginalBio(data?.bio || '');
+        } catch (error: any) {
+            console.error('Error fetching bio:', error);
+        }
+    };
+
+    const saveBio = async () => {
+        if (!user) return;
+        setSavingBio(true);
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ bio: bio.trim() || null })
+                .eq('id', user.id);
+
+            if (error) throw error;
+            setOriginalBio(bio.trim());
+            showAlert('Saved', 'Your bio has been updated', 'success');
+        } catch (error: any) {
+            showAlert('Error', error.message || 'Failed to save bio', 'error');
+        } finally {
+            setSavingBio(false);
+        }
+    };
 
     const fetchPortfolio = async () => {
         try {
@@ -82,7 +121,7 @@ export function PortfolioScreen() {
 
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images'],
                 allowsMultipleSelection: true,
                 selectionLimit: 10, // Reasonable limit
                 quality: 0.8,
@@ -310,7 +349,7 @@ export function PortfolioScreen() {
                                 style={{ flex: 1 }}
                             >
                                 <LinearGradient
-                                    colors={descriptionChanged ? ['#D4A853', '#B8912E'] : ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.04)']}
+                                    colors={descriptionChanged ? ['#E8A0B4', '#C47A90'] : ['rgba(0, 0, 0, 0.06)', 'rgba(0, 0, 0, 0.03)']}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 0 }}
                                     style={[styles.saveButton, !descriptionChanged && { opacity: 0.5 }]}
@@ -370,6 +409,53 @@ export function PortfolioScreen() {
                         refreshControl={
                             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
                         }
+                        ListHeaderComponent={
+                            <View style={styles.bioSection}>
+                                <View style={styles.bioHeader}>
+                                    <MaterialCommunityIcons name="account-edit-outline" size={18} color={colors.accent} />
+                                    <MerakiText variant="label" color={colors.text} style={{ fontWeight: '600', marginLeft: 6 }}>
+                                        About Me
+                                    </MerakiText>
+                                </View>
+                                <TextInput
+                                    style={styles.bioInput}
+                                    value={bio}
+                                    onChangeText={setBio}
+                                    placeholder="Tell clients about yourself, your experience, and specialties..."
+                                    placeholderTextColor={colors.textMuted}
+                                    multiline
+                                    maxLength={300}
+                                    textAlignVertical="top"
+                                />
+                                <View style={styles.bioFooter}>
+                                    <MerakiText variant="caption" color={colors.textMuted}>
+                                        {bio.length}/300
+                                    </MerakiText>
+                                    {bio.trim() !== originalBio && (
+                                        <TouchableOpacity
+                                            onPress={saveBio}
+                                            disabled={savingBio}
+                                            activeOpacity={0.7}
+                                        >
+                                            <LinearGradient
+                                                colors={['#E8A0B4', '#C47A90']}
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 0 }}
+                                                style={styles.saveBioButton}
+                                            >
+                                                {savingBio ? (
+                                                    <ActivityIndicator color="#fff" size="small" />
+                                                ) : (
+                                                    <MerakiText variant="caption" style={{ color: '#fff', fontWeight: '700' }}>
+                                                        Save Bio
+                                                    </MerakiText>
+                                                )}
+                                            </LinearGradient>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            </View>
+                        }
                         ListEmptyComponent={
                             <View style={styles.emptyContainer}>
                                 <View style={styles.emptyIconBg}>
@@ -403,6 +489,44 @@ export function PortfolioScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
+    // Bio Section
+    bioSection: {
+        marginBottom: spacing.lg,
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.05)',
+        padding: spacing.md,
+    },
+    bioHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: spacing.sm,
+    },
+    bioInput: {
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.06)',
+        borderRadius: 12,
+        padding: spacing.md,
+        color: colors.text,
+        fontSize: 14,
+        minHeight: 80,
+        lineHeight: 20,
+    },
+    bioFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    saveBioButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -414,11 +538,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     statsBar: {
         paddingHorizontal: spacing.lg,
@@ -511,7 +635,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 4,
         borderRadius: 2,
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: 'rgba(0, 0, 0, 0.12)',
         alignSelf: 'center',
         marginTop: spacing.md,
         marginBottom: spacing.md,
@@ -533,9 +657,9 @@ const styles = StyleSheet.create({
         marginBottom: spacing.sm,
     },
     descriptionInput: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         borderRadius: 14,
         padding: spacing.md,
         color: colors.text,
@@ -548,7 +672,7 @@ const styles = StyleSheet.create({
         gap: 12,
         paddingTop: spacing.md,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     deleteButton: {
         width: 50,

@@ -197,11 +197,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     title: { fontSize: 20, fontWeight: '600', color: colors.text },
     addButton: { fontSize: 16, color: '#8B5CF6', fontWeight: '600' },
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
         paddingTop: spacing.md,
         padding: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)'
+        borderTopColor: 'rgba(0, 0, 0, 0.08)'
     },
     linkSuppliesIcon: { fontSize: 16, marginRight: spacing.sm },
     linkSuppliesText: { flex: 1, fontSize: 14, color: colors.text, fontWeight: '500' },
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
         borderRadius: 8,
     },
-    emptyButtonText: { color: '#fff', fontWeight: '600' },
+    emptyButtonText: { color: '#1A1A1A', fontWeight: '600' },
 });
 
 export default ServiceListScreen;

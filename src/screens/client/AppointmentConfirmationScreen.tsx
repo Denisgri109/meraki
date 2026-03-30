@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     termsBox: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         marginBottom: spacing.lg,

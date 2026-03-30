@@ -124,7 +124,7 @@ export function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) 
                             placeholder="name@example.com"
                             variant="glass"
                             leftIcon={
-                                <MaterialIcons name="alternate-email" size={20} color="rgba(255, 255, 255, 0.3)" />
+                                <MaterialIcons name="alternate-email" size={20} color="rgba(0, 0, 0, 0.25)" />
                             }
                         />
                     </View>
@@ -153,11 +153,11 @@ export function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) 
 
     return (
         <View style={styles.container}>
-            <StatusBar style="light" />
+            <StatusBar style="dark" />
 
             {/* Background Gradient */}
             <LinearGradient
-                colors={['#1E1E24', '#0F0F13']}
+                colors={['#1E1E24', '#FFFFFF']}
                 style={StyleSheet.absoluteFill}
                 start={{ x: 1, y: 0 }}
                 end={{ x: 0, y: 1 }}
@@ -220,9 +220,9 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -249,9 +249,9 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)', // Glass background
+        backgroundColor: 'rgba(0, 0, 0, 0.02)', // Glass background
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: colors.primary,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     description: {
         textAlign: 'center',
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: 'rgba(0, 0, 0, 0.50)',
         lineHeight: 22,
         maxWidth: 280,
         marginBottom: 40,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 11,
         fontWeight: '600',
-        color: 'rgba(255, 255, 255, 0.4)',
+        color: 'rgba(0, 0, 0, 0.35)',
         marginLeft: 16,
         marginBottom: 8,
         letterSpacing: 1.5,
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     successText: {
         textAlign: 'center',
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: 'rgba(0, 0, 0, 0.50)',
         marginBottom: 40,
         lineHeight: 22,
     },
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.4)',
+        color: 'rgba(0, 0, 0, 0.35)',
     },
     footerLink: {
         fontSize: 14,

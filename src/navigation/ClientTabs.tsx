@@ -259,17 +259,10 @@ function ClientTabsInner() {
                 screenOptions={({ navigation }) => ({
                     headerShown: false,
                     tabBarStyle: styles.tabBar,
-                    tabBarActiveTintColor: colors.primary,
-                    tabBarInactiveTintColor: 'rgba(139, 148, 158, 0.55)',
+                    tabBarActiveTintColor: '#000000',
+                    tabBarInactiveTintColor: 'rgba(156, 163, 175, 0.70)',
                     tabBarLabelStyle: styles.tabLabel,
                     tabBarShowLabel: true,
-                    tabBarBackground: () => (
-                        <BlurView
-                            tint="dark"
-                            intensity={80}
-                            style={StyleSheet.absoluteFill}
-                        />
-                    ),
                 })}
             >
                 <Tab.Screen
@@ -445,24 +438,19 @@ export function ClientTabs() {
 
 const styles = StyleSheet.create({
     tabBar: {
-        position: 'absolute',
-        bottom: Platform.OS === 'ios' ? 24 : 12,
-        left: 20,
-        right: 20,
-        backgroundColor: 'rgba(22, 27, 34, 0.96)',
-        borderTopWidth: 0,
-        borderRadius: 32,
-        height: 70,
-        paddingBottom: Platform.OS === 'ios' ? 0 : 8,
+        backgroundColor: '#FFFFFF',
+        borderTopWidth: 1,
+        borderTopColor: '#E5E7EB',
+        height: Platform.OS === 'ios' ? 85 : 65,
+        paddingBottom: Platform.OS === 'ios' ? 28 : 10,
         paddingTop: 8,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(48, 54, 61, 0.50)',
+        elevation: 0,
+        shadowOpacity: 0,
     },
     tabLabel: {
         fontSize: 10,
-        fontWeight: '600',
-        marginBottom: 8,
+        fontWeight: '500',
+        marginBottom: Platform.OS === 'ios' ? 0 : 4,
     },
 });
 

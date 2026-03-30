@@ -10,13 +10,13 @@ interface CardProps extends ViewProps {
 }
 
 /**
- * Premium Card component — "Midnight Velvet" surface
+ * Premium Card component — "Beauty Bay Light" surface
  *
  * Variants:
- *   default  — Solid #1F242C with 1px #30363D border
- *   elevated — Same card with a subtle gold shimmer gradient at the top
- *   glass    — Semi-transparent overlay with backdrop tint
- *   gold     — Faint gold border glow for featured / highlighted content
+ *   default  — White card with subtle border
+ *   elevated — White card with shadow for depth
+ *   glass    — Very subtle tinted overlay
+ *   gold     — Soft pink border glow for featured / highlighted content
  */
 export function Card({ children, variant = 'default', style, noPadding, ...props }: CardProps) {
     const padding = noPadding ? 0 : 16;
@@ -63,11 +63,12 @@ const styles = StyleSheet.create({
     },
     elevated: {
         overflow: 'hidden',
+        borderWidth: 0,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 14,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
     },
     glass: {
         backgroundColor: colors.surfaceGlass,
@@ -75,11 +76,11 @@ const styles = StyleSheet.create({
     },
     gold: {
         borderColor: colors.borderGold,
-        shadowColor: colors.primary,
+        shadowColor: colors.accent,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
+        shadowOpacity: 0.10,
         shadowRadius: 8,
-        elevation: 4,
+        elevation: 3,
     },
     shimmer: {
         ...StyleSheet.absoluteFillObject,

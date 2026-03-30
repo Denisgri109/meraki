@@ -12,6 +12,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Dimensions,
+    TextInput,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,9 +24,7 @@ import { Card, MerakiText } from './ui';
 import { colors, spacing, gradients } from '../theme';
 import {
     getAllCountries,
-    getCitiesOfCountry,
     type Country,
-    type City,
 } from '../utils/locationApi';
 
 const { width, height } = Dimensions.get('window');
@@ -47,12 +46,9 @@ export function CitySelectionModal({
 }: CitySelectionModalProps) {
     const { profile, refreshProfile } = useAuth();
     const [selectedCity, setSelectedCity] = useState('');
-    const [cities, setCities] = useState<City[]>([]);
     const [countries, setCountries] = useState<Country[]>([]);
-    const [loadingCities, setLoadingCities] = useState(false);
     const [loadingCountries, setLoadingCountries] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [cityPickerVisible, setCityPickerVisible] = useState(false);
     const [countryPickerVisible, setCountryPickerVisible] = useState(false);
 
     // Local state for country selection (in case user wants to change)
@@ -69,11 +65,6 @@ export function CitySelectionModal({
             if (countries.length === 0) {
                 loadCountries();
             }
-
-            // Load cities for detected country
-            if (detectedCountryCode) {
-                loadCities(detectedCountryCode);
-            }
         }
     }, [visible, detectedCountry, detectedCountryCode]);
 
@@ -89,31 +80,13 @@ export function CitySelectionModal({
         }
     };
 
-    const loadCities = async (countryCode: string) => {
-        setLoadingCities(true);
-        setCities([]);
-        try {
-            const data = await getCitiesOfCountry(countryCode);
-            setCities(data);
-        } catch (e) {
-            console.error('Failed to load cities:', e);
-        } finally {
-            setLoadingCities(false);
-        }
-    };
-
     const handleCountrySelect = (item: { id: string | number; name: string }) => {
         const found = countries.find(c => c.id === item.id);
         if (found) {
             setCurrentCountry(found.name);
             setCurrentCountryCode(found.iso2);
             setSelectedCity('');
-            loadCities(found.iso2);
         }
-    };
-
-    const handleCitySelect = (item: { id: string | number; name: string }) => {
-        setSelectedCity(item.name);
     };
 
     const handleSave = async () => {
@@ -154,12 +127,6 @@ export function CitySelectionModal({
         id: c.id,
         name: c.name,
         subtitle: c.iso2,
-    }));
-
-    const cityPickerItems = cities.map(c => ({
-        id: c.id,
-        name: c.name,
-        subtitle: c.state_name || undefined,
     }));
 
     return (
@@ -212,30 +179,26 @@ export function CitySelectionModal({
                                 </TouchableOpacity>
                             </View>
 
-                            {/* City Selector */}
+                            {/* City Input */}
                             <View style={styles.fieldGroup}>
                                 <MerakiText style={styles.fieldLabel}>City *</MerakiText>
-                                <TouchableOpacity
-                                    onPress={() => currentCountryCode && setCityPickerVisible(true)}
-                                    disabled={!currentCountryCode}
-                                >
-                                    <Card variant="glass" style={[
-                                        styles.selectorCard,
-                                        !currentCountryCode && styles.selectorDisabled
-                                    ]}>
-                                        <View style={styles.selectorRow}>
-                                            <MaterialIcons name="location-city" size={18} color={colors.primary} />
-                                            <MerakiText style={selectedCity ? styles.selectorText : styles.selectorPlaceholder}>
-                                                {selectedCity || (currentCountryCode ? 'Search and select your city' : 'Select country first')}
-                                            </MerakiText>
-                                        </View>
-                                        {loadingCities ? (
-                                            <ActivityIndicator size="small" color={colors.primary} />
-                                        ) : (
-                                            <MaterialIcons name="expand-more" size={20} color={colors.textMuted} />
-                                        )}
-                                    </Card>
-                                </TouchableOpacity>
+                                <Card variant="glass" style={[
+                                    styles.selectorCard,
+                                    !currentCountryCode && styles.selectorDisabled,
+                                    { paddingVertical: 0 }
+                                ]}>
+                                    <View style={[styles.selectorRow, { paddingVertical: spacing.sm }]}>
+                                        <MaterialIcons name="location-city" size={18} color={colors.primary} />
+                                        <TextInput
+                                            style={[styles.selectorText, { padding: 0 }]}
+                                            value={selectedCity}
+                                            onChangeText={setSelectedCity}
+                                            placeholder={currentCountryCode ? 'Enter your city name' : 'Select country first'}
+                                            placeholderTextColor={colors.textMuted}
+                                            editable={!!currentCountryCode}
+                                        />
+                                    </View>
+                                </Card>
                             </View>
 
                             {/* Buttons */}
@@ -285,19 +248,6 @@ export function CitySelectionModal({
                 searchPlaceholder="Search countries..."
                 loading={loadingCountries}
                 emptyMessage="No countries found"
-            />
-
-            {/* City Picker */}
-            <SearchablePicker
-                visible={cityPickerVisible}
-                title="Select City"
-                items={cityPickerItems}
-                selectedId={cities.find(c => c.name === selectedCity)?.id}
-                onSelect={handleCitySelect}
-                onClose={() => setCityPickerVisible(false)}
-                searchPlaceholder="Search cities..."
-                loading={loadingCities}
-                emptyMessage={cities.length === 0 ? 'Loading cities...' : 'No cities found'}
             />
         </>
     );
@@ -363,7 +313,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     selectorRow: {
         flexDirection: 'row',

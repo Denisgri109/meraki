@@ -16,10 +16,12 @@ import { supabase } from '../../lib/supabase';
 import { ScreenBackground, Card, MerakiText } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
-import { Service, MasterSupply, ServiceSupply } from '../../types/database';
+import { Service, MasterSupply, ServiceSupply, OwnerSupply } from '../../types/database';
+
+type AnySupply = MasterSupply | OwnerSupply;
 
 type ServiceWithSupplies = Service & {
-    linkedSupplies: (ServiceSupply & { supply: MasterSupply })[];
+    linkedSupplies: (ServiceSupply & { supply: AnySupply })[];
 };
 
 export function ServiceSuppliesScreen() {
@@ -29,11 +31,11 @@ export function ServiceSuppliesScreen() {
     const { showAlert, showConfirm } = useModal();
     const { serviceId } = route.params as { serviceId?: string } || {};
     const [services, setServices] = useState<ServiceWithSupplies[]>([]);
-    const [supplies, setSupplies] = useState<MasterSupply[]>([]);
+    const [supplies, setSupplies] = useState<AnySupply[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedService, setSelectedService] = useState<ServiceWithSupplies | null>(null);
     const [showLinkModal, setShowLinkModal] = useState(false);
-    const [selectedSupply, setSelectedSupply] = useState<MasterSupply | null>(null);
+    const [selectedSupply, setSelectedSupply] = useState<AnySupply | null>(null);
     const [quantityPerService, setQuantityPerService] = useState('1');
     const [notes, setNotes] = useState('');
     const [saving, setSaving] = useState(false);
@@ -91,8 +93,17 @@ export function ServiceSuppliesScreen() {
 
             if (servicesError) throw servicesError;
 
-            // Only fetch supplies for masters (owners don't have personal supplies)
-            if (!userIsOwner) {
+            // Fetch supplies based on role
+            if (userIsOwner) {
+                const { data: suppliesData, error: suppliesError } = await supabase
+                    .from('owner_supplies')
+                    .select('*')
+                    .eq('owner_id', user!.id)
+                    .order('name');
+
+                if (suppliesError) throw suppliesError;
+                setSupplies(suppliesData || []);
+            } else {
                 const { data: suppliesData, error: suppliesError } = await supabase
                     .from('master_supplies')
                     .select('*')
@@ -101,28 +112,42 @@ export function ServiceSuppliesScreen() {
 
                 if (suppliesError) throw suppliesError;
                 setSupplies(suppliesData || []);
-            } else {
-                setSupplies([]);
             }
 
             // Fetch service-supply links
             const serviceIds = (servicesData || []).map(s => s.id);
-            let linksQuery = supabase
-                .from('service_supplies')
-                .select('*, supply:master_supplies(*)');
+            let linksData: any[] = [];
 
-            if (serviceIds.length > 0) {
-                linksQuery = linksQuery.in('service_id', serviceIds);
+            if (userIsOwner) {
+                let linksQuery = supabase
+                    .from('owner_service_supplies')
+                    .select('*, supply:owner_supplies(*)');
+
+                if (serviceIds.length > 0) {
+                    linksQuery = linksQuery.in('service_id', serviceIds);
+                }
+
+                const { data, error: linksError } = await linksQuery;
+                if (linksError) throw linksError;
+                linksData = data || [];
+            } else {
+                let linksQuery = supabase
+                    .from('service_supplies')
+                    .select('*, supply:master_supplies(*)');
+
+                if (serviceIds.length > 0) {
+                    linksQuery = linksQuery.in('service_id', serviceIds);
+                }
+
+                const { data, error: linksError } = await linksQuery;
+                if (linksError) throw linksError;
+                linksData = data || [];
             }
-
-            const { data: linksData, error: linksError } = await linksQuery;
-
-            if (linksError) throw linksError;
 
             // Merge services with their supplies
             const servicesWithSupplies = (servicesData || []).map(service => ({
                 ...service,
-                linkedSupplies: (linksData || []).filter(link => link.service_id === service.id)
+                linkedSupplies: linksData.filter(link => link.service_id === service.id)
             }));
 
             setServices(servicesWithSupplies);
@@ -156,8 +181,9 @@ export function ServiceSuppliesScreen() {
 
         setSaving(true);
         try {
+            const tableName = isOwner ? 'owner_service_supplies' : 'service_supplies';
             const { error } = await supabase
-                .from('service_supplies')
+                .from(tableName)
                 .insert({
                     service_id: selectedService.id,
                     supply_id: selectedSupply.id,
@@ -189,8 +215,9 @@ export function ServiceSuppliesScreen() {
             'Are you sure you want to remove this supply from the service?',
             async () => {
                 try {
+                    const tableName = isOwner ? 'owner_service_supplies' : 'service_supplies';
                     const { error } = await supabase
-                        .from('service_supplies')
+                        .from(tableName)
                         .delete()
                         .eq('id', linkId);
 
@@ -216,14 +243,12 @@ export function ServiceSuppliesScreen() {
                     <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18, marginBottom: 4 }}>{item.name}</MerakiText>
                     <MerakiText variant="caption" color={colors.textSecondary}>€{item.base_price} • {item.duration_minutes} min</MerakiText>
                 </View>
-                {!isOwner && (
-                    <TouchableOpacity
-                        style={styles.linkButton}
-                        onPress={() => handleOpenLinkModal(item)}
-                    >
-                        <MerakiText variant="caption" color={colors.text} style={{ fontWeight: '600' }}>+ Link Supply</MerakiText>
-                    </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                    style={styles.linkButton}
+                    onPress={() => handleOpenLinkModal(item)}
+                >
+                    <MerakiText variant="caption" color={colors.text} style={{ fontWeight: '600' }}>+ Link Supply</MerakiText>
+                </TouchableOpacity>
             </View>
 
             {item.linkedSupplies.length > 0 ? (
@@ -240,24 +265,19 @@ export function ServiceSuppliesScreen() {
                                     <MerakiText variant="caption" color={colors.textMuted} style={{ fontSize: 11, marginTop: 2 }}>{link.notes}</MerakiText>
                                 )}
                             </View>
-                            {!isOwner && (
-                                <TouchableOpacity
-                                    style={styles.unlinkButton}
-                                    onPress={() => handleUnlinkSupply(link.id)}
-                                >
-                                    <MaterialCommunityIcons name="close" size={16} color="#ef4444" />
-                                </TouchableOpacity>
-                            )}
+                            <TouchableOpacity
+                                style={styles.unlinkButton}
+                                onPress={() => handleUnlinkSupply(link.id)}
+                            >
+                                <MaterialCommunityIcons name="close" size={16} color="#ef4444" />
+                            </TouchableOpacity>
                         </View>
                     ))}
                 </View>
             ) : (
                 <View style={styles.noSuppliesContainer}>
                     <MerakiText variant="caption" color={colors.textMuted} style={{ fontStyle: 'italic' }}>
-                        {isOwner
-                            ? 'No supplies linked to this service yet.'
-                            : 'No supplies linked. Supplies will not be automatically deducted for this service.'
-                        }
+                        No supplies linked yet. Tap "+ Link Supply" to associate supplies with this service.
                     </MerakiText>
                 </View>
             )}
@@ -279,11 +299,9 @@ export function ServiceSuppliesScreen() {
                     )}
                     <MerakiText variant="h1">Service Supplies</MerakiText>
                     <MerakiText variant="caption" color={colors.textSecondary} style={{ marginTop: spacing.xs }}>
-                        {isOwner
-                            ? 'View supply requirements for services (read-only)'
-                            : serviceId
-                                ? `Manage supplies for this service`
-                                : 'Link supplies to services for automatic inventory tracking'
+                        {serviceId
+                            ? 'Manage supplies for this service'
+                            : 'Link supplies to services for automatic inventory tracking'
                         }
                     </MerakiText>
                 </View>
@@ -423,12 +441,12 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: spacing.sm,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     list: {
         padding: spacing.lg,
@@ -456,13 +474,13 @@ const styles = StyleSheet.create({
     },
     linkedSuppliesContainer: {
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        borderTopColor: 'rgba(0, 0, 0, 0.08)',
         paddingTop: spacing.md,
     },
     linkedSupplyItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 8,
         padding: spacing.sm,
         marginBottom: spacing.sm,
@@ -480,7 +498,7 @@ const styles = StyleSheet.create({
     },
     noSuppliesContainer: {
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        borderTopColor: 'rgba(0, 0, 0, 0.08)',
         paddingTop: spacing.md,
     },
     loader: {
@@ -516,7 +534,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: spacing.lg,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.1)',
+        borderBottomColor: 'rgba(0, 0, 0, 0.08)',
     },
     modalContent: {
         flex: 1,
@@ -533,7 +551,7 @@ const styles = StyleSheet.create({
     supplyOption: {
         padding: spacing.md,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderWidth: 1,
         borderColor: colors.border,
     },
@@ -542,7 +560,7 @@ const styles = StyleSheet.create({
         borderColor: colors.primary,
     },
     quantityInput: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         fontSize: 16,

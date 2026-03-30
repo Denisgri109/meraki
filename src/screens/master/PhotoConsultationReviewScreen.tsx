@@ -308,7 +308,7 @@ export function PhotoConsultationReviewScreen() {
                 >
                     {filter === tab.value ? (
                         <LinearGradient
-                            colors={['#D4A853', '#B8912E']}
+                            colors={['#E8A0B4', '#C47A90']}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
                             style={styles.filterTab}
@@ -366,7 +366,7 @@ export function PhotoConsultationReviewScreen() {
                                             <Image source={{ uri: client.avatar_url }} style={styles.clientAvatar} />
                                         ) : (
                                             <LinearGradient
-                                                colors={['#D4A853', '#B8912E']}
+                                                colors={['#E8A0B4', '#C47A90']}
                                                 style={styles.clientAvatarPlaceholder}
                                             >
                                                 <MerakiText variant="h2" color="#fff" style={{ fontSize: 18 }}>
@@ -472,7 +472,7 @@ export function PhotoConsultationReviewScreen() {
                             <Image source={{ uri: client.avatar_url }} style={styles.detailAvatar} />
                         ) : (
                             <LinearGradient
-                                colors={['#D4A853', '#B8912E']}
+                                colors={['#E8A0B4', '#C47A90']}
                                 style={styles.detailAvatarPlaceholder}
                             >
                                 <MerakiText variant="h2" color="#fff" style={{ fontSize: 22 }}>
@@ -613,7 +613,7 @@ export function PhotoConsultationReviewScreen() {
                             disabled={loading}
                         >
                             <LinearGradient
-                                colors={['#D4A853', '#B8912E']}
+                                colors={['#E8A0B4', '#C47A90']}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                                 style={styles.submitBtn}
@@ -776,9 +776,9 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -799,9 +799,9 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         paddingHorizontal: 14,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     listContainer: {
         padding: spacing.lg,
@@ -815,9 +815,9 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: spacing.lg,
@@ -885,17 +885,17 @@ const styles = StyleSheet.create({
         height: 80,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     morePhotosBadge: {
         width: 80,
         height: 80,
         borderRadius: 10,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     cardFooter: {
         flexDirection: 'row',
@@ -903,7 +903,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     footerLeft: {
         flexDirection: 'row',
@@ -966,7 +966,7 @@ const styles = StyleSheet.create({
         height: 180,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     sectionLabelRow: {
         flexDirection: 'row',
@@ -985,11 +985,11 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: spacing.lg,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         padding: spacing.md,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     inputLabel: {
         fontWeight: '600',
@@ -997,13 +997,13 @@ const styles = StyleSheet.create({
         letterSpacing: 0.3,
     },
     input: {
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 12,
         padding: spacing.md,
         color: colors.text,
         fontSize: 15,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
         marginBottom: spacing.md,
     },
     textArea: {
@@ -1028,11 +1028,11 @@ const styles = StyleSheet.create({
     },
     // ─── Response Box ─────────────────────────────────────────────
     responseBox: {
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 12,
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     doableBadge: {
         flexDirection: 'row',
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
         marginTop: spacing.sm,
         paddingTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     estimateItem: {
         flexDirection: 'row',

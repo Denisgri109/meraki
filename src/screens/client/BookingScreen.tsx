@@ -7,13 +7,15 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
+    Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card, ScreenBackground } from '../../components/ui';
+import { ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { Service } from '../../types/database';
 
@@ -38,11 +40,48 @@ type BookingScreenProps = {
 };
 
 const CATEGORIES = [
-    { label: 'All', icon: '✨' },
-    { label: 'Nails', icon: '💅' },
-    { label: 'Lashes', icon: '👁️' },
-    { label: 'Brows', icon: '✨' },
+    { label: 'All', icon: 'auto-awesome' },
+    { label: 'Nails', icon: 'content-cut' },
+    { label: 'Lashes', icon: 'visibility' },
+    { label: 'Brows', icon: 'face' },
 ];
+
+// Category-based gradient palettes (Academy-inspired pastel banners)
+const CATEGORY_GRADIENTS: Record<string, [string, string]> = {
+    Nails: ['#FADADD', '#F8C8D4'],
+    Lashes: ['#E8D5FF', '#D4B8F0'],
+    Brows: ['#FFF3D6', '#F5E0A0'],
+    Hair: ['#D4F0E7', '#B8E6D4'],
+    Skincare: ['#D6EAFF', '#B8D4F0'],
+    default: ['#F0F0F0', '#E5E5E5'],
+};
+
+const CATEGORY_ICON_COLORS: Record<string, string> = {
+    Nails: '#9B4D6A',
+    Lashes: '#6B3FA0',
+    Brows: '#9B7A1C',
+    Hair: '#2D7A5A',
+    Skincare: '#3A6FA0',
+    default: '#555555',
+};
+
+const getCategoryGradient = (category: string | null): [string, string] => {
+    return CATEGORY_GRADIENTS[category || ''] || CATEGORY_GRADIENTS.default;
+};
+
+const getCategoryIconColor = (category: string | null): string => {
+    return CATEGORY_ICON_COLORS[category || ''] || CATEGORY_ICON_COLORS.default;
+};
+
+const getCategoryMaterialIcon = (category: string | null): string => {
+    switch (category) {
+        case 'Nails': return 'content-cut';
+        case 'Lashes': return 'visibility';
+        case 'Brows': return 'face';
+        case 'Hair': return 'content-cut';
+        default: return 'spa';
+    }
+};
 
 export function BookingScreen({ navigation }: BookingScreenProps) {
     const { profile } = useAuth();
@@ -113,15 +152,6 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
         ? services
         : services.filter(s => s.category === selectedCategory);
 
-    const getCategoryIcon = (category: string | null) => {
-        switch (category) {
-            case 'Nails': return '💅';
-            case 'Lashes': return '👁️';
-            case 'Brows': return '✨';
-            default: return '💅';
-        }
-    };
-
     if (loading) {
         return (
             <ScreenBackground>
@@ -142,77 +172,120 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
                     }
+                    showsVerticalScrollIndicator={false}
                 >
-                    {/* Header */}
-
-
-                    {/* Category Filter */}
+                    {/* Category Tabs — underline style */}
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         style={styles.categoriesScroll}
                         contentContainerStyle={styles.categories}
                     >
-                        {CATEGORIES.map((cat) => (
-                            <TouchableOpacity
-                                key={cat.label}
-                                onPress={() => setSelectedCategory(cat.label)}
-                                style={[
-                                    styles.categoryChip,
-                                    selectedCategory === cat.label && styles.categoryChipActive,
-                                ]}
-                            >
-                                <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                                <Text style={[
-                                    styles.categoryText,
-                                    selectedCategory === cat.label && styles.categoryTextActive,
-                                ]}>
-                                    {cat.label}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
+                        {CATEGORIES.map((cat) => {
+                            const isActive = selectedCategory === cat.label;
+                            return (
+                                <TouchableOpacity
+                                    key={cat.label}
+                                    onPress={() => setSelectedCategory(cat.label)}
+                                    style={styles.categoryTab}
+                                >
+                                    <MerakiText style={[
+                                        styles.categoryText,
+                                        isActive && styles.categoryTextActive,
+                                    ]}>
+                                        {cat.label}
+                                    </MerakiText>
+                                    {isActive && <View style={styles.categoryUnderline} />}
+                                </TouchableOpacity>
+                            );
+                        })}
                     </ScrollView>
 
                     {/* Services List */}
                     <View style={styles.servicesSection}>
-                        <Text style={styles.sectionLabel}>
+                        <MerakiText style={styles.sectionLabel}>
                             {filteredServices.length} {filteredServices.length === 1 ? 'service' : 'services'} available
-                        </Text>
+                        </MerakiText>
 
                         {filteredServices.length > 0 ? (
-                            filteredServices.map((service) => (
-                                <TouchableOpacity
-                                    key={service.id}
-                                    onPress={() => navigation.navigate('ServiceDetail', { serviceId: service.id })}
-                                    activeOpacity={0.8}
-                                >
-                                    <Card style={styles.serviceCard} variant="glass">
-                                        <View style={styles.serviceIcon}>
-                                            <Text style={styles.serviceEmoji}>{getCategoryIcon(service.category)}</Text>
-                                        </View>
-                                        <View style={styles.serviceInfo}>
-                                            <Text style={styles.serviceName}>{service.name}</Text>
-                                            {service.description && (
-                                                <Text style={styles.serviceDescription} numberOfLines={2}>
-                                                    {service.description}
-                                                </Text>
-                                            )}
-                                            <View style={styles.serviceMeta}>
-                                                <Text style={styles.servicePrice}>€{service.base_price}</Text>
-                                                <Text style={styles.serviceDuration}>
-                                                    {service.duration_minutes} min
-                                                </Text>
+                            <View style={styles.servicesGrid}>
+                                {filteredServices.map((service) => {
+                                    const gradient = getCategoryGradient(service.category);
+                                    const iconColor = getCategoryIconColor(service.category);
+                                    const iconName = getCategoryMaterialIcon(service.category);
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={service.id}
+                                            onPress={() => navigation.navigate('ServiceDetail', { serviceId: service.id })}
+                                            activeOpacity={0.85}
+                                            style={styles.serviceCardWrapper}
+                                        >
+                                            <View style={styles.serviceCard}>
+                                                {/* Blurred background image (when available) */}
+                                                {(service as any).image_url && (
+                                                    <Image
+                                                        source={{ uri: (service as any).image_url }}
+                                                        style={StyleSheet.absoluteFillObject}
+                                                        resizeMode="cover"
+                                                        blurRadius={20}
+                                                    />
+                                                )}
+
+                                                {/* Gradient overlay for text readability */}
+                                                <LinearGradient
+                                                    colors={
+                                                        (service as any).image_url
+                                                            ? ['rgba(255,255,255,0.88)', 'rgba(255,255,255,0.65)', 'rgba(255,255,255,0.3)']
+                                                            : gradient
+                                                    }
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 0 }}
+                                                    style={StyleSheet.absoluteFillObject}
+                                                />
+
+                                                {/* Text content */}
+                                                <View style={styles.serviceTextContent}>
+                                                    <MerakiText style={styles.serviceName} numberOfLines={2}>
+                                                        {service.name.toUpperCase()}
+                                                    </MerakiText>
+                                                    {service.description && (
+                                                        <MerakiText style={styles.serviceDescription} numberOfLines={1}>
+                                                            {service.description}
+                                                        </MerakiText>
+                                                    )}
+                                                    <View style={styles.serviceMeta}>
+                                                        <MerakiText style={styles.servicePrice}>
+                                                            €{service.base_price}
+                                                        </MerakiText>
+                                                        <MerakiText style={styles.serviceDuration}>
+                                                            {service.duration_minutes} min
+                                                        </MerakiText>
+                                                    </View>
+                                                </View>
+
+                                                {/* Sharp thumbnail on right side */}
+                                                {(service as any).image_url ? (
+                                                    <Image
+                                                        source={{ uri: (service as any).image_url }}
+                                                        style={styles.serviceImage}
+                                                        resizeMode="cover"
+                                                    />
+                                                ) : (
+                                                    <View style={[styles.serviceIconBlock, { backgroundColor: `${iconColor}15` }]}>
+                                                        <MaterialIcons name={iconName as any} size={28} color={iconColor} />
+                                                    </View>
+                                                )}
                                             </View>
-                                        </View>
-                                        <Text style={styles.chevron}>›</Text>
-                                    </Card>
-                                </TouchableOpacity>
-                            ))
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
                         ) : (
                             <View style={styles.emptyState}>
-                                <Text style={styles.emptyIcon}>💅</Text>
-                                <Text style={styles.emptyText}>No services available</Text>
-                                <Text style={styles.emptySubtext}>Check back soon!</Text>
+                                <MaterialIcons name="spa" size={56} color="rgba(0,0,0,0.08)" />
+                                <MerakiText style={styles.emptyText}>No services available</MerakiText>
+                                <MerakiText style={styles.emptySubtext}>Check back soon!</MerakiText>
                             </View>
                         )}
                     </View>
@@ -235,117 +308,123 @@ const styles = StyleSheet.create({
         paddingBottom: 100,
     },
 
+    // Category Tabs — underline style
     categoriesScroll: {
-        marginTop: spacing.md,
+        marginTop: spacing.sm,
         marginBottom: spacing.md,
     },
     categories: {
         paddingHorizontal: spacing.lg,
-        gap: spacing.sm,
+        gap: 24,
     },
-    categoryChip: {
-        flexDirection: 'row',
+    categoryTab: {
+        paddingBottom: 8,
         alignItems: 'center',
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        borderRadius: 20,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
-        gap: spacing.xs,
     },
-    categoryChipActive: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
-    },
-    categoryIcon: { fontSize: 14 },
     categoryText: {
         fontSize: 14,
-        color: colors.textSecondary,
         fontWeight: '500',
+        color: 'rgba(0,0,0,0.35)',
     },
     categoryTextActive: {
-        color: colors.text,
-        fontWeight: '600',
+        color: '#1A1A1A',
+        fontWeight: '700',
     },
+    categoryUnderline: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 2,
+        backgroundColor: '#1A1A1A',
+        borderRadius: 1,
+    },
+
+    // Services Section
     servicesSection: {
         paddingHorizontal: spacing.lg,
     },
     sectionLabel: {
         fontSize: 13,
-        color: colors.textMuted,
+        color: 'rgba(0,0,0,0.35)',
         marginBottom: spacing.md,
+        fontWeight: '500',
+    },
+    servicesGrid: {
+        gap: 12,
+    },
+
+    // Service Card — Academy-style pastel gradient banner
+    serviceCardWrapper: {
+        borderRadius: 10,
+        overflow: 'hidden',
     },
     serviceCard: {
         flexDirection: 'row',
-        alignItems: 'center',
-        padding: spacing.md,
-        marginBottom: spacing.sm,
+        alignItems: 'stretch',
+        minHeight: 100,
     },
-    serviceIcon: {
-        width: 50,
-        height: 50,
-        borderRadius: 12,
-        backgroundColor: 'rgba(200, 160, 77, 0.1)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: spacing.md,
-    },
-    serviceEmoji: {
-        fontSize: 24,
-    },
-    serviceInfo: {
+    serviceTextContent: {
         flex: 1,
+        paddingVertical: 16,
+        paddingLeft: 20,
+        paddingRight: 12,
+        justifyContent: 'center',
     },
     serviceName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: colors.text,
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1A1A1A',
+        letterSpacing: 0.3,
         marginBottom: 4,
     },
     serviceDescription: {
-        fontSize: 13,
-        color: colors.textSecondary,
-        marginBottom: spacing.sm,
-        lineHeight: 18,
+        fontSize: 11,
+        color: 'rgba(26, 26, 26, 0.45)',
+        fontWeight: '400',
+        marginBottom: 8,
     },
     serviceMeta: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: spacing.md,
+        gap: 12,
     },
     servicePrice: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '700',
-        color: colors.primary,
+        color: '#1A1A1A',
     },
     serviceDuration: {
-        fontSize: 13,
-        color: colors.textMuted,
+        fontSize: 11,
+        color: 'rgba(26, 26, 26, 0.45)',
+        fontWeight: '500',
     },
-    chevron: {
-        fontSize: 24,
-        color: colors.textMuted,
-        marginLeft: spacing.sm,
+    serviceImage: {
+        width: 120,
+        minHeight: 100,
     },
+    serviceIconBlock: {
+        width: 80,
+        minHeight: 100,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    // Empty State
     emptyState: {
         alignItems: 'center',
-        paddingVertical: spacing.xxxl,
-    },
-    emptyIcon: {
-        fontSize: 64,
-        marginBottom: spacing.lg,
-        opacity: 0.5,
+        paddingVertical: 60,
     },
     emptyText: {
         fontSize: 18,
         fontWeight: '600',
-        color: colors.text,
-        marginBottom: spacing.sm,
+        color: '#1A1A1A',
+        marginTop: 16,
+        marginBottom: 4,
     },
     emptySubtext: {
         fontSize: 14,
-        color: colors.textSecondary,
+        color: 'rgba(0,0,0,0.4)',
     },
 });
 

@@ -307,8 +307,8 @@ export function NotificationsScreen() {
             <Switch
                 value={value}
                 onValueChange={onToggle}
-                trackColor={{ false: 'rgba(255,255,255,0.08)', true: 'rgba(200, 160, 77, 0.4)' }}
-                thumbColor={value ? colors.primary : 'rgba(255,255,255,0.3)'}
+                trackColor={{ false: 'rgba(0, 0, 0, 0.06)', true: 'rgba(200, 160, 77, 0.4)' }}
+                thumbColor={value ? colors.primary : 'rgba(0, 0, 0, 0.25)'}
             />
         </View>
     );
@@ -322,11 +322,11 @@ export function NotificationsScreen() {
                         style={styles.backBtn}
                         onPress={handleBack}
                     >
-                        <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
+                        <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                     </TouchableOpacity>
                     <MerakiText style={styles.headerTitle}>Notifications</MerakiText>
                     <TouchableOpacity style={styles.settingsBtn} onPress={() => setShowSettings(!showSettings)}>
-                        <MaterialIcons name={showSettings ? 'close' : 'settings'} size={20} color="rgba(255,255,255,0.5)" />
+                        <MaterialIcons name={showSettings ? 'close' : 'settings'} size={20} color="rgba(0, 0, 0, 0.40)" />
                     </TouchableOpacity>
                 </View>
 
@@ -396,7 +396,7 @@ export function NotificationsScreen() {
                             ) : (
                                 <View style={styles.emptyState}>
                                     <View style={styles.emptyIconWrap}>
-                                        <MaterialIcons name="notifications-none" size={48} color="rgba(255,255,255,0.15)" />
+                                        <MaterialIcons name="notifications-none" size={48} color="rgba(0, 0, 0, 0.10)" />
                                     </View>
                                     <MerakiText style={styles.emptyTitle}>No notifications yet</MerakiText>
                                     <MerakiText style={styles.emptyDesc}>
@@ -424,15 +424,15 @@ const styles = StyleSheet.create({
     },
     backBtn: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
-    headerTitle: { fontSize: 17, fontWeight: '600', color: '#fff' },
+    headerTitle: { fontSize: 17, fontWeight: '600', color: '#1A1A1A' },
     settingsBtn: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
 
@@ -446,38 +446,38 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12,
     },
     unreadBadgeText: { fontSize: 12, fontWeight: '700', color: colors.primary },
-    markAllText: { fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: '500' },
+    markAllText: { fontSize: 13, color: 'rgba(0, 0, 0, 0.35)', fontWeight: '500' },
 
     // Section label
     sectionLabel: {
-        fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.3)',
+        fontSize: 11, fontWeight: '700', color: 'rgba(0, 0, 0, 0.25)',
         letterSpacing: 1.5, marginBottom: 12, marginTop: 4,
     },
 
     // Settings
     settingsCard: {
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderRadius: 16, borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         overflow: 'hidden',
     },
     settingRow: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         padding: 16,
-        borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)',
+        borderBottomWidth: 1, borderBottomColor: 'rgba(0, 0, 0, 0.03)',
     },
-    settingLabel: { fontSize: 14, fontWeight: '600', color: '#fff' },
-    settingDesc: { fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 },
+    settingLabel: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
+    settingDesc: { fontSize: 11, color: 'rgba(0, 0, 0, 0.25)', marginTop: 2 },
 
     // Notification Card
     notifCard: {
         flexDirection: 'row', alignItems: 'flex-start',
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 14, padding: 14, marginBottom: 8,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.04)',
         gap: 12,
     },
     notifUnread: {
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
         borderColor: 'rgba(200, 160, 77, 0.15)',
     },
     notifIconWrap: {
@@ -485,9 +485,9 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
     },
     notifContent: { flex: 1 },
-    notifTitle: { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 3 },
-    notifBody: { fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 17 },
-    notifTime: { fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 5 },
+    notifTitle: { fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 3 },
+    notifBody: { fontSize: 12, color: 'rgba(0, 0, 0, 0.40)', lineHeight: 17 },
+    notifTime: { fontSize: 11, color: 'rgba(0, 0, 0, 0.12)', marginTop: 5 },
     unreadDot: {
         width: 8, height: 8, borderRadius: 4,
         backgroundColor: colors.primary, marginTop: 6,
@@ -497,11 +497,11 @@ const styles = StyleSheet.create({
     emptyState: { alignItems: 'center', paddingTop: 60 },
     emptyIconWrap: {
         width: 80, height: 80, borderRadius: 40,
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         alignItems: 'center', justifyContent: 'center', marginBottom: 20,
     },
-    emptyTitle: { fontSize: 17, fontWeight: '600', color: '#fff', marginBottom: 8 },
-    emptyDesc: { fontSize: 13, color: 'rgba(255,255,255,0.35)', textAlign: 'center', maxWidth: 260 },
+    emptyTitle: { fontSize: 17, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 },
+    emptyDesc: { fontSize: 13, color: 'rgba(0, 0, 0, 0.25)', textAlign: 'center', maxWidth: 260 },
 });
 
 export default NotificationsScreen;

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../ui';
 import { colors, spacing } from '../../theme';
@@ -70,10 +71,11 @@ export function PreBookingQuestionnaireModal({
     const pickPhotos = async () => {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images'],
                 allowsMultipleSelection: true,
                 selectionLimit: 3,
                 quality: 0.8,
+                base64: true,
             });
 
             if (!result.canceled && result.assets) {
@@ -81,14 +83,12 @@ export function PreBookingQuestionnaireModal({
                 const uploadedUrls: string[] = [];
 
                 for (const asset of result.assets) {
+                    if (!asset.base64) continue;
                     const fileName = `booking-consultations/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-
-                    const response = await fetch(asset.uri);
-                    const blob = await response.blob();
 
                     const { data, error } = await supabase.storage
                         .from('consultation-photos')
-                        .upload(fileName, blob, {
+                        .upload(fileName, decode(asset.base64), {
                             contentType: 'image/jpeg',
                         });
 

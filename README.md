@@ -96,19 +96,19 @@ npx expo start
 - **No-show fee capture** automation
 - ⚠️ **Currently in simulation mode** - requires Stripe account for production
 
-## 🎨 Design System - "Meraki Luxe"
+## 🎨 Design System - "Beauty Bay Light"
 
-Premium "Midnight Glass" aesthetic with warm, luxurious tones:
+Clean, minimal, Beauty Bay-inspired aesthetic with white backgrounds and bold typography:
 
 | Color | Hex | Usage |
 |-------|-----|-------|
-| Background | `#0F0F13` | Deep mauve-black |
-| Surface | `#1E1E24` | Warm charcoal cards |
-| Primary | `#D48A82` | Muted dusty rose (brand) |
-| Secondary | `#C0A0E0` | Muted lavender |
-| Accent | `#E6C090` | Muted champagne gold |
-| Text | `#FDF6F6` | Rose white |
-| Text Secondary | `#AFA8BA` | Muted lavender-gray |
+| Background | `#FFFFFF` | Pure white |
+| Surface | `#FFFFFF` | White cards with subtle shadows |
+| Primary | `#000000` | Black CTAs (buttons) |
+| Accent | `#E8A0B4` | Soft rose pink |
+| Secondary | `#A78BFA` | Soft lavender |
+| Text | `#1A1A1A` | Near-black |
+| Text Secondary | `#6B7280` | Cool gray |
 
 ## 📂 Project Structure
 
@@ -249,4 +249,4 @@ For support or questions, please contact the development team.
 ---
 
 *Built with ❤️ using React Native, Expo, and Supabase*
-*Design: Meraki Luxe - Premium Midnight Glass Aesthetic*
+*Design: Beauty Bay Light - Clean, Minimal White Aesthetic*

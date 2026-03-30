@@ -44,7 +44,7 @@ export default function App() {
             <AuthProvider>
               <CartProvider>
                 <View style={[styles.container, { backgroundColor: '#000' }]}>
-                  <StatusBar style="light" />
+                  <StatusBar style="dark" />
                   <GlobalBackground>
                     <AppNavigator />
                   </GlobalBackground>

@@ -401,7 +401,7 @@ export function ChatScreen() {
             case 'cancelled': return '#EF4444';
             case 'pending': return '#F59E0B';
             case 'reschedule_pending': return '#F97316';
-            default: return 'rgba(255,255,255,0.5)';
+            default: return 'rgba(0, 0, 0, 0.40)';
         }
     };
 
@@ -479,18 +479,18 @@ export function ChatScreen() {
                     >
                         {/* Reply Content */}
                         {replyMessage && !isDeleted && (
-                            <View style={[styles.replyContainer, { borderLeftColor: 'rgba(255,255,255,0.5)' }]}>
+                            <View style={[styles.replyContainer, { borderLeftColor: 'rgba(0, 0, 0, 0.40)' }]}>
                                 <MerakiText style={[styles.replySender, { color: 'white' }]}>
                                     {replyMessage.sender_id === user?.id ? 'You' : (otherUser?.full_name || 'User')}
                                 </MerakiText>
-                                <MerakiText numberOfLines={1} style={[styles.replyText, { color: 'rgba(255,255,255,0.8)' }]}>
+                                <MerakiText numberOfLines={1} style={[styles.replyText, { color: 'rgba(0, 0, 0, 0.60)' }]}>
                                     {replyMessage.is_deleted ? 'Message deleted' : (replyMessage.content || (replyMessage.media_url ? '📷 Media' : '...'))}
                                 </MerakiText>
                             </View>
                         )}
 
                         {isDeleted ? (
-                            <MerakiText style={[styles.messageText, { fontStyle: 'italic', color: 'rgba(255,255,255,0.7)' }]}>
+                            <MerakiText style={[styles.messageText, { fontStyle: 'italic', color: 'rgba(0, 0, 0, 0.55)' }]}>
                                 This message was deleted
                             </MerakiText>
                         ) : (
@@ -702,7 +702,7 @@ export function ChatScreen() {
                                 value={newMessage}
                                 onChangeText={setNewMessage}
                                 placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
-                                placeholderTextColor="rgba(255,255,255,0.3)"
+                                placeholderTextColor="rgba(0, 0, 0, 0.25)"
                                 multiline
                                 maxLength={1000}
                                 textAlignVertical="center"
@@ -713,7 +713,7 @@ export function ChatScreen() {
                                 onPress={sendMessage}
                             >
                                 <LinearGradient
-                                    colors={!newMessage.trim() || sending ? ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)'] : ['#f4256a', '#d4145a']}
+                                    colors={!newMessage.trim() || sending ? ['rgba(0, 0, 0, 0.08)', 'rgba(0, 0, 0, 0.08)'] : ['#f4256a', '#d4145a']}
                                     style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
                                 >
                                     <MerakiText style={[styles.sendButtonText, { color: 'white' }]}>
@@ -769,7 +769,7 @@ export function ChatScreen() {
                         {bookingsLoading ? (
                             <View style={styles.bookingsLoadingContainer}>
                                 <ActivityIndicator size="large" color={colors.primary} />
-                                <MerakiText style={{ color: 'rgba(255,255,255,0.5)', marginTop: 12 }}>Loading bookings...</MerakiText>
+                                <MerakiText style={{ color: 'rgba(0, 0, 0, 0.40)', marginTop: 12 }}>Loading bookings...</MerakiText>
                             </View>
                         ) : bookings.length === 0 ? (
                             <View style={styles.bookingsEmptyContainer}>
@@ -860,24 +860,24 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.md,
         paddingTop: Platform.OS === 'android' ? spacing.xl : spacing.md,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
-        backgroundColor: 'rgba(20,20,25,0.8)', // Darker, slightly translucent
+        borderBottomColor: 'rgba(0, 0, 0, 0.06)',
+        backgroundColor: '#FFFFFF',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 10,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+        elevation: 4,
         zIndex: 100,
     },
     backButton: {
         padding: spacing.xs,
         marginRight: spacing.sm,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
     },
     backIcon: {
         fontSize: 18,
-        color: '#E0B0B0', // Rose gold from CSS
+        color: '#1A1A1A',
     },
     headerAvatarContainer: {
         position: 'relative',
@@ -910,7 +910,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#3FB950',
         borderRadius: 6,
         borderWidth: 2,
-        borderColor: '#0F0F13', // Deep background
+        borderColor: '#FFFFFF', // Deep background
     },
     headerAvatarPlaceholder: {
         width: 44,
@@ -938,8 +938,8 @@ const styles = StyleSheet.create({
     },
     headerStatus: {
         fontSize: 10,
-        color: '#E0B0B0', // Rose gold from CSS
-        opacity: 0.7,
+        color: '#E8A0B4',
+        opacity: 0.9,
         fontWeight: '700',
         textTransform: 'uppercase',
         letterSpacing: 1.5,
@@ -954,7 +954,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
     },
 
     // Date Divider
@@ -964,16 +964,16 @@ const styles = StyleSheet.create({
         paddingBottom: spacing.sm,
     },
     datePill: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         paddingHorizontal: 16,
         paddingVertical: 6,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     dateText: {
         fontSize: 10,
-        color: 'rgba(255,255,255,0.4)',
+        color: 'rgba(0, 0, 0, 0.35)',
         fontWeight: '700',
         textTransform: 'uppercase',
         letterSpacing: 2,
@@ -1018,19 +1018,19 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     bubbleGlass: {
-        backgroundColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.06)',
         borderBottomLeftRadius: 4,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 3,
     },
     bubbleDeleted: {
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         borderStyle: 'dashed',
     },
     bubbleOptimistic: {
@@ -1050,13 +1050,13 @@ const styles = StyleSheet.create({
     },
     messageTime: {
         fontSize: 10,
-        color: 'rgba(255,255,255,0.4)',
+        color: 'rgba(0, 0, 0, 0.35)',
         marginTop: 4,
         alignSelf: 'flex-end',
         fontWeight: '500',
     },
     messageTimeRight: {
-        color: 'rgba(255,255,255,0.8)',
+        color: 'rgba(0, 0, 0, 0.60)',
     },
 
     // Media
@@ -1065,14 +1065,14 @@ const styles = StyleSheet.create({
         height: 200,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     mediaVideo: {
         width: 200,
         height: 150,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
 
     // Footer Area (Floating)
@@ -1092,16 +1092,16 @@ const styles = StyleSheet.create({
     quickActionPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: layout.borderRadius.full,
         paddingVertical: 10,
         paddingHorizontal: 16,
         marginRight: spacing.xs,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.15)',
+        borderColor: 'rgba(0, 0, 0, 0.10)',
     },
     quickActionText: {
-        color: '#E0B0B0',
+        color: '#1A1A1A',
         fontSize: 12,
         fontWeight: '600',
         marginLeft: spacing.xs,
@@ -1112,12 +1112,12 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(30,30,35,0.9)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 35,
         padding: 5,
         paddingHorizontal: 8,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         marginHorizontal: spacing.xs,
     },
     inputLeftActions: {
@@ -1132,7 +1132,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 18,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
     },
     inputActionIcon: {
         fontSize: 18,
@@ -1181,7 +1181,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: spacing.sm,
         paddingHorizontal: spacing.md,
-        backgroundColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.06)',
         borderRadius: 16,
         marginBottom: spacing.xs,
         borderLeftWidth: 3,
@@ -1265,7 +1265,7 @@ const styles = StyleSheet.create({
     },
     bookingsModalContainer: {
         maxHeight: '80%',
-        backgroundColor: '#1A1A2E',
+        backgroundColor: '#FFFFFF',
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         paddingHorizontal: 20,
@@ -1277,16 +1277,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 20,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.08)',
+        borderBottomColor: 'rgba(0, 0, 0, 0.06)',
     },
     bookingsTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#fff',
+        color: '#1A1A1A',
     },
     bookingsCloseText: {
         fontSize: 20,
-        color: 'rgba(255,255,255,0.5)',
+        color: 'rgba(0, 0, 0, 0.40)',
         fontWeight: '600',
     },
     bookingsLoadingContainer: {
@@ -1302,22 +1302,22 @@ const styles = StyleSheet.create({
     bookingsEmptyText: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#fff',
+        color: '#6B7280',
         marginTop: 12,
     },
     bookingsEmptySubtext: {
         fontSize: 14,
-        color: 'rgba(255,255,255,0.4)',
+        color: 'rgba(0, 0, 0, 0.35)',
         marginTop: 6,
         textAlign: 'center',
     },
     bookingCard: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 16,
         padding: 16,
         marginTop: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     bookingCardHeader: {
         flexDirection: 'row',
@@ -1328,7 +1328,7 @@ const styles = StyleSheet.create({
     bookingServiceName: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#fff',
+        color: '#1A1A1A',
         flex: 1,
     },
     bookingStatusBadge: {
@@ -1354,7 +1354,7 @@ const styles = StyleSheet.create({
     },
     bookingDetailText: {
         fontSize: 14,
-        color: 'rgba(255,255,255,0.7)',
+        color: 'rgba(0, 0, 0, 0.55)',
         flex: 1,
     },
 });

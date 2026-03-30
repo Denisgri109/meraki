@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
         height: 200,
         justifyContent: 'space-between',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
     },
     rewardPointsBadge: {
         backgroundColor: colors.primary,
@@ -515,13 +515,13 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
     },
     redeemButton: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
         paddingVertical: spacing.sm,
         borderRadius: 8,
         alignItems: 'center',
     },
     disabledButton: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
     },
     redeemButtonText: {
         ...typography.caption,
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     },
     transactionsList: {
         marginHorizontal: spacing.lg,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 16,
         padding: spacing.sm,
     },
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: spacing.md,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
+        borderBottomColor: 'rgba(0, 0, 0, 0.04)',
     },
     transactionIcon: {
         width: 36,
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         marginHorizontal: spacing.lg,
         marginBottom: spacing.md,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: 4,
     },
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     activeTab: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
     },
     tabText: {
         ...typography.bodySmall,
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
     },
     expiredCard: {
         opacity: 0.7,
-        borderColor: 'rgba(255,255,255,0.02)',
+        borderColor: 'rgba(0, 0, 0, 0.02)',
     },
     expiredBadge: {
         backgroundColor: colors.textSecondary,
@@ -640,13 +640,13 @@ const styles = StyleSheet.create({
     stampCardsButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         marginHorizontal: spacing.lg,
         marginVertical: spacing.md,
         padding: spacing.md,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     stampCardsContent: {
         flex: 1,
@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
         padding: spacing.md,
         marginBottom: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
     },
     creditHeader: {
         flexDirection: 'row',
@@ -720,10 +720,10 @@ const styles = StyleSheet.create({
     },
     expiredCreditCard: {
         opacity: 0.6,
-        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
     },
     expiredCreditBadge: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
     },
     expiredCreditBadgeText: {
         color: colors.textSecondary,

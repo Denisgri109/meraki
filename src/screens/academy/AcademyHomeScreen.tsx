@@ -8,14 +8,16 @@ import {
     RefreshControl,
     Dimensions,
     Image,
+    TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { ScreenBackground, Button, Card, MerakiText } from '../../components/ui';
-import { colors, spacing, layout, gradients } from '../../theme';
+import { ScreenBackground, MerakiText } from '../../components/ui';
+import { colors, spacing } from '../../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -33,7 +35,6 @@ interface Course {
     duration?: string;
 }
 
-// Helpers for mock/presentation data
 const getRandomRating = () => (4.5 + Math.random() * 0.5).toFixed(1);
 const getRandomDuration = () => {
     const hours = Math.floor(Math.random() * 3) + 1;
@@ -41,15 +42,18 @@ const getRandomDuration = () => {
     return `${hours}h ${mins > 0 ? mins + 'm' : ''}`;
 };
 
-const getCourseGradient = (id: string): string[] => {
-    const options = [
-        gradients.primary as any,
-        gradients.secondary as any,
-        gradients.premium as any,
-        ['#C0A0E0', '#8B5CF6'],
-    ];
-    const index = id.charCodeAt(id.length - 1) % options.length;
-    return options[index];
+// Pastel gradients for course cards — cycles through them
+const PASTEL_GRADIENTS: [string, string][] = [
+    ['#D4C4FF', '#F0E6FF'],   // Brighter Lavender
+    ['#FFD1DC', '#FFF0F5'],   // Brighter Pink
+    ['#FFE8B3', '#FFF6D9'],   // Brighter Peach
+    ['#C2E0FF', '#E6F2FF'],   // Brighter Blue
+    ['#FFC2D1', '#FFE6EB'],   // Pink Blush
+    ['#B2F2E3', '#E6FAF5'],   // Mint
+];
+
+const getGradientForIndex = (index: number): [string, string] => {
+    return PASTEL_GRADIENTS[index % PASTEL_GRADIENTS.length];
 };
 
 export function AcademyHomeScreen() {
@@ -59,6 +63,7 @@ export function AcademyHomeScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [courses, setCourses] = useState<Course[]>([]);
     const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
+    const [searchQuery, setSearchQuery] = useState('');
 
     useFocusEffect(
         useCallback(() => {
@@ -121,7 +126,6 @@ export function AcademyHomeScreen() {
                 .eq('student_id', user.id);
 
             if (error) throw error;
-
             const ids = new Set<string>((data || []).map((e: any) => e.course_id));
             setEnrolledCourseIds(ids);
         } catch (error) {
@@ -168,140 +172,114 @@ export function AcademyHomeScreen() {
                     }
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Premium Header */}
+                    {/* Header */}
                     <View style={styles.headerContainer}>
-                        <View style={styles.headerLeft}>
+                        <View style={styles.headerRow}>
                             <MerakiText variant="h1" style={styles.headerTitle}>Academy</MerakiText>
-                            <MerakiText variant="label" color={colors.textMuted} style={styles.headerSubtitle}>
-                                Elevate Your Artistry
+                            <TouchableOpacity
+                                style={styles.myLearningButton}
+                                onPress={() => navigation.navigate('MyLearning')}
+                            >
+                                <MaterialIcons name="menu-book" size={20} color={colors.text} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Search Bar */}
+                    <View style={styles.searchContainer}>
+                        <View style={styles.searchInner}>
+                            <MaterialIcons name="search" size={22} color={colors.textMuted} />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Search courses, topics..."
+                                placeholderTextColor={colors.textMuted}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                            />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                    <MaterialIcons name="close" size={18} color={colors.textMuted} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
+
+                    {/* Course Cards — Beauty Bay Pastel Banner Style */}
+                    {courses.length === 0 ? (
+                        <View style={styles.emptyCard}>
+                            <MerakiText style={styles.emptyEmoji}>📚</MerakiText>
+                            <MerakiText variant="h3" align="center" style={{ color: colors.text }}>
+                                No courses yet
+                            </MerakiText>
+                            <MerakiText variant="body" align="center" color={colors.textMuted} style={{ marginTop: 4 }}>
+                                Check back soon for new content!
                             </MerakiText>
                         </View>
-                        <TouchableOpacity
-                            style={styles.myLearningButton}
-                            onPress={() => navigation.navigate('MyLearning')}
-                        >
-                            <MerakiText style={styles.myLearningIcon}>📖</MerakiText>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Featured Certification Banner */}
-                    <View style={styles.bannerContainer}>
-                        <TouchableOpacity activeOpacity={0.9}>
-                            <LinearGradient
-                                colors={gradients.primary as any}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.bannerGradient}
-                            >
-                                <View style={styles.bannerContent}>
-                                    <View style={styles.bannerText}>
-                                        <View style={styles.bannerBadge}>
-                                            <MerakiText variant="label" color="#FFF">NEW PROGRAM</MerakiText>
-                                        </View>
-                                        <MerakiText variant="h2" color="#FFF" style={styles.bannerTitle}>
-                                            Master Lash Certification
-                                        </MerakiText>
-                                        <MerakiText variant="caption" color="rgba(255,255,255,0.8)" style={styles.bannerSubtitle}>
-                                            Learn from industry leaders and get certified worldwide.
-                                        </MerakiText>
-                                    </View>
-                                    <View style={styles.bannerIconContainer}>
-                                        <MerakiText style={styles.bannerEmoji}>🎓</MerakiText>
-                                    </View>
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Course Lists Section */}
-                    <View style={styles.sectionHeader}>
-                        <MerakiText variant="h3" style={styles.sectionTitle}>Premium Courses</MerakiText>
-                        <TouchableOpacity>
-                            <MerakiText variant="caption" color={colors.primary}>View All</MerakiText>
-                        </TouchableOpacity>
-                    </View>
-
-                    {courses.length === 0 ? (
-                        <Card variant="glass" style={styles.emptyCard}>
-                            <MerakiText style={styles.emptyEmoji}>📚</MerakiText>
-                            <MerakiText variant="h3" align="center">No courses yet</MerakiText>
-                            <MerakiText variant="body" align="center" color={colors.textMuted}>
-                                We're preparing new educational content for you. Check back soon!
-                            </MerakiText>
-                        </Card>
                     ) : (
-                        <View style={styles.coursesGrid}>
-                            {courses.map((course) => {
+                        <View style={styles.coursesContainer}>
+                            {courses.map((course, index) => {
                                 const isEnrolled = enrolledCourseIds.has(course.id);
+                                const gradient = getGradientForIndex(index);
                                 return (
                                     <TouchableOpacity
                                         key={course.id}
-                                        style={styles.courseWrapper}
                                         onPress={() => handleCoursePress(course)}
-                                        activeOpacity={0.9}
+                                        activeOpacity={0.85}
+                                        style={styles.courseCardWrapper}
                                     >
-                                        <Card variant="glass" style={styles.courseCard} noPadding>
-                                            {/* Course Thumbnail */}
-                                            <View style={styles.thumbnailWrapper}>
-                                                {course.thumbnail_url?.startsWith('http') ? (
-                                                    <Image
-                                                        source={{ uri: course.thumbnail_url }}
-                                                        style={styles.thumbnail}
-                                                        resizeMode="cover"
-                                                    />
-                                                ) : (
-                                                    <LinearGradient
-                                                        colors={getCourseGradient(course.id)}
-                                                        style={styles.thumbnailPlaceholder}
-                                                    >
-                                                        <MerakiText style={styles.thumbnailIcon}>▶</MerakiText>
-                                                    </LinearGradient>
-                                                )}
+                                        <View style={styles.courseCard}>
+                                            {/* Blurred background image (when available) */}
+                                            {course.thumbnail_url?.startsWith('http') && (
+                                                <Image
+                                                    source={{ uri: course.thumbnail_url }}
+                                                    style={StyleSheet.absoluteFillObject}
+                                                    resizeMode="cover"
+                                                    blurRadius={20}
+                                                />
+                                            )}
 
-                                                <View style={styles.durationBadge}>
-                                                    <MerakiText variant="label" color="#FFF" style={styles.durationText}>
-                                                        {course.duration}
-                                                    </MerakiText>
-                                                </View>
+                                            {/* Gradient overlay for text readability */}
+                                            <LinearGradient
+                                                colors={
+                                                    course.thumbnail_url?.startsWith('http')
+                                                        ? ['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0.05)']
+                                                        : gradient
+                                                }
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 0 }}
+                                                style={StyleSheet.absoluteFillObject}
+                                            />
 
-                                                {isEnrolled && (
-                                                    <View style={styles.enrolledBadge}>
-                                                        <MerakiText variant="label" color="#FFF">ENROLLED</MerakiText>
-                                                    </View>
-                                                )}
-                                            </View>
-
-                                            <View style={styles.courseInfo}>
-                                                <View style={styles.ratingRow}>
-                                                    <MerakiText style={styles.starIcon}>⭐</MerakiText>
-                                                    <MerakiText variant="caption" style={styles.ratingText}>
-                                                        {course.rating}
-                                                    </MerakiText>
-                                                </View>
-
-                                                <MerakiText variant="bodyBold" style={styles.courseTitle} numberOfLines={2}>
-                                                    {course.title}
+                                            {/* Text content */}
+                                            <View style={styles.courseTextContent}>
+                                                <MerakiText style={styles.courseTitle} numberOfLines={2}>
+                                                    {course.title.toUpperCase()}
                                                 </MerakiText>
-
-                                                <MerakiText variant="caption" color={colors.textMuted} style={styles.instructor}>
-                                                    {course.instructor?.full_name}
-                                                </MerakiText>
-
-                                                <View style={styles.cardFooter}>
-                                                    <MerakiText variant="caption" color={colors.textMuted}>
-                                                        {course.lesson_count} lessons
+                                                <View style={styles.courseMetaRow}>
+                                                    <MerakiText style={styles.courseMeta}>
+                                                        {course.lesson_count} lessons · {course.duration}
                                                     </MerakiText>
-
                                                     {isEnrolled ? (
-                                                        <MerakiText variant="bodyBold" color={colors.success}>Continue</MerakiText>
+                                                        <View style={styles.enrolledPill}>
+                                                            <MerakiText style={styles.enrolledPillText}>ENROLLED</MerakiText>
+                                                        </View>
                                                     ) : (
-                                                        <MerakiText variant="bodyBold" color={colors.accent}>
+                                                        <MerakiText style={styles.coursePrice}>
                                                             {course.price > 0 ? `€${course.price}` : 'FREE'}
                                                         </MerakiText>
                                                     )}
                                                 </View>
                                             </View>
-                                        </Card>
+
+                                            {/* Sharp thumbnail on right side */}
+                                            {course.thumbnail_url?.startsWith('http') && (
+                                                <Image
+                                                    source={{ uri: course.thumbnail_url }}
+                                                    style={styles.courseThumbnail}
+                                                    resizeMode="cover"
+                                                />
+                                            )}
+                                        </View>
                                     </TouchableOpacity>
                                 );
                             })}
@@ -328,179 +306,118 @@ const styles = StyleSheet.create({
 
     // Header
     headerContainer: {
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.md,
+        paddingBottom: spacing.md,
+    },
+    headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: spacing.lg,
-        paddingTop: spacing.md,
-        paddingBottom: spacing.lg,
-    },
-    headerLeft: {
-        flex: 1,
     },
     headerTitle: {
         color: colors.text,
-    },
-    headerSubtitle: {
-        marginTop: 2,
+        fontSize: 28,
+        fontWeight: '700',
     },
     myLearningButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: colors.surfaceGlass,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-    },
-    myLearningIcon: {
-        fontSize: 20,
     },
 
-    // Banner
-    bannerContainer: {
+    // Search
+    searchContainer: {
         paddingHorizontal: spacing.lg,
-        marginBottom: spacing.xxl,
-    },
-    bannerGradient: {
-        borderRadius: layout.borderRadius.lg,
-        padding: spacing.lg,
-        overflow: 'hidden',
-    },
-    bannerContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    bannerText: {
-        flex: 1,
-        paddingRight: spacing.md,
-    },
-    bannerBadge: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: spacing.sm,
-        paddingVertical: 4,
-        borderRadius: 8,
-        alignSelf: 'flex-start',
-        marginBottom: spacing.sm,
-    },
-    bannerTitle: {
-        marginBottom: 4,
-    },
-    bannerSubtitle: {
-        lineHeight: 18,
-    },
-    bannerIconContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.25)',
-    },
-    bannerEmoji: {
-        fontSize: 32,
-    },
-
-    // Sections
-    sectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: spacing.lg,
-        marginBottom: spacing.md,
-    },
-    sectionTitle: {
-        color: colors.text,
-    },
-
-    // Courses Grid
-    coursesGrid: {
-        paddingHorizontal: spacing.lg,
-    },
-    courseWrapper: {
         marginBottom: spacing.lg,
     },
-    courseCard: {
-        borderRadius: layout.borderRadius.lg,
-    },
-    thumbnailWrapper: {
-        height: 200,
-        width: '100%',
-        position: 'relative',
-        backgroundColor: colors.surfaceLight,
-    },
-    thumbnail: {
-        width: '100%',
-        height: '100%',
-    },
-    thumbnailPlaceholder: {
-        width: '100%',
-        height: '100%',
+    searchInner: {
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        backgroundColor: '#F5F5F5',
+        borderRadius: 24,
+        paddingHorizontal: 16,
+        height: 46,
+        gap: 10,
     },
-    thumbnailIcon: {
-        fontSize: 40,
-        color: 'rgba(255,255,255,0.4)',
-    },
-    durationBadge: {
-        position: 'absolute',
-        bottom: spacing.md,
-        right: spacing.md,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        paddingHorizontal: spacing.sm,
-        paddingVertical: 4,
-        borderRadius: 8,
-    },
-    durationText: {
-        fontSize: 10,
-    },
-    enrolledBadge: {
-        position: 'absolute',
-        top: spacing.md,
-        left: spacing.md,
-        backgroundColor: colors.success,
-        paddingHorizontal: spacing.sm,
-        paddingVertical: 4,
-        borderRadius: 8,
+    searchInput: {
+        flex: 1,
+        fontSize: 15,
+        color: colors.text,
     },
 
-    // Info
-    courseInfo: {
-        padding: spacing.md,
+    // Course Cards — Pastel banners
+    coursesContainer: {
+        paddingHorizontal: spacing.lg,
+        gap: 12,
     },
-    ratingRow: {
+    courseCardWrapper: {
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 6,
+        marginBottom: 8,
+    },
+    courseCard: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 6,
+        alignItems: 'stretch',
+        justifyContent: 'space-between',
+        minHeight: 110,
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
-    starIcon: {
-        fontSize: 12,
-        marginRight: 4,
-    },
-    ratingText: {
-        color: colors.textSecondary,
-        fontWeight: 'bold',
+    courseTextContent: {
+        flex: 1,
+        paddingVertical: 18,
+        paddingLeft: 20,
+        paddingRight: 12,
+        justifyContent: 'center',
     },
     courseTitle: {
-        color: colors.text,
-        marginBottom: 4,
-        fontSize: 18,
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1A1A1A',
+        letterSpacing: 0.3,
+        marginBottom: 8,
     },
-    instructor: {
-        marginBottom: spacing.md,
-    },
-    cardFooter: {
+    courseMetaRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.05)',
-        paddingTop: spacing.sm,
+        justifyContent: 'space-between',
+    },
+    courseMeta: {
+        fontSize: 11,
+        color: 'rgba(26, 26, 26, 0.50)',
+        fontWeight: '500',
+    },
+    coursePrice: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#1A1A1A',
+    },
+    enrolledPill: {
+        backgroundColor: 'rgba(34, 197, 94, 0.15)',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    enrolledPillText: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: '#16A34A',
+        letterSpacing: 0.5,
+    },
+    courseThumbnail: {
+        width: 120,
+        minHeight: 100,
     },
 
     // Empty State
@@ -508,6 +425,8 @@ const styles = StyleSheet.create({
         margin: spacing.lg,
         alignItems: 'center',
         padding: spacing.xxl,
+        backgroundColor: '#F9F9F9',
+        borderRadius: 12,
     },
     emptyEmoji: {
         fontSize: 64,

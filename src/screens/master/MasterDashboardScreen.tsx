@@ -42,6 +42,16 @@ type RecentMessage = {
     conversation_id: string;
 };
 
+type ActivityFeedItem = {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    iconColor: string;
+    iconBg: string;
+    route?: string;
+};
+
 const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -65,6 +75,7 @@ export function MasterDashboardScreen() {
     });
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([]);
+    const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
 
     useFocusEffect(
         useCallback(() => {
@@ -176,6 +187,52 @@ export function MasterDashboardScreen() {
             setAppointments((allAppointmentsData as unknown as Appointment[]) || []);
             setRecentMessages(recentMsgs);
             setStats({ todayAppointments: ((todayData as any[]) || []).filter(apt => apt.status !== 'completed').length, todayEarnings, pendingRequests: pendingCount || 0, unreadMessages: unreadCount, activeServices: activeServicesCount || 0, totalClients: totalClientsCount });
+
+            // --- Activity Feed: Pending consultations + client reschedules ---
+            const feedItems: ActivityFeedItem[] = [];
+
+            // Pending consultations
+            const { data: pendingConsults } = await supabase
+                .from('booking_consultations')
+                .select(`id, status, created_at, service:services(name), client:profiles!booking_consultations_client_id_fkey(full_name)`)
+                .eq('master_id', user.id)
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            (pendingConsults || []).forEach((c: any) => {
+                feedItems.push({
+                    id: `consult-${c.id}`,
+                    title: 'New Consultation Request',
+                    description: `${c.client?.full_name || 'Client'} wants a consultation for ${c.service?.name || 'a service'}.`,
+                    icon: 'assignment',
+                    iconColor: '#F59E0B',
+                    iconBg: 'rgba(245, 158, 11, 0.12)',
+                    route: 'Appointments',
+                });
+            });
+
+            // Recent client-initiated reschedules (informational for master)
+            const { data: rescheduleData } = await supabase
+                .from('appointments')
+                .select(`id, start_time, proposed_start_time, reschedule_initiated_by, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`)
+                .eq('master_id', user.id)
+                .not('proposed_start_time', 'is', null)
+                .in('status', ['confirmed', 'pending', 'reschedule_pending']);
+
+            (rescheduleData || []).forEach((apt: any) => {
+                feedItems.push({
+                    id: `reschedule-${apt.id}`,
+                    title: 'Appointment Rescheduled',
+                    description: `${apt.client?.full_name || 'Client'} rescheduled ${apt.service?.name || 'appointment'} to ${format(new Date(apt.proposed_start_time), 'MMM d, HH:mm')}.`,
+                    icon: 'swap-horiz',
+                    iconColor: '#60A5FA',
+                    iconBg: 'rgba(96, 165, 250, 0.12)',
+                    route: 'Appointments',
+                });
+            });
+
+            setActivityFeed(feedItems);
         } catch (error) { console.error('Error fetching dashboard:', error); } finally { setLoading(false); setRefreshing(false); }
     };
 
@@ -199,10 +256,10 @@ export function MasterDashboardScreen() {
                         </View>
                         <View style={styles.headerIcons}>
                             <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('LoyaltyQR')}>
-                                <MaterialIcons name="qr-code-scanner" size={20} color="rgba(255,255,255,0.7)" />
+                                <MaterialIcons name="qr-code-scanner" size={20} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
-                                <MaterialIcons name="notifications-none" size={22} color="rgba(255,255,255,0.7)" />
+                                <MaterialIcons name="notifications-none" size={22} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -259,12 +316,41 @@ export function MasterDashboardScreen() {
                                         </MerakiText>
                                     </View>
                                     <View style={styles.bannerRight}>
-                                        <MerakiText variant="caption" color="rgba(255,255,255,0.5)" style={{ marginRight: 8 }}>VIEW</MerakiText>
-                                        <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.5)" />
+                                        <MerakiText variant="caption" color="rgba(0, 0, 0, 0.40)" style={{ marginRight: 8 }}>VIEW</MerakiText>
+                                        <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.40)" />
                                     </View>
                                 </View>
                             </LinearGradient>
                         </TouchableOpacity>
+                    )}
+
+                    {/* Activity Feed */}
+                    {activityFeed.length > 0 && (
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <MerakiText variant="label" color={colors.textMuted}>ACTIVITY</MerakiText>
+                                <TouchableOpacity onPress={() => navigation.navigate('Appointments')}>
+                                    <MerakiText variant="caption" color={colors.accent}>VIEW ALL</MerakiText>
+                                </TouchableOpacity>
+                            </View>
+                            {activityFeed.slice(0, 4).map((item) => (
+                                <TouchableOpacity
+                                    key={item.id}
+                                    style={styles.feedCard}
+                                    onPress={() => item.route && navigation.navigate(item.route)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={[styles.feedIconWrap, { backgroundColor: item.iconBg }]}>
+                                        <MaterialIcons name={item.icon as any} size={20} color={item.iconColor} />
+                                    </View>
+                                    <View style={{ flex: 1, marginLeft: 12 }}>
+                                        <MerakiText variant="bodyBold" style={{ fontSize: 13 }}>{item.title}</MerakiText>
+                                        <MerakiText variant="caption" color="rgba(0, 0, 0, 0.35)" numberOfLines={2}>{item.description}</MerakiText>
+                                    </View>
+                                    <MaterialCommunityIcons name="chevron-right" size={18} color="rgba(0, 0, 0, 0.12)" />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
                     )}
 
                     {/* Upcoming Schedule */}
@@ -317,8 +403,10 @@ export function MasterDashboardScreen() {
     );
 }
 
-const BUTTON_GAP = spacing.sm;
-const BUTTON_WIDTH = (width - spacing.lg * 2 - BUTTON_GAP * 2) / 3;
+const GRID_COLUMNS = 3;
+const GRID_GAP = 10;
+const GRID_PADDING = spacing.lg * 2;
+const BUTTON_WIDTH = (width - GRID_PADDING - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
 
 const DashboardButton = ({ icon, label, onPress, color }: any) => (
     <TouchableOpacity style={styles.dashBtnWrap} onPress={onPress} activeOpacity={0.7}>
@@ -336,13 +424,13 @@ const styles = StyleSheet.create({
     loader: { flex: 1, justifyContent: 'center' },
     scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: 100 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, marginBottom: 24 },
-    greeting: { fontSize: 13, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
-    userName: { fontSize: 28, fontWeight: '700', color: '#fff', letterSpacing: -0.5 },
+    greeting: { fontSize: 13, color: 'rgba(0, 0, 0, 0.35)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
+    userName: { fontSize: 28, fontWeight: '700', color: '#1A1A1A', letterSpacing: -0.5 },
     headerIcons: { flexDirection: 'row', gap: 8 },
     iconBtn: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     heroStats: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
@@ -360,31 +448,31 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(212,168,83,0.12)',
         alignItems: 'center', justifyContent: 'center',
     },
-    heroValue: { fontSize: 32, fontWeight: '800' as any, color: '#fff', letterSpacing: -1, marginBottom: 2 },
-    heroLabel: { fontSize: 12, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' as any, letterSpacing: 0.8 },
+    heroValue: { fontSize: 32, fontWeight: '800' as any, color: '#1A1A1A', letterSpacing: -1, marginBottom: 2 },
+    heroLabel: { fontSize: 12, color: 'rgba(0, 0, 0, 0.35)', textTransform: 'uppercase' as any, letterSpacing: 0.8 },
     heroSecondaryCol: { flex: 0.8, gap: spacing.sm },
     heroSmallCard: {
         flex: 1,
         borderRadius: layout.borderRadius.lg,
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
         justifyContent: 'center',
         alignItems: 'center',
     } as any,
-    heroSmallValue: { fontSize: 24, fontWeight: '700' as any, color: '#fff', letterSpacing: -0.5 },
-    heroSmallLabel: { fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' as any, letterSpacing: 0.5, marginTop: 2 },
+    heroSmallValue: { fontSize: 24, fontWeight: '700' as any, color: '#1A1A1A', letterSpacing: -0.5 },
+    heroSmallLabel: { fontSize: 11, color: 'rgba(0, 0, 0, 0.25)', textTransform: 'uppercase' as any, letterSpacing: 0.5, marginTop: 2 },
     section: { marginBottom: spacing.xl },
     sectionLabel: { marginBottom: spacing.md, fontSize: 11, letterSpacing: 1 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
     // Dashboard buttons — vertical cards
-    buttonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: BUTTON_GAP },
-    dashBtnWrap: { width: BUTTON_WIDTH },
+    buttonGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -(GRID_GAP / 2) },
+    dashBtnWrap: { width: BUTTON_WIDTH, marginHorizontal: GRID_GAP / 2, marginBottom: GRID_GAP },
     dashBtn: {
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.07)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
         borderRadius: 16,
         paddingVertical: 16,
         paddingHorizontal: 8,
@@ -400,10 +488,10 @@ const styles = StyleSheet.create({
     dashBtnLabel: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#fff',
+        color: '#1A1A1A',
         textAlign: 'center',
     },
-    messagesBanner: { borderRadius: layout.borderRadius.lg, overflow: 'hidden', marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    messagesBanner: { borderRadius: layout.borderRadius.lg, overflow: 'hidden', marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.04)' },
     bannerGradient: { padding: spacing.lg },
     bannerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     bannerLeft: { flexDirection: 'row', alignItems: 'center' },
@@ -411,10 +499,21 @@ const styles = StyleSheet.create({
     appointmentCard: { marginBottom: spacing.sm, borderRadius: layout.borderRadius.lg },
     appointmentRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md },
     timeBlock: { width: 60, alignItems: 'center' },
-    divider: { width: 1, height: '80%', backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: spacing.md },
+    divider: { width: 1, height: '80%', backgroundColor: 'rgba(0, 0, 0, 0.08)', marginHorizontal: spacing.md },
     aptInfo: { flex: 1 },
     emptyCard: { alignItems: 'center', padding: spacing.xl, borderRadius: layout.borderRadius.lg },
     emptyEmoji: { fontSize: 40, marginBottom: spacing.sm, opacity: 0.3 },
+    // Activity Feed
+    feedCard: {
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)', borderRadius: 14,
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
+        padding: 14, marginBottom: 8, gap: 0,
+    },
+    feedIconWrap: {
+        width: 40, height: 40, borderRadius: 12,
+        alignItems: 'center', justifyContent: 'center',
+    },
 });
 
 export default MasterDashboardScreen;

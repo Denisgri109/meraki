@@ -144,7 +144,7 @@ export function MasterInviteScreen() {
                             disabled={submitting}
                         >
                             <LinearGradient
-                                colors={['#D4A853', '#B8912E']}
+                                colors={['#E8A0B4', '#C47A90']}
                                 style={styles.submitBtnGradient}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
@@ -178,8 +178,8 @@ const styles = StyleSheet.create({
     },
     backBtn: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     headerTitle: { flex: 1, marginLeft: spacing.md },

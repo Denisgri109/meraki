@@ -138,7 +138,7 @@ export function StripeConnectGate() {
             statusBarTranslucent={true}
         >
             <View style={styles.overlay}>
-                <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+                <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
 
                 <View style={styles.container}>
                     {/* Decorative gradient top bar */}
@@ -285,12 +285,12 @@ const styles = StyleSheet.create({
         marginBottom: spacing.lg,
     },
     benefitsContainer: {
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 16,
         padding: spacing.md,
         marginBottom: spacing.lg,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     benefitRow: {
         flexDirection: 'row',

@@ -3,8 +3,9 @@ import { View, ActivityIndicator, StyleSheet, Linking } from 'react-native';
 import { NavigationContainer, LinkingOptions, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
-import { NotificationProvider } from '../contexts/NotificationContext';
+import { NotificationProvider, useNotifications } from '../contexts/NotificationContext';
 import { DeepLinkHandler } from '../components/DeepLinkHandler';
+import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt';
 import { AuthStack } from './AuthStack';
 import { ClientTabs } from './ClientTabs';
 import { MasterTabs } from './MasterTabs';
@@ -61,6 +62,22 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+/**
+ * Bridge component that connects NotificationContext to the NotificationPermissionPrompt.
+ * Must live inside NotificationProvider to use the useNotifications hook.
+ */
+function NotificationPromptBridge() {
+    const { showPermissionPrompt, handleEnableNotifications, handleSkipNotifications } = useNotifications();
+    return (
+        <NotificationPermissionPrompt
+            visible={showPermissionPrompt}
+            onEnable={handleEnableNotifications}
+            onSkip={handleSkipNotifications}
+        />
+    );
+}
+
+
 export function AppNavigator() {
     const { session, profile, loading } = useAuth();
     const {
@@ -115,10 +132,10 @@ export function AppNavigator() {
             <NavigationContainer
                 linking={linking}
                 theme={{
-                    dark: true,
+                    dark: false,
                     colors: {
                         primary: colors.primary,
-                        background: 'transparent',
+                        background: colors.background,
                         card: colors.surface,
                         text: colors.text,
                         border: colors.border,
@@ -134,6 +151,7 @@ export function AppNavigator() {
                             screenOptions={{
                                 headerShown: false,
                                 contentStyle: { backgroundColor: colors.background },
+                                animationTypeForReplace: 'push',
                             }}
                         >
                             {!session ? (
@@ -153,6 +171,7 @@ export function AppNavigator() {
                             )}
                         </Stack.Navigator>
                     </DeepLinkHandler>
+                    <NotificationPromptBridge />
                 </NotificationProvider>
             </NavigationContainer>
 

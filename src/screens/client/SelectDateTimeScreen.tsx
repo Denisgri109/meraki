@@ -61,6 +61,7 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
     const [selectedTime, setSelectedTime] = useState<Date | null>(null);
     const [bookedSlots, setBookedSlots] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isFetchingSlots, setIsFetchingSlots] = useState(false);
     const [masterAvailability, setMasterAvailability] = useState<any[]>([]);
     const [blockedSlots, setBlockedSlots] = useState<any[]>([]);
 
@@ -150,6 +151,7 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
 
     const fetchBookedSlots = async () => {
         try {
+            setIsFetchingSlots(true);
             const dateStr = format(selectedDate, 'yyyy-MM-dd');
             const bookedPromise = supabase
                 .from('appointments')
@@ -166,8 +168,18 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                 return `${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
             });
             setBookedSlots(booked);
+
+            // Double check selected time is still available (if any)
+            if (selectedTime) {
+                const timeStr = `${selectedTime.getHours()}:${selectedTime.getMinutes().toString().padStart(2, '0')}`;
+                if (booked.includes(timeStr)) {
+                    setSelectedTime(null);
+                }
+            }
         } catch (error) {
             console.error('Error fetching booked slots:', error);
+        } finally {
+            setIsFetchingSlots(false);
         }
     };
 
@@ -206,6 +218,12 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
 
     const handleContinue = () => {
         if (selectedTime) {
+            if (!isSlotAvailable(selectedTime)) {
+                // Safety check: Don't allow continuing if slot is not available
+                setSelectedTime(null);
+                return;
+            }
+
             const dateTime = new Date(selectedDate);
             dateTime.setHours(selectedTime.getHours(), selectedTime.getMinutes());
             navigation.navigate('BookingConfirm', {
@@ -235,7 +253,7 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                     {/* Header */}
                     <View style={styles.header}>
                         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                            <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
+                            <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>Select Date & Time</Text>
                         <View style={{ width: 40 }} />
@@ -318,15 +336,15 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                                             key={timeStr}
                                             style={[
                                                 styles.timeSlot,
-                                                !available && styles.timeSlotUnavailable,
+                                                (!available || isFetchingSlots) && styles.timeSlotUnavailable,
                                                 isSelected && styles.timeSlotSelected,
                                             ]}
-                                            onPress={() => available && setSelectedTime(slot)}
-                                            disabled={!available}
+                                            onPress={() => available && !isFetchingSlots && setSelectedTime(slot)}
+                                            disabled={!available || isFetchingSlots}
                                         >
                                             <Text style={[
                                                 styles.timeSlotText,
-                                                !available && styles.timeSlotTextUnavailable,
+                                                (!available || isFetchingSlots) && styles.timeSlotTextUnavailable,
                                                 isSelected && styles.timeSlotTextSelected,
                                             ]}>
                                                 {timeStr}
@@ -377,7 +395,7 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                     <Button
                         title="Continue"
                         onPress={handleContinue}
-                        disabled={!selectedTime}
+                        disabled={!selectedTime || isFetchingSlots}
                         fullWidth
                     />
                 </View>
@@ -407,12 +425,12 @@ const styles = StyleSheet.create({
     },
     backButton: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     headerTitle: {
-        fontSize: 17, fontWeight: '600', color: '#fff',
+        fontSize: 17, fontWeight: '600', color: '#1A1A1A',
     },
     section: {
         paddingHorizontal: spacing.lg,
@@ -456,8 +474,8 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
     },
     dateCardSelected: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
+        backgroundColor: '#E8A0B4',
+        borderColor: '#E8A0B4',
     },
     dateDay: {
         fontSize: 12,
@@ -470,7 +488,7 @@ const styles = StyleSheet.create({
         color: colors.text,
     },
     dateTextSelected: {
-        color: colors.text,
+        color: '#FFFFFF',
     },
     todayLabel: {
         fontSize: 10,
@@ -508,8 +526,8 @@ const styles = StyleSheet.create({
         opacity: 0.3,
     },
     timeSlotSelected: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
+        backgroundColor: '#E8A0B4',
+        borderColor: '#E8A0B4',
     },
     timeSlotText: {
         fontSize: 14,
@@ -520,7 +538,7 @@ const styles = StyleSheet.create({
         color: colors.textMuted,
     },
     timeSlotTextSelected: {
-        color: colors.text,
+        color: '#FFFFFF',
     },
     summaryCard: {
         margin: spacing.lg,
@@ -533,7 +551,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.md,
         paddingBottom: spacing.md,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+        borderBottomColor: 'rgba(0, 0, 0, 0.08)',
     },
     summaryRow: {
         flexDirection: 'row',
@@ -559,7 +577,7 @@ const styles = StyleSheet.create({
     noSlotsContainer: {
         padding: spacing.xl,
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 12,
         borderWidth: 1,
         borderColor: colors.border,

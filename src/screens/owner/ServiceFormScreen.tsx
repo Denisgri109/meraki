@@ -8,10 +8,15 @@ import {
     TouchableOpacity,
     Alert,
     Switch,
+    Image,
+    ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { Button, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
@@ -38,6 +43,52 @@ export function ServiceFormScreen() {
         duration_minutes: existingService?.duration_minutes?.toString() || '60',
         is_active: existingService?.is_active ?? true,
     });
+    const [imageUrl, setImageUrl] = useState((existingService as any)?.image_url || '');
+    const [uploading, setUploading] = useState(false);
+
+    const pickServiceImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission needed', 'Please grant gallery access to upload service photos.');
+            return;
+        }
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [16, 9],
+                quality: 0.8,
+            });
+            if (!result.canceled && result.assets[0]) {
+                uploadServiceImage(result.assets[0]);
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to pick image');
+        }
+    };
+
+    const uploadServiceImage = async (asset: ImagePicker.ImagePickerAsset) => {
+        setUploading(true);
+        try {
+            const fileExt = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+            const fileName = `service-images/${Date.now()}.${fileExt}`;
+            const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
+
+            const { error: uploadError } = await supabase.storage
+                .from('services')
+                .upload(fileName, decode(base64), { contentType: `image/${fileExt}`, upsert: false });
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage.from('services').getPublicUrl(fileName);
+            setImageUrl(urlData.publicUrl);
+        } catch (error: any) {
+            console.error('Upload error:', error);
+            Alert.alert('Error', error.message || 'Failed to upload image');
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const handleSave = async () => {
         if (!formData.name.trim()) {
@@ -62,6 +113,7 @@ export function ServiceFormScreen() {
                 base_price: Number(formData.base_price),
                 duration_minutes: Number(formData.duration_minutes),
                 is_active: formData.is_active,
+                image_url: imageUrl || null,
             };
 
             if (isEditing) {
@@ -212,6 +264,35 @@ export function ServiceFormScreen() {
                         </View>
                     </View>
 
+                    {/* Service Image (Optional) */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Service Image</Text>
+                        <View style={styles.imageUploadRow}>
+                            <View style={styles.imagePreviewContainer}>
+                                {imageUrl ? (
+                                    <Image source={{ uri: imageUrl }} style={styles.uploadedImage} />
+                                ) : (
+                                    <View style={styles.imagePlaceholder}>
+                                        <MaterialCommunityIcons name="camera" size={24} color={colors.textMuted} />
+                                    </View>
+                                )}
+                            </View>
+                            <TouchableOpacity
+                                style={styles.uploadButton}
+                                onPress={pickServiceImage}
+                                disabled={uploading}
+                            >
+                                {uploading ? (
+                                    <ActivityIndicator size="small" color={colors.text} />
+                                ) : (
+                                    <Text style={styles.uploadButtonText}>
+                                        {imageUrl ? 'Change Photo' : 'Upload Photo'}
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
                     {/* Status */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Status</Text>
@@ -268,11 +349,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     title: { fontSize: 20, fontWeight: '600', color: colors.text },
     content: { padding: spacing.lg },
@@ -345,6 +426,44 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     deleteButtonText: { color: '#EF4444', fontSize: 16, fontWeight: '600' },
+    // Image upload
+    imageUploadRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+    },
+    imagePreviewContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    uploadedImage: {
+        width: '100%',
+        height: '100%',
+    },
+    imagePlaceholder: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    uploadButton: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        borderRadius: 12,
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    uploadButtonText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: colors.text,
+    },
 });
 
 export default ServiceFormScreen;

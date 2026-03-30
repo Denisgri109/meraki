@@ -16,7 +16,6 @@ import { useModal } from '../../contexts/ModalContext';
 import { supabase } from '../../lib/supabase';
 import { Button, Input, MerakiText } from '../../components/ui';
 import { colors, spacing, layout } from '../../theme';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import {
     validateIrishPhone,
@@ -150,19 +149,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
     return (
         <View style={styles.container}>
-            <StatusBar style="light" />
-
-            {/* Background Gradient */}
-            <LinearGradient
-                colors={['#1E1E24', '#0F0F13']}
-                style={StyleSheet.absoluteFill}
-                start={{ x: 1, y: 0 }}
-                end={{ x: 0, y: 1 }}
-            />
-
-            {/* Decorative Glow Elements */}
-            <View style={[styles.glowBlob, styles.glowTopLeft]} />
-            <View style={[styles.glowBlob, styles.glowBottomRight]} />
+            <StatusBar style="dark" />
 
             <SafeAreaView style={styles.safeArea}>
                 <KeyboardAvoidingView
@@ -179,7 +166,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                                 style={styles.backButton}
                                 onPress={() => navigation.goBack()}
                             >
-                                <MaterialIcons name="arrow-back-ios-new" size={20} color={colors.roseWhite} />
+                                <MaterialIcons name="arrow-back-ios-new" size={20} color={colors.primary} />
                             </TouchableOpacity>
                             <View style={styles.headerTexts}>
                                 <MerakiText variant="h2" style={styles.title}>Create Account</MerakiText>
@@ -200,7 +187,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                                         <MaterialIcons
                                             name="person-outline"
                                             size={24}
-                                            color={selectedRole === 'client' ? colors.primary : 'rgba(255,255,255,0.4)'}
+                                            color={selectedRole === 'client' ? colors.primary : 'rgba(0, 0, 0, 0.35)'}
                                         />
                                     </View>
                                     <MerakiText style={[styles.roleText, selectedRole === 'client' && styles.roleTextActive]}>
@@ -217,7 +204,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                                         <MaterialIcons
                                             name="content-cut"
                                             size={24}
-                                            color={selectedRole === 'master' ? colors.primary : 'rgba(255,255,255,0.4)'}
+                                            color={selectedRole === 'master' ? colors.primary : 'rgba(0, 0, 0, 0.35)'}
                                         />
                                     </View>
                                     <MerakiText style={[styles.roleText, selectedRole === 'master' && styles.roleTextActive]}>
@@ -238,7 +225,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                                     placeholder="Julianne Moore"
                                     error={errors.fullName}
                                     variant="glass"
-                                    leftIcon={<MaterialIcons name="person-outline" size={20} color="rgba(255,255,255,0.3)" />}
+                                    leftIcon={<MaterialIcons name="person-outline" size={20} color="rgba(0, 0, 0, 0.25)" />}
                                 />
                             </View>
 
@@ -252,7 +239,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                                     placeholder="+353 87 123 4567"
                                     error={errors.phone}
                                     variant="glass"
-                                    leftIcon={<MaterialIcons name="phone-iphone" size={20} color="rgba(255,255,255,0.3)" />}
+                                    leftIcon={<MaterialIcons name="phone-iphone" size={20} color="rgba(0, 0, 0, 0.25)" />}
                                 />
                             </View>
 
@@ -267,7 +254,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                                     placeholder="name@example.com"
                                     error={errors.email}
                                     variant="glass"
-                                    leftIcon={<MaterialIcons name="alternate-email" size={20} color="rgba(255,255,255,0.3)" />}
+                                    leftIcon={<MaterialIcons name="alternate-email" size={20} color="rgba(0, 0, 0, 0.25)" />}
                                 />
                             </View>
 
@@ -281,13 +268,13 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                                     placeholder="••••••••"
                                     error={errors.password}
                                     variant="glass"
-                                    leftIcon={<MaterialIcons name="lock-outline" size={20} color="rgba(255,255,255,0.3)" />}
+                                    leftIcon={<MaterialIcons name="lock-outline" size={20} color="rgba(0, 0, 0, 0.25)" />}
                                     rightIcon={
                                         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                                             <MaterialIcons
                                                 name={showPassword ? 'visibility' : 'visibility-off'}
                                                 size={20}
-                                                color="rgba(255,255,255,0.3)"
+                                                color="rgba(0, 0, 0, 0.25)"
                                             />
                                         </TouchableOpacity>
                                     }
@@ -328,7 +315,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                                     placeholder="••••••••"
                                     error={errors.confirmPassword}
                                     variant="glass"
-                                    leftIcon={<MaterialIcons name="verified-user" size={20} color="rgba(255,255,255,0.3)" />}
+                                    leftIcon={<MaterialIcons name="verified-user" size={20} color="rgba(0, 0, 0, 0.25)" />}
                                 />
                             </View>
                         </View>
@@ -375,7 +362,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
+        backgroundColor: '#FFFFFF',
     },
     safeArea: {
         flex: 1,
@@ -388,23 +375,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingBottom: 40,
     },
-    glowBlob: {
-        position: 'absolute',
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        opacity: 0.5,
-    },
-    glowTopLeft: {
-        top: -100,
-        left: -100,
-        backgroundColor: 'rgba(212, 138, 130, 0.08)',
-    },
-    glowBottomRight: {
-        bottom: -50,
-        right: -50,
-        backgroundColor: 'rgba(230, 192, 144, 0.05)',
-    },
+
     header: {
         marginTop: 20,
         marginBottom: 40,
@@ -413,9 +384,9 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 24,
@@ -426,11 +397,11 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 32,
         fontFamily: 'PlayfairDisplay-Regular', // Consistent with Design System
-        color: colors.roseWhite,
+        color: colors.primary,
     },
     subtitle: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.5)',
+        color: 'rgba(0, 0, 0, 0.40)',
         letterSpacing: 0.5,
     },
     roleContainer: {
@@ -439,7 +410,7 @@ const styles = StyleSheet.create({
     sectionLabel: {
         fontSize: 10,
         fontWeight: '700',
-        color: 'rgba(255, 255, 255, 0.4)',
+        color: 'rgba(0, 0, 0, 0.35)',
         letterSpacing: 1.5,
         marginBottom: 16,
     },
@@ -449,9 +420,9 @@ const styles = StyleSheet.create({
     },
     roleCard: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
         borderRadius: layout.borderRadius.xl,
         padding: 20,
         alignItems: 'center',
@@ -465,7 +436,7 @@ const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -475,7 +446,7 @@ const styles = StyleSheet.create({
     roleText: {
         fontSize: 14,
         fontWeight: '600',
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: 'rgba(0, 0, 0, 0.50)',
     },
     roleTextActive: {
         color: colors.primary,
@@ -490,7 +461,7 @@ const styles = StyleSheet.create({
     inputLabel: {
         fontSize: 11,
         fontWeight: '600',
-        color: 'rgba(255, 255, 255, 0.4)',
+        color: 'rgba(0, 0, 0, 0.35)',
         marginLeft: 16,
         marginBottom: 8,
         letterSpacing: 1.5,
@@ -513,7 +484,7 @@ const styles = StyleSheet.create({
         height: 4,
         flex: 1,
         borderRadius: 2,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
     },
     strengthBarActive: {
         // dynamic color handled inline
@@ -535,7 +506,7 @@ const styles = StyleSheet.create({
         height: 20,
         borderRadius: 6,
         borderWidth: 1.5,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
+        borderColor: 'rgba(0, 0, 0, 0.25)',
         marginRight: 12,
         alignItems: 'center',
         justifyContent: 'center',
@@ -548,7 +519,7 @@ const styles = StyleSheet.create({
     termsText: {
         flex: 1,
         fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: 'rgba(0, 0, 0, 0.50)',
         lineHeight: 20,
     },
     linkText: {
@@ -578,7 +549,7 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.4)',
+        color: 'rgba(0, 0, 0, 0.35)',
     },
     footerLink: {
         fontSize: 14,

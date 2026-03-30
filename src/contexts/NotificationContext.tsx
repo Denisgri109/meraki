@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
+import { Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import {
     registerForPushNotificationsAsync,
@@ -8,11 +10,19 @@ import {
     NotificationData,
 } from '../lib/notifications';
 
+const NOTIFICATION_PROMPT_SHOWN_KEY = '@meraki_notification_prompt_shown';
+
 interface NotificationContextType {
     expoPushToken: string | null;
     notification: Notifications.Notification | null;
     hasPermission: boolean;
     requestPermission: () => Promise<boolean>;
+    /** Whether the iOS pre-permission prompt should be visible */
+    showPermissionPrompt: boolean;
+    /** Called when user taps "Enable Notifications" on the pre-prompt */
+    handleEnableNotifications: () => Promise<void>;
+    /** Called when user taps "Not Now" on the pre-prompt */
+    handleSkipNotifications: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -35,6 +45,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
     const [notification, setNotification] = useState<Notifications.Notification | null>(null);
     const [hasPermission, setHasPermission] = useState(false);
+    const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
 
     const notificationListener = useRef<Notifications.Subscription | null>(null);
     const responseListener = useRef<Notifications.Subscription | null>(null);
@@ -42,7 +53,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     // Register for push notifications when user logs in
     useEffect(() => {
         if (user) {
-            registerAndSaveToken();
+            if (Platform.OS === 'ios') {
+                // On iOS, check if we've already shown the pre-prompt
+                checkAndShowIOSPrompt();
+            } else {
+                // On Android, auto-register immediately (no pre-prompt needed)
+                registerAndSaveToken();
+            }
         } else if (expoPushToken) {
             // Clear token on logout
             setExpoPushToken(null);
@@ -72,6 +89,48 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             }
         };
     }, [navigation]);
+
+    /**
+     * On iOS, check if we already have permission or if the prompt was already shown.
+     * If neither, show our branded pre-permission prompt.
+     */
+    const checkAndShowIOSPrompt = async () => {
+        // First check if we already have permission
+        const { status } = await Notifications.getPermissionsAsync();
+        if (status === 'granted') {
+            // Already have permission, just register
+            await registerAndSaveToken();
+            return;
+        }
+
+        // Check if we've already shown the pre-prompt before
+        const promptShown = await AsyncStorage.getItem(NOTIFICATION_PROMPT_SHOWN_KEY);
+        if (promptShown === 'true') {
+            // We showed it before but user may have denied. Don't show again.
+            return;
+        }
+
+        // Show our branded pre-permission prompt
+        setShowPermissionPrompt(true);
+    };
+
+    /**
+     * Called when the user taps "Enable Notifications" on our branded prompt.
+     * This then triggers the real native iOS permission dialog.
+     */
+    const handleEnableNotifications = async () => {
+        setShowPermissionPrompt(false);
+        await AsyncStorage.setItem(NOTIFICATION_PROMPT_SHOWN_KEY, 'true');
+        await registerAndSaveToken();
+    };
+
+    /**
+     * Called when the user taps "Not Now" on our branded prompt.
+     */
+    const handleSkipNotifications = () => {
+        setShowPermissionPrompt(false);
+        AsyncStorage.setItem(NOTIFICATION_PROMPT_SHOWN_KEY, 'true');
+    };
 
     const registerAndSaveToken = async () => {
         const token = await registerForPushNotificationsAsync();
@@ -112,7 +171,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             case 'appointment_reminder':
             case 'confirmation_request':
                 if (data.appointmentId) {
-                    // Navigate to appointment details
                     navigation.navigate('Book', {
                         screen: 'AppointmentDetails',
                         params: { appointmentId: data.appointmentId },
@@ -141,6 +199,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
                 }
                 break;
 
+            case 'consultation_response':
+                navigation.navigate('Book');
+                break;
+
             default:
                 console.log('Unknown notification type:', data.type);
         }
@@ -153,6 +215,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
                 notification,
                 hasPermission,
                 requestPermission,
+                showPermissionPrompt,
+                handleEnableNotifications,
+                handleSkipNotifications,
             }}
         >
             {children}

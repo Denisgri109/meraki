@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     backIcon: {
         fontSize: 22,
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.xs,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: 'rgba(0, 0, 0, 0.12)',
     },
 
     // Info Section
@@ -720,13 +720,13 @@ const styles = StyleSheet.create({
         borderRadius: 25,
         padding: 4,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
     },
     quantityBtn: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -763,7 +763,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: spacing.lg,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
+        borderBottomColor: 'rgba(0, 0, 0, 0.04)',
     },
     modalTitle: {
         color: colors.text,
@@ -840,14 +840,14 @@ const styles = StyleSheet.create({
         marginLeft: 4,
     },
     input: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         paddingHorizontal: spacing.md,
         paddingVertical: 12,
         color: colors.text,
         fontSize: 16,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     textArea: {
         height: 100,
