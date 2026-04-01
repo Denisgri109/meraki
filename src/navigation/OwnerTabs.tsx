@@ -75,7 +75,7 @@ export type OwnerDashboardStackParamList = {
     Portfolio: undefined;
     MyServices: undefined;
     BlockedSlots: undefined;
-    CreateService: undefined;
+    CreateService: { service?: any } | undefined;
     Settings: undefined;
     ServiceSupplies: { serviceId?: string } | undefined;
     OwnerSupplies: undefined;
@@ -183,7 +183,7 @@ export type MenuStackParamList = {
     TermsOfService: undefined;
     PrivacyPolicy: undefined;
     AddOwnerSupply: { supply?: any } | undefined;
-    CreateService: undefined;
+    CreateService: { service?: any } | undefined;
     ServiceSupplies: { serviceId?: string } | undefined;
     ManageAcademy: undefined;
     CourseEditor: { courseId: string | null };
@@ -196,6 +196,7 @@ export type MenuStackParamList = {
     MasterInvite: undefined;
     MasterDetail: { master: any };
     SupportSettings: undefined;
+    ProductDetail: { productId: string; product: any };
 };
 
 const MenuStack = createNativeStackNavigator<MenuStackParamList>();
@@ -243,6 +244,7 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="MasterInvite" component={MasterInviteScreen} />
             <MenuStack.Screen name="MasterDetail" component={MasterDetailScreen} />
             <MenuStack.Screen name="SupportSettings" component={SupportSettingsScreen} />
+            <MenuStack.Screen name="ProductDetail" component={ProductDetailScreen} />
         </MenuStack.Navigator>
     );
 }

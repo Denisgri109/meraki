@@ -4,7 +4,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     Modal,
     ActivityIndicator,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { format } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { useModal } from '../../contexts/ModalContext';
 import {
     SHIPPING_STATUS_CONFIG,
     ShippingStatus,
@@ -33,6 +33,7 @@ export function OwnerOrderDetailScreen() {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<ShippingStatus | null>(null);
     const [undoTimer, setUndoTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+    const { showAlert } = useModal();
 
     const currentStatus = (order?.shipping_status || 'pending') as ShippingStatus;
     const statusConfig = SHIPPING_STATUS_CONFIG[currentStatus] || SHIPPING_STATUS_CONFIG.pending;
@@ -102,7 +103,7 @@ export function OwnerOrderDetailScreen() {
             }, 8000);
             setUndoTimer(timer);
         } catch (err: any) {
-            Alert.alert('Error', err.message);
+            showAlert('Error', err.message, 'error');
         } finally {
             setUpdating(false);
         }
@@ -125,7 +126,7 @@ export function OwnerOrderDetailScreen() {
             setOrder({ ...order, shipping_status: previousStatus });
             setPreviousStatus(null);
         } catch (err: any) {
-            Alert.alert('Error', err.message);
+            showAlert('Error', err.message, 'error');
         } finally {
             setUpdating(false);
         }

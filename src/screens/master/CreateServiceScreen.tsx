@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
@@ -27,17 +27,20 @@ const CATEGORIES = ['Nails', 'Lashes', 'Brows', 'Hair', 'Makeup', 'Skincare', 'O
 
 export function CreateServiceScreen() {
     const navigation = useNavigation();
+    const route = useRoute<any>();
+    const existingService = route.params?.service;
+    const isEditing = !!existingService;
     const { user } = useAuth();
     const { showAlert, showConfirm } = useModal();
     const [loading, setLoading] = useState(false);
 
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    const [category, setCategory] = useState('Nails');
-    const [basePrice, setBasePrice] = useState('');
-    const [durationMinutes, setDurationMinutes] = useState('60');
-    const [requiresConsultation, setRequiresConsultation] = useState(false);
-    const [imageUrl, setImageUrl] = useState('');
+    const [name, setName] = useState(existingService?.name || '');
+    const [description, setDescription] = useState(existingService?.description || '');
+    const [category, setCategory] = useState(existingService?.category || 'Nails');
+    const [basePrice, setBasePrice] = useState(existingService?.base_price?.toString() || '');
+    const [durationMinutes, setDurationMinutes] = useState(existingService?.duration_minutes?.toString() || '60');
+    const [requiresConsultation, setRequiresConsultation] = useState(existingService?.requires_consultation ?? false);
+    const [imageUrl, setImageUrl] = useState(existingService?.image_url || '');
     const [uploading, setUploading] = useState(false);
 
     const pickServiceImage = async () => {
@@ -84,7 +87,7 @@ export function CreateServiceScreen() {
         }
     };
 
-    const handleCreate = async () => {
+    const handleSave = async () => {
         if (!name.trim()) {
             showAlert('Error', 'Please enter a service name', 'error');
             return;
@@ -100,47 +103,64 @@ export function CreateServiceScreen() {
 
         setLoading(true);
         try {
-            // 1. Create the service
-            const { data: serviceData, error: serviceError } = await supabase
-                .from('services')
-                .insert({
-                    name: name.trim(),
-                    description: description.trim() || null,
-                    category,
-                    base_price: Number(basePrice),
-                    duration_minutes: Number(durationMinutes),
-                    is_active: true,
-                    requires_consultation: requiresConsultation,
-                    image_url: imageUrl || null,
-                    created_by: user!.id,
-                })
-                .select()
-                .single();
+            const servicePayload = {
+                name: name.trim(),
+                description: description.trim() || null,
+                category,
+                base_price: Number(basePrice),
+                duration_minutes: Number(durationMinutes),
+                is_active: existingService ? existingService.is_active : true,
+                requires_consultation: requiresConsultation,
+                image_url: imageUrl || null,
+            };
 
-            if (serviceError) throw serviceError;
-
-            // 2. Link the service to this master in master_services
-            const { error: linkError } = await supabase
-                .from('master_services')
-                .insert({
-                    master_id: user!.id,
-                    service_id: serviceData.id,
-                    is_available: true,
-                    custom_price: null, // Use base price
-                    custom_duration: null, // Use base duration
+            if (isEditing) {
+                const { error: updateError } = await supabase
+                    .from('services')
+                    .update(servicePayload)
+                    .eq('id', existingService.id);
+                
+                if (updateError) throw updateError;
+                
+                showConfirm('Success', 'Service updated successfully!', () => navigation.goBack(), {
+                    type: 'success',
+                    confirmText: 'OK',
+                    hideCancel: true
                 });
+            } else {
+                const { data: serviceData, error: serviceError } = await supabase
+                    .from('services')
+                    .insert({
+                        ...servicePayload,
+                        created_by: user!.id,
+                        is_active: true,
+                    })
+                    .select()
+                    .single();
 
-            if (linkError) throw linkError;
+                if (serviceError) throw serviceError;
 
-            // Use showConfirm to handle navigation on acknowledgement
-            showConfirm('Success', 'Service created successfully!', () => navigation.goBack(), {
-                type: 'success',
-                confirmText: 'OK',
-                hideCancel: true
-            });
+                const { error: linkError } = await supabase
+                    .from('master_services')
+                    .insert({
+                        master_id: user!.id,
+                        service_id: serviceData.id,
+                        is_available: true,
+                        custom_price: null, // Use base price
+                        custom_duration: null, // Use base duration
+                    });
+
+                if (linkError) throw linkError;
+
+                showConfirm('Success', 'Service created successfully!', () => navigation.goBack(), {
+                    type: 'success',
+                    confirmText: 'OK',
+                    hideCancel: true
+                });
+            }
         } catch (error: any) {
-            console.error('Error creating service:', error);
-            showAlert('Error', error.message || 'Failed to create service', 'error');
+            console.error('Error saving service:', error);
+            showAlert('Error', error.message || 'Failed to save service', 'error');
         } finally {
             setLoading(false);
         }
@@ -163,8 +183,12 @@ export function CreateServiceScreen() {
                             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                                 <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                             </TouchableOpacity>
-                            <MerakiText variant="h1" style={{ marginBottom: spacing.xs }}>Create New Service</MerakiText>
-                            <MerakiText variant="caption" color={colors.textSecondary}>Add a service that clients can book</MerakiText>
+                            <MerakiText variant="h1" style={{ marginBottom: spacing.xs }}>
+                                {isEditing ? 'Edit Service' : 'Create New Service'}
+                            </MerakiText>
+                            <MerakiText variant="caption" color={colors.textSecondary}>
+                                {isEditing ? 'Modify your service details' : 'Add a service that clients can book'}
+                            </MerakiText>
                         </View>
 
                         {/* Form */}
@@ -216,7 +240,7 @@ export function CreateServiceScreen() {
                                         >
                                             <MerakiText
                                                 variant="body"
-                                                color={category === cat ? colors.text : colors.textSecondary}
+                                                color={category === cat ? colors.textInvert : colors.textSecondary}
                                                 style={[
                                                     styles.categoryChipText,
                                                     category === cat && styles.categoryChipTextActive
@@ -329,8 +353,8 @@ export function CreateServiceScreen() {
                     {/* Bottom Button */}
                     <View style={styles.bottomBar}>
                         <Button
-                            title={loading ? 'Creating...' : 'Create Service'}
-                            onPress={handleCreate}
+                            title={loading ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Service')}
+                            onPress={handleSave}
                             loading={loading}
                             disabled={loading || !name.trim() || !basePrice}
                             fullWidth
@@ -418,7 +442,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     categoryChipTextActive: {
-        color: colors.text,
+        color: colors.textInvert,
         fontWeight: '600',
     },
     row: {

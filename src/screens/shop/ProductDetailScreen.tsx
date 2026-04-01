@@ -4,7 +4,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     Modal,
     TextInput,
     Image,
@@ -19,6 +18,7 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
+import { useModal } from '../../contexts/ModalContext';
 import { Card, Button, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing, layout, gradients } from '../../theme';
 
@@ -47,11 +47,12 @@ export function ProductDetailScreen() {
     const route = useRoute<RouteProp<ShopStackParamList, 'ProductDetail'>>();
     const { profile } = useAuth();
     const { addToCart } = useCart();
+    const { showAlert, showConfirm, hideModal } = useModal();
     const { product } = route.params;
     const [quantity, setQuantity] = useState(1);
+    const [isPreviewMode, setIsPreviewMode] = useState(false);
 
     // Edit product state (owners only)
-    const [showEditModal, setShowEditModal] = useState(false);
     const [editProduct, setEditProduct] = useState({
         name: product.name,
         description: product.description || '',
@@ -74,7 +75,7 @@ export function ProductDetailScreen() {
 
     const handleAddToCart = () => {
         if (product.stock_count === 0) {
-            Alert.alert('Out of Stock', 'This product is currently unavailable.');
+            showAlert('Out of Stock', 'This product is currently unavailable.', 'info');
             return;
         }
 
@@ -89,20 +90,22 @@ export function ProductDetailScreen() {
             });
         }
 
-        Alert.alert(
+        showConfirm(
             '✅ Added to Cart',
             `${quantity}x ${product.name} added to your cart`,
-            [
-                { text: 'Continue Shopping', onPress: () => navigation.goBack() },
-                { text: 'View Cart', onPress: () => navigation.navigate('Cart') },
-            ]
+            () => navigation.navigate('Cart'),
+            {
+                cancelText: 'Continue Shopping',
+                confirmText: 'View Cart',
+                type: 'success'
+            }
         );
     };
 
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission needed', 'Please grant gallery access to upload product photos.');
+            showAlert('Permission needed', 'Please grant gallery access to upload product photos.', 'error');
             return;
         }
 
@@ -118,7 +121,7 @@ export function ProductDetailScreen() {
                 uploadImage(result.assets[0]);
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to pick image');
+            showAlert('Error', 'Failed to pick image', 'error');
         }
     };
 
@@ -148,7 +151,7 @@ export function ProductDetailScreen() {
 
         } catch (error: any) {
             console.error('Upload error:', error);
-            Alert.alert('Error', error.message || 'Failed to upload image');
+            showAlert('Error', error.message || 'Failed to upload image', 'error');
         } finally {
             setUploading(false);
         }
@@ -156,7 +159,7 @@ export function ProductDetailScreen() {
 
     const handleSaveProduct = async () => {
         if (!editProduct.name || !editProduct.retail_price || !editProduct.wholesale_price) {
-            Alert.alert('Error', 'Please fill in all required fields');
+            showAlert('Error', 'Please fill in all required fields', 'error');
             return;
         }
 
@@ -189,41 +192,36 @@ export function ProductDetailScreen() {
                 }
             }
 
-            Alert.alert('Success', 'Product updated successfully');
-            setShowEditModal(false);
-            navigation.goBack();
+            showAlert('Success', 'Product updated successfully', 'success', {
+                onConfirm: () => { navigation.goBack(); hideModal(); }
+            });
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setSaving(false);
         }
     };
 
     const handleDeleteProduct = () => {
-        Alert.alert(
+        showConfirm(
             'Delete Product',
             'Are you sure you want to delete this product?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const { error } = await (supabase as any)
-                                .from('products')
-                                .update({ is_active: false })
-                                .eq('id', product.id);
+            async () => {
+                try {
+                    const { error } = await (supabase as any)
+                        .from('products')
+                        .update({ is_active: false })
+                        .eq('id', product.id);
 
-                            if (error) throw error;
-                            Alert.alert('Success', 'Product deleted');
-                            navigation.goBack();
-                        } catch (error: any) {
-                            Alert.alert('Error', error.message);
-                        }
-                    },
-                },
-            ]
+                    if (error) throw error;
+                    showAlert('Success', 'Product deleted', 'success', {
+                        onConfirm: () => { navigation.goBack(); hideModal(); }
+                    });
+                } catch (error: any) {
+                    showAlert('Error', error.message, 'error');
+                }
+            },
+            { confirmText: 'Delete', type: 'error' }
         );
     };
 
@@ -236,6 +234,9 @@ export function ProductDetailScreen() {
             default: return gradients.primary;
         }
     };
+
+    // Owner sees inline edit by default; toggling "Preview" shows client view
+    const showOwnerEditMode = isOwner && !isPreviewMode;
 
     return (
         <ScreenBackground>
@@ -255,267 +256,283 @@ export function ProductDetailScreen() {
 
                         {isOwner && (
                             <TouchableOpacity
-                                onPress={() => setShowEditModal(true)}
-                                style={styles.editButton}
+                                onPress={() => setIsPreviewMode(!isPreviewMode)}
+                                style={[
+                                    styles.editButton,
+                                    isPreviewMode && { backgroundColor: colors.primary }
+                                ]}
                             >
-                                <MerakiText variant="bodyBold" style={styles.editButtonText}>Edit</MerakiText>
+                                <MerakiText variant="bodyBold" style={[
+                                    styles.editButtonText,
+                                    isPreviewMode && { color: colors.textInvert }
+                                ]}>
+                                    {isPreviewMode ? '✏️ Edit' : '👁️ Preview'}
+                                </MerakiText>
                             </TouchableOpacity>
                         )}
                     </View>
 
-                    {/* Product Hero Section */}
-                    <View style={styles.heroSection}>
-                        <Card variant="glass" style={styles.heroCard} noPadding>
-                            <View style={styles.imageContainer}>
-                                {product.image_url ? (
-                                    <Image
-                                        source={{ uri: product.image_url }}
-                                        style={styles.mainImage}
-                                        resizeMode="cover"
-                                    />
-                                ) : (
-                                    <LinearGradient
-                                        colors={getCategoryGradient(product.category)}
-                                        style={styles.imagePlaceholder}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                    >
-                                        <MerakiText style={styles.emojiIcon}>
-                                            {product.category === 'Nails' ? '💅' :
-                                                product.category === 'Lashes' ? '👁️' :
-                                                    product.category === 'Brows' ? '✨' : '🔧'}
-                                        </MerakiText>
-                                    </LinearGradient>
-                                )}
-
-                                {/* Category Badge Overlays */}
-                                <LinearGradient
-                                    colors={['transparent', 'rgba(0,0,0,0.6)']}
-                                    style={styles.imageOverlay}
-                                />
-                                <View style={styles.categoryBadge}>
-                                    <MerakiText variant="label" color={colors.text}>{product.category}</MerakiText>
-                                </View>
-                            </View>
-                        </Card>
-                    </View>
-
-                    {/* Detailed Info Section */}
-                    <View style={styles.infoSection}>
-                        <View style={styles.titleRow}>
-                            <MerakiText variant="h1" style={styles.productName}>{product.name}</MerakiText>
-                        </View>
-
-                        <View style={styles.priceSection}>
-                            <View style={styles.priceContainer}>
-                                <MerakiText variant="h1" style={styles.mainPrice}>
-                                    €{currentPrice.toFixed(2)}
-                                </MerakiText>
-                                {(isMaster || isAdmin) && (
-                                    <View style={styles.wholesaleContainer}>
-                                        <MerakiText variant="caption" style={styles.wholesaleLabel}>Wholesale Price</MerakiText>
-                                        <MerakiText variant="body" style={styles.retailCompare}>
-                                            Retail: €{product.retail_price.toFixed(2)}
-                                        </MerakiText>
-                                    </View>
-                                )}
-                            </View>
-
-                            {(isMaster || isAdmin) && savings > 0 && (
-                                <LinearGradient
-                                    colors={['#4ade80', '#22c55e']}
-                                    style={styles.savingsBadge}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                >
-                                    <MerakiText variant="label" color={colors.text}>Save €{savings.toFixed(2)}</MerakiText>
-                                </LinearGradient>
-                            )}
-                        </View>
-
-                        <MerakiText variant="body" style={styles.description}>
-                            {product.description || 'No description available for this premium Merakí product.'}
-                        </MerakiText>
-
-                        {/* Stock & Quality Indicators */}
-                        <View style={styles.metaInfoRow}>
-                            <Card variant="glass" style={styles.metaCard}>
-                                <View style={[
-                                    styles.stockDot,
-                                    product.stock_count > 10 ? styles.inStock : styles.lowStock
-                                ]} />
-                                <MerakiText variant="bodyBold" style={styles.metaText}>
-                                    {product.stock_count > 10 ? 'In Stock' :
-                                        product.stock_count === 0 ? 'Out of Stock' :
-                                            `Only ${product.stock_count} left`}
-                                </MerakiText>
-                            </Card>
-
-                            <Card variant="glass" style={styles.metaCard}>
-                                <MerakiText style={styles.metaIcon}>✨</MerakiText>
-                                <MerakiText variant="bodyBold" style={styles.metaText}>Premium Quality</MerakiText>
-                            </Card>
-                        </View>
-                    </View>
-
-                    {/* Interactable Controls */}
-                    <View style={styles.controlsSection}>
-                        <View style={styles.quantityRow}>
-                            <MerakiText variant="bodyBold" style={styles.controlLabel}>Select Quantity</MerakiText>
-                            <View style={styles.quantityControls}>
+                    {/* Owner Inline Edit Mode */}
+                    {showOwnerEditMode ? (
+                        <View style={styles.ownerEditSection}>
+                            <View style={styles.imageUploadWrapper}>
                                 <TouchableOpacity
-                                    style={styles.quantityBtn}
-                                    onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                                    disabled={product.stock_count === 0}
+                                    style={styles.imageEditBtn}
+                                    onPress={pickImage}
+                                    disabled={uploading}
                                 >
-                                    <MerakiText style={styles.quantityBtnText}>−</MerakiText>
-                                </TouchableOpacity>
-
-                                <View style={styles.quantityValueBox}>
-                                    <MerakiText variant="h3" style={styles.quantityValue}>{quantity}</MerakiText>
-                                </View>
-
-                                <TouchableOpacity
-                                    style={styles.quantityBtn}
-                                    onPress={() => setQuantity(Math.min(product.stock_count, quantity + 1))}
-                                    disabled={product.stock_count === 0 || quantity >= product.stock_count}
-                                >
-                                    <MerakiText style={styles.quantityBtnText}>+</MerakiText>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Total Summary */}
-                        <Card variant="glass" style={styles.totalRow}>
-                            <View>
-                                <MerakiText variant="caption" color={colors.textMuted}>Total Amount</MerakiText>
-                                <MerakiText variant="h2" color={colors.accent}>€{(currentPrice * quantity).toFixed(2)}</MerakiText>
-                            </View>
-                            <Button
-                                title="Add to Cart"
-                                variant="primary"
-                                onPress={handleAddToCart}
-                                disabled={product.stock_count === 0}
-                                style={styles.cartBtn}
-                            />
-                        </Card>
-                    </View>
-                </ScrollView>
-
-                {/* Refined Edit Modal */}
-                <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet">
-                    <ScreenBackground>
-                        <SafeAreaView style={styles.modalContainer}>
-                            <View style={styles.modalHeader}>
-                                <TouchableOpacity onPress={() => setShowEditModal(false)}>
-                                    <MerakiText style={styles.modalCancel}>Cancel</MerakiText>
-                                </TouchableOpacity>
-                                <MerakiText variant="h3" style={styles.modalTitle}>Edit Product</MerakiText>
-                                <TouchableOpacity onPress={handleSaveProduct} disabled={saving}>
-                                    <MerakiText variant="bodyBold" style={styles.modalSave}>
-                                        {saving ? '...' : 'Save'}
-                                    </MerakiText>
-                                </TouchableOpacity>
-                            </View>
-
-                            <ScrollView style={styles.modalContent}>
-                                <View style={styles.imageUploadWrapper}>
-                                    <TouchableOpacity
-                                        style={styles.imageEditBtn}
-                                        onPress={pickImage}
-                                        disabled={uploading}
-                                    >
-                                        {editProduct.image_url ? (
-                                            <Image source={{ uri: editProduct.image_url }} style={styles.editImage} />
-                                        ) : (
-                                            <View style={styles.editImagePlaceholder}>
-                                                <MerakiText style={styles.placeholderIcon}>📷</MerakiText>
-                                            </View>
-                                        )}
-                                        <View style={styles.editIconBadge}>
-                                            <MerakiText style={styles.editIconSmall}>✏️</MerakiText>
+                                    {editProduct.image_url ? (
+                                        <Image source={{ uri: editProduct.image_url }} style={styles.editImage} />
+                                    ) : (
+                                        <View style={styles.editImagePlaceholder}>
+                                            <MerakiText style={styles.placeholderIcon}>📷</MerakiText>
                                         </View>
-                                    </TouchableOpacity>
-                                    {uploading && <MerakiText variant="caption" style={styles.uploadingMsg}>Uploading...</MerakiText>}
+                                    )}
+                                    <View style={styles.editIconBadge}>
+                                        <MerakiText style={styles.editIconSmall}>✏️</MerakiText>
+                                    </View>
+                                </TouchableOpacity>
+                                {uploading && <MerakiText variant="caption" style={styles.uploadingMsg}>Uploading...</MerakiText>}
+                            </View>
+
+                            <Card variant="glass" style={styles.formCard}>
+                                <View style={styles.inputGroup}>
+                                    <MerakiText variant="caption" style={styles.inputLabel}>Product Name</MerakiText>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={editProduct.name}
+                                        onChangeText={(text) => setEditProduct({ ...editProduct, name: text })}
+                                        placeholderTextColor={colors.textMuted}
+                                    />
                                 </View>
 
-                                <Card variant="glass" style={styles.formCard}>
-                                    <View style={styles.inputGroup}>
-                                        <MerakiText variant="caption" style={styles.inputLabel}>Product Name</MerakiText>
+                                <View style={styles.inputGroup}>
+                                    <MerakiText variant="caption" style={styles.inputLabel}>Description</MerakiText>
+                                    <TextInput
+                                        style={[styles.input, styles.textArea]}
+                                        value={editProduct.description}
+                                        onChangeText={(text) => setEditProduct({ ...editProduct, description: text })}
+                                        multiline
+                                        numberOfLines={4}
+                                        placeholderTextColor={colors.textMuted}
+                                    />
+                                </View>
+
+                                <View style={styles.inputRow}>
+                                    <View style={styles.inputHalf}>
+                                        <MerakiText variant="caption" style={styles.inputLabel}>Retail €</MerakiText>
                                         <TextInput
                                             style={styles.input}
-                                            value={editProduct.name}
-                                            onChangeText={(text) => setEditProduct({ ...editProduct, name: text })}
-                                            placeholderTextColor={colors.textMuted}
+                                            value={editProduct.retail_price}
+                                            onChangeText={(text) => setEditProduct({ ...editProduct, retail_price: text })}
+                                            keyboardType="decimal-pad"
                                         />
                                     </View>
-
-                                    <View style={styles.inputGroup}>
-                                        <MerakiText variant="caption" style={styles.inputLabel}>Description</MerakiText>
+                                    <View style={styles.inputHalf}>
+                                        <MerakiText variant="caption" style={styles.inputLabel}>Wholesale €</MerakiText>
                                         <TextInput
-                                            style={[styles.input, styles.textArea]}
-                                            value={editProduct.description}
-                                            onChangeText={(text) => setEditProduct({ ...editProduct, description: text })}
-                                            multiline
-                                            numberOfLines={4}
-                                            placeholderTextColor={colors.textMuted}
+                                            style={styles.input}
+                                            value={editProduct.wholesale_price}
+                                            onChangeText={(text) => setEditProduct({ ...editProduct, wholesale_price: text })}
+                                            keyboardType="decimal-pad"
                                         />
                                     </View>
+                                </View>
 
-                                    <View style={styles.inputRow}>
-                                        <View style={styles.inputHalf}>
-                                            <MerakiText variant="caption" style={styles.inputLabel}>Retail €</MerakiText>
-                                            <TextInput
-                                                style={styles.input}
-                                                value={editProduct.retail_price}
-                                                onChangeText={(text) => setEditProduct({ ...editProduct, retail_price: text })}
-                                                keyboardType="decimal-pad"
-                                            />
-                                        </View>
-                                        <View style={styles.inputHalf}>
-                                            <MerakiText variant="caption" style={styles.inputLabel}>Wholesale €</MerakiText>
-                                            <TextInput
-                                                style={styles.input}
-                                                value={editProduct.wholesale_price}
-                                                onChangeText={(text) => setEditProduct({ ...editProduct, wholesale_price: text })}
-                                                keyboardType="decimal-pad"
-                                            />
-                                        </View>
+                                <View style={styles.inputRow}>
+                                    <View style={styles.inputHalf}>
+                                        <MerakiText variant="caption" style={styles.inputLabel}>In Stock</MerakiText>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={editProduct.stock_count}
+                                            onChangeText={(text) => setEditProduct({ ...editProduct, stock_count: text })}
+                                            keyboardType="number-pad"
+                                        />
                                     </View>
-
-                                    <View style={styles.inputRow}>
-                                        <View style={styles.inputHalf}>
-                                            <MerakiText variant="caption" style={styles.inputLabel}>In Stock</MerakiText>
-                                            <TextInput
-                                                style={styles.input}
-                                                value={editProduct.stock_count}
-                                                onChangeText={(text) => setEditProduct({ ...editProduct, stock_count: text })}
-                                                keyboardType="number-pad"
-                                            />
-                                        </View>
-                                        <View style={styles.inputHalf}>
-                                            <MerakiText variant="caption" style={styles.inputLabel}>Alert Threshold</MerakiText>
-                                            <TextInput
-                                                style={styles.input}
-                                                value={editProduct.low_stock_threshold}
-                                                onChangeText={(text) => setEditProduct({ ...editProduct, low_stock_threshold: text })}
-                                                keyboardType="number-pad"
-                                            />
-                                        </View>
+                                    <View style={styles.inputHalf}>
+                                        <MerakiText variant="caption" style={styles.inputLabel}>Alert Threshold</MerakiText>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={editProduct.low_stock_threshold}
+                                            onChangeText={(text) => setEditProduct({ ...editProduct, low_stock_threshold: text })}
+                                            keyboardType="number-pad"
+                                        />
                                     </View>
-                                </Card>
+                                </View>
+                            </Card>
 
+                            {/* Owner Action Buttons */}
+                            <View style={styles.ownerActions}>
+                                <Button
+                                    title={saving ? 'Saving...' : 'Save Changes'}
+                                    variant="primary"
+                                    onPress={handleSaveProduct}
+                                    disabled={saving}
+                                    fullWidth
+                                />
                                 <TouchableOpacity
                                     style={styles.dangerButton}
                                     onPress={handleDeleteProduct}
                                 >
                                     <MerakiText style={styles.dangerText}>Delete Product</MerakiText>
                                 </TouchableOpacity>
-                                <View style={{ height: 40 }} />
-                            </ScrollView>
-                        </SafeAreaView>
-                    </ScreenBackground>
-                </Modal>
+                            </View>
+                        </View>
+                    ) : (
+                        <>
+                            {/* Product Hero Section (client view / preview) */}
+                            <View style={styles.heroSection}>
+                                <Card variant="glass" style={styles.heroCard} noPadding>
+                                    <View style={styles.imageContainer}>
+                                        {product.image_url ? (
+                                            <Image
+                                                source={{ uri: product.image_url }}
+                                                style={styles.mainImage}
+                                                resizeMode="cover"
+                                            />
+                                        ) : (
+                                            <LinearGradient
+                                                colors={getCategoryGradient(product.category)}
+                                                style={styles.imagePlaceholder}
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 1 }}
+                                            >
+                                                <MerakiText style={styles.emojiIcon}>
+                                                    {product.category === 'Nails' ? '💅' :
+                                                        product.category === 'Lashes' ? '👁️' :
+                                                            product.category === 'Brows' ? '✨' : '🔧'}
+                                                </MerakiText>
+                                            </LinearGradient>
+                                        )}
+
+                                        {/* Category Badge Overlays */}
+                                        <LinearGradient
+                                            colors={['transparent', 'rgba(0,0,0,0.6)']}
+                                            style={styles.imageOverlay}
+                                        />
+                                        <View style={styles.categoryBadge}>
+                                            <MerakiText variant="label" color={colors.text}>{product.category}</MerakiText>
+                                        </View>
+                                    </View>
+                                </Card>
+                            </View>
+
+                            {/* Detailed Info Section */}
+                            <View style={styles.infoSection}>
+                                <View style={styles.titleRow}>
+                                    <MerakiText variant="h1" style={styles.productName}>{product.name}</MerakiText>
+                                </View>
+
+                                <View style={styles.priceSection}>
+                                    <View style={styles.priceContainer}>
+                                        <MerakiText variant="h1" style={styles.mainPrice}>
+                                            €{currentPrice.toFixed(2)}
+                                        </MerakiText>
+                                        {(isMaster || isAdmin) && (
+                                            <View style={styles.wholesaleContainer}>
+                                                <MerakiText variant="caption" style={styles.wholesaleLabel}>Wholesale Price</MerakiText>
+                                                <MerakiText variant="body" style={styles.retailCompare}>
+                                                    Retail: €{product.retail_price.toFixed(2)}
+                                                </MerakiText>
+                                            </View>
+                                        )}
+                                    </View>
+
+                                    {(isMaster || isAdmin) && savings > 0 && (
+                                        <LinearGradient
+                                            colors={['#4ade80', '#22c55e']}
+                                            style={styles.savingsBadge}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                        >
+                                            <MerakiText variant="label" color={colors.text}>Save €{savings.toFixed(2)}</MerakiText>
+                                        </LinearGradient>
+                                    )}
+                                </View>
+
+                                <MerakiText variant="body" style={styles.description}>
+                                    {product.description || 'No description available for this premium Merakí product.'}
+                                </MerakiText>
+
+                                {/* Stock & Quality Indicators */}
+                                <View style={styles.metaInfoRow}>
+                                    <Card variant="glass" style={styles.metaCard}>
+                                        <View style={[
+                                            styles.stockDot,
+                                            product.stock_count > 10 ? styles.inStock : styles.lowStock
+                                        ]} />
+                                        <MerakiText variant="bodyBold" style={styles.metaText}>
+                                            {product.stock_count > 10 ? 'In Stock' :
+                                                product.stock_count === 0 ? 'Out of Stock' :
+                                                    `Only ${product.stock_count} left`}
+                                        </MerakiText>
+                                    </Card>
+
+                                    <Card variant="glass" style={styles.metaCard}>
+                                        <MerakiText style={styles.metaIcon}>✨</MerakiText>
+                                        <MerakiText variant="bodyBold" style={styles.metaText}>Premium Quality</MerakiText>
+                                    </Card>
+                                </View>
+                            </View>
+
+                            {/* Interactable Controls — hidden for owners in preview */}
+                            {!isOwner && (
+                                <View style={styles.controlsSection}>
+                                    <View style={styles.quantityRow}>
+                                        <MerakiText variant="bodyBold" style={styles.controlLabel}>Select Quantity</MerakiText>
+                                        <View style={styles.quantityControls}>
+                                            <TouchableOpacity
+                                                style={styles.quantityBtn}
+                                                onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                                                disabled={product.stock_count === 0}
+                                            >
+                                                <MerakiText style={styles.quantityBtnText}>−</MerakiText>
+                                            </TouchableOpacity>
+
+                                            <View style={styles.quantityValueBox}>
+                                                <MerakiText variant="h3" style={styles.quantityValue}>{quantity}</MerakiText>
+                                            </View>
+
+                                            <TouchableOpacity
+                                                style={styles.quantityBtn}
+                                                onPress={() => setQuantity(Math.min(product.stock_count, quantity + 1))}
+                                                disabled={product.stock_count === 0 || quantity >= product.stock_count}
+                                            >
+                                                <MerakiText style={styles.quantityBtnText}>+</MerakiText>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+
+                                    {/* Total Summary */}
+                                    <Card variant="glass" style={styles.totalRow}>
+                                        <View>
+                                            <MerakiText variant="caption" color={colors.textMuted}>Total Amount</MerakiText>
+                                            <MerakiText variant="h2" color={colors.accent}>€{(currentPrice * quantity).toFixed(2)}</MerakiText>
+                                        </View>
+                                        <Button
+                                            title="Add to Cart"
+                                            variant="primary"
+                                            onPress={handleAddToCart}
+                                            disabled={product.stock_count === 0}
+                                            style={styles.cartBtn}
+                                        />
+                                    </Card>
+                                </View>
+                            )}
+
+                            {/* Owner preview mode: show a note instead of cart controls */}
+                            {isOwner && isPreviewMode && (
+                                <View style={styles.previewBanner}>
+                                    <MerakiText variant="caption" color={colors.textSecondary} style={{ textAlign: 'center' }}>
+                                        👁️ This is how your clients see this product
+                                    </MerakiText>
+                                </View>
+                            )}
+                        </>
+                    )}
+                </ScrollView>
+
+
             </SafeAreaView>
         </ScreenBackground>
     );
@@ -860,6 +877,22 @@ const styles = StyleSheet.create({
     },
     inputHalf: {
         flex: 1,
+    },
+    ownerEditSection: {
+        paddingTop: spacing.lg,
+        paddingHorizontal: spacing.lg,
+    },
+    ownerActions: {
+        marginTop: spacing.xl,
+        gap: spacing.md,
+    },
+    previewBanner: {
+        marginTop: spacing.xl,
+        padding: spacing.md,
+        backgroundColor: colors.surfaceGlass,
+        borderRadius: layout.borderRadius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     dangerButton: {
         marginTop: spacing.xl,

@@ -8,7 +8,6 @@ import {
     ActivityIndicator,
     TouchableOpacity,
     Switch,
-    Alert,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +15,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { useModal } from '../../contexts/ModalContext';
 import { Service } from '../../types/database';
 
 export function ServiceListScreen() {
@@ -24,6 +24,7 @@ export function ServiceListScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [services, setServices] = useState<Service[]>([]);
     const [groupedServices, setGroupedServices] = useState<Record<string, Service[]>>({});
+    const { showAlert } = useModal();
 
     useFocusEffect(
         useCallback(() => {
@@ -83,7 +84,7 @@ export function ServiceListScreen() {
             });
         } catch (error) {
             console.error('Error toggling service:', error);
-            Alert.alert('Error', 'Failed to update service status');
+            showAlert('Error', 'Failed to update service status', 'error');
         }
     };
 
@@ -217,7 +218,16 @@ const styles = StyleSheet.create({
     },
     serviceCard: {
         padding: spacing.md,
-        marginBottom: spacing.sm,
+        marginBottom: spacing.md,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     serviceCardContent: {
         flexDirection: 'row',

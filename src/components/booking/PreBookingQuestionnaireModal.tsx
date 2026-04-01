@@ -8,9 +8,9 @@ import {
     ScrollView,
     TextInput,
     Image,
-    Alert,
     ActivityIndicator,
 } from 'react-native';
+import { useModal } from '../../contexts/ModalContext';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
@@ -42,6 +42,7 @@ export function PreBookingQuestionnaireModal({
     serviceName,
     masterId,
 }: PreBookingQuestionnaireModalProps) {
+    const { showAlert } = useModal();
     const [loading, setLoading] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
@@ -108,7 +109,7 @@ export function PreBookingQuestionnaireModal({
             }
         } catch (error: any) {
             console.error('Error uploading photos:', error);
-            Alert.alert('Error', 'Failed to upload photos. Please try again.');
+            showAlert('Error', 'Failed to upload photos. Please try again.', 'error');
         } finally {
             setUploadingPhotos(false);
         }
@@ -124,11 +125,11 @@ export function PreBookingQuestionnaireModal({
     const handleSubmit = async () => {
         // Validate
         if (formData.hadBefore && !formData.howLongAgo) {
-            Alert.alert('Required', 'Please select how long ago you had this service.');
+            showAlert('Required', 'Please select how long ago you had this service.', 'error');
             return;
         }
         if (formData.photos.length === 0) {
-            Alert.alert('Required', 'Please upload at least one photo of the current state.');
+            showAlert('Required', 'Please upload at least one photo of the current state.', 'error');
             return;
         }
 
@@ -159,7 +160,7 @@ export function PreBookingQuestionnaireModal({
             onSubmit(data.id);
         } catch (error: any) {
             console.error('Error submitting consultation:', error);
-            Alert.alert('Error', error.message || 'Failed to submit consultation request');
+            showAlert('Error', error.message || 'Failed to submit consultation request', 'error');
         } finally {
             setLoading(false);
         }

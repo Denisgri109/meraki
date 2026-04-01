@@ -5,7 +5,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
     TextInput,
     Modal,
@@ -17,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useConfirmPayment, CardField } from '../../utils/stripe';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useModal } from '../../contexts/ModalContext';
 import { supabase } from '../../lib/supabase';
 import { Button, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
@@ -38,6 +38,7 @@ export function CheckoutScreen() {
     const { items, getTotal, clearCart } = useCart();
     const { user, profile } = useAuth();
     const { confirmPayment } = useConfirmPayment();
+    const { showAlert, showConfirm } = useModal();
 
     const [loading, setLoading] = useState(false);
     const [notes, setNotes] = useState('');
@@ -103,23 +104,23 @@ export function CheckoutScreen() {
 
     const validateShippingAddress = (): boolean => {
         if (!shippingName.trim()) {
-            Alert.alert('Missing Info', 'Please enter the recipient\'s full name.');
+            showAlert('Missing Info', 'Please enter the recipient\'s full name.', 'error');
             return false;
         }
         if (!shippingPhone.trim()) {
-            Alert.alert('Missing Info', 'Please enter a phone number for delivery updates.');
+            showAlert('Missing Info', 'Please enter a phone number for delivery updates.', 'error');
             return false;
         }
         if (!shippingAddress.trim()) {
-            Alert.alert('Missing Info', 'Please enter the street address.');
+            showAlert('Missing Info', 'Please enter the street address.', 'error');
             return false;
         }
         if (!shippingCity.trim()) {
-            Alert.alert('Missing Info', 'Please enter the city.');
+            showAlert('Missing Info', 'Please enter the city.', 'error');
             return false;
         }
         if (!shippingPostalCode.trim()) {
-            Alert.alert('Missing Info', 'Please enter the postal code.');
+            showAlert('Missing Info', 'Please enter the postal code.', 'error');
             return false;
         }
         return true;
@@ -142,12 +143,12 @@ export function CheckoutScreen() {
 
     const handlePlaceOrder = async () => {
         if (!user) {
-            Alert.alert('Error', 'Please log in to place an order');
+            showAlert('Error', 'Please log in to place an order', 'error');
             return;
         }
 
         if (items.length === 0) {
-            Alert.alert('Error', 'Your cart is empty');
+            showAlert('Error', 'Your cart is empty', 'error');
             return;
         }
 
@@ -156,12 +157,12 @@ export function CheckoutScreen() {
 
         // Validate payment method
         if (!showNewCard && !selectedCardId) {
-            Alert.alert('Payment Required', 'Please select a payment method to continue.');
+            showAlert('Payment Required', 'Please select a payment method to continue.', 'error');
             return;
         }
 
         if (showNewCard && !newCardComplete) {
-            Alert.alert('Card Required', 'Please enter your card details to continue.');
+            showAlert('Card Required', 'Please enter your card details to continue.', 'error');
             return;
         }
 
@@ -294,19 +295,15 @@ export function CheckoutScreen() {
             // 7. Clear cart and show success
             clearCart();
 
-            Alert.alert(
+            showAlert(
                 '🎉 Order Placed!',
                 `Your order #${order.id.slice(0, 8).toUpperCase()} has been confirmed.\n\nSubtotal: €${subtotal.toFixed(2)}\nShipping: €${shippingCost.toFixed(2)}\nTotal: €${finalTotal.toFixed(2)}\n\nShipping to: ${shippingCity}, ${getCountryName(shippingCountry)}`,
-                [
-                    {
-                        text: 'Go to Home',
-                        onPress: () => navigation.navigate('Home'),
-                    }
-                ]
+                'success'
             );
+            navigation.navigate('Home');
 
         } catch (error: any) {
-            Alert.alert('Order Failed', error.message);
+            showAlert('Order Failed', error.message, 'error');
         } finally {
             setLoading(false);
         }

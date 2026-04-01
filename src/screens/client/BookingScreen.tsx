@@ -356,13 +356,23 @@ const styles = StyleSheet.create({
 
     // Service Card — Academy-style pastel gradient banner
     serviceCardWrapper: {
-        borderRadius: 10,
-        overflow: 'hidden',
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 6,
+        marginBottom: 8,
     },
     serviceCard: {
         flexDirection: 'row',
         alignItems: 'stretch',
         minHeight: 100,
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     serviceTextContent: {
         flex: 1,

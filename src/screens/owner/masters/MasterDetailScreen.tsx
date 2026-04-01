@@ -13,13 +13,13 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
-    Alert,
     ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useModal } from '../../../contexts/ModalContext';
 import { ScreenBackground, Card, MerakiText, Input, Button } from '../../../components/ui';
 import { colors, spacing, layout } from '../../../theme';
 import {
@@ -37,6 +37,7 @@ export function MasterDetailScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<RouteProp<ParamList, 'MasterDetail'>>();
     const { master } = route.params;
+    const { showAlert, showConfirm } = useModal();
 
     const [isVerified, setIsVerified] = useState(master.is_verified || false);
     const [saving, setSaving] = useState(false);
@@ -50,39 +51,30 @@ export function MasterDetailScreen() {
         });
         setSaving(false);
         if (success) {
-            Alert.alert('Saved', 'Master profile has been updated.', [
-                { text: 'OK', onPress: () => navigation.goBack() }
-            ]);
+            showAlert('Saved', 'Master profile has been updated.', 'success');
+            navigation.goBack();
         } else {
-            Alert.alert('Error', error?.message || 'Failed to update profile');
+            showAlert('Error', error?.message || 'Failed to update profile', 'error');
         }
     };
 
     const handleToggleActive = () => {
         const action = isActive ? 'deactivate' : 'reactivate';
-        Alert.alert(
+        showConfirm(
             `${isActive ? 'Deactivate' : 'Reactivate'} Master`,
             `Are you sure you want to ${action} ${master.full_name}?${isActive ? ' They will no longer be able to receive bookings.' : ''}`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: isActive ? 'Deactivate' : 'Reactivate',
-                    style: isActive ? 'destructive' : 'default',
-                    onPress: async () => {
-                        setDeactivating(true);
-                        const fn = isActive ? deactivateMaster : reactivateMaster;
-                        const { success, error } = await fn(master.id);
-                        setDeactivating(false);
-                        if (success) {
-                            Alert.alert('Done', `${master.full_name} has been ${action}d.`, [
-                                { text: 'OK', onPress: () => navigation.goBack() }
-                            ]);
-                        } else {
-                            Alert.alert('Error', error?.message || `Failed to ${action} master`);
-                        }
-                    },
-                },
-            ]
+            async () => {
+                setDeactivating(true);
+                const fn = isActive ? deactivateMaster : reactivateMaster;
+                const { success, error } = await fn(master.id);
+                setDeactivating(false);
+                if (success) {
+                    showAlert('Done', `${master.full_name} has been ${action}d.`, 'success');
+                    navigation.goBack();
+                } else {
+                    showAlert('Error', error?.message || `Failed to ${action} master`, 'error');
+                }
+            }
         );
     };
 

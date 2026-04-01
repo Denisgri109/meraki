@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     emptyButtonText: {
-        color: colors.text,
+        color: colors.textInvert,
         fontWeight: '600',
     },
     deleteButton: {

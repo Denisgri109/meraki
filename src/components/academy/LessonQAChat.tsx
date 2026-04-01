@@ -22,10 +22,10 @@ import {
     KeyboardAvoidingView,
     Platform,
     Image,
-    Alert,
     ActivityIndicator,
     Dimensions,
 } from 'react-native';
+import { useModal } from '../../contexts/ModalContext';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -65,6 +65,7 @@ type Props = {
 
 export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }: Props) {
     const { user, profile } = useAuth();
+    const { showAlert, showModal, hideModal } = useModal();
     const [messages, setMessages] = useState<QAMessage[]>([]);
     const [messageText, setMessageText] = useState('');
     const [sending, setSending] = useState(false);
@@ -224,7 +225,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                 }
             }
         } catch (err: any) {
-            Alert.alert('Error', err.message || 'Failed to send message');
+            showAlert('Error', err.message || 'Failed to send message', 'error');
         } finally {
             setSending(false);
         }
@@ -236,7 +237,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
         try {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('Permission Required', 'Please enable photo library access.');
+                showAlert('Permission Required', 'Please enable photo library access.', 'error');
                 return;
             }
 
@@ -260,7 +261,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
         try {
             const { status } = await ImagePicker.requestCameraPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('Permission Required', 'Please enable camera access.');
+                showAlert('Permission Required', 'Please enable camera access.', 'error');
                 return;
             }
 
@@ -315,7 +316,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
 
             await sendMessage(messageText.trim() || null, publicUrl, 'image');
         } catch (err: any) {
-            Alert.alert('Upload Failed', err.message || 'Could not upload image');
+            showAlert('Upload Failed', err.message || 'Could not upload image', 'error');
         } finally {
             setImageUploading(false);
         }
@@ -361,15 +362,29 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                     ]}
                     onLongPress={() => {
                         if (isInstructor) {
-                            Alert.alert(
-                                'Message Actions',
-                                undefined,
-                                [
-                                    { text: item.is_pinned ? 'Unpin' : 'Pin', onPress: () => togglePin(item.id, item.is_pinned) },
-                                    { text: 'Reply', onPress: () => setReplyTo(item) },
-                                    { text: 'Cancel', style: 'cancel' },
-                                ]
-                            );
+                            showModal({
+                                title: 'Message Actions',
+                                hideCancel: true,
+                                children: (
+                                    <View style={{ gap: 10, width: '100%', marginTop: 10 }}>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: colors.accent }]} 
+                                            onPress={() => { hideModal(); togglePin(item.id, item.is_pinned); }}>
+                                            <MerakiText style={styles.actionBtnText}>{item.is_pinned ? 'Unpin' : 'Pin'}</MerakiText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: colors.surfaceLight }]} 
+                                            onPress={() => { hideModal(); setReplyTo(item); }}>
+                                            <MerakiText style={[styles.actionBtnText, { color: colors.text }]}>Reply</MerakiText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }]} 
+                                            onPress={hideModal}>
+                                            <MerakiText style={[styles.actionBtnText, { color: colors.textSecondary }]}>Cancel</MerakiText>
+                                        </TouchableOpacity>
+                                    </View>
+                                )
+                            });
                         } else {
                             setReplyTo(item);
                         }
@@ -433,7 +448,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
     }
 
     return (
-        <View style={styles.container}>
+        <Card variant="glass" style={styles.container} noPadding>
             {/* Header */}
             <View style={styles.qaHeader}>
                 <MaterialCommunityIcons name="chat-question" size={18} color={colors.accent} />
@@ -515,11 +530,30 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                     <TouchableOpacity
                         style={styles.mediaBtn}
                         onPress={() => {
-                            Alert.alert('Add Photo', 'Choose a source', [
-                                { text: 'Camera', onPress: takePhoto },
-                                { text: 'Gallery', onPress: pickImage },
-                                { text: 'Cancel', style: 'cancel' },
-                            ]);
+                            showModal({
+                                title: 'Add Photo',
+                                message: 'Choose a source',
+                                hideCancel: true,
+                                children: (
+                                    <View style={{ gap: 10, width: '100%', marginTop: 10 }}>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: colors.accent }]} 
+                                            onPress={() => { hideModal(); takePhoto(); }}>
+                                            <MerakiText style={styles.actionBtnText}>Camera</MerakiText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: colors.surfaceLight }]} 
+                                            onPress={() => { hideModal(); pickImage(); }}>
+                                            <MerakiText style={[styles.actionBtnText, { color: colors.text }]}>Gallery</MerakiText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }]} 
+                                            onPress={hideModal}>
+                                            <MerakiText style={[styles.actionBtnText, { color: colors.textSecondary }]}>Cancel</MerakiText>
+                                        </TouchableOpacity>
+                                    </View>
+                                )
+                            });
                         }}
                         disabled={imageUploading}
                     >
@@ -553,7 +587,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
-        </View>
+        </Card>
     );
 }
 
@@ -607,10 +641,7 @@ async function sendPushNotification(
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'rgba(15,15,19,0.5)',
         borderRadius: layout.borderRadius.xl,
-        borderWidth: 1,
-        borderColor: 'rgba(0, 0, 0, 0.05)',
         overflow: 'hidden',
         maxHeight: 500,
     },

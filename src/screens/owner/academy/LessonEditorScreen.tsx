@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     TextInput,
     Switch,
-    Alert,
     ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +17,7 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../../lib/supabase';
 import { ScreenBackground, Button, ConfirmModal, MerakiText } from '../../../components/ui';
 import { colors, spacing } from '../../../theme';
+import { useModal } from '../../../contexts/ModalContext';
 
 // Helper function to format duration in seconds to a readable string
 const formatDuration = (seconds: number): string => {
@@ -35,6 +35,7 @@ const formatDuration = (seconds: number): string => {
 export function LessonEditorScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
+    const { showAlert, showConfirm } = useModal();
     const { lessonId, chapterId, courseId } = route.params || {};
     const isNew = !lessonId;
 
@@ -67,8 +68,8 @@ export function LessonEditorScreen() {
             setDescription(data.description || '');
             setVideoUrl(data.video_url || '');
             setVideoProvider(data.video_provider || 'upload');
-            // Convert stored minutes back to seconds for display
-            setDurationSeconds((data.duration_minutes || 0) * 60);
+            // duration_minutes now stores raw seconds
+            setDurationSeconds(data.duration_minutes || 0);
             setHasHomework(data.has_homework);
         } catch (error) {
             console.error('Error fetching lesson:', error);
@@ -93,11 +94,7 @@ export function LessonEditorScreen() {
                 // Check file size (warn if > 50MB)
                 const fileInfo = await FileSystem.getInfoAsync(asset.uri);
                 if (fileInfo.exists && 'size' in fileInfo && fileInfo.size > 50 * 1024 * 1024) {
-                    Alert.alert(
-                        'Large File',
-                        'This video is over 50MB. Upload may take a while or fail. Consider using a shorter video.',
-                        [{ text: 'Continue Anyway', onPress: () => { } }, { text: 'Cancel', style: 'cancel' }]
-                    );
+                    showAlert('Large File', 'This video is over 50MB. Upload may take a while or fail.', 'info');
                 }
 
                 // Read file as base64
@@ -117,7 +114,7 @@ export function LessonEditorScreen() {
 
                 if (error) {
                     console.error('Upload error:', error);
-                    Alert.alert('Upload Failed', error.message || 'Could not upload video.');
+                    showAlert('Upload Failed', error.message || 'Could not upload video.', 'error');
                     return;
                 }
 
@@ -134,10 +131,10 @@ export function LessonEditorScreen() {
                     setDurationSeconds(asset.duration / 1000);
                 }
 
-                Alert.alert('Success', 'Video uploaded successfully!');
+                showAlert('Success', 'Video uploaded successfully!', 'success');
             } catch (err: any) {
                 console.error('Error uploading video:', err);
-                Alert.alert('Error', 'Failed to upload video: ' + (err.message || 'Unknown error'));
+                showAlert('Error', 'Failed to upload video: ' + (err.message || 'Unknown error'), 'error');
             } finally {
                 setUploading(false);
             }
@@ -146,7 +143,7 @@ export function LessonEditorScreen() {
 
     const handleSave = async () => {
         if (!title.trim()) {
-            Alert.alert('Error', 'Please enter a lesson title');
+            showAlert('Error', 'Please enter a lesson title', 'error');
             return;
         }
 
@@ -157,8 +154,8 @@ export function LessonEditorScreen() {
                 description: description.trim(),
                 video_url: videoUrl.trim(),
                 video_provider: videoProvider,
-                // Store duration in minutes (rounded to nearest minute)
-                duration_minutes: Math.round(durationSeconds / 60),
+                // Store duration in raw seconds for precision
+                duration_minutes: Math.round(durationSeconds),
                 resource_url: null,
                 has_homework: hasHomework,
                 course_id: courseId,
@@ -181,7 +178,7 @@ export function LessonEditorScreen() {
                     .insert({ ...lessonData, order_index: nextIndex });
 
                 if (error) throw error;
-                Alert.alert('Success', 'Lesson created!');
+                showAlert('Success', 'Lesson created!', 'success');
             } else {
                 const { error } = await (supabase as any)
                     .from('lessons')
@@ -189,12 +186,12 @@ export function LessonEditorScreen() {
                     .eq('id', lessonId);
 
                 if (error) throw error;
-                Alert.alert('Success', 'Lesson updated!');
+                showAlert('Success', 'Lesson updated!', 'success');
             }
 
             navigation.goBack();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setSaving(false);
         }
@@ -205,7 +202,7 @@ export function LessonEditorScreen() {
             await (supabase as any).from('lessons').delete().eq('id', lessonId);
             navigation.goBack();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         }
     };
 

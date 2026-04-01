@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Dimensions,
-    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
@@ -15,6 +14,7 @@ import { WebView } from 'react-native-webview';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useModal } from '../../contexts/ModalContext';
 import { ScreenBackground, Button, MerakiText, Card } from '../../components/ui';
 import { LessonQAChat } from '../../components/academy/LessonQAChat';
 import { colors, spacing, layout, gradients } from '../../theme';
@@ -101,6 +101,7 @@ export function LessonScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<RouteProp<AcademyStackParamList, 'Lesson'>>();
     const { user, profile } = useAuth();
+    const { showAlert, showConfirm } = useModal();
     const { lesson, courseId, instructorId, instructorName } = route.params;
     const isInstructor = profile?.role === 'owner' || user?.id === instructorId;
 
@@ -149,7 +150,19 @@ export function LessonScreen() {
 
     const handleVideoProgress = (status: any) => {
         if (status.isLoaded && status.durationMillis) {
-            if (videoDuration === 0) setVideoDuration(status.durationMillis / 1000);
+            if (videoDuration === 0) {
+                const realDuration = status.durationMillis / 1000;
+                setVideoDuration(realDuration);
+                // Auto-correct stale duration_minutes in the DB
+                const realSeconds = Math.round(realDuration);
+                if (lesson.duration_minutes && Math.abs(lesson.duration_minutes - realSeconds) > 2) {
+                    (supabase as any)
+                        .from('lessons')
+                        .update({ duration_minutes: realSeconds })
+                        .eq('id', lesson.id)
+                        .then(() => console.log('Auto-corrected lesson duration to', realSeconds, 'seconds'));
+                }
+            }
             const watchedPercent = Math.round((status.positionMillis / status.durationMillis) * 100);
             if (watchedPercent > progress) updateProgress(Math.min(watchedPercent, 100));
         }
@@ -157,12 +170,12 @@ export function LessonScreen() {
 
     const markComplete = async () => {
         await updateProgress(100);
-        Alert.alert('🎉 Lesson Complete!', 'Great job! Keep up the good work.');
+        showAlert('🎉 Lesson Complete!', 'Great job! Keep up the good work.', 'success');
     };
 
     const handleChatOwner = async () => {
         if (!instructorId || !user) {
-            Alert.alert('Unavailable', 'This course does not have an instructor assigned to chat with.');
+            showAlert('Unavailable', 'This course does not have an instructor assigned to chat with.', 'info');
             return;
         }
         setChatLoading(true);
@@ -192,7 +205,7 @@ export function LessonScreen() {
                 })
             );
         } catch (error) {
-            Alert.alert('Error', 'Failed to start conversation');
+            showAlert('Error', 'Failed to start conversation', 'error');
         } finally {
             setChatLoading(false);
         }
@@ -270,7 +283,7 @@ export function LessonScreen() {
                             <MerakiText variant="h2" style={styles.lessonTitle}>{lesson.title}</MerakiText>
                             {(videoDuration > 0 || !!lesson.duration_minutes) && (
                                 <MerakiText variant="caption" color={colors.textMuted} style={styles.duration}>
-                                    ⏱️ {videoDuration > 0 ? (videoDuration < 60 ? `${Math.round(videoDuration)}s` : `${Math.ceil(videoDuration / 60)}m`) : `${lesson.duration_minutes}m`}
+                                    ⏱️ {videoDuration > 0 ? (videoDuration < 60 ? `${Math.round(videoDuration)}s` : `${Math.ceil(videoDuration / 60)}m`) : (lesson.duration_minutes! < 60 ? `${lesson.duration_minutes}s` : `${Math.ceil(lesson.duration_minutes! / 60)}m`)}
                                 </MerakiText>
                             )}
                             {lesson.description && (

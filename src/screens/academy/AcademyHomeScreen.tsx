@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     View,
     StyleSheet,
@@ -14,12 +14,41 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 
 const { width } = Dimensions.get('window');
+
+// Check if a URL points to a streaming platform (not a direct file)
+const isStreamingUrl = (url: string): boolean => {
+    return (
+        url.includes('youtube.com') ||
+        url.includes('youtu.be') ||
+        url.includes('vimeo.com') ||
+        url.includes('mux.com')
+    );
+};
+
+// Probe a video URL to get its real duration in seconds
+const probeVideoDuration = async (videoUrl: string): Promise<number | null> => {
+    try {
+        const { sound, status } = await Audio.Sound.createAsync(
+            { uri: videoUrl },
+            { shouldPlay: false }
+        );
+        let duration: number | null = null;
+        if (status.isLoaded && status.durationMillis) {
+            duration = Math.round(status.durationMillis / 1000);
+        }
+        await sound.unloadAsync();
+        return duration;
+    } catch {
+        return null;
+    }
+};
 
 interface Course {
     id: string;
@@ -36,10 +65,18 @@ interface Course {
 }
 
 const getRandomRating = () => (4.5 + Math.random() * 0.5).toFixed(1);
-const getRandomDuration = () => {
-    const hours = Math.floor(Math.random() * 3) + 1;
-    const mins = Math.floor(Math.random() * 4) * 15;
-    return `${hours}h ${mins > 0 ? mins + 'm' : ''}`;
+
+// Format total seconds into a readable duration string
+const formatTotalDuration = (totalSeconds: number): string => {
+    if (totalSeconds <= 0) return '0s';
+    if (totalSeconds < 60) return `${Math.round(totalSeconds)}s`;
+    if (totalSeconds < 3600) {
+        const mins = Math.round(totalSeconds / 60);
+        return `${mins}m`;
+    }
+    const hours = Math.floor(totalSeconds / 3600);
+    const mins = Math.round((totalSeconds % 3600) / 60);
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 };
 
 // Pastel gradients for course cards — cycles through them
@@ -65,6 +102,17 @@ export function AcademyHomeScreen() {
     const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
 
+    const filteredCourses = useMemo(() => {
+        if (!searchQuery.trim()) return courses;
+        const q = searchQuery.toLowerCase().trim();
+        return courses.filter((course) => {
+            const title = course.title?.toLowerCase() || '';
+            const description = course.description?.toLowerCase() || '';
+            const instructor = course.instructor?.full_name?.toLowerCase() || '';
+            return title.includes(q) || description.includes(q) || instructor.includes(q);
+        });
+    }, [courses, searchQuery]);
+
     useFocusEffect(
         useCallback(() => {
             fetchCourses();
@@ -89,20 +137,43 @@ export function AcademyHomeScreen() {
 
             const enrichedCourses = await Promise.all(
                 (data || []).map(async (course: Course) => {
-                    const { count } = await (supabase as any)
+                    // Fetch lessons with video_url so we can probe real durations
+                    const { data: lessonData, count } = await (supabase as any)
                         .from('lessons')
-                        .select('*', { count: 'exact', head: true })
+                        .select('id, duration_minutes, video_url', { count: 'exact' })
                         .eq('course_id', course.id);
+
+                    // Probe real video durations for direct uploads
+                    let totalSeconds = 0;
+                    await Promise.all(
+                        (lessonData || []).map(async (lesson: any) => {
+                            if (lesson.video_url && !isStreamingUrl(lesson.video_url)) {
+                                const realDuration = await probeVideoDuration(lesson.video_url);
+                                if (realDuration !== null) {
+                                    totalSeconds += realDuration;
+                                    // Auto-correct stale DB values
+                                    if (lesson.duration_minutes !== realDuration) {
+                                        (supabase as any)
+                                            .from('lessons')
+                                            .update({ duration_minutes: realDuration })
+                                            .eq('id', lesson.id)
+                                            .then(() => {});
+                                    }
+                                    return;
+                                }
+                            }
+                            // Fallback to DB value for streaming or failed probes
+                            totalSeconds += (lesson.duration_minutes || 0);
+                        })
+                    );
 
                     return {
                         ...course,
                         lesson_count: count || 0,
                         rating: parseFloat(getRandomRating()),
-                        duration: getRandomDuration(),
+                        duration: formatTotalDuration(totalSeconds),
                         instructor: {
-                            full_name: course.instructor?.full_name === 'Test Owner'
-                                ? 'Sarah Mitchell'
-                                : (course.instructor?.full_name || 'Merakí Expert')
+                            full_name: course.instructor?.full_name || 'Merakí Expert'
                         }
                     };
                 })
@@ -176,12 +247,6 @@ export function AcademyHomeScreen() {
                     <View style={styles.headerContainer}>
                         <View style={styles.headerRow}>
                             <MerakiText variant="h1" style={styles.headerTitle}>Academy</MerakiText>
-                            <TouchableOpacity
-                                style={styles.myLearningButton}
-                                onPress={() => navigation.navigate('MyLearning')}
-                            >
-                                <MaterialIcons name="menu-book" size={20} color={colors.text} />
-                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -205,19 +270,21 @@ export function AcademyHomeScreen() {
                     </View>
 
                     {/* Course Cards — Beauty Bay Pastel Banner Style */}
-                    {courses.length === 0 ? (
+                    {filteredCourses.length === 0 ? (
                         <View style={styles.emptyCard}>
-                            <MerakiText style={styles.emptyEmoji}>📚</MerakiText>
+                            <MerakiText style={styles.emptyEmoji}>{searchQuery.trim() ? '🔍' : '📚'}</MerakiText>
                             <MerakiText variant="h3" align="center" style={{ color: colors.text }}>
-                                No courses yet
+                                {searchQuery.trim() ? 'No results found' : 'No courses yet'}
                             </MerakiText>
                             <MerakiText variant="body" align="center" color={colors.textMuted} style={{ marginTop: 4 }}>
-                                Check back soon for new content!
+                                {searchQuery.trim()
+                                    ? 'Try a different search term'
+                                    : 'Check back soon for new content!'}
                             </MerakiText>
                         </View>
                     ) : (
                         <View style={styles.coursesContainer}>
-                            {courses.map((course, index) => {
+                            {filteredCourses.map((course, index) => {
                                 const isEnrolled = enrolledCourseIds.has(course.id);
                                 const gradient = getGradientForIndex(index);
                                 return (
@@ -253,7 +320,7 @@ export function AcademyHomeScreen() {
                                             {/* Text content */}
                                             <View style={styles.courseTextContent}>
                                                 <MerakiText style={styles.courseTitle} numberOfLines={2}>
-                                                    {course.title.toUpperCase()}
+                                                    {course.title}
                                                 </MerakiText>
                                                 <View style={styles.courseMetaRow}>
                                                     <MerakiText style={styles.courseMeta}>
@@ -382,10 +449,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     courseTitle: {
-        fontSize: 15,
-        fontWeight: '700',
+        fontSize: 18,
+        fontWeight: '800',
+        fontStyle: 'italic',
         color: '#1A1A1A',
-        letterSpacing: 0.3,
+        letterSpacing: 0.5,
         marginBottom: 8,
     },
     courseMetaRow: {

@@ -6,7 +6,6 @@ import {
     ScrollView,
     TextInput,
     TouchableOpacity,
-    Alert,
     Switch,
     Image,
     ActivityIndicator,
@@ -20,6 +19,7 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { Button, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { useModal } from '../../contexts/ModalContext';
 import { Service } from '../../types/database';
 
 type RouteParams = {
@@ -33,6 +33,7 @@ export function ServiceFormScreen() {
     const route = useRoute<RouteProp<RouteParams, 'ServiceForm'>>();
     const existingService = route.params?.service;
     const isEditing = !!existingService;
+    const { showAlert, showConfirm } = useModal();
 
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -49,7 +50,7 @@ export function ServiceFormScreen() {
     const pickServiceImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission needed', 'Please grant gallery access to upload service photos.');
+            showAlert('Permission needed', 'Please grant gallery access to upload service photos.', 'error');
             return;
         }
         try {
@@ -63,7 +64,7 @@ export function ServiceFormScreen() {
                 uploadServiceImage(result.assets[0]);
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to pick image');
+            showAlert('Error', 'Failed to pick image', 'error');
         }
     };
 
@@ -84,7 +85,7 @@ export function ServiceFormScreen() {
             setImageUrl(urlData.publicUrl);
         } catch (error: any) {
             console.error('Upload error:', error);
-            Alert.alert('Error', error.message || 'Failed to upload image');
+            showAlert('Error', error.message || 'Failed to upload image', 'error');
         } finally {
             setUploading(false);
         }
@@ -92,15 +93,15 @@ export function ServiceFormScreen() {
 
     const handleSave = async () => {
         if (!formData.name.trim()) {
-            Alert.alert('Error', 'Please enter a service name');
+            showAlert('Error', 'Please enter a service name', 'error');
             return;
         }
         if (!formData.base_price || isNaN(Number(formData.base_price))) {
-            Alert.alert('Error', 'Please enter a valid price');
+            showAlert('Error', 'Please enter a valid price', 'error');
             return;
         }
         if (!formData.duration_minutes || isNaN(Number(formData.duration_minutes))) {
-            Alert.alert('Error', 'Please enter a valid duration');
+            showAlert('Error', 'Please enter a valid duration', 'error');
             return;
         }
 
@@ -123,19 +124,19 @@ export function ServiceFormScreen() {
                     .eq('id', existingService.id);
 
                 if (error) throw error;
-                Alert.alert('Success', 'Service updated successfully');
+                showAlert('Success', 'Service updated successfully', 'success');
             } else {
                 const { error } = await supabase
                     .from('services')
                     .insert(serviceData);
 
                 if (error) throw error;
-                Alert.alert('Success', 'Service created successfully');
+                showAlert('Success', 'Service created successfully', 'success');
             }
             navigation.goBack();
         } catch (error: any) {
             console.error('Error saving service:', error);
-            Alert.alert('Error', error.message || 'Failed to save service');
+            showAlert('Error', error.message || 'Failed to save service', 'error');
         } finally {
             setLoading(false);
         }
@@ -144,34 +145,27 @@ export function ServiceFormScreen() {
     const handleDelete = () => {
         if (!isEditing) return;
 
-        Alert.alert(
+        showConfirm(
             'Delete Service',
             'Are you sure you want to delete this service? This action cannot be undone.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        setLoading(true);
-                        try {
-                            const { error } = await supabase
-                                .from('services')
-                                .delete()
-                                .eq('id', existingService.id);
+            async () => {
+                setLoading(true);
+                try {
+                    const { error } = await supabase
+                        .from('services')
+                        .delete()
+                        .eq('id', existingService.id);
 
-                            if (error) throw error;
-                            Alert.alert('Success', 'Service deleted');
-                            navigation.goBack();
-                        } catch (error: any) {
-                            console.error('Error deleting service:', error);
-                            Alert.alert('Error', error.message || 'Failed to delete service');
-                        } finally {
-                            setLoading(false);
-                        }
-                    },
-                },
-            ]
+                    if (error) throw error;
+                    showAlert('Success', 'Service deleted', 'success');
+                    navigation.goBack();
+                } catch (error: any) {
+                    console.error('Error deleting service:', error);
+                    showAlert('Error', error.message || 'Failed to delete service', 'error');
+                } finally {
+                    setLoading(false);
+                }
+            }
         );
     };
 

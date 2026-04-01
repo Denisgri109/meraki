@@ -23,7 +23,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button, ScreenBackground, MerakiModal, MerakiModalProps, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
-import { processRefund } from '../../services/stripeService';
+import { cancelAndRefund } from '../../services/stripeService';
 
 type Appointment = {
     id: string;
@@ -284,27 +284,31 @@ export function MasterAppointmentsScreen() {
                     hideCancel: true
                 }));
 
-                const apt = appointments.find(a => a.id === id);
-                if (apt?.stripe_payment_intent_id) {
-                    try {
-                        // Issue full refund to client automatically
-                        await processRefund(apt.stripe_payment_intent_id, undefined, 'requested_by_customer');
-                    } catch (e: any) {
-                        console.error('Failed to process refund:', e);
-                        setModalConfig({
-                            visible: true,
-                            title: 'Refund Error',
-                            message: e.message || 'Could not process refund.',
-                            type: 'error',
-                            onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
-                            confirmText: 'OK',
-                            hideCancel: true
-                        });
-                        return; // Stop cancellation process if refund fails
-                    }
+                try {
+                    await cancelAndRefund(id, 'master');
+                    fetchAppointments();
+                    
+                    setModalConfig({
+                        visible: true,
+                        title: 'Success',
+                        message: 'Appointment cancelled successfully. The client has been refunded.',
+                        type: 'success',
+                        onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+                        confirmText: 'OK',
+                        hideCancel: true
+                    });
+                } catch (e: any) {
+                    console.error('Failed to cancel appointment:', e);
+                    setModalConfig({
+                        visible: true,
+                        title: 'Cancellation Error',
+                        message: e.message || 'Could not cancel appointment.',
+                        type: 'error',
+                        onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+                        confirmText: 'OK',
+                        hideCancel: true
+                    });
                 }
-
-                updateAppointmentStatus(id, 'cancelled');
             }
         });
     };
@@ -754,14 +758,14 @@ export function MasterAppointmentsScreen() {
                                     >
                                         <MerakiText
                                             variant="caption"
-                                            color={selectedDate && isSameDay(date, selectedDate) ? colors.text : colors.textSecondary}
+                                            color={selectedDate && isSameDay(date, selectedDate) ? colors.textInvert : colors.textSecondary}
                                             style={styles.dateDayName}
                                         >
                                             {format(date, 'EEE')}
                                         </MerakiText>
                                         <MerakiText
                                             variant="body"
-                                            color={selectedDate && isSameDay(date, selectedDate) ? colors.text : colors.text}
+                                            color={selectedDate && isSameDay(date, selectedDate) ? colors.textInvert : colors.text}
                                             style={[
                                                 styles.dateDay,
                                                 selectedDate && isSameDay(date, selectedDate) && styles.dateTextActive
@@ -786,7 +790,7 @@ export function MasterAppointmentsScreen() {
                                     >
                                         <MerakiText
                                             variant="body"
-                                            color={selectedTime === time ? colors.text : colors.text}
+                                            color={selectedTime === time ? colors.textInvert : colors.text}
                                             style={[
                                                 styles.timeText,
                                                 selectedTime === time && styles.timeTextActive
@@ -1095,7 +1099,7 @@ const styles = StyleSheet.create({
     dateCardActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     dateDayName: { fontSize: 12, color: colors.textSecondary, marginBottom: spacing.xs },
     dateDay: { fontSize: 20, fontWeight: '600', color: colors.text },
-    dateTextActive: { color: colors.text },
+    dateTextActive: { color: colors.textInvert },
     timesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -1112,7 +1116,7 @@ const styles = StyleSheet.create({
     },
     timeSlotActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     timeText: { fontSize: 14, fontWeight: '500', color: colors.text },
-    timeTextActive: { color: colors.text },
+    timeTextActive: { color: colors.textInvert },
 });
 
 export default MasterAppointmentsScreen;

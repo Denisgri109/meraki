@@ -23,7 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Card, Button, ScreenBackground, MerakiText } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
-import { cancelPaymentIntent, capturePayment, eurosToCents, processRefund } from '../../services/stripeService';
+import { cancelPaymentIntent, capturePayment, eurosToCents, cancelAndRefund } from '../../services/stripeService';
 
 // Cancellation policy constants
 const CANCELLATION_WINDOW_HOURS = 24;
@@ -256,34 +256,8 @@ export function OrdersScreen() {
         });
 
         try {
-            // Process refund
-            if (appointment.stripe_payment_intent_id) {
-                try {
-                    if (isLate) {
-                        // 50% refund
-                        const refundAmount = Math.round(eurosToCents(appointment.price) / 2);
-                        await processRefund(appointment.stripe_payment_intent_id, refundAmount, 'requested_by_customer');
-                    } else {
-                        // Full refund
-                        await processRefund(appointment.stripe_payment_intent_id, undefined, 'requested_by_customer');
-                    }
-                } catch (e) {
-                    console.error('Failed to process refund:', e);
-                    throw new Error('Failed to process refund. Please try again or contact support.');
-                }
-            }
-
-            // Update appointment status
-            const newStatus = isLate ? 'cancelled_charge' : 'cancelled_free';
-            const { error } = await supabase
-                .from('appointments')
-                .update({
-                    status: newStatus,
-                    cancellation_reason: 'Cancellation by client',
-                } as any)
-                .eq('id', appointment.id);
-
-            if (error) throw error;
+            // Cancel and refund using the edge function (handles both DB and Stripe automatically)
+            await cancelAndRefund(appointment.id, 'client');
 
             // Notify master
             await notifyMasterOfCancellation(appointment);
@@ -292,7 +266,8 @@ export function OrdersScreen() {
 
             fetchData();
         } catch (error: any) {
-            showAlert('Error', error.message, 'error');
+            console.error('Failed to cancel appointment:', error);
+            showAlert('Error', error.message || 'Could not cancel appointment.', 'error');
         }
     };
 
@@ -1009,12 +984,12 @@ const styles = StyleSheet.create({
     dateCardActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     dateDayName: { fontSize: 12, color: colors.textSecondary, marginBottom: spacing.xs },
     dateDay: { fontSize: 20, fontWeight: '600', color: colors.text },
-    dateTextActive: { color: colors.text },
+    dateTextActive: { color: colors.textInvert },
     timesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.xl },
     timeSlot: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
     timeSlotActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     timeText: { fontSize: 14, fontWeight: '500', color: colors.text },
-    timeTextActive: { color: colors.text },
+    timeTextActive: { color: colors.textInvert },
 
     confirmButton: {
         marginTop: spacing.xl,

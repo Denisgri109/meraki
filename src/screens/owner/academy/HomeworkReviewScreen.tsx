@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     TextInput,
     Image,
-    Alert,
     ActivityIndicator,
     Dimensions,
 } from 'react-native';
@@ -18,6 +17,7 @@ import { supabase } from '../../../lib/supabase';
 import { ScreenBackground, Button, MerakiText } from '../../../components/ui';
 import { colors, spacing } from '../../../theme';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useModal } from '../../../contexts/ModalContext';
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +36,7 @@ export function HomeworkReviewScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
     const { user } = useAuth();
+    const { showAlert } = useModal();
     const { submissionId } = route.params || {};
 
     const [loading, setLoading] = useState(true);
@@ -71,7 +72,7 @@ export function HomeworkReviewScreen() {
 
     const handleAction = async (action: 'approved' | 'needs_revision') => {
         if (!feedback.trim() && action === 'needs_revision') {
-            Alert.alert('Feedback Required', 'Please provide feedback when requesting changes.');
+            showAlert('Feedback Required', 'Please provide feedback when requesting changes.', 'error');
             return;
         }
 
@@ -103,15 +104,16 @@ export function HomeworkReviewScreen() {
                     }, { onConflict: 'user_id,lesson_id' });
             }
 
-            Alert.alert(
+            showAlert(
                 'Success',
                 action === 'approved'
                     ? 'Homework approved! Lesson marked as complete.'
-                    : 'Feedback sent to student.'
+                    : 'Feedback sent to student.',
+                'success'
             );
             navigation.goBack();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setSaving(false);
         }

@@ -375,13 +375,13 @@ export function OwnerDashboardScreen() {
                     {/* Messages Banner */}
                     {stats.unreadMessages > 0 && (
                         <TouchableOpacity style={styles.messagesBanner} onPress={() => navigation.navigate('Messages')}>
-                            <LinearGradient colors={['rgba(40,40,45,0.95)', 'rgba(25,25,30,0.95)']} style={styles.bannerGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                            <LinearGradient colors={['rgba(244, 114, 182, 0.12)', 'rgba(244, 114, 182, 0.03)']} style={styles.bannerGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                                 <View style={styles.bannerContent}>
                                     <View style={styles.bannerLeft}>
                                         <View style={[styles.heroIconCircle, { backgroundColor: 'rgba(244, 114, 182, 0.15)', marginRight: 12 }]}>
                                             <MaterialCommunityIcons name="message-alert" size={18} color="#F472B6" />
                                         </View>
-                                        <MerakiText variant="bodyBold" color="#FFF">
+                                        <MerakiText variant="bodyBold" color="#1A1A1A">
                                             {stats.unreadMessages} Unread Message{stats.unreadMessages !== 1 ? 's' : ''}
                                         </MerakiText>
                                     </View>
@@ -434,7 +434,7 @@ export function OwnerDashboardScreen() {
                         {appointments.length > 0 ? (
                             appointments.map((apt) => (
                                 <Card key={apt.id} variant="glass" style={styles.appointmentCard} noPadding>
-                                    <TouchableOpacity style={styles.aptRow}>
+                                    <TouchableOpacity style={styles.aptRow} onPress={() => navigation.navigate('Appointments')}>
                                         <View style={styles.timeBlock}>
                                             <MerakiText variant="bodyBold" color={colors.accent}>{format(new Date(apt.start_time), 'HH:mm')}</MerakiText>
                                         </View>
@@ -585,9 +585,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     badgeContainer: { position: 'absolute', top: -4, right: -4, backgroundColor: '#FF453A', borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: 'rgba(20,20,25,0.9)' },
-    badgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
+    badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700', textAlign: 'center', includeFontPadding: false, textAlignVertical: 'center', lineHeight: 12 },
     // Messages banner
-    messagesBanner: { borderRadius: layout.borderRadius.lg, overflow: 'hidden', marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.04)' },
+    messagesBanner: { borderRadius: layout.borderRadius.lg, overflow: 'hidden', marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(244, 114, 182, 0.15)' },
     bannerGradient: { padding: spacing.lg },
     bannerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     bannerLeft: { flexDirection: 'row', alignItems: 'center' },

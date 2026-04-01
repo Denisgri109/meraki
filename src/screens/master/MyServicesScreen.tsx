@@ -203,6 +203,12 @@ export function MyServicesScreen() {
                             thumbColor={'#fff'}
                         />
                         <TouchableOpacity
+                            onPress={() => (navigation as any).navigate('CreateService', { service: item })}
+                            style={styles.editButton}
+                        >
+                            <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.primary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
                             onPress={() => handleDelete(item)}
                             style={styles.deleteButton}
                         >
@@ -300,7 +306,19 @@ const styles = StyleSheet.create({
     },
     title: { fontSize: 20, fontWeight: 'bold', color: colors.text },
     list: { padding: spacing.md },
-    card: { padding: spacing.md, marginBottom: spacing.md },
+    card: { 
+        padding: spacing.md, 
+        marginBottom: spacing.md,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
+    },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     info: { flex: 1, marginRight: spacing.md },
     category: { fontSize: 12, color: colors.primary, fontWeight: '600', textTransform: 'uppercase', marginBottom: 4 },
@@ -325,6 +343,10 @@ const styles = StyleSheet.create({
         gap: spacing.sm
     },
     deleteButton: {
+        padding: 4,
+        marginLeft: spacing.xs
+    },
+    editButton: {
         padding: 4,
         marginLeft: spacing.xs
     },

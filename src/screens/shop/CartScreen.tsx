@@ -5,36 +5,34 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useCart } from '../../contexts/CartContext';
+import { useModal } from '../../contexts/ModalContext';
 import { Button, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 
 export function CartScreen() {
     const navigation = useNavigation<any>();
     const { items, removeFromCart, updateQuantity, getTotal, clearCart } = useCart();
+    const { showAlert, showConfirm } = useModal();
 
     const handleCheckout = () => {
         if (items.length === 0) {
-            Alert.alert('Empty Cart', 'Add some products to your cart first!');
+            showAlert('Empty Cart', 'Add some products to your cart first!', 'info');
             return;
         }
         navigation.navigate('Checkout');
     };
 
     const handleRemoveItem = (productId: string, productName: string) => {
-        Alert.alert(
+        showConfirm(
             'Remove Item',
             `Remove ${productName} from cart?`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Remove', style: 'destructive', onPress: () => removeFromCart(productId) },
-            ]
+            () => removeFromCart(productId)
         );
     };
 
@@ -173,7 +171,7 @@ export function CartScreen() {
                     </View>
                     <View style={styles.summaryRow}>
                         <MerakiText style={styles.summaryLabel}>Delivery</MerakiText>
-                        <MerakiText style={[styles.summaryLabel, { color: '#16A34A' }]}>FREE</MerakiText>
+                        <MerakiText style={[styles.summaryLabel, { color: 'rgba(0,0,0,0.6)', fontStyle: 'italic' }]}>Calculated at checkout</MerakiText>
                     </View>
                     <View style={[styles.summaryRow, styles.totalRow]}>
                         <MerakiText style={styles.totalLabel}>Total</MerakiText>

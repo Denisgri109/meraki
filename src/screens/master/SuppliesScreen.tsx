@@ -209,7 +209,7 @@ export function SuppliesScreen() {
                             style={styles.emptyButton}
                             onPress={() => (navigation as any).navigate('AddSupply')}
                         >
-                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>Add Your First Supply</MerakiText>
+                            <MerakiText variant="body" color={colors.textInvert} style={{ fontWeight: '600' }}>Add Your First Supply</MerakiText>
                         </TouchableOpacity>
                     </View>
                 ) : (
