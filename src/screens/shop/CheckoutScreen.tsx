@@ -225,79 +225,40 @@ export function CheckoutScreen() {
                 }
             }
 
-            // 3. Create the order (with shipping details)
-            const { data: order, error: orderError } = await (supabase as any)
-                .from('orders')
-                .insert({
-                    user_id: user.id,
-                    total: finalTotal,
-                    notes: notes || null,
-                    status: 'confirmed',
-                    stripe_payment_intent_id: paymentIntentId,
-                    // Shipping fields
-                    shipping_name: shippingName.trim(),
-                    shipping_phone: shippingPhone.trim(),
-                    shipping_address: shippingAddress.trim(),
-                    shipping_city: shippingCity.trim(),
-                    shipping_postal_code: shippingPostalCode.trim(),
-                    shipping_country: shippingCountry,
-                    shipping_cost: shippingCost,
-                    shipping_status: 'pending',
-                })
-                .select()
-                .single();
-
-            if (orderError) throw orderError;
-
-            // 4. Record the payment
-            await (supabase as any)
-                .from('payments')
-                .insert({
-                    user_id: user.id,
-                    order_id: order.id,
-                    stripe_payment_intent_id: paymentIntentId,
-                    amount: totalInCents,
-                    currency: 'eur',
-                    status: 'succeeded',
-                    payment_type: 'shop',
-                    description: `Shop Order #${order.id.slice(0, 8).toUpperCase()}`,
-                });
-
-            // 5. Create order items and decrement stock
-            for (const item of items) {
-                const { error: itemError } = await (supabase as any)
-                    .from('order_items')
-                    .insert({
-                        order_id: order.id,
+            const { data: finalizedOrder, error: finalizeError } = await supabase.functions.invoke('finalize-shop-order', {
+                body: {
+                    items: items.map(item => ({
                         product_id: item.id,
-                        product_name: item.name,
                         quantity: item.quantity,
-                        price: item.price,
-                    });
+                    })),
+                    payment_intent_id: paymentIntentId,
+                    currency: 'eur',
+                    shipping: {
+                        name: shippingName.trim(),
+                        phone: shippingPhone.trim(),
+                        address: shippingAddress.trim(),
+                        city: shippingCity.trim(),
+                        postal_code: shippingPostalCode.trim(),
+                        country: shippingCountry,
+                        notes: notes || null,
+                    },
+                },
+            });
 
-                if (itemError) throw itemError;
+            if (finalizeError) throw finalizeError;
+            const orderId = finalizedOrder?.order_id as string | undefined;
+            const alreadyFinalized = finalizedOrder?.already_finalized === true;
+            if (!orderId) throw new Error('Order finalization failed.');
 
-                // Decrement stock
-                const { error: stockError } = await (supabase as any)
-                    .rpc('decrement_stock', {
-                        p_product_id: item.id,
-                        p_quantity: item.quantity,
-                    });
-
-                if (stockError) {
-                    console.error('Stock decrement error:', stockError);
-                }
+            if (!alreadyFinalized) {
+                await sendOwnerNotification(orderId, finalTotal);
             }
 
-            // 6. Send push notification to owner
-            await sendOwnerNotification(order.id, finalTotal);
-
-            // 7. Clear cart and show success
             clearCart();
 
             showAlert(
                 '🎉 Order Placed!',
-                `Your order #${order.id.slice(0, 8).toUpperCase()} has been confirmed.\n\nSubtotal: €${subtotal.toFixed(2)}\nShipping: €${shippingCost.toFixed(2)}\nTotal: €${finalTotal.toFixed(2)}\n\nShipping to: ${shippingCity}, ${getCountryName(shippingCountry)}`,
+                `Your order #${orderId.slice(0, 8).toUpperCase()} has been confirmed.\n\nSubtotal: €${subtotal.toFixed(2)}\nShipping: €${shippingCost.toFixed(2)}\nTotal: €${finalTotal.toFixed(2)}\n\nShipping to: ${shippingCity}, ${getCountryName(shippingCountry)}`,
                 'success'
             );
             navigation.navigate('Home');
