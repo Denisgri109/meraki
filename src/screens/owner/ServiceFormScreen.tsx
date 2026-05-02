@@ -26,7 +26,7 @@ type RouteParams = {
     ServiceForm: { service?: Service };
 };
 
-const CATEGORIES = ['Hair', 'Nails', 'Skincare', 'Massage', 'Makeup', 'Other'];
+const CATEGORIES = ['Hair', 'Nails', 'Skincare', 'Massage', 'Makeup', 'Pilates', 'Other'];
 
 export function ServiceFormScreen() {
     const navigation = useNavigation<any>();

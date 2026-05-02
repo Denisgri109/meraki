@@ -814,6 +814,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    actionBtn: {
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        borderRadius: layout.borderRadius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    actionBtnText: {
+        color: '#FFF',
+        fontWeight: '700' as any,
+    },
     textInput: {
         flex: 1,
         color: colors.text,

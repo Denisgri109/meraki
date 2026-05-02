@@ -10,6 +10,7 @@ import {
     OwnerDashboardScreen,
     ServiceListScreen,
     ServiceFormScreen,
+    PilatesTimetableScreen,
     InventoryScreen,
     OwnerSuppliesScreen,
     AddOwnerSupplyScreen,
@@ -68,6 +69,7 @@ export type OwnerDashboardStackParamList = {
     DashboardMain: undefined;
     Services: undefined;
     ServiceForm: { service?: any } | undefined;
+    PilatesTimetable: { service: any };
     Inventory: undefined;
     ProductDetail: { productId: string; product: any };
     LoyaltyQR: undefined;
@@ -106,6 +108,7 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="DashboardMain" component={OwnerDashboardScreen} />
             <DashboardStack.Screen name="Services" component={ServiceListScreen} />
             <DashboardStack.Screen name="ServiceForm" component={ServiceFormScreen} />
+            <DashboardStack.Screen name="PilatesTimetable" component={PilatesTimetableScreen} />
             <DashboardStack.Screen name="Inventory" component={InventoryScreen} />
             <DashboardStack.Screen name="ProductDetail" component={ProductDetailScreen} />
             <DashboardStack.Screen name="LoyaltyQR" component={LoyaltyQRScreen} />
@@ -171,6 +174,7 @@ export type MenuStackParamList = {
     OrderDetail: { order: any };
     Services: undefined;
     ServiceForm: { service?: any } | undefined;
+    PilatesTimetable: { service: any };
     BlockedSlots: undefined;
     LoyaltyCardBuilder: undefined;
     AftercareCampaigns: undefined;
@@ -219,6 +223,7 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="OrderDetail" component={OwnerOrderDetailScreen} />
             <MenuStack.Screen name="Services" component={ServiceListScreen} />
             <MenuStack.Screen name="ServiceForm" component={ServiceFormScreen} />
+            <MenuStack.Screen name="PilatesTimetable" component={PilatesTimetableScreen} />
             <MenuStack.Screen name="BlockedSlots" component={BlockedSlotsScreen} />
             <MenuStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
             <MenuStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />

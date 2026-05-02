@@ -32,7 +32,7 @@ type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
     SelectDateTime: { serviceId: string; masterId: string };
-    BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
+    BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
 };
 
 type BookingScreenProps = {
@@ -44,6 +44,7 @@ const CATEGORIES = [
     { label: 'Nails', icon: 'content-cut' },
     { label: 'Lashes', icon: 'visibility' },
     { label: 'Brows', icon: 'face' },
+    { label: 'Pilates', icon: 'fitness-center' },
 ];
 
 // Category-based gradient palettes (Academy-inspired pastel banners)
@@ -53,6 +54,7 @@ const CATEGORY_GRADIENTS: Record<string, [string, string]> = {
     Brows: ['#FFF3D6', '#F5E0A0'],
     Hair: ['#D4F0E7', '#B8E6D4'],
     Skincare: ['#D6EAFF', '#B8D4F0'],
+    Pilates: ['#E6F7F1', '#C8E9DD'],
     default: ['#F0F0F0', '#E5E5E5'],
 };
 
@@ -62,6 +64,7 @@ const CATEGORY_ICON_COLORS: Record<string, string> = {
     Brows: '#9B7A1C',
     Hair: '#2D7A5A',
     Skincare: '#3A6FA0',
+    Pilates: '#2D7A5A',
     default: '#555555',
 };
 
@@ -79,6 +82,7 @@ const getCategoryMaterialIcon = (category: string | null): string => {
         case 'Lashes': return 'visibility';
         case 'Brows': return 'face';
         case 'Hair': return 'content-cut';
+        case 'Pilates': return 'fitness-center';
         default: return 'spa';
     }
 };

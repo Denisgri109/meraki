@@ -28,6 +28,17 @@ interface MasterBusinessSettings {
     is_visible_globally: boolean;
 }
 
+interface PilatesSettings {
+    default_capacity: number;
+    default_session_duration_minutes: number;
+    buffer_minutes: number;
+    equipment_provided: boolean;
+    require_health_declaration: boolean;
+    default_level: string;
+    equipment_notes: string;
+    location_notes: string;
+}
+
 const DEFAULT_SETTINGS: MasterBusinessSettings = {
     confirmation_timing_hours: 24,
     late_arrival_minutes: 15,
@@ -35,6 +46,17 @@ const DEFAULT_SETTINGS: MasterBusinessSettings = {
     require_tc_acceptance: true,
     accepts_new_clients: true,
     is_visible_globally: true,
+};
+
+const DEFAULT_PILATES_SETTINGS: PilatesSettings = {
+    default_capacity: 6,
+    default_session_duration_minutes: 50,
+    buffer_minutes: 10,
+    equipment_provided: true,
+    require_health_declaration: true,
+    default_level: 'All levels',
+    equipment_notes: '',
+    location_notes: '',
 };
 
 const CONFIRMATION_OPTIONS = [
@@ -50,6 +72,13 @@ const LATE_ARRIVAL_OPTIONS = [
     { value: 30, label: '30 minutes' },
 ];
 
+const PILATES_LEVEL_OPTIONS = [
+    { value: 'Beginner', label: 'Beginner' },
+    { value: 'Intermediate', label: 'Intermediate' },
+    { value: 'Advanced', label: 'Advanced' },
+    { value: 'All levels', label: 'All levels' },
+];
+
 const PERCENTAGE_OPTIONS = [
     { value: 0, label: '0% (No charge)' },
     { value: 25, label: '25%' },
@@ -58,23 +87,26 @@ const PERCENTAGE_OPTIONS = [
     { value: 100, label: '100% (Full charge)' },
 ];
 
-type PickerType = 'confirmation' | 'late_arrival' | 'cancellation_percent' | 'noshow_percent' | null;
+type PickerType = 'confirmation' | 'late_arrival' | 'pilates_level' | 'cancellation_percent' | 'noshow_percent' | null;
 
 export function BusinessSettingsScreen() {
     const navigation = useNavigation();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const { showAlert } = useModal();
 
     const [settings, setSettings] = useState<MasterBusinessSettings>(DEFAULT_SETTINGS);
+    const [pilatesSettings, setPilatesSettings] = useState<PilatesSettings>(DEFAULT_PILATES_SETTINGS);
+    const [pilatesServiceId, setPilatesServiceId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [pickerVisible, setPickerVisible] = useState<PickerType>(null);
     const [tcModalVisible, setTcModalVisible] = useState(false);
     const [tcDraft, setTcDraft] = useState('');
+    const canManagePilates = profile?.role === 'owner';
 
     useEffect(() => {
         loadSettings();
-    }, []);
+    }, [user?.id, profile?.role]);
 
     const loadSettings = async () => {
         if (!user) return;
@@ -112,6 +144,48 @@ export function BusinessSettingsScreen() {
                         { onConflict: 'master_id' }
                     );
             }
+
+            if (canManagePilates) {
+                const { data: serviceData, error: serviceError } = await supabase
+                    .from('services')
+                    .select('id')
+                    .eq('created_by', user.id)
+                    .eq('category', 'Pilates')
+                    .eq('is_active', true)
+                    .limit(1)
+                    .maybeSingle();
+
+                if (serviceError) {
+                    console.error('Error loading Pilates service:', serviceError);
+                }
+
+                setPilatesServiceId(serviceData?.id || null);
+
+                if (serviceData?.id) {
+                    const { data: pilatesData, error: pilatesError } = await supabase
+                        .from('pilates_settings')
+                        .select('*')
+                        .eq('service_id', serviceData.id)
+                        .maybeSingle();
+
+                    if (pilatesError) {
+                        console.error('Error loading Pilates settings:', pilatesError);
+                    }
+
+                    if (pilatesData) {
+                        setPilatesSettings({
+                            default_capacity: pilatesData.default_capacity ?? 6,
+                            default_session_duration_minutes: pilatesData.default_session_duration_minutes ?? 50,
+                            buffer_minutes: pilatesData.buffer_minutes ?? 10,
+                            equipment_provided: pilatesData.equipment_provided ?? true,
+                            require_health_declaration: pilatesData.require_health_declaration ?? true,
+                            default_level: pilatesData.default_level || 'All levels',
+                            equipment_notes: pilatesData.equipment_notes || '',
+                            location_notes: pilatesData.location_notes || '',
+                        });
+                    }
+                }
+            }
         } catch (error) {
             console.error('Error:', error);
         } finally {
@@ -138,6 +212,23 @@ export function BusinessSettingsScreen() {
 
             if (error) throw error;
 
+            if (canManagePilates && pilatesServiceId) {
+                const { error: pilatesError } = await supabase
+                    .from('pilates_settings')
+                    .upsert(
+                        {
+                            owner_id: user.id,
+                            service_id: pilatesServiceId,
+                            ...pilatesSettings,
+                            equipment_notes: pilatesSettings.equipment_notes.trim() || null,
+                            location_notes: pilatesSettings.location_notes.trim() || null,
+                        },
+                        { onConflict: 'service_id' }
+                    );
+
+                if (pilatesError) throw pilatesError;
+            }
+
             showAlert('Success', 'Your business settings have been saved!', 'success');
         } catch (error: any) {
             showAlert('Error', error.message || 'Failed to save settings', 'error');
@@ -154,9 +245,9 @@ export function BusinessSettingsScreen() {
     const renderPicker = () => {
         if (!pickerVisible) return null;
 
-        let items: { value: number; label: string }[] = [];
+        let items: { value: number | string; label: string }[] = [];
         let title = '';
-        let currentValue: number = 0;
+        let currentValue: number | string = 0;
 
         switch (pickerVisible) {
             case 'confirmation':
@@ -169,16 +260,24 @@ export function BusinessSettingsScreen() {
                 title = 'Late Arrival Window';
                 currentValue = settings.late_arrival_minutes;
                 break;
+            case 'pilates_level':
+                items = PILATES_LEVEL_OPTIONS;
+                title = 'Default Pilates Level';
+                currentValue = pilatesSettings.default_level;
+                break;
 
         }
 
-        const onSelect = (value: number) => {
+        const onSelect = (value: number | string) => {
             switch (pickerVisible) {
                 case 'confirmation':
-                    setSettings({ ...settings, confirmation_timing_hours: value });
+                    setSettings({ ...settings, confirmation_timing_hours: Number(value) });
                     break;
                 case 'late_arrival':
-                    setSettings({ ...settings, late_arrival_minutes: value });
+                    setSettings({ ...settings, late_arrival_minutes: Number(value) });
+                    break;
+                case 'pilates_level':
+                    setPilatesSettings({ ...pilatesSettings, default_level: String(value) });
                     break;
 
             }
@@ -409,6 +508,109 @@ export function BusinessSettingsScreen() {
                         </View>
                     </Card>
 
+                    {canManagePilates && pilatesServiceId && (
+                    <Card style={styles.section}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="yoga" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Pilates Settings</MerakiText>
+                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
+                            Configure session details that differ from standard beauty bookings.
+                        </MerakiText>
+
+                        <View style={styles.formRow}>
+                            <View style={styles.formHalf}>
+                                <Text style={styles.inputLabel}>Default Capacity</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={String(pilatesSettings.default_capacity)}
+                                    onChangeText={(value) => setPilatesSettings({ ...pilatesSettings, default_capacity: Number(value) || 1 })}
+                                    keyboardType="number-pad"
+                                />
+                            </View>
+                            <View style={styles.formHalf}>
+                                <Text style={styles.inputLabel}>Session Duration</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={String(pilatesSettings.default_session_duration_minutes)}
+                                    onChangeText={(value) => setPilatesSettings({ ...pilatesSettings, default_session_duration_minutes: Number(value) || 50 })}
+                                    keyboardType="number-pad"
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.formRow}>
+                            <View style={styles.formHalf}>
+                                <Text style={styles.inputLabel}>Buffer Minutes</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={String(pilatesSettings.buffer_minutes)}
+                                    onChangeText={(value) => setPilatesSettings({ ...pilatesSettings, buffer_minutes: Number(value) || 0 })}
+                                    keyboardType="number-pad"
+                                />
+                            </View>
+                            <View style={styles.formHalf}>
+                                <Text style={styles.inputLabel}>Default Level</Text>
+                                <TouchableOpacity
+                                    style={styles.selector}
+                                    onPress={() => setPickerVisible('pilates_level')}
+                                >
+                                    <Text style={styles.selectorText}>{pilatesSettings.default_level}</Text>
+                                    <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        <View style={styles.switchRow}>
+                            <View style={styles.switchLabel}>
+                                <Text style={styles.switchTitle}>Equipment Provided</Text>
+                                <Text style={styles.switchDescription}>Clients can attend without bringing their own equipment</Text>
+                            </View>
+                            <Switch
+                                value={pilatesSettings.equipment_provided}
+                                onValueChange={(value) => setPilatesSettings({ ...pilatesSettings, equipment_provided: value })}
+                                trackColor={{ false: colors.border, true: colors.primary }}
+                                thumbColor={colors.text}
+                            />
+                        </View>
+
+                        <View style={[styles.switchRow, { marginTop: spacing.md }]}>
+                            <View style={styles.switchLabel}>
+                                <Text style={styles.switchTitle}>Require Health Declaration</Text>
+                                <Text style={styles.switchDescription}>Show safety requirement before clients complete booking</Text>
+                            </View>
+                            <Switch
+                                value={pilatesSettings.require_health_declaration}
+                                onValueChange={(value) => setPilatesSettings({ ...pilatesSettings, require_health_declaration: value })}
+                                trackColor={{ false: colors.border, true: colors.primary }}
+                                thumbColor={colors.text}
+                            />
+                        </View>
+
+                        <Text style={[styles.inputLabel, { marginTop: spacing.md }]}>Equipment Notes</Text>
+                        <TextInput
+                            style={[styles.input, styles.multilineInput]}
+                            value={pilatesSettings.equipment_notes}
+                            onChangeText={(value) => setPilatesSettings({ ...pilatesSettings, equipment_notes: value })}
+                            placeholder="Tell clients what is provided or what to bring..."
+                            placeholderTextColor={colors.textMuted}
+                            multiline
+                            textAlignVertical="top"
+                        />
+
+                        <Text style={[styles.inputLabel, { marginTop: spacing.md }]}>Location Notes</Text>
+                        <TextInput
+                            style={[styles.input, styles.multilineInput]}
+                            value={pilatesSettings.location_notes}
+                            onChangeText={(value) => setPilatesSettings({ ...pilatesSettings, location_notes: value })}
+                            placeholder="Studio room, parking, entry details..."
+                            placeholderTextColor={colors.textMuted}
+                            multiline
+                            textAlignVertical="top"
+                        />
+                    </Card>
+                    )}
+
                     {/* Visibility Settings */}
                     <Card style={styles.section}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
@@ -524,6 +726,33 @@ const styles = StyleSheet.create({
         fontSize: 20,
         color: colors.textMuted,
         marginLeft: spacing.sm,
+    },
+
+    formRow: {
+        flexDirection: 'row',
+        gap: spacing.md,
+        marginBottom: spacing.md,
+    },
+    formHalf: {
+        flex: 1,
+    },
+    inputLabel: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        marginBottom: spacing.xs,
+        fontWeight: '500',
+    },
+    input: {
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        borderRadius: 12,
+        padding: spacing.md,
+        color: colors.text,
+        fontSize: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    multilineInput: {
+        minHeight: 88,
     },
 
     switchRow: {

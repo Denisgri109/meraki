@@ -114,6 +114,16 @@ export function ServiceListScreen() {
             </TouchableOpacity>
 
             {/* Manage Supplies Button */}
+            {service.category === 'Pilates' && (
+                <TouchableOpacity
+                    style={styles.pilatesButton}
+                    onPress={() => navigation.navigate('PilatesTimetable', { service })}
+                >
+                    <Text style={styles.linkSuppliesIcon}>🧘</Text>
+                    <Text style={styles.pilatesButtonText}>Manage Pilates Timetable</Text>
+                    <Text style={styles.linkSuppliesArrow}>→</Text>
+                </TouchableOpacity>
+            )}
             <TouchableOpacity
                 style={styles.linkSuppliesButton}
                 onPress={() => navigation.navigate('ServiceSupplies', { serviceId: service.id })}
@@ -248,6 +258,16 @@ const styles = StyleSheet.create({
     linkSuppliesIcon: { fontSize: 16, marginRight: spacing.sm },
     linkSuppliesText: { flex: 1, fontSize: 14, color: colors.text, fontWeight: '500' },
     linkSuppliesArrow: { fontSize: 18, color: colors.primary },
+    pilatesButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: spacing.md,
+        paddingTop: spacing.md,
+        padding: spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(16, 185, 129, 0.18)',
+    },
+    pilatesButtonText: { flex: 1, fontSize: 14, color: '#047857', fontWeight: '700' },
     emptyCard: { alignItems: 'center', padding: spacing.xl, marginTop: spacing.xl },
     emptyIcon: { fontSize: 48, marginBottom: spacing.md, opacity: 0.5 },
     emptyText: { fontSize: 14, color: colors.textSecondary, marginBottom: spacing.lg },

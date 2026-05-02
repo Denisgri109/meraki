@@ -5,6 +5,7 @@
  */
 import { supabase } from '../lib/supabase';
 import { safeSupabaseFetch } from '../lib/supabaseApi';
+import type { Tables } from '../types/database';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,8 @@ export type PendingMaster = {
     created_by: string | null;
     created_at: string | null;
 };
+
+export type MasterApplication = Tables<'master_applications'>;
 
 export type InviteMasterPayload = {
     full_name: string;
@@ -97,6 +100,72 @@ export async function inviteMaster(
         .single();
 
     return { data: data as PendingMaster | null, error };
+}
+
+export async function approveApplication(
+    applicationId: string,
+    reviewerId: string
+): Promise<{ success: boolean; error: any }> {
+    const { data: application, error: fetchError } = await supabase
+        .from('master_applications')
+        .select('profile_id, specialties, bio, service_radius_km')
+        .eq('id', applicationId)
+        .single();
+
+    if (fetchError) return { success: false, error: fetchError };
+
+    const reviewedAt = new Date().toISOString();
+    const { error: applicationError } = await supabase
+        .from('master_applications')
+        .update({
+            status: 'approved',
+            reviewed_by: reviewerId,
+            reviewed_at: reviewedAt,
+            updated_at: reviewedAt,
+        })
+        .eq('id', applicationId);
+
+    if (applicationError) return { success: false, error: applicationError };
+
+    if (application?.profile_id) {
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+                role: 'master',
+                is_master: true,
+                is_verified: true,
+                master_status: 'active',
+                specialties: application.specialties,
+                bio: application.bio,
+                service_radius_km: application.service_radius_km,
+                updated_at: reviewedAt,
+            })
+            .eq('id', application.profile_id);
+
+        if (profileError) return { success: false, error: profileError };
+    }
+
+    return { success: true, error: null };
+}
+
+export async function rejectApplication(
+    applicationId: string,
+    reviewerId: string,
+    reason: string
+): Promise<{ success: boolean; error: any }> {
+    const reviewedAt = new Date().toISOString();
+    const { error } = await supabase
+        .from('master_applications')
+        .update({
+            status: 'rejected',
+            rejection_reason: reason,
+            reviewed_by: reviewerId,
+            reviewed_at: reviewedAt,
+            updated_at: reviewedAt,
+        })
+        .eq('id', applicationId);
+
+    return { success: !error, error };
 }
 
 // ─── Edit / Deactivate ──────────────────────────────────────────────────────

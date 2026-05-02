@@ -20,7 +20,7 @@ import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button, Card, ScreenBackground, ConfirmModal, AlertModal } from '../../components/ui';
 import { colors, spacing } from '../../theme';
-import { Service, Profile } from '../../types/database';
+import { Service, Profile, Tables } from '../../types/database';
 import {
     createPaymentIntent,
     listPaymentMethods,
@@ -35,7 +35,7 @@ type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
     SelectDateTime: { serviceId: string; masterId: string };
-    BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
+    BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
 };
 
 type BookingConfirmScreenProps = {
@@ -43,9 +43,17 @@ type BookingConfirmScreenProps = {
     route: RouteProp<BookingStackParamList, 'BookingConfirm'>;
 };
 
+type PilatesSettings = Tables<'pilates_settings'>;
+type PilatesHost = Tables<'pilates_hosts'>;
+type PilatesBooking = Pick<Tables<'pilates_session_bookings'>, 'id' | 'status'>;
+type PilatesSession = Tables<'pilates_class_sessions'> & {
+    host: PilatesHost | null;
+    pilates_session_bookings: PilatesBooking[] | null;
+};
+
 export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreenProps) {
     useHideTabBar();
-    const { serviceId, masterId, dateTime } = route.params;
+    const { serviceId, masterId, dateTime, pilatesSessionId } = route.params;
     const { user, profile } = useAuth();
     const { confirmPayment } = useConfirmPayment();
     const { confirmSetupIntent } = useConfirmSetupIntent();
@@ -53,6 +61,8 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
     const [service, setService] = useState<Service | null>(null);
     const [master, setMaster] = useState<Profile | null>(null);
     const [masterSettings, setMasterSettings] = useState<any | null>(null);
+    const [pilatesSettings, setPilatesSettings] = useState<PilatesSettings | null>(null);
+    const [pilatesSession, setPilatesSession] = useState<PilatesSession | null>(null);
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -114,6 +124,26 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             setMaster(masterRes.data as Profile);
             if (masterSettingsRes?.data) {
                 setMasterSettings(masterSettingsRes.data);
+            }
+
+            if ((serviceRes.data as Service)?.category === 'Pilates') {
+                const [{ data: pilatesData }, { data: sessionData }] = await Promise.all([
+                    supabase
+                        .from('pilates_settings')
+                        .select('*')
+                        .eq('service_id', serviceId)
+                        .maybeSingle(),
+                    pilatesSessionId
+                        ? supabase
+                            .from('pilates_class_sessions')
+                            .select('*, host:pilates_hosts(*), pilates_session_bookings(id, status)')
+                            .eq('id', pilatesSessionId)
+                            .maybeSingle()
+                        : Promise.resolve({ data: null }),
+                ]);
+
+                setPilatesSettings(pilatesData || null);
+                setPilatesSession((sessionData as unknown as PilatesSession) || null);
             }
 
             // Fetch available credits for the user
@@ -186,6 +216,15 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
         };
     };
 
+    const pilatesBookedCount = pilatesSession?.pilates_session_bookings?.filter(item => item.status === 'booked').length || 0;
+    const pilatesSpotsLeft = pilatesSession ? Math.max(0, pilatesSession.capacity - pilatesBookedCount) : pilatesSettings?.default_capacity || 0;
+    const displayHostName = service?.category === 'Pilates'
+        ? pilatesSession?.host?.display_name || master?.full_name
+        : master?.full_name;
+    const displayDuration = pilatesSession
+        ? Math.round((new Date(pilatesSession.ends_at).getTime() - new Date(pilatesSession.starts_at).getTime()) / 60000)
+        : service?.duration_minutes;
+
     const handleConfirmBooking = async () => {
         if (!user || !service) return;
 
@@ -243,17 +282,18 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             const { amountToPay } = calculatePayment();
             const amountInCents = eurosToCents(amountToPay);
 
-            // STEP 0: Verify slot availability to prevent double booking
-            const { data: existingAppts, error: checkError } = await (supabase as any)
-                .from('appointments')
-                .select('id')
-                .eq('master_id', masterId)
-                .eq('start_time', startTime.toISOString())
-                .in('status', ['pending', 'confirmed', 'completed']);
+            if (service.category !== 'Pilates') {
+                const { data: existingAppts, error: checkError } = await (supabase as any)
+                    .from('appointments')
+                    .select('id')
+                    .eq('master_id', masterId)
+                    .eq('start_time', startTime.toISOString())
+                    .in('status', ['pending', 'confirmed', 'completed']);
 
-            if (checkError) throw new Error('Could not verify availability.');
-            if (existingAppts && existingAppts.length > 0) {
-                throw new Error('This time slot is no longer available. Please choose another time.');
+                if (checkError) throw new Error('Could not verify availability.');
+                if (existingAppts && existingAppts.length > 0) {
+                    throw new Error('This time slot is no longer available. Please choose another time.');
+                }
             }
 
             // STEP 1: Create SetupIntent to save card
@@ -339,20 +379,30 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             }
 
             // STEP 4: Create appointment using the new confirmation flow
-            const { data: appointmentId, error: bookError } = await supabase.rpc(
-                'book_appointment_with_confirmation',
-                {
-                    p_master_id: masterId,
-                    p_service_id: serviceId,
-                    p_start_time: startTime.toISOString(),
+            const { data: appointmentId, error: bookError } = service.category === 'Pilates' && pilatesSessionId
+                ? await supabase.rpc('book_pilates_session', {
+                    p_session_id: pilatesSessionId,
                     p_stripe_setup_intent_id: setupIntentData.setup_intent_id,
                     p_stripe_payment_intent_id: (paymentIntentId || null) as any,
                     p_notes: notes || undefined,
                     p_deposit_amount: amountToPay,
                     p_deposit_payment_intent_id: (paymentIntentId || null) as any,
-                    p_credit_id: appliedCredit?.id || null
-                }
-            );
+                    p_credit_id: appliedCredit?.id || null,
+                })
+                : await supabase.rpc(
+                    'book_appointment_with_confirmation',
+                    {
+                        p_master_id: masterId,
+                        p_service_id: serviceId,
+                        p_start_time: startTime.toISOString(),
+                        p_stripe_setup_intent_id: setupIntentData.setup_intent_id,
+                        p_stripe_payment_intent_id: (paymentIntentId || null) as any,
+                        p_notes: notes || undefined,
+                        p_deposit_amount: amountToPay,
+                        p_deposit_payment_intent_id: (paymentIntentId || null) as any,
+                        p_credit_id: appliedCredit?.id || null
+                    }
+                );
 
             if (bookError) throw bookError;
 
@@ -480,8 +530,8 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                         <View style={styles.detailRow}>
                             <Text style={styles.detailIcon}>👤</Text>
                             <View style={styles.detailInfo}>
-                                <Text style={styles.detailLabel}>Specialist</Text>
-                                <Text style={styles.detailValue}>{master?.full_name}</Text>
+                                <Text style={styles.detailLabel}>{service?.category === 'Pilates' ? 'Host' : 'Specialist'}</Text>
+                                <Text style={styles.detailValue}>{displayHostName}</Text>
                             </View>
                         </View>
 
@@ -517,10 +567,36 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                             <MaterialIcons name="timer" size={16} color={colors.textSecondary} />
                             <View style={styles.detailInfo}>
                                 <Text style={styles.detailLabel}>Duration</Text>
-                                <Text style={styles.detailValue}>{service?.duration_minutes} minutes</Text>
+                                <Text style={styles.detailValue}>{displayDuration} minutes</Text>
                             </View>
                         </View>
                     </Card>
+
+                    {service?.category === 'Pilates' && pilatesSettings && (
+                        <Card style={styles.pilatesSection} variant="glass">
+                            <Text style={styles.sectionLabel}>🧘 Pilates Session</Text>
+                            <View style={styles.pilatesRow}>
+                                <MaterialIcons name="fitness-center" size={16} color={colors.textSecondary} />
+                                <Text style={styles.pilatesText}>{pilatesSession?.level || pilatesSettings.default_level || 'All levels'}</Text>
+                            </View>
+                            <View style={styles.pilatesRow}>
+                                <MaterialIcons name="groups" size={16} color={colors.textSecondary} />
+                                <Text style={styles.pilatesText}>{pilatesSpotsLeft} spot{pilatesSpotsLeft === 1 ? '' : 's'} left · {pilatesSession?.capacity || pilatesSettings.default_capacity || 6} total</Text>
+                            </View>
+                            <View style={styles.pilatesRow}>
+                                <MaterialIcons name="inventory-2" size={16} color={colors.textSecondary} />
+                                <Text style={styles.pilatesText}>
+                                    {pilatesSettings.equipment_provided ? 'Equipment provided' : 'Bring your own equipment'}
+                                </Text>
+                            </View>
+                            {pilatesSettings.require_health_declaration && (
+                                <View style={styles.pilatesRow}>
+                                    <MaterialIcons name="health-and-safety" size={16} color={colors.textSecondary} />
+                                    <Text style={styles.pilatesText}>Health declaration required</Text>
+                                </View>
+                            )}
+                        </Card>
+                    )}
 
                     {/* Notes */}
                     <View style={styles.notesSection}>
@@ -904,6 +980,22 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: colors.text,
         marginBottom: spacing.sm,
+    },
+    pilatesSection: {
+        marginHorizontal: spacing.lg,
+        marginBottom: spacing.lg,
+        padding: spacing.lg,
+        gap: spacing.sm,
+    },
+    pilatesRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+    },
+    pilatesText: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        flex: 1,
     },
     creditsSection: {
         paddingHorizontal: spacing.lg,
