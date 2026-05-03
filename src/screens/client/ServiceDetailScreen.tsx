@@ -40,7 +40,7 @@ type PilatesSettings = Tables<'pilates_settings'>;
 export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenProps) {
     useHideTabBar();
     const { serviceId } = route.params;
-    const { profile } = useAuth();
+    const { user, profile } = useAuth();
     const userCountry = profile?.country || null;
     const { showAlert } = useModal();
     const [service, setService] = useState<Service | null>(null);
@@ -53,7 +53,7 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [serviceId, user?.id, userCountry]);
 
     const fetchData = async () => {
         try {
@@ -89,7 +89,7 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
             // Extract profiles
             let availableMasters = (masterServiceData || [])
                 .map((item: any) => item.profiles)
-                .filter((profile: any) => profile !== null);
+                .filter((profile: any) => profile !== null && profile.id !== user?.id);
 
             // Country filter: only show masters from the client's country
             if (userCountry) {
@@ -176,6 +176,10 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
 
     const handleContinue = async () => {
         if (!master) return;
+        if (master.id === user?.id) {
+            showAlert('Unavailable', 'You cannot book an appointment with yourself.', 'warning');
+            return;
+        }
 
         // Check if service requires consultation
         if (service?.requires_consultation) {
@@ -401,7 +405,7 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                     <Button
                         title={getButtonText()}
                         onPress={handleContinue}
-                        disabled={!master || checkingConsultation}
+                        disabled={!master || master.id === user?.id || checkingConsultation}
                         loading={checkingConsultation}
                         fullWidth
                     />

@@ -224,9 +224,23 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
     const displayDuration = pilatesSession
         ? Math.round((new Date(pilatesSession.ends_at).getTime() - new Date(pilatesSession.starts_at).getTime()) / 60000)
         : service?.duration_minutes;
+    const bookingHostId = service?.category === 'Pilates'
+        ? pilatesSession?.host?.profile_id || pilatesSession?.owner_id || masterId
+        : masterId;
+    const isSelfBooking = Boolean(user?.id && bookingHostId === user.id);
 
     const handleConfirmBooking = async () => {
         if (!user || !service) return;
+        if (isSelfBooking) {
+            setModalConfig({
+                visible: true,
+                title: 'Unavailable',
+                message: 'You cannot book an appointment with yourself.',
+                type: 'warning',
+                onConfirm: () => setModalConfig(prev => ({ ...prev, visible: false })),
+            });
+            return;
+        }
 
         const finalPrice = calculateFinalPrice();
 
@@ -802,7 +816,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                         title={submitting || isSuccess ? 'Processing...' : `Pay €${calculateFinalPrice().toFixed(2)} & Confirm`}
                         onPress={handleConfirmBooking}
                         loading={submitting || isSuccess}
-                        disabled={submitting || isSuccess}
+                        disabled={submitting || isSuccess || isSelfBooking}
                         fullWidth
                     />
                 </View>

@@ -14,6 +14,7 @@ import { RouteProp } from '@react-navigation/native';
 import { format, addDays, startOfDay, setHours, setMinutes, isBefore } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
+import { useAuth } from '../../contexts/AuthContext';
 import { Button, Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { Service, Profile, Tables } from '../../types/database';
@@ -62,6 +63,7 @@ const generateTimeSlots = () => {
 export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreenProps) {
     useHideTabBar();
     const { serviceId, masterId } = route.params;
+    const { user } = useAuth();
     const [service, setService] = useState<Service | null>(null);
     const [master, setMaster] = useState<Profile | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
@@ -118,7 +120,7 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [serviceId, masterId, user?.id]);
 
     useEffect(() => {
         if (master && service?.category !== 'Pilates') {
@@ -181,7 +183,10 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                 .order('starts_at');
 
             if (error) throw error;
-            setPilatesSessions((data as unknown as PilatesSession[]) || []);
+            setPilatesSessions(((data as unknown as PilatesSession[]) || []).filter((session) => {
+                const hostId = session.host?.profile_id || session.owner_id;
+                return hostId !== user?.id;
+            }));
         } catch (error) {
             console.error('Error fetching Pilates sessions:', error);
         }
@@ -255,8 +260,12 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
     };
 
     const handleContinue = () => {
+        if (masterId === user?.id) return;
+
         if (service?.category === 'Pilates') {
             if (!selectedPilatesSession) return;
+            const hostId = selectedPilatesSession.host?.profile_id || selectedPilatesSession.owner_id;
+            if (hostId === user?.id) return;
             navigation.navigate('BookingConfirm', {
                 serviceId,
                 masterId: selectedPilatesSession.host?.profile_id || selectedPilatesSession.owner_id,
@@ -297,6 +306,8 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
         acc[key] = [...(acc[key] || []), session];
         return acc;
     }, {});
+    const selectedPilatesHostId = selectedPilatesSession?.host?.profile_id || selectedPilatesSession?.owner_id;
+    const isSelfBooking = Boolean(user?.id && (service?.category === 'Pilates' ? selectedPilatesHostId === user.id : masterId === user.id));
 
     if (loading) {
         return (
@@ -505,7 +516,7 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                     <Button
                         title="Continue"
                         onPress={handleContinue}
-                        disabled={service?.category === 'Pilates' ? !selectedPilatesSession : !selectedTime || isFetchingSlots}
+                        disabled={isSelfBooking || (service?.category === 'Pilates' ? !selectedPilatesSession : !selectedTime || isFetchingSlots)}
                         fullWidth
                     />
                 </View>

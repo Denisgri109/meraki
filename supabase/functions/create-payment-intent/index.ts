@@ -12,6 +12,7 @@ interface RequestBody {
     amount: number;
     currency: string;
     customer_id?: string;
+    payment_method_id?: string;
     appointment_id: string;
     master_id?: string;
     description?: string;
@@ -24,8 +25,8 @@ Deno.serve(async (req: Request) => {
         return new Response("ok", {
             headers: {
                 "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "POST",
-                "Access-Control-Allow-Headers": "authorization, content-type",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
             },
         });
     }
@@ -63,6 +64,7 @@ Deno.serve(async (req: Request) => {
             amount,
             currency = "eur",
             customer_id,
+            payment_method_id,
             appointment_id,
             master_id,
             description = "Merakí Beauty Service",
@@ -109,6 +111,7 @@ Deno.serve(async (req: Request) => {
 
         if (appointment_id) params["metadata[appointment_id]"] = appointment_id;
         if (stripeCustomerId) params.customer = stripeCustomerId;
+        if (payment_method_id) params.payment_method = payment_method_id;
 
         // If master has Connect account → destination charge (100% to master, zero platform fee)
         if (masterConnectId) {
