@@ -209,7 +209,7 @@ export function SuppliesScreen() {
                             style={styles.emptyButton}
                             onPress={() => (navigation as any).navigate('AddSupply')}
                         >
-                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>Add Your First Supply</MerakiText>
+                            <MerakiText variant="body" color={colors.textInvert} style={{ fontWeight: '600' }}>Add Your First Supply</MerakiText>
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -243,11 +243,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         marginRight: spacing.md,
     },
     title: {
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingTop: spacing.md,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        borderTopColor: 'rgba(0, 0, 0, 0.08)',
     },
     quantityContainer: {
         flexDirection: 'row',

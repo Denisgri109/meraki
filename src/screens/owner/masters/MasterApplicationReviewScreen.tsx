@@ -16,7 +16,6 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
-    Alert,
     ActivityIndicator,
     Dimensions,
     Linking,
@@ -34,6 +33,7 @@ import {
     type MasterApplication,
 } from '../../../services/masterManagementService';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useModal } from '../../../contexts/ModalContext';
 
 const { width } = Dimensions.get('window');
 
@@ -47,6 +47,7 @@ export function MasterApplicationReviewScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<RouteProp<ParamList, 'MasterApplicationReview'>>();
     const { user } = useAuth();
+    const { showAlert, showConfirm } = useModal();
     const { application } = route.params;
 
     const [activeTab, setActiveTab] = useState<ReviewTab>('profile');
@@ -55,35 +56,27 @@ export function MasterApplicationReviewScreen() {
     const [rejectionReason, setRejectionReason] = useState('');
 
     const handleApprove = () => {
-        Alert.alert(
+        showConfirm(
             'Approve Master',
             `Are you sure you want to approve ${application.full_name} as a beauty master? Their account will be upgraded immediately.`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Approve',
-                    style: 'default',
-                    onPress: async () => {
-                        if (!user) return;
-                        setProcessing(true);
-                        const { success, error } = await approveApplication(application.id, user.id);
-                        setProcessing(false);
-                        if (success) {
-                            Alert.alert('Approved!', `${application.full_name} is now an active master on Merakí.`, [
-                                { text: 'OK', onPress: () => navigation.goBack() }
-                            ]);
-                        } else {
-                            Alert.alert('Error', error?.message || 'Failed to approve application');
-                        }
-                    },
-                },
-            ]
+            async () => {
+                if (!user) return;
+                setProcessing(true);
+                const { success, error } = await approveApplication(application.id, user.id);
+                setProcessing(false);
+                if (success) {
+                    showAlert('Approved!', `${application.full_name} is now an active master on Merakí.`, 'success');
+                    navigation.goBack();
+                } else {
+                    showAlert('Error', error?.message || 'Failed to approve application', 'error');
+                }
+            }
         );
     };
 
     const handleReject = async () => {
         if (!user || !rejectionReason.trim()) {
-            Alert.alert('Required', 'Please provide a reason for rejection.');
+            showAlert('Required', 'Please provide a reason for rejection.', 'error');
             return;
         }
         setProcessing(true);
@@ -91,11 +84,10 @@ export function MasterApplicationReviewScreen() {
         setProcessing(false);
         setShowRejectModal(false);
         if (success) {
-            Alert.alert('Rejected', 'The application has been rejected.', [
-                { text: 'OK', onPress: () => navigation.goBack() }
-            ]);
+            showAlert('Rejected', 'The application has been rejected.', 'success');
+            navigation.goBack();
         } else {
-            Alert.alert('Error', error?.message || 'Failed to reject application');
+            showAlert('Error', error?.message || 'Failed to reject application', 'error');
         }
     };
 
@@ -334,7 +326,7 @@ export function MasterApplicationReviewScreen() {
                                 disabled={processing}
                             >
                                 <LinearGradient
-                                    colors={['#D4A853', '#B8912E']}
+                                    colors={['#E8A0B4', '#C47A90']}
                                     style={styles.approveBtnGradient}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 0 }}
@@ -404,8 +396,8 @@ const styles = StyleSheet.create({
     },
     backBtn: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     headerTitle: { flex: 1, marginLeft: spacing.md },
@@ -418,7 +410,7 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         marginBottom: spacing.md,
     },
-    avatarLargeText: { fontSize: 40, fontWeight: '700' as any, color: '#fff' },
+    avatarLargeText: { fontSize: 40, fontWeight: '700' as any, color: '#FFFFFF' },
     applicantName: { marginBottom: 4 },
     timeBadge: {
         flexDirection: 'row',
@@ -443,9 +435,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: spacing.sm + 2,
         borderRadius: layout.borderRadius.md,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     tabActive: {
         backgroundColor: 'rgba(212,168,83,0.08)',

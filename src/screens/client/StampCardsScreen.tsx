@@ -133,7 +133,7 @@ export function StampCardsScreen() {
                     {isCollected ? (
                         <MaterialIcons name="star" size={16} color="#fff" />
                     ) : (
-                        <MaterialIcons name="star-border" size={16} color="rgba(255, 255, 255, 0.1)" />
+                        <MaterialIcons name="star-border" size={16} color="rgba(0, 0, 0, 0.08)" />
                     )}
                 </View>
             );
@@ -159,7 +159,7 @@ export function StampCardsScreen() {
                         onPress={() => navigation.goBack()}
                         style={styles.backButton}
                     >
-                        <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
+                        <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                     </TouchableOpacity>
                     <MerakiText style={styles.headerTitle}>Stamp Cards</MerakiText>
                     <View style={styles.headerActions}>
@@ -310,11 +310,11 @@ const styles = StyleSheet.create({
     },
     backButton: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
-    headerTitle: { fontSize: 17, fontWeight: '600', color: '#fff' },
+    headerTitle: { fontSize: 17, fontWeight: '600', color: '#1A1A1A' },
     headerActions: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -341,14 +341,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderStyle: 'dashed',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         marginTop: spacing.xl,
     },
     emptyIconContainer: {
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: spacing.lg,
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
         padding: spacing.md,
         marginBottom: spacing.lg,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
     },
     masterRow: {
         flexDirection: 'row',
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary,
     },
     slotsContainer: {
-        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 16,
         padding: spacing.md,
         marginBottom: spacing.lg,
@@ -440,13 +440,13 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: 'rgba(0, 0, 0, 0.2)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     stampSlotCollected: {
         backgroundColor: colors.primary,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderColor: 'rgba(0, 0, 0, 0.12)',
         elevation: 4,
         shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255, 255, 255, 0.05)',
+        borderTopColor: 'rgba(0, 0, 0, 0.04)',
         paddingTop: spacing.md,
     },
     footerInfo: {
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
         width: 120,
     },
     lastStampBox: {
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 8,

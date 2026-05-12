@@ -28,10 +28,8 @@ import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing, gradients } from '../../theme';
 import {
     getAllCountries,
-    getCitiesOfCountry,
     getCountryByCode,
     type Country,
-    type City,
 } from '../../utils/locationApi';
 
 // Fallback countries list (used while API loads)
@@ -125,14 +123,11 @@ export function ProfileScreen() {
 
     // Location API data
     const [countries, setCountries] = useState<Country[]>([]);
-    const [cities, setCities] = useState<City[]>([]);
     const [loadingCountries, setLoadingCountries] = useState(false);
-    const [loadingCities, setLoadingCities] = useState(false);
 
 
     // Picker modals
     const [countryModalVisible, setCountryModalVisible] = useState(false);
-    const [cityModalVisible, setCityModalVisible] = useState(false);
     const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
     const [timezoneModalVisible, setTimezoneModalVisible] = useState(false);
 
@@ -521,21 +516,16 @@ export function ProfileScreen() {
 
             <View style={styles.inputGroup}>
                 <MerakiText style={styles.inputLabel}>City *</MerakiText>
-                <TouchableOpacity
-                    onPress={() => editCountry && setCityModalVisible(true)}
-                    disabled={!editCountry}
-                >
-                    <Card variant="glass" style={[styles.selectorCard, !editCountry && styles.selectorDisabled]}>
-                        <MerakiText style={editCity ? styles.selectorText : styles.selectorPlaceholder}>
-                            {editCity || (editCountry ? 'Select your city' : 'Select country first')}
-                        </MerakiText>
-                        {loadingCities ? (
-                            <ActivityIndicator size="small" color={colors.primary} />
-                        ) : (
-                            <MaterialIcons name="expand-more" size={20} color={colors.textMuted} />
-                        )}
-                    </Card>
-                </TouchableOpacity>
+                <Card variant="glass" style={[styles.inputContainer, !editCountry && styles.selectorDisabled]}>
+                    <TextInput
+                        style={styles.input}
+                        value={editCity}
+                        onChangeText={setEditCity}
+                        placeholder={editCountry ? "e.g., London, New York..." : "Select country first"}
+                        placeholderTextColor={colors.textMuted}
+                        editable={!!editCountry}
+                    />
+                </Card>
                 <MerakiText style={styles.hintText}>Your city is required for location-based features</MerakiText>
             </View>
 
@@ -594,19 +584,6 @@ export function ProfileScreen() {
 
 
 
-    // Load cities for a country
-    const loadCitiesForCountry = async (countryCode: string) => {
-        setLoadingCities(true);
-        setCities([]);
-        try {
-            const data = await getCitiesOfCountry(countryCode);
-            setCities(data);
-        } catch (e) {
-            console.error('Failed to load cities:', e);
-        } finally {
-            setLoadingCities(false);
-        }
-    };
 
     // Handle country selection
     const handleCountrySelect = (item: { id: string | number; name: string }) => {
@@ -615,17 +592,11 @@ export function ProfileScreen() {
             setEditCountry(selectedCountry.name);
             setEditCountryCode(selectedCountry.iso2);
             setEditCity(''); // Reset city when country changes
-            loadCitiesForCountry(selectedCountry.iso2);
             // Auto-set timezone from country
             if (selectedCountry.timezones && selectedCountry.timezones.length > 0) {
                 setEditTimezone(selectedCountry.timezones[0].zoneName);
             }
         }
-    };
-
-    // Handle city selection
-    const handleCitySelect = (item: { id: string | number; name: string }) => {
-        setEditCity(item.name);
     };
 
     // Render Professional section
@@ -758,13 +729,6 @@ export function ProfileScreen() {
         subtitle: c.iso2,
     }));
 
-    // City picker using SearchablePicker
-    const cityPickerItems = cities.map(c => ({
-        id: c.id,
-        name: c.name,
-        subtitle: c.state_name || undefined,
-    }));
-
     // Currency dropdown modal
     const renderCurrencyModal = () => (
         <Modal
@@ -872,7 +836,7 @@ export function ProfileScreen() {
                             }}
                             style={styles.backButton}
                         >
-                            <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
+                            <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                         <MerakiText variant="h1" style={styles.title}>Profile</MerakiText>
                         <View style={{ width: 40 }} />
@@ -993,17 +957,7 @@ export function ProfileScreen() {
                     loading={loadingCountries}
                     emptyMessage="No countries found"
                 />
-                <SearchablePicker
-                    visible={cityModalVisible}
-                    title="Select City"
-                    items={cityPickerItems}
-                    selectedId={cities.find(c => c.name === editCity)?.id}
-                    onSelect={handleCitySelect}
-                    onClose={() => setCityModalVisible(false)}
-                    searchPlaceholder="Search cities..."
-                    loading={loadingCities}
-                    emptyMessage={cities.length === 0 ? 'Select a country first' : 'No cities found'}
-                />
+
                 {renderCurrencyModal()}
                 {renderTimezoneModal()}
 
@@ -1279,8 +1233,8 @@ const styles = StyleSheet.create({
     },
     backButton: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     title: { color: colors.text },
@@ -1301,7 +1255,7 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: colors.primary,
         padding: 4,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         overflow: 'hidden',
     },
     avatarPlaceholder: {
@@ -1338,7 +1292,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
     },
     menuIconContainer: {
         width: 40,
@@ -1379,7 +1333,7 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
     },
     modalTitle: { color: colors.text },
     modalScrollContent: { flex: 1, paddingHorizontal: spacing.lg },
@@ -1396,9 +1350,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
     },
     tabActive: {
         backgroundColor: 'rgba(200, 160, 77, 0.15)',
@@ -1414,7 +1368,7 @@ const styles = StyleSheet.create({
     inputLabel: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: spacing.xs, marginLeft: 4 },
     inputContainer: {
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         overflow: 'hidden',
     },
     input: { padding: spacing.md, color: colors.text, fontSize: 16 },
@@ -1424,11 +1378,11 @@ const styles = StyleSheet.create({
     hintText: { fontSize: 11, color: colors.textMuted, marginTop: spacing.xs, marginLeft: 4 },
     charCount: { fontSize: 11, color: colors.textMuted, textAlign: 'right', marginTop: 4 },
     readOnlyContainer: {
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 16,
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
     },
     readOnlyField: { color: colors.textSecondary, fontSize: 16 },
 
@@ -1439,7 +1393,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     selectorText: { fontSize: 16, color: colors.text, flex: 1 },
     selectorPlaceholder: { fontSize: 16, color: colors.textMuted, flex: 1 },
@@ -1449,14 +1403,14 @@ const styles = StyleSheet.create({
     prefCard: {
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
         marginTop: spacing.sm,
     },
     switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.sm },
     switchLabel: { flex: 1, marginRight: spacing.md },
     switchTitle: { color: colors.text, marginBottom: 2 },
     switchDescription: { fontSize: 12, color: colors.textMuted },
-    divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: spacing.sm },
+    divider: { height: 1, backgroundColor: 'rgba(0, 0, 0, 0.04)', marginVertical: spacing.sm },
 
     // Password section
     passwordSection: { marginTop: spacing.xl },
@@ -1473,8 +1427,8 @@ const styles = StyleSheet.create({
 
     // Dropdown modals (kept similar for consistency)
     dropdownOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-    dropdownContent: { backgroundColor: colors.background, borderTopLeftRadius: 30, borderTopRightRadius: 30, maxHeight: '80%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    dropdownHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+    dropdownContent: { backgroundColor: colors.background, borderTopLeftRadius: 30, borderTopRightRadius: 30, maxHeight: '80%', borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.08)' },
+    dropdownHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(0, 0, 0, 0.04)' },
     dropdownTitle: { fontSize: 20, fontWeight: '700', color: colors.text },
     dropdownClose: { fontSize: 20, color: colors.textMuted, padding: spacing.sm },
     dropdownList: { padding: spacing.md },
@@ -1510,7 +1464,7 @@ const cpStyles = StyleSheet.create({
         borderRadius: 20,
     },
     innerCard: {
-        backgroundColor: '#1F242C',
+        backgroundColor: '#FFFFFF',
         borderRadius: 19,
         overflow: 'hidden',
     },
@@ -1563,10 +1517,10 @@ const cpStyles = StyleSheet.create({
     inputRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#161B22',
+        backgroundColor: '#F5F5F5',
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#30363D',
+        borderColor: '#E5E7EB',
         overflow: 'hidden',
     },
     fieldInput: {
@@ -1595,7 +1549,7 @@ const cpStyles = StyleSheet.create({
     dividerLine: {
         flex: 1,
         height: 1,
-        backgroundColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.06)',
     },
     dividerText: {
         fontSize: 12,
@@ -1658,7 +1612,7 @@ const cpStyles = StyleSheet.create({
         paddingVertical: spacing.md,
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
         marginTop: spacing.md,
     },
     closeBtnText: {

@@ -179,7 +179,7 @@ export function AddOwnerSupplyScreen() {
                                         style={styles.adjustButton}
                                         onPress={() => handleAdjustQuantity(-1)}
                                     >
-                                        <MaterialCommunityIcons name="minus" size={24} color={colors.text} />
+                                        <MaterialCommunityIcons name="minus" size={24} color={colors.textInvert} />
                                     </TouchableOpacity>
                                     <TextInput
                                         style={[styles.input, styles.quantityInput]}
@@ -192,7 +192,7 @@ export function AddOwnerSupplyScreen() {
                                         style={styles.adjustButton}
                                         onPress={() => handleAdjustQuantity(1)}
                                     >
-                                        <MaterialCommunityIcons name="plus" size={24} color={colors.text} />
+                                        <MaterialCommunityIcons name="plus" size={24} color={colors.textInvert} />
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -306,11 +306,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     title: {
         color: colors.text,
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
     input: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         fontSize: 16,
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderWidth: 1,
         borderColor: colors.border,
     },
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
     },
     unitChipTextActive: {
-        color: colors.text,
+        color: colors.textInvert,
         fontWeight: '600',
     },
     customUnitContainer: {

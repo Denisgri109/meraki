@@ -396,7 +396,7 @@ export function PlatformAnalyticsScreen() {
                                                             colors={
                                                                 isHighest
                                                                     ? (gradients.primary as any)
-                                                                    : (['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.04)'] as any)
+                                                                    : (['rgba(0, 0, 0, 0.10)', 'rgba(0, 0, 0, 0.03)'] as any)
                                                             }
                                                             style={[styles.bar, { height: `${Math.max(heightPct, 3)}%` }]}
                                                         />
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
     },
     timeSelector: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: 4,
     },
@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
     summaryDivider: {
         width: 1,
         height: 40,
-        backgroundColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.06)',
     },
 
     // Chart Card
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: spacing.sm,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.06)',
+        borderBottomColor: 'rgba(0, 0, 0, 0.05)',
     },
 
     // Performance Metrics

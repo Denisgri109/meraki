@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     TextInput,
     Switch,
-    Alert,
     Image,
     ActivityIndicator,
 } from 'react-native';
@@ -18,6 +17,7 @@ import { supabase } from '../../../lib/supabase';
 import { ScreenBackground, Button, ConfirmModal, MerakiText } from '../../../components/ui';
 import { colors, spacing } from '../../../theme';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useModal } from '../../../contexts/ModalContext';
 
 interface Chapter {
     id: string;
@@ -38,6 +38,7 @@ export function CourseEditorScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
     const { user } = useAuth();
+    const { showAlert, showConfirm } = useModal();
     const courseId = route.params?.courseId;
     const isNew = !courseId;
 
@@ -90,7 +91,7 @@ export function CourseEditorScreen() {
 
     const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'],
             allowsEditing: true,
             aspect: [16, 9],
             quality: 0.8,
@@ -105,7 +106,7 @@ export function CourseEditorScreen() {
                 if (!asset.base64) {
                     // Fallback if base64 not available
                     setThumbnailUrl(asset.uri);
-                    Alert.alert('Warning', 'Could not encode image. Saved locally.');
+                    showAlert('Warning', 'Could not encode image. Saved locally.', 'error');
                     return;
                 }
 
@@ -127,7 +128,7 @@ export function CourseEditorScreen() {
                 if (error) {
                     console.error('Upload error:', error);
                     setThumbnailUrl(asset.uri);
-                    Alert.alert('Upload Failed', error.message || 'Could not upload image to storage.');
+                    showAlert('Upload Failed', error.message || 'Could not upload image to storage.', 'error');
                     return;
                 }
 
@@ -137,17 +138,17 @@ export function CourseEditorScreen() {
                     .getPublicUrl(fileName);
 
                 setThumbnailUrl(urlData.publicUrl);
-                Alert.alert('Success', 'Image uploaded successfully!');
+                showAlert('Success', 'Image uploaded successfully!', 'success');
             } catch (err: any) {
                 console.error('Error uploading image:', err);
-                Alert.alert('Error', 'Failed to upload image: ' + (err.message || 'Unknown error'));
+                showAlert('Error', 'Failed to upload image: ' + (err.message || 'Unknown error'), 'error');
             }
         }
     };
 
     const handleSave = async () => {
         if (!title.trim()) {
-            Alert.alert('Error', 'Please enter a course title');
+            showAlert('Error', 'Please enter a course title', 'error');
             return;
         }
 
@@ -171,7 +172,7 @@ export function CourseEditorScreen() {
 
                 if (error) throw error;
                 navigation.setParams({ courseId: data.id });
-                Alert.alert('Success', 'Course created!');
+                showAlert('Success', 'Course created!', 'success');
             } else {
                 const { error } = await (supabase as any)
                     .from('courses')
@@ -179,10 +180,10 @@ export function CourseEditorScreen() {
                     .eq('id', courseId);
 
                 if (error) throw error;
-                Alert.alert('Success', 'Course updated!');
+                showAlert('Success', 'Course updated!', 'success');
             }
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setSaving(false);
         }
@@ -208,22 +209,15 @@ export function CourseEditorScreen() {
             setNewChapterTitle('');
             setShowAddChapter(false);
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         }
     };
 
     const deleteChapter = async (chapterId: string) => {
-        Alert.alert('Delete Chapter', 'This will also delete all lessons in this chapter.', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: async () => {
-                    await (supabase as any).from('chapters').delete().eq('id', chapterId);
-                    setChapters(chapters.filter(c => c.id !== chapterId));
-                },
-            },
-        ]);
+        showConfirm('Delete Chapter', 'This will also delete all lessons in this chapter.', async () => {
+            await (supabase as any).from('chapters').delete().eq('id', chapterId);
+            setChapters(chapters.filter(c => c.id !== chapterId));
+        });
     };
 
     const deleteCourse = async () => {
@@ -231,7 +225,7 @@ export function CourseEditorScreen() {
             await (supabase as any).from('courses').delete().eq('id', courseId);
             navigation.goBack();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         }
     };
 
@@ -357,7 +351,7 @@ export function CourseEditorScreen() {
                                         >
                                             <MaterialCommunityIcons name="movie-open" size={16} color={colors.text} style={styles.lessonIcon} />
                                             <MerakiText variant="body" style={styles.lessonTitle}>{lesson.title}</MerakiText>
-                                            <MerakiText variant="caption" style={styles.lessonDuration}>{lesson.duration_minutes}m</MerakiText>
+                                            <MerakiText variant="caption" style={styles.lessonDuration}>{lesson.duration_minutes < 60 ? `${lesson.duration_minutes}s` : lesson.duration_minutes < 3600 ? `${Math.round(lesson.duration_minutes / 60)}m` : `${(lesson.duration_minutes / 3600).toFixed(1)}h`}</MerakiText>
                                         </TouchableOpacity>
                                     ))}
 

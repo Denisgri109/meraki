@@ -80,6 +80,18 @@
           "sounds": []
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Merakí needs access to your photos to upload consultation pictures and academy homework."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Merakí uses your location to auto-detect your city and timezone."
+        }
+      ],
       "@react-native-community/datetimepicker",
       "react-native-nfc-manager",
       "expo-font"

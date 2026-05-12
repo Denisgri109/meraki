@@ -321,9 +321,9 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -365,12 +365,12 @@ const styles = StyleSheet.create({
 
     // Card
     stitchCard: {
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 20,
         padding: spacing.md,
         marginBottom: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     cardHeader: {
         flexDirection: 'row',
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255, 255, 255, 0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     idText: {
         fontSize: 10,
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
         width: 64,
         height: 64,
         borderRadius: 32,
-        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: spacing.md,

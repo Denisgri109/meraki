@@ -121,7 +121,7 @@ export function RewardsCatalogScreen() {
                         onPress={() => navigation.goBack()}
                         style={styles.backButton}
                     >
-                        <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
+                        <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                     </TouchableOpacity>
                     <MerakiText style={styles.headerTitle}>Rewards Catalog</MerakiText>
                     <View style={styles.balanceBadge}>
@@ -227,11 +227,11 @@ const styles = StyleSheet.create({
     },
     backButton: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
-    headerTitle: { fontSize: 17, fontWeight: '600', color: '#fff' },
+    headerTitle: { fontSize: 17, fontWeight: '600', color: '#1A1A1A' },
     balanceBadge: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
         padding: spacing.md,
         marginBottom: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
     },
     rewardIconContainer: {
         width: 64,
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderStyle: 'dashed',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         marginTop: spacing.xl,
     },
     emptyText: {

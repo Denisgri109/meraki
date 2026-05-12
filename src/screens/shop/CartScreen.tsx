@@ -5,68 +5,62 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
+    Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useCart } from '../../contexts/CartContext';
-import { Button, ScreenBackground } from '../../components/ui';
+import { useModal } from '../../contexts/ModalContext';
+import { Button, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 
 export function CartScreen() {
     const navigation = useNavigation<any>();
     const { items, removeFromCart, updateQuantity, getTotal, clearCart } = useCart();
+    const { showAlert, showConfirm } = useModal();
 
     const handleCheckout = () => {
         if (items.length === 0) {
-            Alert.alert('Empty Cart', 'Add some products to your cart first!');
+            showAlert('Empty Cart', 'Add some products to your cart first!', 'info');
             return;
         }
         navigation.navigate('Checkout');
     };
 
     const handleRemoveItem = (productId: string, productName: string) => {
-        Alert.alert(
+        showConfirm(
             'Remove Item',
             `Remove ${productName} from cart?`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Remove', style: 'destructive', onPress: () => removeFromCart(productId) },
-            ]
+            () => removeFromCart(productId)
         );
-    };
-
-    const getCategoryIcon = (category: string | null) => {
-        switch (category) {
-            case 'Nails': return '💅';
-            case 'Lashes': return '👁️';
-            case 'Brows': return '✨';
-            case 'Equipment': return '🔧';
-            default: return '🛍️';
-        }
     };
 
     if (items.length === 0) {
         return (
             <ScreenBackground>
                 <SafeAreaView style={styles.container}>
+                    {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
-                            <Text style={styles.backButton}>←</Text>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                            <MaterialIcons name="arrow-back" size={22} color="#1A1A1A" />
                         </TouchableOpacity>
-                        <Text style={styles.headerTitle}>Cart</Text>
+                        <MerakiText style={styles.headerTitle}>BAG</MerakiText>
                         <View style={{ width: 40 }} />
                     </View>
+
                     <View style={styles.emptyState}>
-                        <Text style={styles.emptyIcon}>🛒</Text>
-                        <Text style={styles.emptyTitle}>Your cart is empty</Text>
-                        <Text style={styles.emptySubtitle}>Add some products to get started!</Text>
-                        <Button
-                            title="Browse Products"
+                        <MaterialIcons name="shopping-bag" size={56} color="rgba(0,0,0,0.08)" />
+                        <MerakiText style={styles.emptyTitle}>Your bag is empty</MerakiText>
+                        <MerakiText style={styles.emptySubtitle}>
+                            Looks like you haven't added anything yet
+                        </MerakiText>
+                        <TouchableOpacity
+                            style={styles.shopNowBtn}
                             onPress={() => navigation.navigate('ShopMain')}
-                            style={{ marginTop: spacing.lg }}
-                        />
+                        >
+                            <MerakiText style={styles.shopNowText}>Shop Now</MerakiText>
+                        </TouchableOpacity>
                     </View>
                 </SafeAreaView>
             </ScreenBackground>
@@ -76,13 +70,14 @@ export function CartScreen() {
     return (
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+                {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Text style={styles.backButton}>←</Text>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                        <MaterialIcons name="arrow-back" size={22} color="#1A1A1A" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Cart ({items.length})</Text>
+                    <MerakiText style={styles.headerTitle}>BAG</MerakiText>
                     <TouchableOpacity onPress={() => clearCart()}>
-                        <Text style={styles.clearButton}>Clear</Text>
+                        <MerakiText style={styles.clearBtn}>Clear</MerakiText>
                     </TouchableOpacity>
                 </View>
 
@@ -91,65 +86,100 @@ export function CartScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    {items.map((item) => (
-                        <View key={item.id} style={styles.cartItem}>
-                            <LinearGradient
-                                colors={['rgba(139,92,246,0.1)', 'rgba(59,130,246,0.1)']}
-                                style={styles.itemImage}
-                            >
-                                <Text style={styles.itemEmoji}>{getCategoryIcon(null)}</Text>
-                            </LinearGradient>
+                    {items.map((item, index) => (
+                        <View
+                            key={item.id}
+                            style={[
+                                styles.cartItem,
+                                index < items.length - 1 && styles.cartItemBorder,
+                            ]}
+                        >
+                            {/* Product Image */}
+                            <View style={styles.itemImageContainer}>
+                                {item.image_url ? (
+                                    <Image
+                                        source={{ uri: item.image_url }}
+                                        style={styles.itemImage}
+                                        resizeMode="contain"
+                                    />
+                                ) : (
+                                    <View style={[styles.itemImage, styles.itemImagePlaceholder]}>
+                                        <MaterialIcons name="shopping-bag" size={24} color="rgba(0,0,0,0.12)" />
+                                    </View>
+                                )}
+                            </View>
 
+                            {/* Product Details */}
                             <View style={styles.itemDetails}>
-                                <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
-                                <Text style={styles.itemPrice}>€{item.price.toFixed(2)}</Text>
+                                <MerakiText style={styles.brandLabel}>MERAKÍ</MerakiText>
+                                <MerakiText style={styles.itemName} numberOfLines={2}>
+                                    {item.name}
+                                </MerakiText>
 
+                                {/* Quantity Controls */}
                                 <View style={styles.quantityRow}>
                                     <TouchableOpacity
-                                        style={styles.quantityButton}
-                                        onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                                        style={styles.qtyBtn}
+                                        onPress={() => handleRemoveItem(item.id, item.name)}
                                     >
-                                        <Text style={styles.quantityButtonText}>−</Text>
+                                        <MaterialIcons name="delete-outline" size={16} color="rgba(0,0,0,0.4)" />
                                     </TouchableOpacity>
-                                    <Text style={styles.quantityText}>{item.quantity}</Text>
-                                    <TouchableOpacity
-                                        style={styles.quantityButton}
-                                        onPress={() => updateQuantity(item.id, item.quantity + 1)}
-                                        disabled={item.quantity >= item.stock_count}
-                                    >
-                                        <Text style={[
-                                            styles.quantityButtonText,
-                                            item.quantity >= item.stock_count && styles.quantityButtonDisabled
-                                        ]}>+</Text>
-                                    </TouchableOpacity>
+                                    <View style={styles.qtyControl}>
+                                        <TouchableOpacity
+                                            onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                                            style={styles.qtyAdjust}
+                                        >
+                                            <MerakiText style={styles.qtyAdjustText}>−</MerakiText>
+                                        </TouchableOpacity>
+                                        <MerakiText style={styles.qtyText}>Qty {item.quantity}</MerakiText>
+                                        <TouchableOpacity
+                                            onPress={() => updateQuantity(item.id, item.quantity + 1)}
+                                            style={styles.qtyAdjust}
+                                            disabled={item.quantity >= item.stock_count}
+                                        >
+                                            <MerakiText style={[
+                                                styles.qtyAdjustText,
+                                                item.quantity >= item.stock_count && { color: 'rgba(0,0,0,0.15)' },
+                                            ]}>+</MerakiText>
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             </View>
 
-                            <View style={styles.itemActions}>
-                                <Text style={styles.itemTotal}>
+                            {/* Price */}
+                            <View style={styles.priceCol}>
+                                {item.quantity > 1 && (
+                                    <MerakiText style={styles.unitPrice}>
+                                        €{item.price.toFixed(2)} each
+                                    </MerakiText>
+                                )}
+                                <MerakiText style={styles.itemTotal}>
                                     €{(item.price * item.quantity).toFixed(2)}
-                                </Text>
-                                <TouchableOpacity
-                                    onPress={() => handleRemoveItem(item.id, item.name)}
-                                    style={styles.removeButton}
-                                >
-                                    <Text style={styles.removeButtonText}>✕</Text>
-                                </TouchableOpacity>
+                                </MerakiText>
                             </View>
                         </View>
                     ))}
                 </ScrollView>
 
+                {/* Footer */}
                 <View style={styles.footer}>
-                    <View style={styles.totalRow}>
-                        <Text style={styles.totalLabel}>Total</Text>
-                        <Text style={styles.totalAmount}>€{getTotal().toFixed(2)}</Text>
+                    <View style={styles.summaryRow}>
+                        <MerakiText style={styles.summaryLabel}>
+                            Subtotal ({items.reduce((acc, i) => acc + i.quantity, 0)} items)
+                        </MerakiText>
+                        <MerakiText style={styles.summaryValue}>€{getTotal().toFixed(2)}</MerakiText>
                     </View>
-                    <Button
-                        title="Proceed to Checkout"
-                        onPress={handleCheckout}
-                        fullWidth
-                    />
+                    <View style={styles.summaryRow}>
+                        <MerakiText style={styles.summaryLabel}>Delivery</MerakiText>
+                        <MerakiText style={[styles.summaryLabel, { color: 'rgba(0,0,0,0.6)', fontStyle: 'italic' }]}>Calculated at checkout</MerakiText>
+                    </View>
+                    <View style={[styles.summaryRow, styles.totalRow]}>
+                        <MerakiText style={styles.totalLabel}>Total</MerakiText>
+                        <MerakiText style={styles.totalAmount}>€{getTotal().toFixed(2)}</MerakiText>
+                    </View>
+                    <TouchableOpacity style={styles.checkoutBtn} onPress={handleCheckout}>
+                        <MerakiText style={styles.checkoutText}>Checkout</MerakiText>
+                    </TouchableOpacity>
                 </View>
             </SafeAreaView>
         </ScreenBackground>
@@ -158,6 +188,8 @@ export function CartScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
+
+    // Header
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -165,131 +197,217 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.md,
         borderBottomWidth: 1,
-        borderBottomColor: colors.border,
+        borderBottomColor: '#E5E7EB',
     },
-    backButton: { fontSize: 28, color: colors.text },
-    headerTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
-    clearButton: { fontSize: 14, color: colors.textMuted },
-    content: { flex: 1 },
-    scrollContent: { padding: spacing.lg, paddingBottom: 100 },
-    cartItem: {
-        flexDirection: 'row',
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: spacing.md,
-        marginBottom: spacing.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    itemImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 12,
+    backBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    itemEmoji: { fontSize: 32 },
+    headerTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#1A1A1A',
+        fontStyle: 'italic',
+        letterSpacing: -0.5,
+    },
+    clearBtn: {
+        fontSize: 13,
+        color: 'rgba(0,0,0,0.4)',
+        fontWeight: '500',
+    },
+
+    // Content
+    content: { flex: 1 },
+    scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: 20 },
+
+    // Cart Item — Beauty Bay BAG Style
+    cartItem: {
+        flexDirection: 'row',
+        paddingVertical: 20,
+    },
+    cartItemBorder: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+    },
+    itemImageContainer: {
+        width: 90,
+        height: 100,
+        marginRight: 16,
+    },
+    itemImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 4,
+        backgroundColor: '#F8F8F8',
+    },
+    itemImagePlaceholder: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     itemDetails: {
         flex: 1,
-        marginLeft: spacing.md,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
+    },
+    brandLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: 'rgba(0,0,0,0.4)',
+        letterSpacing: 1.5,
+        marginBottom: 2,
     },
     itemName: {
         fontSize: 14,
-        fontWeight: '600',
-        color: colors.text,
-        marginBottom: 4,
-    },
-    itemPrice: {
-        fontSize: 14,
-        color: colors.primary,
         fontWeight: '500',
-        marginBottom: spacing.sm,
+        color: '#1A1A1A',
+        lineHeight: 20,
+        marginBottom: 12,
     },
     quantityRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: spacing.sm,
+        gap: 10,
     },
-    quantityButton: {
-        width: 28,
-        height: 28,
-        borderRadius: 6,
-        backgroundColor: colors.background,
+    qtyBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    qtyControl: {
+        flexDirection: 'row',
+        alignItems: 'center',
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: '#E5E7EB',
+        borderRadius: 4,
+        overflow: 'hidden',
     },
-    quantityButtonText: {
+    qtyAdjust: {
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    qtyAdjustText: {
         fontSize: 16,
         fontWeight: '600',
-        color: colors.text,
+        color: '#1A1A1A',
     },
-    quantityButtonDisabled: {
-        color: colors.textMuted,
+    qtyText: {
+        fontSize: 12,
+        fontWeight: '500',
+        color: '#1A1A1A',
+        paddingHorizontal: 8,
     },
-    quantityText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: colors.text,
-        minWidth: 30,
-        textAlign: 'center',
-    },
-    itemActions: {
+
+    // Price Column
+    priceCol: {
         alignItems: 'flex-end',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
+        marginLeft: 8,
+    },
+    unitPrice: {
+        fontSize: 10,
+        color: 'rgba(0,0,0,0.3)',
+        marginBottom: 2,
     },
     itemTotal: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '700',
-        color: colors.text,
+        color: '#1A1A1A',
     },
-    removeButton: {
-        padding: spacing.xs,
-    },
-    removeButtonText: {
-        fontSize: 16,
-        color: colors.textMuted,
-    },
+
+    // Footer
     footer: {
-        padding: spacing.lg,
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.md,
+        paddingBottom: spacing.xl,
         borderTopWidth: 1,
-        borderTopColor: colors.border,
-        backgroundColor: colors.surface,
+        borderTopColor: '#E5E7EB',
+        backgroundColor: '#FFFFFF',
     },
-    totalRow: {
+    summaryRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: spacing.md,
+        marginBottom: 6,
+    },
+    summaryLabel: {
+        fontSize: 13,
+        color: 'rgba(0,0,0,0.45)',
+        fontWeight: '400',
+    },
+    summaryValue: {
+        fontSize: 13,
+        color: '#1A1A1A',
+        fontWeight: '500',
+    },
+    totalRow: {
+        borderTopWidth: 1,
+        borderTopColor: '#F0F0F0',
+        paddingTop: 12,
+        marginTop: 8,
+        marginBottom: 16,
     },
     totalLabel: {
         fontSize: 16,
-        color: colors.textSecondary,
+        fontWeight: '600',
+        color: '#1A1A1A',
     },
     totalAmount: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: colors.text,
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#1A1A1A',
     },
+    checkoutBtn: {
+        backgroundColor: '#1A1A1A',
+        height: 52,
+        borderRadius: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    checkoutText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        letterSpacing: 0.5,
+    },
+
+    // Empty State
     emptyState: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
         padding: spacing.xl,
     },
-    emptyIcon: { fontSize: 64, marginBottom: spacing.lg, opacity: 0.5 },
     emptyTitle: {
         fontSize: 20,
-        fontWeight: '600',
-        color: colors.text,
-        marginBottom: spacing.sm,
+        fontWeight: '700',
+        color: '#1A1A1A',
+        marginTop: 16,
+        marginBottom: 6,
     },
     emptySubtitle: {
         fontSize: 14,
-        color: colors.textSecondary,
+        color: 'rgba(0,0,0,0.4)',
         textAlign: 'center',
+        marginBottom: 24,
+    },
+    shopNowBtn: {
+        backgroundColor: '#1A1A1A',
+        paddingHorizontal: 32,
+        paddingVertical: 14,
+        borderRadius: 6,
+    },
+    shopNowText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        letterSpacing: 0.5,
     },
 });
 

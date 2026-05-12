@@ -93,10 +93,10 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     inputWrapperGlass: {
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: layout.borderRadius.full,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     inputWrapperFocused: {
         borderColor: colors.primary,

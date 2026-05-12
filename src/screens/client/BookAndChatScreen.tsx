@@ -24,7 +24,7 @@ export type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
     SelectDateTime: { serviceId: string; masterId: string };
-    BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
+    BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
     ConsultationWaiting: { consultationId: string; serviceId: string; masterId: string };
 };
 
@@ -141,7 +141,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                             >
                                 {isFocused ? (
                                     <LinearGradient
-                                        colors={[colors.primary, colors.champagne]}
+                                        colors={['#E8A0B4', '#D4789C']}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 1 }}
                                         style={[StyleSheet.absoluteFillObject, { borderRadius: 11 }]}
@@ -151,7 +151,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                                 <MaterialIcons
                                     name={config.icon as any}
                                     size={18}
-                                    color={isFocused ? '#fff' : 'rgba(255,255,255,0.4)'}
+                                    color={isFocused ? '#fff' : 'rgba(0, 0, 0, 0.35)'}
                                     style={{ marginBottom: 2 }}
                                 />
                                 <Text style={[styles.tabText, isFocused && styles.tabTextActive]}>
@@ -208,11 +208,11 @@ const styles = StyleSheet.create({
     },
     tabBar: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 12, // Slightly reduced
         padding: 2, // Reduced from 3
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     tabItem: {
         flex: 1,
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     tabText: {
         fontSize: 11,
         fontWeight: '600',
-        color: 'rgba(255,255,255,0.4)',
+        color: 'rgba(0, 0, 0, 0.35)',
     },
     tabTextActive: {
         color: '#FFFFFF',

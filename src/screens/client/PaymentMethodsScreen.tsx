@@ -299,7 +299,7 @@ export function PaymentMethodsScreen() {
                     {/* Header */}
                     <View style={styles.header}>
                         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                            <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
+                            <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                         <Text style={styles.title}>Payment Methods</Text>
                         <Text style={styles.subtitle}>Manage your saved cards</Text>
@@ -457,8 +457,8 @@ const styles = StyleSheet.create({
     header: { marginBottom: spacing.xl },
     backButton: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     title: { fontSize: 28, fontWeight: '600', color: colors.text },
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     },
     cardFieldContainer: {
         marginBottom: spacing.lg,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: 4,
         borderWidth: 1,
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
     modalInfo: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         padding: spacing.md,
         borderRadius: 12,
         marginBottom: spacing.xs,

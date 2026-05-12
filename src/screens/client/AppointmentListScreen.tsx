@@ -9,7 +9,7 @@ import {
     RefreshControl,
     Modal,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, CommonActions } from '@react-navigation/native';
@@ -44,14 +44,28 @@ type Appointment = {
     master: { full_name: string; push_token?: string } | null;
 };
 
+type Consultation = {
+    id: string;
+    client_id: string;
+    service_id: string;
+    master_id: string | null;
+    status: string;
+    created_at: string | null;
+    responded_at: string | null;
+    additional_notes: string | null;
+    service: { name: string } | null;
+    master: { full_name: string } | null;
+};
+
 export function AppointmentListScreen() {
     const navigation = useNavigation<any>();
     const { user, checkSession } = useAuth();
     const { showAlert, showConfirm } = useModal();
 
     // State
-    const [subTab, setSubTab] = useState<'upcoming' | 'past'>('upcoming'); // For appointments
+    const [subTab, setSubTab] = useState<'upcoming' | 'past' | 'consultations'>('upcoming');
     const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [consultations, setConsultations] = useState<Consultation[]>([]);
 
     // UI State
     const [loading, setLoading] = useState(true);
@@ -76,8 +90,6 @@ export function AppointmentListScreen() {
         const hoursUntil = differenceInHours(appointmentDate, new Date());
         return hoursUntil < CANCELLATION_WINDOW_HOURS;
     };
-
-
 
     useEffect(() => {
         fetchAppointments();
@@ -126,6 +138,31 @@ export function AppointmentListScreen() {
                 apt => apt.service !== null && apt.master !== null
             );
             setAppointments(validAppointments);
+
+            // Also fetch pending/active booking consultations
+            try {
+                const { data: consultData } = await supabase
+                    .from('booking_consultations')
+                    .select(`
+                        id,
+                        client_id,
+                        service_id,
+                        master_id,
+                        status,
+                        created_at,
+                        responded_at,
+                        additional_notes,
+                        service:services(name),
+                        master:profiles!booking_consultations_master_id_fkey(full_name)
+                    `)
+                    .eq('client_id', user?.id)
+                    .in('status', ['pending', 'approved', 'declined', 'chat_requested'])
+                    .order('created_at', { ascending: false });
+
+                setConsultations((consultData as unknown as Consultation[]) || []);
+            } catch (consultError) {
+                console.error('Error fetching consultations:', consultError);
+            }
         } catch (error) {
             console.error('Error fetching appointments:', error);
         } finally {
@@ -220,13 +257,13 @@ export function AppointmentListScreen() {
     };
 
     // Notify master of reschedule
-    const notifyMasterOfReschedule = async (apt: Appointment, newTime: Date, needsApproval: boolean) => {
+    const notifyMasterOfReschedule = async (apt: Appointment, newTime: Date) => {
         const masterPushToken = apt.master?.push_token;
         if (!masterPushToken) return;
 
-        const message = needsApproval
-            ? `${user?.user_metadata?.full_name || 'Client'} wants to move today's appt to ${format(newTime, 'EEEE, MMM d at HH:mm')}. Approve or decline?`
-            : `${user?.user_metadata?.full_name || 'Client'} moved their appointment to ${format(newTime, 'EEEE, MMM d at HH:mm')}.`;
+        const oldTime = new Date(apt.start_time);
+        const formatStr = 'EEEE, MMM d HH:mm';
+        const message = `${user?.user_metadata?.full_name || 'Client'} rescheduled their appointment from ${format(oldTime, formatStr)} to ${format(newTime, formatStr)}.`;
 
         try {
             await fetch('https://exp.host/--/api/v2/push/send', {
@@ -238,7 +275,7 @@ export function AppointmentListScreen() {
                 body: JSON.stringify({
                     to: masterPushToken,
                     sound: 'default',
-                    title: needsApproval ? 'Reschedule Request' : 'Appointment Rescheduled',
+                    title: 'Appointment Rescheduled',
                     body: message,
                     data: { appointmentId: apt.id },
                 }),
@@ -263,40 +300,24 @@ export function AppointmentListScreen() {
             const duration = selectedAppointment.service?.duration_minutes || 60;
             const newEndTime = new Date(newStartTime.getTime() + duration * 60000);
 
-            const isLateReschedule = isWithinCancellationWindow(selectedAppointment.start_time);
+            // Early reschedule: Instant update, no approval needed
+            const { error } = await supabase
+                .from('appointments')
+                .update({
+                    start_time: newStartTime.toISOString(),
+                    end_time: newEndTime.toISOString(),
+                    status: 'confirmed',
+                    // Clear out any old reschedule data
+                    proposed_start_time: null,
+                    proposed_end_time: null,
+                    reschedule_initiated_by: null,
+                } as any)
+                .eq('id', selectedAppointment.id);
 
-            if (isLateReschedule) {
-                // Late reschedule: Requires Master approval
-                const { error } = await supabase
-                    .from('appointments')
-                    .update({
-                        proposed_start_time: newStartTime.toISOString(),
-                        proposed_end_time: newEndTime.toISOString(),
-                        status: 'reschedule_pending',
-                        reschedule_initiated_by: user?.id,
-                    } as any)
-                    .eq('id', selectedAppointment.id);
+            if (error) throw error;
 
-                if (error) throw error;
-
-                await notifyMasterOfReschedule(selectedAppointment, newStartTime, true);
-                showAlert('Request Sent', 'This is a late reschedule. Your request has been sent to the master for approval.', 'info');
-            } else {
-                // Early reschedule: Instant update, no approval needed
-                const { error } = await supabase
-                    .from('appointments')
-                    .update({
-                        start_time: newStartTime.toISOString(),
-                        end_time: newEndTime.toISOString(),
-                        status: 'confirmed',
-                    } as any)
-                    .eq('id', selectedAppointment.id);
-
-                if (error) throw error;
-
-                await notifyMasterOfReschedule(selectedAppointment, newStartTime, false);
-                showAlert('Success', 'Your appointment has been rescheduled.', 'success');
-            }
+            await notifyMasterOfReschedule(selectedAppointment, newStartTime);
+            showAlert('Success', 'Your appointment has been rescheduled.', 'success');
 
             setShowRescheduleModal(false);
             fetchAppointments();
@@ -409,9 +430,20 @@ export function AppointmentListScreen() {
     // --- Data Preparation ---
 
     const now = new Date();
-    const upcomingAppointments = appointments.filter(
-        apt => new Date(apt.start_time) >= now && !apt.status.startsWith('cancelled')
-    );
+    const upcomingAppointments = appointments
+        .filter(apt => new Date(apt.start_time) >= now && !apt.status.startsWith('cancelled'))
+        .sort((a, b) => {
+            // Priority sort: actionable items first
+            const getPriority = (apt: Appointment) => {
+                if ((apt.status === 'pending_reschedule' || apt.status === 'reschedule_pending') && apt.reschedule_initiated_by !== user?.id) return 0;
+                if (apt.status === 'pending' || apt.status === 'awaiting_confirmation') return 1;
+                return 2;
+            };
+            const pA = getPriority(a);
+            const pB = getPriority(b);
+            if (pA !== pB) return pA - pB;
+            return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+        });
     const pastAppointments = appointments.filter(
         apt => new Date(apt.start_time) < now || apt.status.startsWith('cancelled')
     );
@@ -443,6 +475,34 @@ export function AppointmentListScreen() {
         return statusLabels[status] || status.charAt(0).toUpperCase() + status.slice(1);
     };
 
+    // Consultation status config
+    const consultationStatusConfig: Record<string, { bg: string; text: string; label: string; icon: string }> = {
+        pending: { bg: 'rgba(210, 153, 34, 0.15)', text: '#D29922', label: 'Consultation Pending', icon: 'hourglass-top' },
+        approved: { bg: 'rgba(63, 185, 80, 0.15)', text: '#3FB950', label: 'Approved – Book Now', icon: 'check-circle' },
+        declined: { bg: 'rgba(248, 81, 73, 0.15)', text: '#F85149', label: 'Declined', icon: 'cancel' },
+        chat_requested: { bg: 'rgba(88, 166, 255, 0.15)', text: '#58A6FF', label: 'Chat Requested', icon: 'chat-bubble' },
+    };
+
+    const handleContinueBooking = (consultation: Consultation) => {
+        if (consultation.service_id && consultation.master_id) {
+            navigation.navigate('BookNew', {
+                screen: 'ServiceDetail',
+                params: { serviceId: consultation.service_id },
+            });
+        }
+    };
+
+    const handleViewConsultation = (consultation: Consultation) => {
+        navigation.navigate('BookNew', {
+            screen: 'ConsultationWaiting',
+            params: {
+                consultationId: consultation.id,
+                serviceId: consultation.service_id,
+                masterId: consultation.master_id,
+            },
+        });
+    };
+
     const availableDates = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i + 1));
     const timeSlots = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
 
@@ -462,43 +522,35 @@ export function AppointmentListScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={[]}>
 
-                {/* Premium Pill Tabs */}
-                {/* Premium Pill Tabs - Styled to match BookAndChatScreen CustomTabBar */}
+                {/* Premium Pill Tabs — 3-tab layout */}
                 <View style={styles.tabContainer}>
                     <View style={styles.tabBar}>
-                        <TouchableOpacity
-                            style={[styles.tabItem]}
-                            onPress={() => setSubTab('upcoming')}
-                        >
-                            {subTab === 'upcoming' && (
-                                <LinearGradient
-                                    colors={[colors.primary, colors.champagne]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={[StyleSheet.absoluteFillObject, { borderRadius: 10 }]}
-                                />
-                            )}
-                            <Text style={[styles.tabText, subTab === 'upcoming' && styles.tabTextActive]}>
-                                Upcoming ({upcomingAppointments.length})
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.tabItem]}
-                            onPress={() => setSubTab('past')}
-                        >
-                            {subTab === 'past' && (
-                                <LinearGradient
-                                    colors={[colors.primary, colors.champagne]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={[StyleSheet.absoluteFillObject, { borderRadius: 10 }]}
-                                />
-                            )}
-                            <Text style={[styles.tabText, subTab === 'past' && styles.tabTextActive]}>
-                                Past ({pastAppointments.length})
-                            </Text>
-                        </TouchableOpacity>
+                        {(['upcoming', 'past', 'consultations'] as const).map((tab) => {
+                            const labels = {
+                                upcoming: `Upcoming (${upcomingAppointments.length})`,
+                                past: `Past (${pastAppointments.length})`,
+                                consultations: `Consults (${consultations.length})`,
+                            };
+                            return (
+                                <TouchableOpacity
+                                    key={tab}
+                                    style={[styles.tabItem]}
+                                    onPress={() => setSubTab(tab)}
+                                >
+                                    {subTab === tab && (
+                                        <LinearGradient
+                                            colors={['#E8A0B4', '#D4789C']}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
+                                            style={[StyleSheet.absoluteFillObject, { borderRadius: 10 }]}
+                                        />
+                                    )}
+                                    <Text style={[styles.tabText, subTab === tab && styles.tabTextActive]}>
+                                        {labels[tab]}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 </View>
 
@@ -509,8 +561,93 @@ export function AppointmentListScreen() {
                     }
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* --- APPOINTMENTS LIST --- */}
-                    {(subTab === 'upcoming' ? upcomingAppointments : pastAppointments).length > 0 ? (
+                    {/* --- CONSULTATIONS TAB --- */}
+                    {subTab === 'consultations' && (
+                        <>
+                            {consultations.length > 0 ? (
+                                consultations.map((consult) => {
+                                    const config = consultationStatusConfig[consult.status] || consultationStatusConfig.pending;
+                                    return (
+                                        <Card key={`consult-${consult.id}`} style={styles.card} variant="glass">
+                                            <View style={styles.cardHeader}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                                                    <View style={{
+                                                        width: 36, height: 36, borderRadius: 18,
+                                                        backgroundColor: config.bg,
+                                                        justifyContent: 'center', alignItems: 'center',
+                                                    }}>
+                                                        <MaterialIcons name={config.icon as any} size={18} color={config.text} />
+                                                    </View>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={styles.cardTitle}>
+                                                            {consult.service?.name || 'Service'}
+                                                        </Text>
+                                                        <Text style={styles.cardSubtitle}>
+                                                            {consult.master?.full_name ? `with ${consult.master.full_name}` : 'Awaiting specialist'}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                                <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
+                                                    <Text style={[styles.statusText, { color: config.text }]}>
+                                                        {config.label}
+                                                    </Text>
+                                                </View>
+                                            </View>
+
+                                            <View style={styles.cardDetails}>
+                                                <View style={styles.detailRow}>
+                                                    <MaterialIcons name="assignment" size={16} color={colors.textSecondary} style={styles.detailIcon} />
+                                                    <Text style={styles.detailText}>Consultation Request</Text>
+                                                </View>
+                                                {consult.created_at && (
+                                                    <View style={styles.detailRow}>
+                                                        <MaterialIcons name="event" size={16} color={colors.textSecondary} style={styles.detailIcon} />
+                                                        <Text style={styles.detailText}>
+                                                            Submitted {format(new Date(consult.created_at), 'MMM d, yyyy')}
+                                                        </Text>
+                                                    </View>
+                                                )}
+                                            </View>
+
+                                            <View style={styles.cardFooter}>
+                                                <TouchableOpacity
+                                                    style={[styles.rescheduleButton, { paddingHorizontal: 14 }]}
+                                                    onPress={() => handleViewConsultation(consult)}
+                                                >
+                                                    <Text style={styles.rescheduleButtonText}>View Details</Text>
+                                                </TouchableOpacity>
+                                                {consult.status === 'approved' && (
+                                                    <TouchableOpacity
+                                                        style={[styles.rescheduleButton, {
+                                                            backgroundColor: 'rgba(63, 185, 80, 0.15)',
+                                                            borderColor: 'rgba(63, 185, 80, 0.3)',
+                                                            paddingHorizontal: 14,
+                                                        }]}
+                                                        onPress={() => handleContinueBooking(consult)}
+                                                    >
+                                                        <Text style={[styles.rescheduleButtonText, { color: '#3FB950' }]}>Book Now</Text>
+                                                    </TouchableOpacity>
+                                                )}
+                                            </View>
+                                        </Card>
+                                    );
+                                })
+                            ) : (
+                                <View style={styles.emptyState}>
+                                    <View style={styles.emptyIconContainer}>
+                                        <MaterialIcons name="assignment" size={36} color={colors.textMuted} />
+                                    </View>
+                                    <Text style={styles.emptyTitle}>No Consultations</Text>
+                                    <Text style={styles.emptyText}>
+                                        Your consultation requests will appear here.
+                                    </Text>
+                                </View>
+                            )}
+                        </>
+                    )}
+
+                    {/* --- APPOINTMENTS LIST (Upcoming / Past tabs) --- */}
+                    {subTab !== 'consultations' && ((subTab === 'upcoming' ? upcomingAppointments : pastAppointments).length > 0 ? (
                         (subTab === 'upcoming' ? upcomingAppointments : pastAppointments).map((apt) => {
                             const date = new Date(apt.start_time);
                             const statusStyle = statusColors[apt.status] || statusColors.pending;
@@ -644,7 +781,7 @@ export function AppointmentListScreen() {
                                 />
                             )}
                         </View>
-                    )}
+                    ))}
                 </ScrollView>
             </SafeAreaView>
 
@@ -715,18 +852,12 @@ export function AppointmentListScreen() {
                             </View>
 
                             <Button
-                                title={rescheduleLoading ? "Proposing..." : (isWithinCancellationWindow(selectedAppointment?.start_time || '') ? "Request Late Reschedule" : "Confirm Reschedule")}
+                                title={rescheduleLoading ? "Rescheduling..." : "Confirm Reschedule"}
                                 onPress={confirmReschedule}
                                 loading={rescheduleLoading}
                                 disabled={rescheduleLoading || !selectedDate || !selectedTime}
                                 style={styles.confirmButton}
                             />
-
-                            {isWithinCancellationWindow(selectedAppointment?.start_time || '') && (
-                                <Text style={styles.rescheduleWarning}>
-                                    * This appointment is starting soon. Your reschedule request will require master approval.
-                                </Text>
-                            )}
                         </ScrollView>
                     </ScreenBackground>
                 </SafeAreaView>
@@ -949,11 +1080,11 @@ const styles = StyleSheet.create({
     },
     tabBar: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 12,
         padding: 2,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     tabItem: {
         flex: 1,
@@ -966,7 +1097,7 @@ const styles = StyleSheet.create({
     tabText: {
         fontSize: 13, // Slightly larger than the top nav
         fontWeight: '600',
-        color: 'rgba(255,255,255,0.4)',
+        color: 'rgba(0, 0, 0, 0.35)',
     },
     tabTextActive: {
         color: '#FFFFFF',
@@ -1088,7 +1219,7 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: spacing.lg
@@ -1183,7 +1314,7 @@ const styles = StyleSheet.create({
     dialogButtonConfirmText: {
         fontSize: 15,
         fontWeight: '600',
-        color: '#FFF',
+        color: '#1A1A1A',
     },
     // Reschedule Modal
     modalContainer: {
@@ -1325,7 +1456,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     approveRescheduleText: {
-        color: '#FFF',
+        color: '#1A1A1A',
         fontSize: 14,
         fontWeight: '600',
     },
@@ -1410,12 +1541,12 @@ const cancelStyles = StyleSheet.create({
         lineHeight: 20,
     },
     detailsCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 14,
         padding: 14,
         marginBottom: 14,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     serviceName: {
         fontSize: 16,
@@ -1455,12 +1586,12 @@ const cancelStyles = StyleSheet.create({
         lineHeight: 18,
     },
     refundBreakdown: {
-        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 14,
         padding: 14,
         marginBottom: 14,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     breakdownTitle: {
         fontSize: 14,
@@ -1502,7 +1633,7 @@ const cancelStyles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 12,
         padding: 12,
         marginBottom: 18,
@@ -1528,7 +1659,7 @@ const cancelStyles = StyleSheet.create({
         flex: 1,
         paddingVertical: 14,
         borderRadius: 14,
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
         borderWidth: 1,
         borderColor: colors.border,
         alignItems: 'center',
@@ -1548,7 +1679,7 @@ const cancelStyles = StyleSheet.create({
     confirmCancelButtonText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#FFF',
+        color: '#1A1A1A',
     },
     doneButton: {
         width: '100%',
@@ -1560,6 +1691,6 @@ const cancelStyles = StyleSheet.create({
     doneButtonText: {
         fontSize: 15,
         fontWeight: '700',
-        color: '#FFF',
+        color: '#1A1A1A',
     },
 });

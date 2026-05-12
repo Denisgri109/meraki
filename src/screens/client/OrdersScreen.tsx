@@ -23,7 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Card, Button, ScreenBackground, MerakiText } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
-import { cancelPaymentIntent, capturePayment, eurosToCents, processRefund } from '../../services/stripeService';
+import { cancelPaymentIntent, capturePayment, eurosToCents, cancelAndRefund } from '../../services/stripeService';
 
 // Cancellation policy constants
 const CANCELLATION_WINDOW_HOURS = 24;
@@ -256,34 +256,8 @@ export function OrdersScreen() {
         });
 
         try {
-            // Process refund
-            if (appointment.stripe_payment_intent_id) {
-                try {
-                    if (isLate) {
-                        // 50% refund
-                        const refundAmount = Math.round(eurosToCents(appointment.price) / 2);
-                        await processRefund(appointment.stripe_payment_intent_id, refundAmount, 'requested_by_customer');
-                    } else {
-                        // Full refund
-                        await processRefund(appointment.stripe_payment_intent_id, undefined, 'requested_by_customer');
-                    }
-                } catch (e) {
-                    console.error('Failed to process refund:', e);
-                    throw new Error('Failed to process refund. Please try again or contact support.');
-                }
-            }
-
-            // Update appointment status
-            const newStatus = isLate ? 'cancelled_charge' : 'cancelled_free';
-            const { error } = await supabase
-                .from('appointments')
-                .update({
-                    status: newStatus,
-                    cancellation_reason: 'Cancellation by client',
-                } as any)
-                .eq('id', appointment.id);
-
-            if (error) throw error;
+            // Cancel and refund using the edge function (handles both DB and Stripe automatically)
+            await cancelAndRefund(appointment.id, 'client');
 
             // Notify master
             await notifyMasterOfCancellation(appointment);
@@ -292,7 +266,8 @@ export function OrdersScreen() {
 
             fetchData();
         } catch (error: any) {
-            showAlert('Error', error.message, 'error');
+            console.error('Failed to cancel appointment:', error);
+            showAlert('Error', error.message || 'Could not cancel appointment.', 'error');
         }
     };
 
@@ -828,11 +803,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     headerTitle: {
         flex: 1,
@@ -872,9 +847,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 6,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     subTabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     subTabText: { fontSize: 13, color: colors.textSecondary },
@@ -886,10 +861,10 @@ const styles = StyleSheet.create({
     stitchCard: {
         marginBottom: spacing.md,
         padding: spacing.md,
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     stitchClientRow: { flexDirection: 'row', marginBottom: spacing.md },
     stitchAvatar: {
@@ -925,7 +900,7 @@ const styles = StyleSheet.create({
         paddingTop: spacing.sm,
         marginTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     stitchActionButtons: {
         flexDirection: 'row',
@@ -936,10 +911,10 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 8,
         borderRadius: 10,
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     stitchSmallBtnPrimary: {
         flex: 1,
@@ -955,9 +930,9 @@ const styles = StyleSheet.create({
     // Keeping some legacy styles for Product Orders which I partly refactored
     cardTitle: { fontWeight: '600', color: colors.text, marginBottom: 2 },
     cardSubtitle: { fontSize: 13, color: colors.textSecondary },
-    cardDetails: { marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+    cardDetails: { marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(0, 0, 0, 0.06)' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(0, 0, 0, 0.06)' },
 
     // Order Item
     orderItemRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
@@ -970,11 +945,11 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
 
     emptyState: { alignItems: 'center', paddingVertical: spacing.xxxl },
@@ -982,12 +957,12 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     emptyTitle: { fontSize: 18, fontWeight: '600', marginBottom: 8 },
     emptyText: { fontSize: 14, textAlign: 'center', maxWidth: 240 },
@@ -999,7 +974,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.baseBackground,
     },
-    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(0, 0, 0, 0.08)' },
     modalCancel: { color: colors.textSecondary, fontSize: 16 },
     modalTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
     modalContent: { padding: spacing.lg },
@@ -1009,12 +984,12 @@ const styles = StyleSheet.create({
     dateCardActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     dateDayName: { fontSize: 12, color: colors.textSecondary, marginBottom: spacing.xs },
     dateDay: { fontSize: 20, fontWeight: '600', color: colors.text },
-    dateTextActive: { color: colors.text },
+    dateTextActive: { color: colors.textInvert },
     timesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.xl },
     timeSlot: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
     timeSlotActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     timeText: { fontSize: 14, fontWeight: '500', color: colors.text },
-    timeTextActive: { color: colors.text },
+    timeTextActive: { color: colors.textInvert },
 
     confirmButton: {
         marginTop: spacing.xl,

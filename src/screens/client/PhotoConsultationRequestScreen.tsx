@@ -14,6 +14,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { Button, ScreenBackground } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
@@ -70,10 +71,11 @@ export function PhotoConsultationRequestScreen() {
     const pickPhotos = async () => {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images'],
                 allowsMultipleSelection: true,
                 selectionLimit: 5,
                 quality: 0.8,
+                base64: true,
             });
 
             if (!result.canceled && result.assets) {
@@ -81,14 +83,12 @@ export function PhotoConsultationRequestScreen() {
                 const uploadedUrls: string[] = [];
 
                 for (const asset of result.assets) {
+                    if (!asset.base64) continue;
                     const fileName = `consultations/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-
-                    const response = await fetch(asset.uri);
-                    const blob = await response.blob();
 
                     const { data, error } = await supabase.storage
                         .from('consultation-photos')
-                        .upload(fileName, blob, {
+                        .upload(fileName, decode(asset.base64), {
                             contentType: 'image/jpeg',
                         });
 
@@ -154,6 +154,7 @@ export function PhotoConsultationRequestScreen() {
                     title: formData.title.trim(),
                     description: formData.description.trim(),
                     service_type: formData.serviceType,
+                    photo_url: formData.photos[0] || '',
                     photo_urls: formData.photos,
                     status: 'pending',
                 });
@@ -184,7 +185,7 @@ export function PhotoConsultationRequestScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
+                        <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Photo Consultation</Text>
                     <View style={{ width: 50 }} />
@@ -349,11 +350,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center' as const,
         justifyContent: 'center' as const,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     headerTitle: {
         fontSize: 18,
@@ -421,7 +422,7 @@ const styles = StyleSheet.create({
     masterAvatarText: {
         fontSize: 24,
         fontWeight: '700',
-        color: '#fff',
+        color: '#FFFFFF',
     },
     anyMasterAvatar: {
         width: 60,
@@ -540,7 +541,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     removePhotoText: {
-        color: '#fff',
+        color: '#1A1A1A',
         fontSize: 16,
         fontWeight: '600',
     },

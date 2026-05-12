@@ -203,6 +203,12 @@ export function MyServicesScreen() {
                             thumbColor={'#fff'}
                         />
                         <TouchableOpacity
+                            onPress={() => (navigation as any).navigate('CreateService', { service: item })}
+                            style={styles.editButton}
+                        >
+                            <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.primary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
                             onPress={() => handleDelete(item)}
                             style={styles.deleteButton}
                         >
@@ -292,24 +298,36 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     title: { fontSize: 20, fontWeight: 'bold', color: colors.text },
     list: { padding: spacing.md },
-    card: { padding: spacing.md, marginBottom: spacing.md },
+    card: { 
+        padding: spacing.md, 
+        marginBottom: spacing.md,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
+    },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     info: { flex: 1, marginRight: spacing.md },
     category: { fontSize: 12, color: colors.primary, fontWeight: '600', textTransform: 'uppercase', marginBottom: 4 },
     name: { fontSize: 18, color: colors.text, fontWeight: '600', marginBottom: 4 },
     baseInfo: { fontSize: 13, color: colors.textSecondary },
-    configContainer: { marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', flexDirection: 'row', gap: spacing.md },
+    configContainer: { marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(0, 0, 0, 0.08)', flexDirection: 'row', gap: spacing.md },
     inputGroup: { flex: 1 },
     label: { fontSize: 12, color: colors.textSecondary, marginBottom: spacing.xs },
-    input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: spacing.sm, color: colors.text, borderWidth: 1, borderColor: colors.border },
+    input: { backgroundColor: 'rgba(0, 0, 0, 0.04)', borderRadius: 8, padding: spacing.sm, color: colors.text, borderWidth: 1, borderColor: colors.border },
     addButton: {
         width: 36,
         height: 36,
@@ -328,6 +346,10 @@ const styles = StyleSheet.create({
         padding: 4,
         marginLeft: spacing.xs
     },
+    editButton: {
+        padding: 4,
+        marginLeft: spacing.xs
+    },
     linkSuppliesButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -335,7 +357,7 @@ const styles = StyleSheet.create({
         paddingTop: spacing.md,
         padding: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)'
+        borderTopColor: 'rgba(0, 0, 0, 0.08)'
     },
     linkSuppliesIcon: { fontSize: 16, marginRight: spacing.sm },
     linkSuppliesText: { flex: 1, fontSize: 14, color: colors.text, fontWeight: '500' },

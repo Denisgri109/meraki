@@ -56,8 +56,8 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
                 .from('appointments')
                 .select(`
     *,
-    service: service_id(*),
-        master: master_id(*),
+    service: services!appointments_service_id_fkey(*),
+        master: profiles!appointments_master_id_fkey(*),
             confirmation: appointment_confirmations(*)
                 `)
                 .eq('id', appointmentId)
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     termsBox: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         marginBottom: spacing.lg,

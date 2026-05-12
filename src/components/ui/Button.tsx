@@ -87,7 +87,7 @@ export function Button({
                 {...props}
             >
                 <LinearGradient
-                    colors={['#d48a82', '#E6C090']} // Gradient from design: #d48a82 -> #E6C090
+                    colors={['#E8A0B4', '#C47A90']} // Gradient from design: rose pink
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={[
@@ -164,7 +164,7 @@ function getVariantStyle(variant: string) {
             return {
                 backgroundColor: colors.surfaceGlass,
                 borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.15)',
+                borderColor: 'rgba(0, 0, 0, 0.08)',
             };
         default:
             return {};

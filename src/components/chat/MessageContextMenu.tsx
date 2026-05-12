@@ -79,7 +79,7 @@ export const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
         <Modal transparent visible={visible} animationType="fade" statusBarTranslucent>
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={styles.overlay}>
-                    <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+                    <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
 
                     <Animated.View
                         style={[
@@ -153,9 +153,9 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     bubbleGlass: {
-        backgroundColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.06)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -178,9 +178,14 @@ const styles = StyleSheet.create({
     },
     menuItems: {
         width: '100%',
-        backgroundColor: 'rgba(30, 30, 30, 0.9)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         borderRadius: 16,
         overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 8,
     },
     menuItem: {
         flexDirection: 'row',
@@ -199,7 +204,7 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: StyleSheet.hairlineWidth,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
         marginLeft: 16,
     },
 });

@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: spacing.md,
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
     field: { marginBottom: spacing.lg },
     label: { fontSize: 12, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: spacing.sm },
     input: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         fontSize: 16,

@@ -16,16 +16,16 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     StyleSheet,
-    FlatList,
+    ScrollView,
     TouchableOpacity,
     TextInput,
     KeyboardAvoidingView,
     Platform,
     Image,
-    Alert,
     ActivityIndicator,
     Dimensions,
 } from 'react-native';
+import { useModal } from '../../contexts/ModalContext';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -65,13 +65,14 @@ type Props = {
 
 export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }: Props) {
     const { user, profile } = useAuth();
+    const { showAlert, showModal, hideModal } = useModal();
     const [messages, setMessages] = useState<QAMessage[]>([]);
     const [messageText, setMessageText] = useState('');
     const [sending, setSending] = useState(false);
     const [loading, setLoading] = useState(true);
     const [replyTo, setReplyTo] = useState<QAMessage | null>(null);
     const [imageUploading, setImageUploading] = useState(false);
-    const flatListRef = useRef<FlatList>(null);
+    const flatListRef = useRef<ScrollView>(null);
 
     // ─── Load Messages ───────────────────────────────────────────────────────
 
@@ -224,7 +225,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                 }
             }
         } catch (err: any) {
-            Alert.alert('Error', err.message || 'Failed to send message');
+            showAlert('Error', err.message || 'Failed to send message', 'error');
         } finally {
             setSending(false);
         }
@@ -236,12 +237,12 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
         try {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('Permission Required', 'Please enable photo library access.');
+                showAlert('Permission Required', 'Please enable photo library access.', 'error');
                 return;
             }
 
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images'],
                 allowsEditing: true,
                 quality: 0.7,
                 base64: true,
@@ -260,7 +261,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
         try {
             const { status } = await ImagePicker.requestCameraPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('Permission Required', 'Please enable camera access.');
+                showAlert('Permission Required', 'Please enable camera access.', 'error');
                 return;
             }
 
@@ -315,7 +316,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
 
             await sendMessage(messageText.trim() || null, publicUrl, 'image');
         } catch (err: any) {
-            Alert.alert('Upload Failed', err.message || 'Could not upload image');
+            showAlert('Upload Failed', err.message || 'Could not upload image', 'error');
         } finally {
             setImageUploading(false);
         }
@@ -361,15 +362,29 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                     ]}
                     onLongPress={() => {
                         if (isInstructor) {
-                            Alert.alert(
-                                'Message Actions',
-                                undefined,
-                                [
-                                    { text: item.is_pinned ? 'Unpin' : 'Pin', onPress: () => togglePin(item.id, item.is_pinned) },
-                                    { text: 'Reply', onPress: () => setReplyTo(item) },
-                                    { text: 'Cancel', style: 'cancel' },
-                                ]
-                            );
+                            showModal({
+                                title: 'Message Actions',
+                                hideCancel: true,
+                                children: (
+                                    <View style={{ gap: 10, width: '100%', marginTop: 10 }}>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: colors.accent }]} 
+                                            onPress={() => { hideModal(); togglePin(item.id, item.is_pinned); }}>
+                                            <MerakiText style={styles.actionBtnText}>{item.is_pinned ? 'Unpin' : 'Pin'}</MerakiText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: colors.surfaceLight }]} 
+                                            onPress={() => { hideModal(); setReplyTo(item); }}>
+                                            <MerakiText style={[styles.actionBtnText, { color: colors.text }]}>Reply</MerakiText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }]} 
+                                            onPress={hideModal}>
+                                            <MerakiText style={[styles.actionBtnText, { color: colors.textSecondary }]}>Cancel</MerakiText>
+                                        </TouchableOpacity>
+                                    </View>
+                                )
+                            });
                         } else {
                             setReplyTo(item);
                         }
@@ -413,7 +428,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                     )}
 
                     {/* Timestamp */}
-                    <MerakiText variant="caption" color={isOwn ? 'rgba(255,255,255,0.5)' : colors.textMuted} style={styles.timestamp}>
+                    <MerakiText variant="caption" color={isOwn ? 'rgba(0, 0, 0, 0.40)' : colors.textMuted} style={styles.timestamp}>
                         {formatTime(item.created_at)}
                     </MerakiText>
                 </TouchableOpacity>
@@ -433,7 +448,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
     }
 
     return (
-        <View style={styles.container}>
+        <Card variant="glass" style={styles.container} noPadding>
             {/* Header */}
             <View style={styles.qaHeader}>
                 <MaterialCommunityIcons name="chat-question" size={18} color={colors.accent} />
@@ -463,15 +478,14 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
             )}
 
             {/* Messages List */}
-            <FlatList
+            <ScrollView
                 ref={flatListRef}
-                data={messages}
-                keyExtractor={(item) => item.id}
-                renderItem={renderMessage}
                 contentContainerStyle={styles.messagesList}
                 showsVerticalScrollIndicator={false}
+                nestedScrollEnabled={true}
                 onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-                ListEmptyComponent={
+            >
+                {messages.length === 0 ? (
                     <View style={styles.emptyChat}>
                         <MaterialCommunityIcons name="chat-question-outline" size={40} color={colors.textMuted} style={{ opacity: 0.3 }} />
                         <MerakiText variant="body" color={colors.textMuted} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
@@ -480,8 +494,14 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                                 : 'Ask a question or share your work for instant feedback!'}
                         </MerakiText>
                     </View>
-                }
-            />
+                ) : (
+                    messages.map((item) => (
+                        <React.Fragment key={item.id}>
+                            {renderMessage({ item })}
+                        </React.Fragment>
+                    ))
+                )}
+            </ScrollView>
 
             {/* Reply Bar */}
             {replyTo && (
@@ -510,11 +530,30 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                     <TouchableOpacity
                         style={styles.mediaBtn}
                         onPress={() => {
-                            Alert.alert('Add Photo', 'Choose a source', [
-                                { text: 'Camera', onPress: takePhoto },
-                                { text: 'Gallery', onPress: pickImage },
-                                { text: 'Cancel', style: 'cancel' },
-                            ]);
+                            showModal({
+                                title: 'Add Photo',
+                                message: 'Choose a source',
+                                hideCancel: true,
+                                children: (
+                                    <View style={{ gap: 10, width: '100%', marginTop: 10 }}>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: colors.accent }]} 
+                                            onPress={() => { hideModal(); takePhoto(); }}>
+                                            <MerakiText style={styles.actionBtnText}>Camera</MerakiText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: colors.surfaceLight }]} 
+                                            onPress={() => { hideModal(); pickImage(); }}>
+                                            <MerakiText style={[styles.actionBtnText, { color: colors.text }]}>Gallery</MerakiText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }]} 
+                                            onPress={hideModal}>
+                                            <MerakiText style={[styles.actionBtnText, { color: colors.textSecondary }]}>Cancel</MerakiText>
+                                        </TouchableOpacity>
+                                    </View>
+                                )
+                            });
                         }}
                         disabled={imageUploading}
                     >
@@ -548,7 +587,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
-        </View>
+        </Card>
     );
 }
 
@@ -602,10 +641,7 @@ async function sendPushNotification(
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'rgba(15,15,19,0.5)',
         borderRadius: layout.borderRadius.xl,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
         overflow: 'hidden',
         maxHeight: 500,
     },
@@ -621,7 +657,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm + 2,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.06)',
+        borderBottomColor: 'rgba(0, 0, 0, 0.05)',
     },
     liveIndicator: {
         flexDirection: 'row',
@@ -641,7 +677,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.06)',
+        borderBottomColor: 'rgba(0, 0, 0, 0.05)',
         backgroundColor: 'rgba(212,168,83,0.04)',
     },
     pinnedItem: {
@@ -673,7 +709,7 @@ const styles = StyleSheet.create({
         borderBottomRightRadius: 4,
     },
     bubbleOther: {
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
         borderBottomLeftRadius: 4,
     },
     bubbleInstructor: {
@@ -743,7 +779,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
         backgroundColor: 'rgba(212,168,83,0.04)',
     },
     replyContent: {
@@ -767,16 +803,27 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.sm,
         paddingVertical: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
         gap: spacing.sm,
     },
     mediaBtn: {
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    actionBtn: {
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        borderRadius: layout.borderRadius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    actionBtnText: {
+        color: '#FFF',
+        fontWeight: '700' as any,
     },
     textInput: {
         flex: 1,
@@ -785,10 +832,10 @@ const styles = StyleSheet.create({
         maxHeight: 80,
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: layout.borderRadius.lg,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
     },
     sendBtn: {
         width: 36,

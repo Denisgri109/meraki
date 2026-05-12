@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,7 +13,7 @@ import { useModal } from '../../contexts/ModalContext';
 export function NFCScannerScreen() {
     const navigation = useNavigation();
     const { user } = useAuth();
-    const { showModal, hideModal } = useModal();
+    const { showModal, hideModal, showAlert } = useModal();
     const [hasNfc, setHasNfc] = useState<boolean | null>(null);
     const [scanning, setScanning] = useState(false);
 
@@ -57,7 +57,7 @@ export function NFCScannerScreen() {
 
     const processTag = async (tag: any) => {
         if (!tag.ndefMessage && !tag.id) {
-            Alert.alert('Error', 'Invalid Tag');
+            showAlert('Error', 'Invalid Tag', 'error');
             return;
         }
 
@@ -72,7 +72,7 @@ export function NFCScannerScreen() {
             // Fallback to ID if no NDEF, though our stamps use NDEF text records
             // This might need adjustment based on how tags are written. 
             // For now assume NDEF text record "stamp:master_id"
-            Alert.alert('Error', 'Empty or unsupported tag');
+            showAlert('Error', 'Empty or unsupported tag', 'error');
             return;
         }
 
@@ -188,7 +188,7 @@ export function NFCScannerScreen() {
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
+                        <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Scan NFC Tag</Text>
                     <View style={{ width: 40 }} />
@@ -239,12 +239,12 @@ const styles = StyleSheet.create({
     },
     backButton: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     headerTitle: {
-        fontSize: 17, fontWeight: '600', color: '#fff',
+        fontSize: 17, fontWeight: '600', color: '#1A1A1A',
     },
     content: {
         flex: 1,

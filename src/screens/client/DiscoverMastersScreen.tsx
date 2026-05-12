@@ -220,7 +220,7 @@ export function DiscoverMastersScreen() {
                 <View style={styles.header}>
                     <View style={styles.headerRow}>
                         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                            <MaterialIcons name="arrow-back" size={22} color="rgba(255,255,255,0.7)" />
+                            <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                         <MerakiText style={styles.headerTitle}>Discover Masters</MerakiText>
                         <View style={{ width: 40 }} />
@@ -353,11 +353,11 @@ const styles = StyleSheet.create({
     },
     backButton: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
-    headerTitle: { fontSize: 17, fontWeight: '600', color: '#fff' },
+    headerTitle: { fontSize: 17, fontWeight: '600', color: '#1A1A1A' },
     locationBadge: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.xs,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     searchInput: {
         flex: 1,
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.md,
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
     },
     masterRow: { flexDirection: 'row', alignItems: 'center' },
     avatarContainer: {
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     nearbyBadgeText: { fontSize: 10, color: colors.primary, fontWeight: '700', textTransform: 'uppercase' },
     statsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     serviceBadge: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 4,
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: spacing.lg,

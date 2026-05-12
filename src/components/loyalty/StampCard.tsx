@@ -43,7 +43,7 @@ export const StampCard: React.FC<StampCardProps> = ({ card, onRedeem, style, hid
                     {isCollected ? (
                         <MaterialIcons name="star" size={16} color="#fff" />
                     ) : (
-                        <MaterialIcons name="star-border" size={16} color="rgba(255, 255, 255, 0.1)" />
+                        <MaterialIcons name="star-border" size={16} color="rgba(0, 0, 0, 0.08)" />
                     )}
                 </View>
             );
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
         padding: spacing.md,
         marginBottom: spacing.lg,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
     },
     masterRow: {
         flexDirection: 'row',
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary,
     },
     slotsContainer: {
-        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 16,
         padding: spacing.md,
         marginBottom: spacing.lg,
@@ -205,13 +205,13 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: 'rgba(0, 0, 0, 0.2)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     stampSlotCollected: {
         backgroundColor: colors.primary,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderColor: 'rgba(0, 0, 0, 0.12)',
         elevation: 4,
         shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255, 255, 255, 0.05)',
+        borderTopColor: 'rgba(0, 0, 0, 0.04)',
         paddingTop: spacing.md,
     },
     footerInfo: {
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
         width: 120,
     },
     lastStampBox: {
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 8,

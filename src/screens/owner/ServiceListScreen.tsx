@@ -8,7 +8,6 @@ import {
     ActivityIndicator,
     TouchableOpacity,
     Switch,
-    Alert,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +15,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { useModal } from '../../contexts/ModalContext';
 import { Service } from '../../types/database';
 
 export function ServiceListScreen() {
@@ -24,6 +24,7 @@ export function ServiceListScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [services, setServices] = useState<Service[]>([]);
     const [groupedServices, setGroupedServices] = useState<Record<string, Service[]>>({});
+    const { showAlert } = useModal();
 
     useFocusEffect(
         useCallback(() => {
@@ -83,7 +84,7 @@ export function ServiceListScreen() {
             });
         } catch (error) {
             console.error('Error toggling service:', error);
-            Alert.alert('Error', 'Failed to update service status');
+            showAlert('Error', 'Failed to update service status', 'error');
         }
     };
 
@@ -113,6 +114,16 @@ export function ServiceListScreen() {
             </TouchableOpacity>
 
             {/* Manage Supplies Button */}
+            {service.category === 'Pilates' && (
+                <TouchableOpacity
+                    style={styles.pilatesButton}
+                    onPress={() => navigation.navigate('PilatesTimetable', { service })}
+                >
+                    <Text style={styles.linkSuppliesIcon}>🧘</Text>
+                    <Text style={styles.pilatesButtonText}>Manage Pilates Timetable</Text>
+                    <Text style={styles.linkSuppliesArrow}>→</Text>
+                </TouchableOpacity>
+            )}
             <TouchableOpacity
                 style={styles.linkSuppliesButton}
                 onPress={() => navigation.navigate('ServiceSupplies', { serviceId: service.id })}
@@ -197,11 +208,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     title: { fontSize: 20, fontWeight: '600', color: colors.text },
     addButton: { fontSize: 16, color: '#8B5CF6', fontWeight: '600' },
@@ -217,7 +228,16 @@ const styles = StyleSheet.create({
     },
     serviceCard: {
         padding: spacing.md,
-        marginBottom: spacing.sm,
+        marginBottom: spacing.md,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     serviceCardContent: {
         flexDirection: 'row',
@@ -233,11 +253,21 @@ const styles = StyleSheet.create({
         paddingTop: spacing.md,
         padding: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)'
+        borderTopColor: 'rgba(0, 0, 0, 0.08)'
     },
     linkSuppliesIcon: { fontSize: 16, marginRight: spacing.sm },
     linkSuppliesText: { flex: 1, fontSize: 14, color: colors.text, fontWeight: '500' },
     linkSuppliesArrow: { fontSize: 18, color: colors.primary },
+    pilatesButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: spacing.md,
+        paddingTop: spacing.md,
+        padding: spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(16, 185, 129, 0.18)',
+    },
+    pilatesButtonText: { flex: 1, fontSize: 14, color: '#047857', fontWeight: '700' },
     emptyCard: { alignItems: 'center', padding: spacing.xl, marginTop: spacing.xl },
     emptyIcon: { fontSize: 48, marginBottom: spacing.md, opacity: 0.5 },
     emptyText: { fontSize: 14, color: colors.textSecondary, marginBottom: spacing.lg },
@@ -247,7 +277,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
         borderRadius: 8,
     },
-    emptyButtonText: { color: '#fff', fontWeight: '600' },
+    emptyButtonText: { color: '#1A1A1A', fontWeight: '600' },
 });
 
 export default ServiceListScreen;

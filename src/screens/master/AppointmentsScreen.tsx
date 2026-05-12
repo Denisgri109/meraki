@@ -23,7 +23,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button, ScreenBackground, MerakiModal, MerakiModalProps, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
-import { processRefund } from '../../services/stripeService';
+import { cancelAndRefund } from '../../services/stripeService';
 
 type Appointment = {
     id: string;
@@ -265,116 +265,6 @@ export function MasterAppointmentsScreen() {
         });
     };
 
-    const handleApproveReschedule = async (apt: Appointment) => {
-        if (!apt.proposed_start_time || !apt.proposed_end_time) return;
-
-        setModalConfig({
-            visible: true,
-            title: 'Approve Reschedule',
-            message: `Accept new time: ${format(new Date(apt.proposed_start_time), 'MMM d, HH:mm')}?`,
-            confirmText: 'Yes, Approve',
-            type: 'info',
-            onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
-            onConfirm: async () => {
-                setModalConfig(prev => ({
-                    ...prev,
-                    title: 'Approving...',
-                    message: 'Approving rescheduled time...',
-                    loading: true,
-                    hideCancel: true
-                }));
-                try {
-                    const { error } = await supabase
-                        .from('appointments')
-                        .update({
-                            start_time: apt.proposed_start_time,
-                            end_time: apt.proposed_end_time,
-                            proposed_start_time: null,
-                            proposed_end_time: null,
-                            reschedule_initiated_by: null,
-                            status: 'confirmed',
-                        } as any)
-                        .eq('id', apt.id);
-
-                    if (error) throw error;
-                    fetchAppointments();
-                    setModalConfig({
-                        visible: true,
-                        title: 'Success',
-                        message: 'Reschedule approved',
-                        type: 'success',
-                        onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
-                        confirmText: 'OK',
-                        hideCancel: true
-                    });
-                } catch (error: any) {
-                    setModalConfig({
-                        visible: true,
-                        title: 'Error',
-                        message: error.message,
-                        type: 'error',
-                        onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
-                        confirmText: 'OK',
-                        hideCancel: true
-                    });
-                }
-            }
-        });
-    };
-
-    const handleRejectReschedule = (id: string) => {
-        setModalConfig({
-            visible: true,
-            title: 'Reject Reschedule',
-            message: 'Keep the original time?',
-            confirmText: 'Yes, Keep Original',
-            type: 'info',
-            onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
-            onConfirm: async () => {
-                setModalConfig(prev => ({
-                    ...prev,
-                    title: 'Rejecting...',
-                    message: 'Rejecting rescheduled time...',
-                    loading: true,
-                    hideCancel: true
-                }));
-                try {
-                    const { error } = await supabase
-                        .from('appointments')
-                        .update({
-                            proposed_start_time: null,
-                            proposed_end_time: null,
-                            reschedule_initiated_by: null,
-                            status: 'confirmed',
-                        } as any)
-                        .eq('id', id);
-
-                    if (error) throw error;
-                    fetchAppointments();
-                    setModalConfig({
-                        visible: true,
-                        title: 'Success',
-                        message: 'Kept original time',
-                        type: 'success',
-                        onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
-                        confirmText: 'OK',
-                        hideCancel: true
-                    });
-                } catch (error: any) {
-                    setModalConfig({
-                        visible: true,
-                        title: 'Error',
-                        message: error.message,
-                        type: 'error',
-                        onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
-                        confirmText: 'OK',
-                        hideCancel: true
-                    });
-                }
-            }
-        });
-    };
-
     // Owner/Master initiated cancel
     const handleCancelAppointment = (id: string) => {
         setModalConfig({
@@ -394,27 +284,31 @@ export function MasterAppointmentsScreen() {
                     hideCancel: true
                 }));
 
-                const apt = appointments.find(a => a.id === id);
-                if (apt?.stripe_payment_intent_id) {
-                    try {
-                        // Issue full refund to client automatically
-                        await processRefund(apt.stripe_payment_intent_id, undefined, 'requested_by_customer');
-                    } catch (e: any) {
-                        console.error('Failed to process refund:', e);
-                        setModalConfig({
-                            visible: true,
-                            title: 'Refund Error',
-                            message: e.message || 'Could not process refund.',
-                            type: 'error',
-                            onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
-                            confirmText: 'OK',
-                            hideCancel: true
-                        });
-                        return; // Stop cancellation process if refund fails
-                    }
+                try {
+                    await cancelAndRefund(id, 'master');
+                    fetchAppointments();
+                    
+                    setModalConfig({
+                        visible: true,
+                        title: 'Success',
+                        message: 'Appointment cancelled successfully. The client has been refunded.',
+                        type: 'success',
+                        onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+                        confirmText: 'OK',
+                        hideCancel: true
+                    });
+                } catch (e: any) {
+                    console.error('Failed to cancel appointment:', e);
+                    setModalConfig({
+                        visible: true,
+                        title: 'Cancellation Error',
+                        message: e.message || 'Could not cancel appointment.',
+                        type: 'error',
+                        onClose: () => setModalConfig(prev => ({ ...prev, visible: false })),
+                        confirmText: 'OK',
+                        hideCancel: true
+                    });
                 }
-
-                updateAppointmentStatus(id, 'cancelled');
             }
         });
     };
@@ -658,18 +552,6 @@ export function MasterAppointmentsScreen() {
                     </View>
                 )}
 
-                {/* Reschedule: Approve / Reject */}
-                {isReschedule && apt.proposed_start_time && apt.reschedule_initiated_by !== user?.id && (
-                    <View style={styles.stitchAcceptDecline}>
-                        <TouchableOpacity style={styles.stitchAcceptButton} onPress={() => handleApproveReschedule(apt)}>
-                            <MerakiText variant="label" color="#fff" style={{ fontWeight: '700', fontSize: 14 }}>Approve</MerakiText>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.stitchDeclineButton} onPress={() => handleRejectReschedule(apt.id)}>
-                            <MerakiText variant="label" color={colors.textSecondary} style={{ fontWeight: '600', fontSize: 14 }}>Keep Original</MerakiText>
-                        </TouchableOpacity>
-                    </View>
-                )}
-
                 {/* Confirmed — Quick Action Row */}
                 {isConfirmed && new Date(apt.start_time) > now && (
                     <View style={styles.stitchActionRow}>
@@ -876,14 +758,14 @@ export function MasterAppointmentsScreen() {
                                     >
                                         <MerakiText
                                             variant="caption"
-                                            color={selectedDate && isSameDay(date, selectedDate) ? colors.text : colors.textSecondary}
+                                            color={selectedDate && isSameDay(date, selectedDate) ? colors.textInvert : colors.textSecondary}
                                             style={styles.dateDayName}
                                         >
                                             {format(date, 'EEE')}
                                         </MerakiText>
                                         <MerakiText
                                             variant="body"
-                                            color={selectedDate && isSameDay(date, selectedDate) ? colors.text : colors.text}
+                                            color={selectedDate && isSameDay(date, selectedDate) ? colors.textInvert : colors.text}
                                             style={[
                                                 styles.dateDay,
                                                 selectedDate && isSameDay(date, selectedDate) && styles.dateTextActive
@@ -908,7 +790,7 @@ export function MasterAppointmentsScreen() {
                                     >
                                         <MerakiText
                                             variant="body"
-                                            color={selectedTime === time ? colors.text : colors.text}
+                                            color={selectedTime === time ? colors.textInvert : colors.text}
                                             style={[
                                                 styles.timeText,
                                                 selectedTime === time && styles.timeTextActive
@@ -978,9 +860,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     dateChipActive: {
         backgroundColor: colors.primary,
@@ -1026,12 +908,12 @@ const styles = StyleSheet.create({
 
     // ─── Stitch Appointment Card ───
     stitchCard: {
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 20,
         padding: spacing.lg,
         marginBottom: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     stitchBadge: {
         paddingHorizontal: 10,
@@ -1058,7 +940,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    stitchAvatarText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    stitchAvatarText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
     stitchClientInfo: { flex: 1, gap: 2 },
     stitchClientName: { fontSize: 16, fontWeight: '600' },
     stitchTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
@@ -1072,7 +954,7 @@ const styles = StyleSheet.create({
         marginTop: spacing.sm,
         paddingTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     stitchNotes: {
         flexDirection: 'row',
@@ -1081,7 +963,7 @@ const styles = StyleSheet.create({
         marginTop: spacing.sm,
         paddingTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
 
     // Price row
@@ -1092,7 +974,7 @@ const styles = StyleSheet.create({
         marginTop: spacing.sm,
         paddingTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     stitchDepositBadge: {
         backgroundColor: 'rgba(34,197,94,0.15)',
@@ -1108,7 +990,7 @@ const styles = StyleSheet.create({
         marginTop: spacing.md,
         paddingTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     stitchAcceptButton: {
         flex: 1,
@@ -1122,9 +1004,9 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 12,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -1137,14 +1019,14 @@ const styles = StyleSheet.create({
         marginTop: spacing.sm,
         paddingTop: spacing.sm,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     stitchActionIcons: { flexDirection: 'row', gap: 8 },
     stitchIconBtn: {
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -1153,7 +1035,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 10,
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
     },
     stitchSmallBtnPrimary: {
         paddingHorizontal: 14,
@@ -1171,7 +1053,7 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: spacing.lg,
@@ -1190,7 +1072,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         padding: spacing.lg,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.1)',
+        borderBottomColor: 'rgba(0, 0, 0, 0.08)',
     },
     modalCancel: { color: colors.textSecondary, fontSize: 16 },
     modalTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
@@ -1217,7 +1099,7 @@ const styles = StyleSheet.create({
     dateCardActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     dateDayName: { fontSize: 12, color: colors.textSecondary, marginBottom: spacing.xs },
     dateDay: { fontSize: 20, fontWeight: '600', color: colors.text },
-    dateTextActive: { color: colors.text },
+    dateTextActive: { color: colors.textInvert },
     timesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -1234,7 +1116,7 @@ const styles = StyleSheet.create({
     },
     timeSlotActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     timeText: { fontSize: 14, fontWeight: '500', color: colors.text },
-    timeTextActive: { color: colors.text },
+    timeTextActive: { color: colors.textInvert },
 });
 
 export default MasterAppointmentsScreen;

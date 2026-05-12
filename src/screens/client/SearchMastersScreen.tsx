@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import * as Location from 'expo-location';
@@ -31,6 +32,7 @@ type Master = {
 
 export function SearchMastersScreen() {
     const navigation = useNavigation<any>();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [masters, setMasters] = useState<Master[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -40,7 +42,7 @@ export function SearchMastersScreen() {
     useEffect(() => {
         loadMasters();
         detectUserLocation();
-    }, []);
+    }, [user?.id]);
 
     const detectUserLocation = async () => {
         try {
@@ -110,7 +112,7 @@ export function SearchMastersScreen() {
             const visibleMasters: Master[] = (mastersData || [])
                 .filter((m: any) => {
                     const settings = settingsMap.get(m.id);
-                    return !settings || settings.is_visible_globally !== false;
+                    return m.id !== user?.id && (!settings || settings.is_visible_globally !== false);
                 })
                 .map((m: any) => {
                     const settings = settingsMap.get(m.id);
@@ -300,7 +302,7 @@ const styles = StyleSheet.create({
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,

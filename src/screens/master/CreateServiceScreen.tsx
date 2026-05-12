@@ -9,10 +9,14 @@ import {
     KeyboardAvoidingView,
     Platform,
     Switch,
+    Image,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ScreenBackground, Card, Button, MerakiText } from '../../components/ui';
@@ -23,18 +27,67 @@ const CATEGORIES = ['Nails', 'Lashes', 'Brows', 'Hair', 'Makeup', 'Skincare', 'O
 
 export function CreateServiceScreen() {
     const navigation = useNavigation();
+    const route = useRoute<any>();
+    const existingService = route.params?.service;
+    const isEditing = !!existingService;
     const { user } = useAuth();
     const { showAlert, showConfirm } = useModal();
     const [loading, setLoading] = useState(false);
 
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    const [category, setCategory] = useState('Nails');
-    const [basePrice, setBasePrice] = useState('');
-    const [durationMinutes, setDurationMinutes] = useState('60');
-    const [requiresConsultation, setRequiresConsultation] = useState(false);
+    const [name, setName] = useState(existingService?.name || '');
+    const [description, setDescription] = useState(existingService?.description || '');
+    const [category, setCategory] = useState(existingService?.category || 'Nails');
+    const [basePrice, setBasePrice] = useState(existingService?.base_price?.toString() || '');
+    const [durationMinutes, setDurationMinutes] = useState(existingService?.duration_minutes?.toString() || '60');
+    const [requiresConsultation, setRequiresConsultation] = useState(existingService?.requires_consultation ?? false);
+    const [imageUrl, setImageUrl] = useState(existingService?.image_url || '');
+    const [uploading, setUploading] = useState(false);
 
-    const handleCreate = async () => {
+    const pickServiceImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            showAlert('Permission needed', 'Please grant gallery access to upload service photos.', 'warning');
+            return;
+        }
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [16, 9],
+                quality: 0.8,
+            });
+            if (!result.canceled && result.assets[0]) {
+                uploadServiceImage(result.assets[0]);
+            }
+        } catch (error) {
+            showAlert('Error', 'Failed to pick image', 'error');
+        }
+    };
+
+    const uploadServiceImage = async (asset: ImagePicker.ImagePickerAsset) => {
+        setUploading(true);
+        try {
+            const fileExt = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+            const fileName = `service-images/${Date.now()}.${fileExt}`;
+            const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
+
+            const { error: uploadError } = await supabase.storage
+                .from('services')
+                .upload(fileName, decode(base64), { contentType: `image/${fileExt}`, upsert: false });
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage.from('services').getPublicUrl(fileName);
+            setImageUrl(urlData.publicUrl);
+        } catch (error: any) {
+            console.error('Upload error:', error);
+            showAlert('Error', error.message || 'Failed to upload image', 'error');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleSave = async () => {
         if (!name.trim()) {
             showAlert('Error', 'Please enter a service name', 'error');
             return;
@@ -50,46 +103,64 @@ export function CreateServiceScreen() {
 
         setLoading(true);
         try {
-            // 1. Create the service
-            const { data: serviceData, error: serviceError } = await supabase
-                .from('services')
-                .insert({
-                    name: name.trim(),
-                    description: description.trim() || null,
-                    category,
-                    base_price: Number(basePrice),
-                    duration_minutes: Number(durationMinutes),
-                    is_active: true,
-                    requires_consultation: requiresConsultation,
-                    created_by: user!.id,
-                })
-                .select()
-                .single();
+            const servicePayload = {
+                name: name.trim(),
+                description: description.trim() || null,
+                category,
+                base_price: Number(basePrice),
+                duration_minutes: Number(durationMinutes),
+                is_active: existingService ? existingService.is_active : true,
+                requires_consultation: requiresConsultation,
+                image_url: imageUrl || null,
+            };
 
-            if (serviceError) throw serviceError;
-
-            // 2. Link the service to this master in master_services
-            const { error: linkError } = await supabase
-                .from('master_services')
-                .insert({
-                    master_id: user!.id,
-                    service_id: serviceData.id,
-                    is_available: true,
-                    custom_price: null, // Use base price
-                    custom_duration: null, // Use base duration
+            if (isEditing) {
+                const { error: updateError } = await supabase
+                    .from('services')
+                    .update(servicePayload)
+                    .eq('id', existingService.id);
+                
+                if (updateError) throw updateError;
+                
+                showConfirm('Success', 'Service updated successfully!', () => navigation.goBack(), {
+                    type: 'success',
+                    confirmText: 'OK',
+                    hideCancel: true
                 });
+            } else {
+                const { data: serviceData, error: serviceError } = await supabase
+                    .from('services')
+                    .insert({
+                        ...servicePayload,
+                        created_by: user!.id,
+                        is_active: true,
+                    })
+                    .select()
+                    .single();
 
-            if (linkError) throw linkError;
+                if (serviceError) throw serviceError;
 
-            // Use showConfirm to handle navigation on acknowledgement
-            showConfirm('Success', 'Service created successfully!', () => navigation.goBack(), {
-                type: 'success',
-                confirmText: 'OK',
-                hideCancel: true
-            });
+                const { error: linkError } = await supabase
+                    .from('master_services')
+                    .insert({
+                        master_id: user!.id,
+                        service_id: serviceData.id,
+                        is_available: true,
+                        custom_price: null, // Use base price
+                        custom_duration: null, // Use base duration
+                    });
+
+                if (linkError) throw linkError;
+
+                showConfirm('Success', 'Service created successfully!', () => navigation.goBack(), {
+                    type: 'success',
+                    confirmText: 'OK',
+                    hideCancel: true
+                });
+            }
         } catch (error: any) {
-            console.error('Error creating service:', error);
-            showAlert('Error', error.message || 'Failed to create service', 'error');
+            console.error('Error saving service:', error);
+            showAlert('Error', error.message || 'Failed to save service', 'error');
         } finally {
             setLoading(false);
         }
@@ -112,8 +183,12 @@ export function CreateServiceScreen() {
                             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                                 <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                             </TouchableOpacity>
-                            <MerakiText variant="h1" style={{ marginBottom: spacing.xs }}>Create New Service</MerakiText>
-                            <MerakiText variant="caption" color={colors.textSecondary}>Add a service that clients can book</MerakiText>
+                            <MerakiText variant="h1" style={{ marginBottom: spacing.xs }}>
+                                {isEditing ? 'Edit Service' : 'Create New Service'}
+                            </MerakiText>
+                            <MerakiText variant="caption" color={colors.textSecondary}>
+                                {isEditing ? 'Modify your service details' : 'Add a service that clients can book'}
+                            </MerakiText>
                         </View>
 
                         {/* Form */}
@@ -165,7 +240,7 @@ export function CreateServiceScreen() {
                                         >
                                             <MerakiText
                                                 variant="body"
-                                                color={category === cat ? colors.text : colors.textSecondary}
+                                                color={category === cat ? colors.textInvert : colors.textSecondary}
                                                 style={[
                                                     styles.categoryChipText,
                                                     category === cat && styles.categoryChipTextActive
@@ -201,6 +276,35 @@ export function CreateServiceScreen() {
                                         onChangeText={setDurationMinutes}
                                         keyboardType="number-pad"
                                     />
+                                </View>
+                            </View>
+
+                            {/* Service Image (Optional) */}
+                            <View style={styles.inputGroup}>
+                                <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', marginBottom: spacing.sm }}>Service Image (Optional)</MerakiText>
+                                <View style={styles.imageUploadRow}>
+                                    <View style={styles.imagePreviewContainer}>
+                                        {imageUrl ? (
+                                            <Image source={{ uri: imageUrl }} style={styles.uploadedImage} />
+                                        ) : (
+                                            <View style={styles.imagePlaceholder}>
+                                                <MaterialCommunityIcons name="camera" size={24} color={colors.textMuted} />
+                                            </View>
+                                        )}
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.uploadButton}
+                                        onPress={pickServiceImage}
+                                        disabled={uploading}
+                                    >
+                                        {uploading ? (
+                                            <ActivityIndicator size="small" color={colors.text} />
+                                        ) : (
+                                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '500' }}>
+                                                {imageUrl ? 'Change Photo' : 'Upload Photo'}
+                                            </MerakiText>
+                                        )}
+                                    </TouchableOpacity>
                                 </View>
                             </View>
 
@@ -249,8 +353,8 @@ export function CreateServiceScreen() {
                     {/* Bottom Button */}
                     <View style={styles.bottomBar}>
                         <Button
-                            title={loading ? 'Creating...' : 'Create Service'}
-                            onPress={handleCreate}
+                            title={loading ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Service')}
+                            onPress={handleSave}
                             loading={loading}
                             disabled={loading || !name.trim() || !basePrice}
                             fullWidth
@@ -274,11 +378,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         marginBottom: spacing.md,
     },
     title: {
@@ -305,7 +409,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.sm,
     },
     input: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         fontSize: 16,
@@ -338,7 +442,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     categoryChipTextActive: {
-        color: colors.text,
+        color: colors.textInvert,
         fontWeight: '600',
     },
     row: {
@@ -352,7 +456,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         borderRadius: 12,
         padding: spacing.md,
         borderWidth: 1,
@@ -402,6 +506,39 @@ const styles = StyleSheet.create({
     previewDuration: {
         fontSize: 14,
         color: colors.textMuted,
+    },
+    // Image upload
+    imageUploadRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+    },
+    imagePreviewContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    uploadedImage: {
+        width: '100%',
+        height: '100%',
+    },
+    imagePlaceholder: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    uploadButton: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        borderRadius: 12,
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     bottomBar: {
         padding: spacing.lg,

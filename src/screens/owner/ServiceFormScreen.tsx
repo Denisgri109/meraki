@@ -6,28 +6,34 @@ import {
     ScrollView,
     TextInput,
     TouchableOpacity,
-    Alert,
     Switch,
+    Image,
+    ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { Button, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { useModal } from '../../contexts/ModalContext';
 import { Service } from '../../types/database';
 
 type RouteParams = {
     ServiceForm: { service?: Service };
 };
 
-const CATEGORIES = ['Hair', 'Nails', 'Skincare', 'Massage', 'Makeup', 'Other'];
+const CATEGORIES = ['Hair', 'Nails', 'Skincare', 'Massage', 'Makeup', 'Pilates', 'Other'];
 
 export function ServiceFormScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<RouteProp<RouteParams, 'ServiceForm'>>();
     const existingService = route.params?.service;
     const isEditing = !!existingService;
+    const { showAlert, showConfirm } = useModal();
 
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -38,18 +44,64 @@ export function ServiceFormScreen() {
         duration_minutes: existingService?.duration_minutes?.toString() || '60',
         is_active: existingService?.is_active ?? true,
     });
+    const [imageUrl, setImageUrl] = useState((existingService as any)?.image_url || '');
+    const [uploading, setUploading] = useState(false);
+
+    const pickServiceImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            showAlert('Permission needed', 'Please grant gallery access to upload service photos.', 'error');
+            return;
+        }
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [16, 9],
+                quality: 0.8,
+            });
+            if (!result.canceled && result.assets[0]) {
+                uploadServiceImage(result.assets[0]);
+            }
+        } catch (error) {
+            showAlert('Error', 'Failed to pick image', 'error');
+        }
+    };
+
+    const uploadServiceImage = async (asset: ImagePicker.ImagePickerAsset) => {
+        setUploading(true);
+        try {
+            const fileExt = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+            const fileName = `service-images/${Date.now()}.${fileExt}`;
+            const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
+
+            const { error: uploadError } = await supabase.storage
+                .from('services')
+                .upload(fileName, decode(base64), { contentType: `image/${fileExt}`, upsert: false });
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage.from('services').getPublicUrl(fileName);
+            setImageUrl(urlData.publicUrl);
+        } catch (error: any) {
+            console.error('Upload error:', error);
+            showAlert('Error', error.message || 'Failed to upload image', 'error');
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const handleSave = async () => {
         if (!formData.name.trim()) {
-            Alert.alert('Error', 'Please enter a service name');
+            showAlert('Error', 'Please enter a service name', 'error');
             return;
         }
         if (!formData.base_price || isNaN(Number(formData.base_price))) {
-            Alert.alert('Error', 'Please enter a valid price');
+            showAlert('Error', 'Please enter a valid price', 'error');
             return;
         }
         if (!formData.duration_minutes || isNaN(Number(formData.duration_minutes))) {
-            Alert.alert('Error', 'Please enter a valid duration');
+            showAlert('Error', 'Please enter a valid duration', 'error');
             return;
         }
 
@@ -62,6 +114,7 @@ export function ServiceFormScreen() {
                 base_price: Number(formData.base_price),
                 duration_minutes: Number(formData.duration_minutes),
                 is_active: formData.is_active,
+                image_url: imageUrl || null,
             };
 
             if (isEditing) {
@@ -71,19 +124,19 @@ export function ServiceFormScreen() {
                     .eq('id', existingService.id);
 
                 if (error) throw error;
-                Alert.alert('Success', 'Service updated successfully');
+                showAlert('Success', 'Service updated successfully', 'success');
             } else {
                 const { error } = await supabase
                     .from('services')
                     .insert(serviceData);
 
                 if (error) throw error;
-                Alert.alert('Success', 'Service created successfully');
+                showAlert('Success', 'Service created successfully', 'success');
             }
             navigation.goBack();
         } catch (error: any) {
             console.error('Error saving service:', error);
-            Alert.alert('Error', error.message || 'Failed to save service');
+            showAlert('Error', error.message || 'Failed to save service', 'error');
         } finally {
             setLoading(false);
         }
@@ -92,34 +145,27 @@ export function ServiceFormScreen() {
     const handleDelete = () => {
         if (!isEditing) return;
 
-        Alert.alert(
+        showConfirm(
             'Delete Service',
             'Are you sure you want to delete this service? This action cannot be undone.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        setLoading(true);
-                        try {
-                            const { error } = await supabase
-                                .from('services')
-                                .delete()
-                                .eq('id', existingService.id);
+            async () => {
+                setLoading(true);
+                try {
+                    const { error } = await supabase
+                        .from('services')
+                        .delete()
+                        .eq('id', existingService.id);
 
-                            if (error) throw error;
-                            Alert.alert('Success', 'Service deleted');
-                            navigation.goBack();
-                        } catch (error: any) {
-                            console.error('Error deleting service:', error);
-                            Alert.alert('Error', error.message || 'Failed to delete service');
-                        } finally {
-                            setLoading(false);
-                        }
-                    },
-                },
-            ]
+                    if (error) throw error;
+                    showAlert('Success', 'Service deleted', 'success');
+                    navigation.goBack();
+                } catch (error: any) {
+                    console.error('Error deleting service:', error);
+                    showAlert('Error', error.message || 'Failed to delete service', 'error');
+                } finally {
+                    setLoading(false);
+                }
+            }
         );
     };
 
@@ -212,6 +258,35 @@ export function ServiceFormScreen() {
                         </View>
                     </View>
 
+                    {/* Service Image (Optional) */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Service Image</Text>
+                        <View style={styles.imageUploadRow}>
+                            <View style={styles.imagePreviewContainer}>
+                                {imageUrl ? (
+                                    <Image source={{ uri: imageUrl }} style={styles.uploadedImage} />
+                                ) : (
+                                    <View style={styles.imagePlaceholder}>
+                                        <MaterialCommunityIcons name="camera" size={24} color={colors.textMuted} />
+                                    </View>
+                                )}
+                            </View>
+                            <TouchableOpacity
+                                style={styles.uploadButton}
+                                onPress={pickServiceImage}
+                                disabled={uploading}
+                            >
+                                {uploading ? (
+                                    <ActivityIndicator size="small" color={colors.text} />
+                                ) : (
+                                    <Text style={styles.uploadButtonText}>
+                                        {imageUrl ? 'Change Photo' : 'Upload Photo'}
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
                     {/* Status */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Status</Text>
@@ -268,11 +343,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     title: { fontSize: 20, fontWeight: '600', color: colors.text },
     content: { padding: spacing.lg },
@@ -345,6 +420,44 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     deleteButtonText: { color: '#EF4444', fontSize: 16, fontWeight: '600' },
+    // Image upload
+    imageUploadRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+    },
+    imagePreviewContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    uploadedImage: {
+        width: '100%',
+        height: '100%',
+    },
+    imagePlaceholder: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    uploadButton: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        borderRadius: 12,
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    uploadButtonText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: colors.text,
+    },
 });
 
 export default ServiceFormScreen;

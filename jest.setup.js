@@ -39,7 +39,10 @@ jest.mock('expo-notifications', () => ({
 // Mock expo-image-picker
 jest.mock('expo-image-picker', () => ({
     launchImageLibraryAsync: jest.fn(),
-    MediaTypeOptions: { Images: 'Images' },
+    launchCameraAsync: jest.fn(),
+    requestMediaLibraryPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+    requestCameraPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+    MediaTypeOptions: { Images: 'Images', Videos: 'Videos' },
 }));
 
 // Mock expo-secure-store

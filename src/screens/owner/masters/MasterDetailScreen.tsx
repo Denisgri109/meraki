@@ -13,13 +13,13 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
-    Alert,
     ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useModal } from '../../../contexts/ModalContext';
 import { ScreenBackground, Card, MerakiText, Input, Button } from '../../../components/ui';
 import { colors, spacing, layout } from '../../../theme';
 import {
@@ -37,6 +37,7 @@ export function MasterDetailScreen() {
     const navigation = useNavigation<any>();
     const route = useRoute<RouteProp<ParamList, 'MasterDetail'>>();
     const { master } = route.params;
+    const { showAlert, showConfirm } = useModal();
 
     const [isVerified, setIsVerified] = useState(master.is_verified || false);
     const [saving, setSaving] = useState(false);
@@ -50,39 +51,30 @@ export function MasterDetailScreen() {
         });
         setSaving(false);
         if (success) {
-            Alert.alert('Saved', 'Master profile has been updated.', [
-                { text: 'OK', onPress: () => navigation.goBack() }
-            ]);
+            showAlert('Saved', 'Master profile has been updated.', 'success');
+            navigation.goBack();
         } else {
-            Alert.alert('Error', error?.message || 'Failed to update profile');
+            showAlert('Error', error?.message || 'Failed to update profile', 'error');
         }
     };
 
     const handleToggleActive = () => {
         const action = isActive ? 'deactivate' : 'reactivate';
-        Alert.alert(
+        showConfirm(
             `${isActive ? 'Deactivate' : 'Reactivate'} Master`,
             `Are you sure you want to ${action} ${master.full_name}?${isActive ? ' They will no longer be able to receive bookings.' : ''}`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: isActive ? 'Deactivate' : 'Reactivate',
-                    style: isActive ? 'destructive' : 'default',
-                    onPress: async () => {
-                        setDeactivating(true);
-                        const fn = isActive ? deactivateMaster : reactivateMaster;
-                        const { success, error } = await fn(master.id);
-                        setDeactivating(false);
-                        if (success) {
-                            Alert.alert('Done', `${master.full_name} has been ${action}d.`, [
-                                { text: 'OK', onPress: () => navigation.goBack() }
-                            ]);
-                        } else {
-                            Alert.alert('Error', error?.message || `Failed to ${action} master`);
-                        }
-                    },
-                },
-            ]
+            async () => {
+                setDeactivating(true);
+                const fn = isActive ? deactivateMaster : reactivateMaster;
+                const { success, error } = await fn(master.id);
+                setDeactivating(false);
+                if (success) {
+                    showAlert('Done', `${master.full_name} has been ${action}d.`, 'success');
+                    navigation.goBack();
+                } else {
+                    showAlert('Error', error?.message || `Failed to ${action} master`, 'error');
+                }
+            }
         );
     };
 
@@ -195,7 +187,7 @@ export function MasterDetailScreen() {
                     {/* Save Button */}
                     <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
                         <LinearGradient
-                            colors={['#D4A853', '#B8912E']}
+                            colors={['#E8A0B4', '#C47A90']}
                             style={styles.saveBtnGradient}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
@@ -248,8 +240,8 @@ const styles = StyleSheet.create({
     },
     backBtn: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center', justifyContent: 'center',
     },
     headerTitle: { flex: 1, marginLeft: spacing.md },
@@ -261,7 +253,7 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
     },
-    avatarText: { fontSize: 36, fontWeight: '700' as any, color: '#fff' },
+    avatarText: { fontSize: 36, fontWeight: '700' as any, color: '#FFFFFF' },
     statusRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
     statusChip: {
         flexDirection: 'row',
@@ -280,14 +272,14 @@ const styles = StyleSheet.create({
     toggleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     toggle: {
         width: 48, height: 28, borderRadius: 14,
-        backgroundColor: 'rgba(255,255,255,0.10)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
         padding: 2,
         justifyContent: 'center',
     },
     toggleActive: { backgroundColor: 'rgba(212,168,83,0.30)' },
     toggleKnob: {
         width: 24, height: 24, borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.40)',
     },
     toggleKnobActive: {
         backgroundColor: colors.accent,

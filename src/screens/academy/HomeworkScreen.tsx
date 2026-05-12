@@ -5,7 +5,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     TextInput,
     Image,
     ActivityIndicator,
@@ -17,6 +16,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useModal } from '../../contexts/ModalContext';
 import { ScreenBackground, Button } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 
@@ -29,6 +29,7 @@ export function HomeworkScreen() {
     const route = useRoute<RouteProp<AcademyStackParamList, 'Homework'>>();
     const { user } = useAuth();
     const { lessonId } = route.params;
+    const { showAlert } = useModal();
 
     const [image, setImage] = useState<string | null>(null);
     const [notes, setNotes] = useState('');
@@ -36,7 +37,7 @@ export function HomeworkScreen() {
 
     const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'],
             allowsEditing: true,
             aspect: [4, 3],
             quality: 0.8,
@@ -50,7 +51,7 @@ export function HomeworkScreen() {
     const takePhoto = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission needed', 'Please allow camera access to take photos.');
+            showAlert('Permission needed', 'Please allow camera access to take photos.', 'error');
             return;
         }
 
@@ -67,12 +68,12 @@ export function HomeworkScreen() {
 
     const handleSubmit = async () => {
         if (!image) {
-            Alert.alert('No Photo', 'Please add a photo of your work.');
+            showAlert('No Photo', 'Please add a photo of your work.', 'error');
             return;
         }
 
         if (!user) {
-            Alert.alert('Error', 'Please log in to submit homework.');
+            showAlert('Error', 'Please log in to submit homework.', 'error');
             return;
         }
 
@@ -114,13 +115,9 @@ export function HomeworkScreen() {
 
             if (submitError) throw submitError;
 
-            Alert.alert(
-                '✅ Submitted!',
-                'Your homework has been submitted for review. Your instructor will provide feedback soon.',
-                [{ text: 'OK', onPress: () => navigation.goBack() }]
-            );
+            showAlert('✅ Submitted!', 'Your homework has been submitted for review. Your instructor will provide feedback soon.', 'success', { onConfirm: () => navigation.goBack() });
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to submit homework');
+            showAlert('Error', error.message || 'Failed to submit homework', 'error');
         } finally {
             setSubmitting(false);
         }

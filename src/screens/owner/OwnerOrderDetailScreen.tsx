@@ -4,7 +4,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     Modal,
     ActivityIndicator,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { format } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { useModal } from '../../contexts/ModalContext';
 import {
     SHIPPING_STATUS_CONFIG,
     ShippingStatus,
@@ -33,6 +33,7 @@ export function OwnerOrderDetailScreen() {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<ShippingStatus | null>(null);
     const [undoTimer, setUndoTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+    const { showAlert } = useModal();
 
     const currentStatus = (order?.shipping_status || 'pending') as ShippingStatus;
     const statusConfig = SHIPPING_STATUS_CONFIG[currentStatus] || SHIPPING_STATUS_CONFIG.pending;
@@ -102,7 +103,7 @@ export function OwnerOrderDetailScreen() {
             }, 8000);
             setUndoTimer(timer);
         } catch (err: any) {
-            Alert.alert('Error', err.message);
+            showAlert('Error', err.message, 'error');
         } finally {
             setUpdating(false);
         }
@@ -125,7 +126,7 @@ export function OwnerOrderDetailScreen() {
             setOrder({ ...order, shipping_status: previousStatus });
             setPreviousStatus(null);
         } catch (err: any) {
-            Alert.alert('Error', err.message);
+            showAlert('Error', err.message, 'error');
         } finally {
             setUpdating(false);
         }
@@ -471,7 +472,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -549,7 +550,7 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 6,
@@ -560,7 +561,7 @@ const styles = StyleSheet.create({
         left: '60%',
         right: '-40%',
         height: 2,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
         zIndex: -1,
     },
     timelineLabel: {
@@ -596,7 +597,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: spacing.sm + 2,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
+        borderBottomColor: 'rgba(0, 0, 0, 0.04)',
     },
     itemBullet: {
         width: 36,
@@ -679,7 +680,7 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 14,
         borderRadius: 14,
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
         alignItems: 'center',
         borderWidth: 1,
         borderColor: colors.border,

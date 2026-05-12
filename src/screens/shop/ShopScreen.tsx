@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
-    Alert,
     TextInput,
     Modal,
     Dimensions,
@@ -16,9 +15,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
+import { useModal } from '../../contexts/ModalContext';
 import { Card, Button, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing, layout, gradients } from '../../theme';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
@@ -39,17 +40,19 @@ type Product = {
 };
 
 const CATEGORIES = [
-    { label: 'All', icon: '✦' },
-    { label: 'Nails', icon: '💅' },
-    { label: 'Lashes', icon: '👁️' },
-    { label: 'Brows', icon: '✨' },
-    { label: 'Equipment', icon: '⚙️' },
+    { label: 'All' },
+    { label: 'Nails' },
+    { label: 'Lashes' },
+    { label: 'Skincare' },
+    { label: 'Brows' },
+    { label: 'Equipment' },
 ];
 
 export function ShopScreen() {
     const navigation = useNavigation<any>();
     const { profile, checkSession } = useAuth();
     const { addToCart, getItemCount } = useCart();
+    const { showAlert } = useModal();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
@@ -106,7 +109,7 @@ export function ShopScreen() {
 
     const handleAddProduct = async () => {
         if (!newProduct.name || !newProduct.retail_price || !newProduct.wholesale_price) {
-            Alert.alert('Error', 'Please fill in all required fields');
+            showAlert('Error', 'Please fill in all required fields', 'error');
             return;
         }
 
@@ -123,7 +126,7 @@ export function ShopScreen() {
 
             if (error) throw error;
 
-            Alert.alert('Success', 'Product added successfully');
+            showAlert('Success', 'Product added successfully', 'success');
             setShowAddModal(false);
             setNewProduct({
                 name: '',
@@ -135,7 +138,7 @@ export function ShopScreen() {
             });
             fetchProducts();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setSaving(false);
         }
@@ -143,7 +146,7 @@ export function ShopScreen() {
 
     const handleQuickAddToCart = (product: Product) => {
         if (product.stock_count === 0) {
-            Alert.alert('Out of Stock', 'This product is currently unavailable.');
+            showAlert('Out of Stock', 'This product is currently unavailable.', 'info');
             return;
         }
 
@@ -202,14 +205,15 @@ export function ShopScreen() {
                     }
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Premium Header */}
+                    {/* Editorial Header — Stitch Style */}
                     <View style={styles.headerContainer}>
                         <View style={styles.headerRow}>
                             <View style={styles.headerLeft}>
+                                <MerakiText style={styles.headerLabel}>THE COLLECTION</MerakiText>
                                 <MerakiText variant="h1" style={styles.headerTitle}>Shop</MerakiText>
-                                <MerakiText variant="caption" style={styles.headerSubtitle}>
-                                    {(isMaster || isAdmin) ? 'Wholesale Prices' : 'Premium Beauty Products'}
-                                </MerakiText>
+                                {(isMaster || isAdmin) && (
+                                    <MerakiText variant="caption" style={styles.headerSubtitle}>Wholesale Prices</MerakiText>
+                                )}
                             </View>
                             <View style={styles.headerRight}>
                                 {isAdmin && (
@@ -217,14 +221,14 @@ export function ShopScreen() {
                                         style={styles.addButton}
                                         onPress={() => setShowAddModal(true)}
                                     >
-                                        <MerakiText style={styles.addButtonText}>+</MerakiText>
+                                        <MaterialIcons name="add" size={22} color={colors.text} />
                                     </TouchableOpacity>
                                 )}
                                 <TouchableOpacity
                                     style={styles.cartButton}
                                     onPress={() => navigation.navigate('Cart')}
                                 >
-                                    <MerakiText style={styles.cartIcon}>🛍️</MerakiText>
+                                    <MaterialIcons name="shopping-bag" size={22} color={colors.text} />
                                     {cartItemCount > 0 && (
                                         <View style={styles.cartBadge}>
                                             <MerakiText style={styles.cartBadgeText}>
@@ -236,59 +240,52 @@ export function ShopScreen() {
                             </View>
                         </View>
 
-                        {/* Sleek Search Bar */}
-                        <Card variant="glass" style={styles.searchContainer} noPadding>
+                        {/* Search Bar */}
+                        <View style={styles.searchContainer}>
                             <View style={styles.searchInner}>
-                                <MerakiText style={styles.searchIconSymbol}>🔍</MerakiText>
+                                <MaterialIcons name="search" size={20} color={colors.textMuted} />
                                 <TextInput
                                     style={styles.searchInput}
-                                    placeholder="Search products..."
+                                    placeholder="Search curated beauty..."
                                     placeholderTextColor={colors.textMuted}
                                     value={searchQuery}
                                     onChangeText={setSearchQuery}
                                 />
                                 {searchQuery.length > 0 && (
                                     <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                        <MerakiText style={styles.clearSearch}>✕</MerakiText>
+                                        <MaterialIcons name="close" size={18} color={colors.textMuted} />
                                     </TouchableOpacity>
                                 )}
                             </View>
-                        </Card>
+                        </View>
                     </View>
 
-                    {/* Modern Category Pills */}
+                    {/* Category Tabs — Text + Underline (Stitch Style) */}
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         style={styles.categoriesScroll}
                         contentContainerStyle={styles.categories}
                     >
-                        {CATEGORIES.map((cat) => (
-                            <TouchableOpacity
-                                key={cat.label}
-                                onPress={() => setSelectedCategory(cat.label)}
-                                activeOpacity={0.7}
-                            >
-                                {selectedCategory === cat.label ? (
-                                    <LinearGradient
-                                        colors={[colors.primary, colors.champagne]}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                        style={styles.categoryChipActive}
-                                    >
-                                        <MerakiText style={styles.categoryIcon}>{cat.icon}</MerakiText>
-                                        <MerakiText variant="bodyBold" style={styles.categoryTextActive}>{cat.label}</MerakiText>
-                                    </LinearGradient>
-                                ) : (
-                                    <Card variant="glass" style={styles.categoryChip} noPadding>
-                                        <View style={styles.categoryChipInner}>
-                                            <MerakiText style={styles.categoryIcon}>{cat.icon}</MerakiText>
-                                            <MerakiText variant="body" style={styles.categoryText}>{cat.label}</MerakiText>
-                                        </View>
-                                    </Card>
-                                )}
-                            </TouchableOpacity>
-                        ))}
+                        {CATEGORIES.map((cat) => {
+                            const isActive = selectedCategory === cat.label;
+                            return (
+                                <TouchableOpacity
+                                    key={cat.label}
+                                    onPress={() => setSelectedCategory(cat.label)}
+                                    activeOpacity={0.7}
+                                    style={styles.categoryTab}
+                                >
+                                    <MerakiText style={[
+                                        styles.categoryTabText,
+                                        isActive && styles.categoryTabTextActive,
+                                    ]}>
+                                        {cat.label}
+                                    </MerakiText>
+                                    {isActive && <View style={styles.categoryTabUnderline} />}
+                                </TouchableOpacity>
+                            );
+                        })}
                     </ScrollView>
 
                     {/* Products Grid */}
@@ -306,7 +303,7 @@ export function ShopScreen() {
                                         onPress={() => navigation.navigate('ProductDetail', { productId: product.id, product })}
                                         activeOpacity={0.9}
                                     >
-                                        <Card variant="glass" style={styles.productCard} noPadding>
+                                        <View style={styles.productCard}>
                                             {/* Product Image Container */}
                                             <View style={styles.productImageWrapper}>
                                                 {product.image_url ? (
@@ -316,33 +313,43 @@ export function ShopScreen() {
                                                         resizeMode="cover"
                                                     />
                                                 ) : (
-                                                    <LinearGradient
-                                                        colors={getCategoryGradient(product.category) as any}
-                                                        style={styles.productImagePlaceholder}
-                                                        start={{ x: 0, y: 0 }}
-                                                        end={{ x: 1, y: 1 }}
-                                                    >
+                                                    <View style={styles.productImagePlaceholder}>
                                                         <MerakiText style={styles.productCategoryLabel}>
                                                             {product.category || 'Product'}
                                                         </MerakiText>
-                                                    </LinearGradient>
+                                                    </View>
+                                                )}
+
+                                                {/* Heart / Favorite Icon */}
+                                                <TouchableOpacity style={styles.heartButton} activeOpacity={0.7}>
+                                                    <MaterialIcons name="favorite-border" size={18} color="#1A1A1A" />
+                                                </TouchableOpacity>
+
+                                                {/* Bestseller Badge */}
+                                                {product.stock_count >= 10 && (
+                                                    <View style={styles.bestsellerBadge}>
+                                                        <MerakiText style={styles.bestsellerText}>BESTSELLER</MerakiText>
+                                                    </View>
                                                 )}
 
                                                 {/* Stock Badge */}
-                                                {product.stock_count < 10 && (
-                                                    <View style={[
-                                                        styles.stockBadge,
-                                                        product.stock_count === 0 && styles.outOfStockBadge
-                                                    ]}>
+                                                {product.stock_count < 10 && product.stock_count > 0 && (
+                                                    <View style={styles.stockBadge}>
                                                         <MerakiText variant="caption" style={styles.stockBadgeText}>
-                                                            {product.stock_count === 0 ? 'Sold Out' : `${product.stock_count} left`}
+                                                            {`${product.stock_count} left`}
                                                         </MerakiText>
+                                                    </View>
+                                                )}
+                                                {product.stock_count === 0 && (
+                                                    <View style={[styles.stockBadge, styles.outOfStockBadge]}>
+                                                        <MerakiText variant="caption" style={styles.stockBadgeText}>Sold Out</MerakiText>
                                                     </View>
                                                 )}
                                             </View>
 
-                                            {/* Product Info */}
+                                            {/* Product Info — Stitch Style */}
                                             <View style={styles.productInfo}>
+                                                <MerakiText style={styles.productBrandLabel}>MERAKÍ</MerakiText>
                                                 <MerakiText variant="bodyBold" style={styles.productName} numberOfLines={2}>
                                                     {product.name}
                                                 </MerakiText>
@@ -371,16 +378,13 @@ export function ShopScreen() {
                                                         }}
                                                         disabled={product.stock_count === 0}
                                                     >
-                                                        <LinearGradient
-                                                            colors={(product.stock_count === 0 ? [colors.surfaceLight, colors.surfaceLight] : [colors.primary, colors.champagne]) as any}
-                                                            style={styles.addToCartGradient}
-                                                        >
-                                                            <MerakiText style={styles.addToCartIcon}>+</MerakiText>
-                                                        </LinearGradient>
+                                                        <View style={styles.addToCartGradient}>
+                                                            <MaterialIcons name="add" size={18} color="#FFFFFF" />
+                                                        </View>
                                                     </TouchableOpacity>
                                                 </View>
                                             </View>
-                                        </Card>
+                                        </View>
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -542,23 +546,33 @@ const styles = StyleSheet.create({
         paddingBottom: 120
     },
 
-    // Header Styles
+    // Header — Editorial Style
     headerContainer: {
         paddingHorizontal: spacing.lg,
         paddingTop: spacing.md,
-        paddingBottom: spacing.lg,
+        paddingBottom: spacing.sm,
     },
     headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         marginBottom: spacing.lg,
     },
     headerLeft: {
         flex: 1,
     },
+    headerLabel: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: colors.textMuted,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        marginBottom: 4,
+    },
     headerTitle: {
         color: colors.text,
+        fontSize: 32,
+        fontWeight: '700',
     },
     headerSubtitle: {
         color: colors.textMuted,
@@ -568,43 +582,33 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.sm,
+        marginTop: 8,
     },
     addButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: colors.surfaceGlass,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
     },
-    addButtonText: {
-        color: colors.text,
-        fontSize: 24,
-    },
     cartButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: colors.surfaceGlass,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
-    },
-    cartIcon: {
-        fontSize: 20,
     },
     cartBadge: {
         position: 'absolute',
         top: -4,
         right: -4,
-        minWidth: 20,
-        height: 20,
-        borderRadius: 10,
-        backgroundColor: colors.primary,
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        backgroundColor: '#E8A0B4',
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 4,
@@ -614,70 +618,62 @@ const styles = StyleSheet.create({
     cartBadgeText: {
         fontSize: 10,
         fontWeight: '800',
-        color: colors.text,
+        color: '#FFFFFF',
+        textAlign: 'center',
+        includeFontPadding: false,
+        textAlignVertical: 'center',
+        lineHeight: 12,
     },
 
-    // Search Styles
+    // Search — Minimal rounded bar
     searchContainer: {
+        backgroundColor: '#F5F5F5',
+        borderRadius: 24,
         marginBottom: spacing.sm,
     },
     searchInner: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: spacing.md,
-        height: 48,
-    },
-    searchIconSymbol: {
-        fontSize: 16,
-        marginRight: spacing.sm,
-        opacity: 0.5
+        paddingHorizontal: 16,
+        height: 46,
+        gap: 10,
     },
     searchInput: {
         flex: 1,
-        fontSize: 16,
+        fontSize: 15,
         color: colors.text,
-        fontFamily: 'Manrope-Regular',
-    },
-    clearSearch: {
-        fontSize: 14,
-        color: colors.textMuted,
-        padding: spacing.xs,
     },
 
-    // Categories Styles
+    // Category Tabs — Text + Underline
     categoriesScroll: {
         marginTop: spacing.sm,
+        marginBottom: spacing.sm,
     },
     categories: {
         paddingHorizontal: spacing.lg,
-        gap: spacing.md,
+        gap: 24,
     },
-    categoryChip: {
-        borderRadius: 20,
-    },
-    categoryChipInner: {
-        flexDirection: 'row',
+    categoryTab: {
+        paddingBottom: 8,
         alignItems: 'center',
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        gap: 8,
     },
-    categoryChipActive: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        borderRadius: 20,
-        gap: 8,
+    categoryTabText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: colors.textMuted,
     },
-    categoryIcon: {
-        fontSize: 14
+    categoryTabTextActive: {
+        color: '#1A1A1A',
+        fontWeight: '700',
     },
-    categoryText: {
-        color: colors.textSecondary,
-    },
-    categoryTextActive: {
-        color: colors.text,
+    categoryTabUnderline: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 2,
+        backgroundColor: '#1A1A1A',
+        borderRadius: 1,
     },
 
     // Products Section
@@ -687,6 +683,7 @@ const styles = StyleSheet.create({
     resultsText: {
         color: colors.textMuted,
         marginBottom: spacing.md,
+        fontSize: 13,
     },
     productsGrid: {
         flexDirection: 'row',
@@ -694,16 +691,24 @@ const styles = StyleSheet.create({
         gap: spacing.md,
     },
 
-    // Product Card Styles
+    // Product Card — Stitch Style
     productCardWrapper: {
         width: CARD_WIDTH,
     },
     productCard: {
-        borderRadius: layout.borderRadius.lg,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 2,
     },
     productImageWrapper: {
         position: 'relative',
-        height: 160,
+        height: 180,
+        backgroundColor: '#F5F5F5',
     },
     productImage: {
         width: '100%',
@@ -714,40 +719,78 @@ const styles = StyleSheet.create({
         height: '100%',
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: '#F0F0F0',
     },
     productCategoryLabel: {
-        fontSize: 12,
-        fontWeight: '800',
-        color: 'rgba(255,255,255,0.8)',
+        fontSize: 11,
+        fontWeight: '700',
+        color: 'rgba(0, 0, 0, 0.35)',
         textTransform: 'uppercase',
         letterSpacing: 2,
     },
+    heartButton: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    bestsellerBadge: {
+        position: 'absolute',
+        bottom: 10,
+        left: 10,
+        backgroundColor: '#FADADD',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 4,
+    },
+    bestsellerText: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: '#8B4A5E',
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+    },
     stockBadge: {
         position: 'absolute',
-        top: spacing.sm,
-        left: spacing.sm,
+        bottom: 10,
+        left: 10,
         backgroundColor: 'rgba(0,0,0,0.6)',
-        paddingHorizontal: spacing.sm,
-        paddingVertical: 4,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 4,
     },
     outOfStockBadge: {
         backgroundColor: colors.error,
     },
     stockBadgeText: {
-        color: colors.text,
+        color: '#FFFFFF',
         fontWeight: '600',
+        fontSize: 10,
     },
     productInfo: {
-        padding: spacing.md,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    productBrandLabel: {
+        fontSize: 9,
+        fontWeight: '600',
+        color: colors.textMuted,
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        marginBottom: 2,
     },
     productName: {
         color: colors.text,
-        marginBottom: spacing.sm,
-        lineHeight: 20,
-        minHeight: 40,
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 6,
+        lineHeight: 18,
+        minHeight: 18,
     },
     priceRow: {
         flexDirection: 'row',
@@ -755,33 +798,34 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between'
     },
     priceContainer: {
-        flexDirection: 'column',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
     productPrice: {
         color: colors.accent,
+        fontSize: 14,
     },
     retailPrice: {
         color: colors.textMuted,
         textDecorationLine: 'line-through',
+        fontSize: 12,
     },
     addToCartButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         overflow: 'hidden',
     },
     addToCartGradient: {
         flex: 1,
+        backgroundColor: '#1A1A1A',
         alignItems: 'center',
         justifyContent: 'center',
+        borderRadius: 16,
     },
     addToCartDisabled: {
-        opacity: 0.5,
-    },
-    addToCartIcon: {
-        fontSize: 20,
-        color: colors.text,
-        fontWeight: '300',
+        opacity: 0.3,
     },
 
     // Empty State
@@ -842,14 +886,13 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     input: {
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderRadius: 12,
         paddingHorizontal: spacing.md,
         height: 50,
         color: colors.text,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
-        fontFamily: 'Manrope-Regular',
+        borderColor: 'rgba(0, 0, 0, 0.04)',
     },
     textArea: {
         height: 100,
@@ -868,7 +911,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.sm,
         paddingVertical: 6,
         borderRadius: 8,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
     },
     categoryOptionActive: {
         backgroundColor: colors.primary,
@@ -878,7 +921,7 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
     },
     categoryOptionTextActive: {
-        color: colors.text,
+        color: colors.textInvert,
         fontWeight: '700',
     },
 });

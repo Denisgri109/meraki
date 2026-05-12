@@ -105,7 +105,7 @@ export function MerakiModal({
                                             {/* Icon */}
                                             {displayIcon && (
                                                 <LinearGradient
-                                                    colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+                                                    colors={['rgba(0, 0, 0, 0.08)', 'rgba(0, 0, 0, 0.04)']}
                                                     style={styles.iconContainer}
                                                 >
                                                     <Text style={styles.icon}>{displayIcon}</Text>
@@ -117,7 +117,7 @@ export function MerakiModal({
 
                                             {/* Message */}
                                             {message && (
-                                                <ScrollView style={styles.messageScroll} indicatorStyle="white">
+                                                <ScrollView style={styles.messageScroll} indicatorStyle="black">
                                                     <Text style={styles.message}>{message}</Text>
                                                 </ScrollView>
                                             )}
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginBottom: spacing.lg,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     icon: {
         fontSize: 32,
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: spacing.md,
         borderRadius: borderRadius.md,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.lg,
     },
     input: {
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        backgroundColor: colors.inputBackground,
         borderRadius: borderRadius.sm,
         padding: spacing.md,
         fontSize: 16,

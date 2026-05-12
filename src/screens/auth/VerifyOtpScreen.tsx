@@ -145,11 +145,11 @@ export function VerifyOtpScreen({ navigation, route }: VerifyOtpScreenProps) {
 
     return (
         <View style={styles.container}>
-            <StatusBar style="light" />
+            <StatusBar style="dark" />
 
             {/* Background Gradient */}
             <LinearGradient
-                colors={['#1E1E24', '#0F0F13']}
+                colors={['#1E1E24', '#FFFFFF']}
                 style={StyleSheet.absoluteFill}
                 start={{ x: 1, y: 0 }}
                 end={{ x: 0, y: 1 }}
@@ -209,7 +209,7 @@ export function VerifyOtpScreen({ navigation, route }: VerifyOtpScreenProps) {
                                     />
                                     {/* Glass reflection effect */}
                                     <LinearGradient
-                                        colors={['rgba(255,255,255,0.1)', 'transparent']}
+                                        colors={['rgba(0, 0, 0, 0.08)', 'transparent']}
                                         style={StyleSheet.absoluteFill}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 1 }}
@@ -289,9 +289,9 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: 'rgba(0, 0, 0, 0.06)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -320,9 +320,9 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: colors.primary,
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: 'rgba(0, 0, 0, 0.50)',
         textAlign: 'center',
         lineHeight: 22,
     },
@@ -357,9 +357,9 @@ const styles = StyleSheet.create({
         width: 48,
         height: 56,
         borderRadius: 12,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)', // Glass
+        backgroundColor: 'rgba(0, 0, 0, 0.02)', // Glass
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(0, 0, 0, 0.08)',
         overflow: 'hidden',
         justifyContent: 'center',
         alignItems: 'center',
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     },
     resendText: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.4)',
+        color: 'rgba(0, 0, 0, 0.35)',
     },
     resendLink: {
         fontSize: 14,
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     },
     countdownText: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.4)',
+        color: 'rgba(0, 0, 0, 0.35)',
         fontStyle: 'italic',
     },
 });

@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingTop: spacing.md,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        borderTopColor: 'rgba(0, 0, 0, 0.08)',
     },
     quantityContainer: {
         flexDirection: 'row',
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     emptyButtonText: {
-        color: colors.text,
+        color: colors.textInvert,
         fontWeight: '600',
     },
     deleteButton: {

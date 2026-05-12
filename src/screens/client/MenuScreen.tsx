@@ -49,7 +49,7 @@ export function MenuScreen() {
                             activeOpacity={0.7}
                         >
                             <LinearGradient
-                                colors={['#D4A853', '#B8912E']}
+                                colors={['#E8A0B4', '#C47A90']}
                                 style={styles.avatarGradient}
                             >
                                 <Text style={styles.avatarInitial}>
@@ -71,14 +71,14 @@ export function MenuScreen() {
                                 onPress={() => handleNavigate('Notifications')}
                                 activeOpacity={0.7}
                             >
-                                <MaterialIcons name="notifications-none" size={22} color="rgba(255,255,255,0.7)" />
+                                <MaterialIcons name="notifications-none" size={22} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.headerIconBtn}
                                 onPress={() => handleNavigate('Profile')}
                                 activeOpacity={0.7}
                             >
-                                <MaterialIcons name="settings" size={22} color="rgba(255,255,255,0.7)" />
+                                <MaterialIcons name="settings" size={22} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -123,10 +123,10 @@ export function MenuScreen() {
                                 onPress={() => handleNavigate(item.route)}
                             >
                                 <View style={styles.listIconWrap}>
-                                    <MaterialIcons name={item.icon as any} size={20} color="rgba(255,255,255,0.5)" />
+                                    <MaterialIcons name={item.icon as any} size={20} color="rgba(0, 0, 0, 0.40)" />
                                 </View>
                                 <MerakiText style={styles.listLabel}>{item.label}</MerakiText>
-                                <MaterialIcons name="chevron-right" size={20} color="rgba(255,255,255,0.2)" />
+                                <MaterialIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.12)" />
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -160,21 +160,21 @@ const styles = StyleSheet.create({
         width: 56, height: 56, borderRadius: 28,
         alignItems: 'center', justifyContent: 'center',
     },
-    avatarInitial: { fontSize: 22, fontWeight: '700', color: '#fff' },
+    avatarInitial: { fontSize: 22, fontWeight: '700', color: '#FFFFFF' },
     profileInfo: { flex: 1 },
-    profileName: { fontSize: 18, fontWeight: '700', color: '#fff' },
-    profileRole: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+    profileName: { fontSize: 18, fontWeight: '700', color: '#1A1A1A' },
+    profileRole: { fontSize: 13, color: 'rgba(0, 0, 0, 0.40)', marginTop: 2 },
     headerActions: { flexDirection: 'row', gap: 8 },
     headerIconBtn: {
         width: 42, height: 42, borderRadius: 21,
-        backgroundColor: 'rgba(255,255,255,0.06)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
+        borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.08)',
         alignItems: 'center', justifyContent: 'center',
     },
 
     /* ── Section Label ── */
     sectionLabel: {
-        fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.3)',
+        fontSize: 11, fontWeight: '700', color: 'rgba(0, 0, 0, 0.25)',
         letterSpacing: 1.5, marginBottom: 14, marginTop: 4,
     },
 
@@ -187,25 +187,25 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         marginBottom: 8,
     },
-    quickLabel: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
+    quickLabel: { fontSize: 11, fontWeight: '600', color: 'rgba(0, 0, 0, 0.55)', textAlign: 'center' },
 
     /* ── List Group ── */
     listGroup: {
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderRadius: 16, borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.06)',
         marginBottom: 28, overflow: 'hidden',
     },
     listItem: {
         flexDirection: 'row', alignItems: 'center',
         padding: 16, gap: 14,
-        borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+        borderBottomWidth: 1, borderBottomColor: 'rgba(0, 0, 0, 0.05)',
     },
     listIconWrap: {
         width: 36, height: 36, borderRadius: 10,
         backgroundColor: 'rgba(212,168,83,0.08)',
         alignItems: 'center', justifyContent: 'center',
     },
-    listLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: '#fff' },
+    listLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: '#1A1A1A' },
 
     /* ── Sign Out ── */
     signOutBtn: {
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     },
     signOutText: { fontSize: 15, fontWeight: '600', color: '#EF4444' },
 
-    versionText: { textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.2)' },
+    versionText: { textAlign: 'center', fontSize: 11, color: 'rgba(0, 0, 0, 0.12)' },
 });
 
 export default MenuScreen;

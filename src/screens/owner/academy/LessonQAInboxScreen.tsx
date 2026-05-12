@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: colors.surface,
     },
-    unreadText: { color: '#FFF', fontSize: 10, fontWeight: '700' as any },
+    unreadText: { color: '#1A1A1A', fontSize: 10, fontWeight: '700' as any },
 
     threadInfo: { flex: 1 },
     threadMeta: { alignItems: 'flex-end', gap: 4 },
