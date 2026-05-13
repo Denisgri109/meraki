@@ -1,6 +1,8 @@
 export { OwnerDashboardScreen } from './OwnerDashboardScreen';
 export { ServiceListScreen } from './ServiceListScreen';
 export { ServiceFormScreen } from './ServiceFormScreen';
+export { PilatesTimetableScreen } from './PilatesTimetableScreen';
+export { PilatesHubScreen } from './PilatesHubScreen';
 export { InventoryScreen } from './InventoryScreen';
 export { OwnerSuppliesScreen } from './OwnerSuppliesScreen';
 export { AddOwnerSupplyScreen } from './AddOwnerSupplyScreen';

@@ -162,7 +162,6 @@ export function MyServicesScreen() {
 
                     if (error) throw error;
 
-                    // Refresh list
                     fetchData();
                     showAlert('Success', 'Service deleted successfully', 'success');
                 } catch (error: any) {
@@ -202,6 +201,14 @@ export function MyServicesScreen() {
                             trackColor={{ false: colors.textMuted, true: colors.primary }}
                             thumbColor={'#fff'}
                         />
+                        {item.category !== 'Pilates' && (
+                            <TouchableOpacity
+                                onPress={() => (navigation as any).navigate('CreateService', { service: item })}
+                                style={styles.editButton}
+                            >
+                                <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.primary} />
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity
                             onPress={() => handleDelete(item)}
                             style={styles.deleteButton}

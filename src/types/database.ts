@@ -224,8 +224,10 @@ export type Database = {
           proposed_start_time: string | null
           requires_confirmation: boolean | null
           reschedule_initiated_by: string | null
+          service_category: string | null
           service_duration_minutes: number | null
-          service_id: string
+          service_id: string | null
+          service_name: string | null
           start_time: string
           status: Database["public"]["Enums"]["appointment_status"]
           status_updated_at: string | null
@@ -257,8 +259,10 @@ export type Database = {
           proposed_start_time?: string | null
           requires_confirmation?: boolean | null
           reschedule_initiated_by?: string | null
+          service_category?: string | null
           service_duration_minutes?: number | null
-          service_id: string
+          service_id?: string | null
+          service_name?: string | null
           start_time: string
           status?: Database["public"]["Enums"]["appointment_status"]
           status_updated_at?: string | null
@@ -290,8 +294,10 @@ export type Database = {
           proposed_start_time?: string | null
           requires_confirmation?: boolean | null
           reschedule_initiated_by?: string | null
+          service_category?: string | null
           service_duration_minutes?: number | null
-          service_id?: string
+          service_id?: string | null
+          service_name?: string | null
           start_time?: string
           status?: Database["public"]["Enums"]["appointment_status"]
           status_updated_at?: string | null
@@ -2210,6 +2216,325 @@ export type Database = {
             columns: ["responded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pilates_class_sessions: {
+        Row: {
+          capacity: number
+          created_at: string | null
+          ends_at: string
+          host_id: string | null
+          id: string
+          is_override: boolean
+          level: string
+          notes: string | null
+          owner_id: string
+          service_id: string
+          starts_at: string
+          status: string
+          template_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string | null
+          ends_at: string
+          host_id?: string | null
+          id?: string
+          is_override?: boolean
+          level?: string
+          notes?: string | null
+          owner_id: string
+          service_id: string
+          starts_at: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          capacity?: number
+          created_at?: string | null
+          ends_at?: string
+          host_id?: string | null
+          id?: string
+          is_override?: boolean
+          level?: string
+          notes?: string | null
+          owner_id?: string
+          service_id?: string
+          starts_at?: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilates_class_sessions_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "pilates_hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilates_class_sessions_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilates_class_sessions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilates_class_sessions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "pilates_schedule_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pilates_hosts: {
+        Row: {
+          created_at: string | null
+          display_name: string
+          id: string
+          is_active: boolean
+          owner_id: string
+          profile_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean
+          owner_id: string
+          profile_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          owner_id?: string
+          profile_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilates_hosts_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilates_hosts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pilates_schedule_templates: {
+        Row: {
+          capacity: number
+          created_at: string | null
+          day_of_week: number
+          duration_minutes: number
+          ends_on: string | null
+          host_id: string | null
+          id: string
+          is_active: boolean
+          level: string
+          notes: string | null
+          owner_id: string
+          service_id: string
+          start_time: string
+          starts_on: string
+          updated_at: string | null
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string | null
+          day_of_week: number
+          duration_minutes?: number
+          ends_on?: string | null
+          host_id?: string | null
+          id?: string
+          is_active?: boolean
+          level?: string
+          notes?: string | null
+          owner_id: string
+          service_id: string
+          start_time: string
+          starts_on?: string
+          updated_at?: string | null
+        }
+        Update: {
+          capacity?: number
+          created_at?: string | null
+          day_of_week?: number
+          duration_minutes?: number
+          ends_on?: string | null
+          host_id?: string | null
+          id?: string
+          is_active?: boolean
+          level?: string
+          notes?: string | null
+          owner_id?: string
+          service_id?: string
+          start_time?: string
+          starts_on?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilates_schedule_templates_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "pilates_hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilates_schedule_templates_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilates_schedule_templates_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pilates_session_bookings: {
+        Row: {
+          appointment_id: string
+          client_id: string
+          created_at: string | null
+          id: string
+          session_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_id: string
+          client_id: string
+          created_at?: string | null
+          id?: string
+          session_id: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_id?: string
+          client_id?: string
+          created_at?: string | null
+          id?: string
+          session_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilates_session_bookings_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: true
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilates_session_bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilates_session_bookings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pilates_class_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pilates_settings: {
+        Row: {
+          buffer_minutes: number
+          created_at: string | null
+          default_capacity: number
+          default_level: string
+          default_session_duration_minutes: number
+          equipment_notes: string | null
+          equipment_provided: boolean
+          id: string
+          location_notes: string | null
+          operating_days: number[]
+          owner_id: string
+          require_health_declaration: boolean
+          service_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          buffer_minutes?: number
+          created_at?: string | null
+          default_capacity?: number
+          default_level?: string
+          default_session_duration_minutes?: number
+          equipment_notes?: string | null
+          equipment_provided?: boolean
+          id?: string
+          location_notes?: string | null
+          operating_days?: number[]
+          owner_id: string
+          require_health_declaration?: boolean
+          service_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          buffer_minutes?: number
+          created_at?: string | null
+          default_capacity?: number
+          default_level?: string
+          default_session_duration_minutes?: number
+          equipment_notes?: string | null
+          equipment_provided?: boolean
+          id?: string
+          location_notes?: string | null
+          operating_days?: number[]
+          owner_id?: string
+          require_health_declaration?: boolean
+          service_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilates_settings_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilates_settings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: true
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]

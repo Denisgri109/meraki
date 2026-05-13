@@ -32,7 +32,7 @@ type Appointment = {
     status: string;
     price: number;
     notes: string | null;
-    service_id: string;
+    service_id: string | null;
     master_id: string;
     stripe_payment_intent_id: string | null;
     deposit_amount: number | null;
@@ -40,6 +40,7 @@ type Appointment = {
     proposed_start_time: string | null;
     proposed_end_time: string | null;
     reschedule_initiated_by: string | null;
+    service_name: string | null;
     service: { name: string; duration_minutes: number } | null;
     master: { full_name: string; push_token?: string } | null;
 };
@@ -123,6 +124,7 @@ export function AppointmentListScreen() {
                     proposed_start_time,
                     proposed_end_time,
                     reschedule_initiated_by,
+                    service_name,
                     service:services(name, duration_minutes),
                     master:profiles!appointments_master_id_fkey(full_name, push_token)
                 `)
@@ -133,9 +135,9 @@ export function AppointmentListScreen() {
             const { data, error } = await safeSupabaseFetch(queryPromise as any, { timeout: 8000 });
             if (error) throw error;
 
-            // Filter out orphaned appointments (where service or master was deleted)
+            // Filter out orphaned appointments (where master was deleted)
             const validAppointments = ((data as unknown as Appointment[]) || []).filter(
-                apt => apt.service !== null && apt.master !== null
+                apt => apt.master !== null
             );
             setAppointments(validAppointments);
 
@@ -658,7 +660,7 @@ export function AppointmentListScreen() {
                                     <View style={styles.cardHeader}>
                                         <View>
                                             <Text style={styles.cardTitle}>
-                                                {apt.service?.name || 'Service'}
+                                                {apt.service?.name || apt.service_name || 'Service'}
                                             </Text>
                                             <Text style={styles.cardSubtitle}>
                                                 with {apt.master?.full_name || 'Specialist'}
@@ -890,7 +892,7 @@ export function AppointmentListScreen() {
                                 {/* Appointment Details */}
                                 <View style={cancelStyles.detailsCard}>
                                     <Text style={cancelStyles.serviceName}>
-                                        {appointmentToCancel.service?.name || 'Service'}
+                                        {appointmentToCancel.service?.name || appointmentToCancel.service_name || 'Service'}
                                     </Text>
                                     <Text style={cancelStyles.masterName}>
                                         with {appointmentToCancel.master?.full_name || 'Specialist'}

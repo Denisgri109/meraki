@@ -38,6 +38,7 @@ type Appointment = {
     reschedule_initiated_by: string | null;
     confirmation_deadline: string | null;
     confirmation: { confirmed: boolean | null; confirmed_at: string | null } | null;
+    service_name: string | null;
     service: { name: string; duration_minutes: number } | null;
     client: { full_name: string; phone: string | null; push_token?: string } | null;
     deposit_amount?: number | null;
@@ -99,6 +100,7 @@ export function MasterAppointmentsScreen() {
                     deposit_paid,
                     reschedule_initiated_by,
                     confirmation_deadline,
+                    service_name,
                     service:services(name, duration_minutes),
                     client:profiles!appointments_client_id_fkey(full_name, phone, push_token),
                     confirmation:appointment_confirmations(confirmed, confirmed_at)
@@ -108,9 +110,9 @@ export function MasterAppointmentsScreen() {
 
             if (error) throw error;
 
-            // Filter out appointments with null service or client (orphaned data)
+            // Filter out appointments with null client (orphaned data)
             const validAppointments = ((data as unknown as Appointment[]) || []).filter(
-                apt => apt.service !== null && apt.client !== null
+                apt => apt.client !== null
             );
             setAppointments(validAppointments);
         } catch (error) {
@@ -483,7 +485,7 @@ export function MasterAppointmentsScreen() {
                     </View>
                     <View style={styles.stitchClientInfo}>
                         <MerakiText variant="body" color={colors.text} style={styles.stitchClientName}>{apt.client?.full_name || 'Client'}</MerakiText>
-                        <MerakiText variant="caption" color={colors.textSecondary}>{apt.service?.name || 'Service'}</MerakiText>
+                        <MerakiText variant="caption" color={colors.textSecondary}>{apt.service?.name || apt.service_name || 'Service'}</MerakiText>
                         <View style={styles.stitchTimeRow}>
                             <MaterialCommunityIcons name="clock-outline" size={12} color={colors.textSecondary} />
                             <MerakiText variant="caption" color={colors.textSecondary}>

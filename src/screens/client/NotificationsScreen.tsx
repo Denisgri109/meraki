@@ -161,7 +161,7 @@ export function NotificationsScreen() {
             try {
                 const appointmentField = isMaster ? 'master_id' : 'client_id';
                 const appointmentsPromise = supabase.from('appointments')
-                    .select(`id, status, start_time, created_at,
+                    .select(`id, status, start_time, created_at, service_name,
                         service:services(name),
                         client:profiles!appointments_client_id_fkey(full_name),
                         master:profiles!appointments_master_id_fkey(full_name)`)
@@ -177,7 +177,7 @@ export function NotificationsScreen() {
                         let title = '', body = '';
 
                         if (isMaster) {
-                            if (apt.status === 'pending') { title = 'New Booking Request'; body = `${aptClient?.full_name || 'Client'} requested ${aptService?.name || 'a service'}`; }
+                            if (apt.status === 'pending') { title = 'New Booking Request'; body = `${aptClient?.full_name || 'Client'} requested ${aptService?.name || apt.service_name || 'a service'}`; }
                             else if (apt.status === 'confirmed') { title = 'Booking Confirmed'; body = `Appointment with ${aptClient?.full_name || 'Client'} confirmed`; }
                         } else {
                             if (apt.status === 'confirmed') { title = 'Booking Confirmed'; body = `Your appointment with ${aptMaster?.full_name || 'Specialist'} is confirmed`; }

@@ -10,6 +10,8 @@ import {
     OwnerDashboardScreen,
     ServiceListScreen,
     ServiceFormScreen,
+    PilatesTimetableScreen,
+    PilatesHubScreen,
     InventoryScreen,
     OwnerSuppliesScreen,
     AddOwnerSupplyScreen,
@@ -68,6 +70,8 @@ export type OwnerDashboardStackParamList = {
     DashboardMain: undefined;
     Services: undefined;
     ServiceForm: { service?: any } | undefined;
+    PilatesTimetable: { service: any };
+    PilatesHub: undefined;
     Inventory: undefined;
     ProductDetail: { productId: string; product: any };
     LoyaltyQR: undefined;
@@ -106,6 +110,8 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="DashboardMain" component={OwnerDashboardScreen} />
             <DashboardStack.Screen name="Services" component={ServiceListScreen} />
             <DashboardStack.Screen name="ServiceForm" component={ServiceFormScreen} />
+            <DashboardStack.Screen name="PilatesTimetable" component={PilatesTimetableScreen} />
+            <DashboardStack.Screen name="PilatesHub" component={PilatesHubScreen} />
             <DashboardStack.Screen name="Inventory" component={InventoryScreen} />
             <DashboardStack.Screen name="ProductDetail" component={ProductDetailScreen} />
             <DashboardStack.Screen name="LoyaltyQR" component={LoyaltyQRScreen} />
@@ -171,6 +177,8 @@ export type MenuStackParamList = {
     OrderDetail: { order: any };
     Services: undefined;
     ServiceForm: { service?: any } | undefined;
+    PilatesTimetable: { service: any };
+    PilatesHub: undefined;
     BlockedSlots: undefined;
     LoyaltyCardBuilder: undefined;
     AftercareCampaigns: undefined;

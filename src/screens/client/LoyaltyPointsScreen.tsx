@@ -22,6 +22,12 @@ import { supabase } from '../../lib/supabase';
 import { useModal } from '../../contexts/ModalContext';
 import { StampCard as StampCardType } from '../../types/loyalty';
 
+const TIERS = [
+    { name: 'Bronze', min: 0, emoji: '🥉', color: '#B45309' },
+    { name: 'Silver', min: 500, emoji: '🥈', color: '#9CA3AF' },
+    { name: 'Gold', min: 1500, emoji: '🥇', color: '#F59E0B' },
+];
+
 interface Reward {
     id: string;
     points_cost: number;
@@ -262,9 +268,69 @@ export function LoyaltyPointsScreen() {
                             <Text style={styles.balanceLabel}>Your Balance</Text>
                             <Text style={styles.balanceValue}>{balance}</Text>
                             <Text style={styles.balanceUnit}>Points</Text>
+                            {(() => {
+                                const tier = TIERS.reduce((acc, t) => (balance >= t.min ? t : acc), TIERS[0]);
+                                return (
+                                    <View style={styles.tierBadge}>
+                                        <Text style={styles.tierEmoji}>{tier.emoji}</Text>
+                                        <Text style={styles.tierBadgeText}>{tier.name} Member</Text>
+                                    </View>
+                                );
+                            })()}
                         </View>
                         <Ionicons name="gift-outline" size={80} color={colors.primary} style={styles.balanceIcon} />
                     </Card>
+
+                    {/* Tier Progression */}
+                    {(() => {
+                        const currentTier = TIERS.reduce((acc, t) => (balance >= t.min ? t : acc), TIERS[0]);
+                        const nextTier = TIERS.find((t) => t.min > balance);
+                        const progress = nextTier
+                            ? Math.min(((balance - currentTier.min) / (nextTier.min - currentTier.min)) * 100, 100)
+                            : 100;
+                        return (
+                            <View style={styles.tiersWrapper}>
+                                {nextTier && (
+                                    <View style={styles.progressContainer}>
+                                        <View style={styles.progressLabels}>
+                                            <Text style={styles.progressTierLabel}>{currentTier.name}</Text>
+                                            <Text style={styles.progressTierLabel}>
+                                                {nextTier.name} — {nextTier.min - balance} pts to go
+                                            </Text>
+                                        </View>
+                                        <View style={styles.progressBarBg}>
+                                            <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
+                                        </View>
+                                    </View>
+                                )}
+                                <View style={styles.tiersRow}>
+                                    {TIERS.map((tier) => {
+                                        const unlocked = balance >= tier.min;
+                                        return (
+                                            <View
+                                                key={tier.name}
+                                                style={[
+                                                    styles.tierCard,
+                                                    !unlocked && styles.tierCardLocked,
+                                                ]}
+                                            >
+                                                <View style={[styles.tierIcon, { backgroundColor: tier.color }]}>
+                                                    <Text style={styles.tierIconEmoji}>{tier.emoji}</Text>
+                                                </View>
+                                                <Text style={styles.tierName}>{tier.name}</Text>
+                                                <Text style={styles.tierMin}>{tier.min}+ pts</Text>
+                                                {unlocked && (
+                                                    <View style={styles.tierUnlocked}>
+                                                        <Text style={styles.tierUnlockedText}>✓ Unlocked</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        );
+                    })()}
 
                     {/* Stamp Cards Button */}
                     <TouchableOpacity
@@ -727,5 +793,104 @@ const styles = StyleSheet.create({
     },
     expiredCreditBadgeText: {
         color: colors.textSecondary,
+    },
+    tierBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: spacing.sm,
+        backgroundColor: 'rgba(245, 158, 11, 0.12)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        alignSelf: 'flex-start',
+        gap: 4,
+    },
+    tierEmoji: {
+        fontSize: 14,
+    },
+    tierBadgeText: {
+        ...typography.caption,
+        color: '#B45309',
+        fontWeight: '700',
+    },
+    tiersWrapper: {
+        marginHorizontal: spacing.lg,
+        marginBottom: spacing.lg,
+    },
+    progressContainer: {
+        marginBottom: spacing.md,
+    },
+    progressLabels: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 6,
+    },
+    progressTierLabel: {
+        ...typography.caption,
+        color: colors.textSecondary,
+        fontWeight: '600',
+    },
+    progressBarBg: {
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
+        overflow: 'hidden',
+    },
+    progressBarFill: {
+        height: '100%',
+        borderRadius: 3,
+        backgroundColor: '#F59E0B',
+    },
+    tiersRow: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+    },
+    tierCard: {
+        flex: 1,
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        padding: spacing.md,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.04)',
+    },
+    tierCardLocked: {
+        opacity: 0.5,
+    },
+    tierIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing.xs,
+    },
+    tierIconEmoji: {
+        fontSize: 20,
+    },
+    tierName: {
+        ...typography.label,
+        fontSize: 13,
+        fontWeight: '700',
+        color: colors.text,
+    },
+    tierMin: {
+        ...typography.caption,
+        fontSize: 10,
+        color: colors.textSecondary,
+        marginTop: 2,
+    },
+    tierUnlocked: {
+        marginTop: 6,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 8,
+        backgroundColor: 'rgba(34, 197, 94, 0.12)',
+    },
+    tierUnlockedText: {
+        ...typography.caption,
+        fontSize: 9,
+        color: '#16A34A',
+        fontWeight: '700',
     },
 });

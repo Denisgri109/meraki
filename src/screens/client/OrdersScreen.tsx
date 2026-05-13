@@ -35,9 +35,10 @@ type Appointment = {
     status: string;
     price: number;
     notes: string | null;
-    service_id: string;
+    service_id: string | null;
     master_id: string;
     stripe_payment_intent_id: string | null;
+    service_name: string | null;
     service: { name: string; duration_minutes: number } | null;
     master: { full_name: string; push_token?: string } | null;
 };
@@ -126,6 +127,7 @@ export function OrdersScreen() {
                     service_id,
                     master_id,
                     stripe_payment_intent_id,
+                    service_name,
                     service:services(name, duration_minutes),
                     master:profiles!appointments_master_id_fkey(full_name, push_token)
                 `)
@@ -136,9 +138,9 @@ export function OrdersScreen() {
             const { data, error } = await safeSupabaseFetch(queryPromise as any, { timeout: 8000 });
             if (error) throw error;
 
-            // Filter out orphaned appointments (where service or master was deleted)
+            // Filter out orphaned appointments (where master was deleted)
             const validAppointments = ((data as unknown as Appointment[]) || []).filter(
-                apt => apt.service !== null && apt.master !== null
+                apt => apt.master !== null
             );
             setAppointments(validAppointments);
         } catch (error) {
@@ -580,7 +582,7 @@ export function OrdersScreen() {
                                                     </MerakiText>
                                                 </View>
                                                 <View style={styles.stitchClientInfo}>
-                                                    <MerakiText variant="body" color={colors.text} style={styles.stitchClientName}>{apt.service?.name || 'Service'}</MerakiText>
+                                                    <MerakiText variant="body" color={colors.text} style={styles.stitchClientName}>{apt.service?.name || apt.service_name || 'Service'}</MerakiText>
                                                     <MerakiText variant="caption" color={colors.textSecondary}>{apt.master?.full_name || 'Specialist'}</MerakiText>
                                                     {subTab === 'upcoming' && (
                                                         <View style={styles.stitchTimeRow}>

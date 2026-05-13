@@ -159,7 +159,7 @@ export function ClientHomeScreen() {
             const now = new Date().toISOString();
             const appointmentsPromise = (supabase as any)
                 .from('appointments')
-                .select(`id, start_time, end_time, status, service:services (name, duration_minutes, base_price), master:profiles!appointments_master_id_fkey (full_name)`)
+                .select(`id, start_time, end_time, status, service_name, service:services (name, duration_minutes, base_price), master:profiles!appointments_master_id_fkey (full_name)`)
                 .eq('client_id', user.id).in('status', ['confirmed', 'pending']).gte('start_time', now).order('start_time', { ascending: true }).limit(5);
             const { data: appointments } = await safeSupabaseFetch(appointmentsPromise, { timeout: 8000 });
             setUpcomingAppointments((appointments as any) || []);
@@ -242,7 +242,7 @@ export function ClientHomeScreen() {
             // 1. Pending reschedule proposals from masters
             const { data: rescheduleData } = await supabase
                 .from('appointments')
-                .select(`id, start_time, proposed_start_time, proposed_end_time, reschedule_initiated_by, service:services(name), master:profiles!appointments_master_id_fkey(full_name)`)
+                .select(`id, start_time, proposed_start_time, proposed_end_time, reschedule_initiated_by, service_name, service:services(name), master:profiles!appointments_master_id_fkey(full_name)`)
                 .eq('client_id', user.id)
                 .not('proposed_start_time', 'is', null)
                 .neq('reschedule_initiated_by', user.id)
@@ -253,7 +253,7 @@ export function ClientHomeScreen() {
                     id: `reschedule-${apt.id}`,
                     type: 'reschedule_request',
                     title: 'Reschedule Request',
-                    description: `${apt.master?.full_name || 'Master'} proposed a new time for ${apt.service?.name || 'your appointment'}: ${format(new Date(apt.proposed_start_time), 'MMM d, HH:mm')}`,
+                    description: `${apt.master?.full_name || 'Master'} proposed a new time for ${apt.service?.name || apt.service_name || 'your appointment'}: ${format(new Date(apt.proposed_start_time), 'MMM d, HH:mm')}`,
                     timestamp: apt.proposed_start_time,
                     icon: 'swap-horiz',
                     iconColor: '#F59E0B',

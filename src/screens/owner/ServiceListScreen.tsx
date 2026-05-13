@@ -16,6 +16,8 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { useModal } from '../../contexts/ModalContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Service } from '../../types/database';
 
 export function ServiceListScreen() {
@@ -24,6 +26,9 @@ export function ServiceListScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [services, setServices] = useState<Service[]>([]);
     const [groupedServices, setGroupedServices] = useState<Record<string, Service[]>>({});
+    const { showAlert } = useModal();
+    const { role } = useAuth();
+    const isOwner = role === 'owner';
 
     useFocusEffect(
         useCallback(() => {
@@ -92,12 +97,15 @@ export function ServiceListScreen() {
         fetchServices();
     };
 
-    const renderServiceCard = (service: Service) => (
+    const renderServiceCard = (service: Service) => {
+        const isPilates = service.category === 'Pilates';
+        const RowContainer: React.ComponentType<any> = isPilates ? View : TouchableOpacity;
+        const rowProps = isPilates
+            ? { style: styles.serviceCardContent }
+            : { onPress: () => navigation.navigate('ServiceForm', { service }), style: styles.serviceCardContent };
+        return (
         <Card style={styles.serviceCard} key={service.id}>
-            <TouchableOpacity
-                onPress={() => navigation.navigate('ServiceForm', { service })}
-                style={styles.serviceCardContent}
-            >
+            <RowContainer {...rowProps}>
                 <View style={styles.serviceInfo}>
                     <Text style={styles.serviceName}>{service.name}</Text>
                     <Text style={styles.serviceDetails}>
@@ -110,7 +118,7 @@ export function ServiceListScreen() {
                     trackColor={{ false: colors.border, true: '#8B5CF6' }}
                     thumbColor={service.is_active ? '#fff' : '#f4f3f4'}
                 />
-            </TouchableOpacity>
+            </RowContainer>
 
             {/* Manage Supplies Button */}
             <TouchableOpacity
@@ -122,7 +130,8 @@ export function ServiceListScreen() {
                 <Text style={styles.linkSuppliesArrow}>→</Text>
             </TouchableOpacity>
         </Card>
-    );
+        );
+    };
 
     if (loading) {
         return (
@@ -147,9 +156,20 @@ export function ServiceListScreen() {
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <Text style={styles.title}>Services</Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('ServiceForm')}>
-                        <Text style={styles.addButton}>+ Add</Text>
-                    </TouchableOpacity>
+                    <View style={styles.headerActions}>
+                        {isOwner && (
+                            <TouchableOpacity
+                                style={styles.pilatesHeaderButton}
+                                onPress={() => navigation.navigate('PilatesHub')}
+                            >
+                                <MaterialCommunityIcons name="yoga" size={14} color="#FFFFFF" />
+                                <Text style={styles.pilatesHeaderButtonText}>Pilates</Text>
+                            </TouchableOpacity>
+                        )}
+                        <TouchableOpacity onPress={() => navigation.navigate('ServiceForm')}>
+                            <Text style={styles.addButton}>+ Add</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <FlatList
@@ -205,6 +225,17 @@ const styles = StyleSheet.create({
     },
     title: { fontSize: 20, fontWeight: '600', color: colors.text },
     addButton: { fontSize: 16, color: '#8B5CF6', fontWeight: '600' },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    pilatesHeaderButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: spacing.md,
+        paddingVertical: 8,
+        borderRadius: 999,
+        backgroundColor: '#10B981',
+    },
+    pilatesHeaderButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 12 },
     listContent: { padding: spacing.lg, paddingTop: 0 },
     categorySection: { marginBottom: spacing.lg },
     categoryTitle: {

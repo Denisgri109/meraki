@@ -29,6 +29,7 @@ type Appointment = {
     start_time: string;
     status: string;
     price: number;
+    service_name: string | null;
     service: { name: string } | null;
     client: { full_name: string } | null;
 };
@@ -149,9 +150,9 @@ export function MasterDashboardScreen() {
         try {
             const todayStart = startOfDay(new Date()).toISOString();
             const todayEnd = endOfDay(new Date()).toISOString();
-            const todayPromise = supabase.from('appointments').select(`id, start_time, status, price, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).gte('start_time', todayStart).lt('start_time', todayEnd).in('status', ['confirmed', 'pending', 'completed']).order('start_time');
+            const todayPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).gte('start_time', todayStart).lt('start_time', todayEnd).in('status', ['confirmed', 'pending', 'completed']).order('start_time');
             const { data: todayData } = await safeSupabaseFetch(todayPromise as any);
-            const allAppointmentsPromise = supabase.from('appointments').select(`id, start_time, status, price, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).eq('status', 'confirmed').gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(5);
+            const allAppointmentsPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).eq('status', 'confirmed').gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(5);
             const { data: allAppointmentsData } = await safeSupabaseFetch(allAppointmentsPromise as any);
             const pendingPromise = supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('master_id', user.id).eq('status', 'pending');
             const { count: pendingCount } = await safeSupabaseFetch(pendingPromise as any) as any;
@@ -215,7 +216,7 @@ export function MasterDashboardScreen() {
             // Recent client-initiated reschedules (informational for master)
             const { data: rescheduleData } = await supabase
                 .from('appointments')
-                .select(`id, start_time, proposed_start_time, reschedule_initiated_by, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`)
+                .select(`id, start_time, proposed_start_time, reschedule_initiated_by, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`)
                 .eq('master_id', user.id)
                 .not('proposed_start_time', 'is', null)
                 .in('status', ['confirmed', 'pending', 'reschedule_pending']);
@@ -224,7 +225,7 @@ export function MasterDashboardScreen() {
                 feedItems.push({
                     id: `reschedule-${apt.id}`,
                     title: 'Appointment Rescheduled',
-                    description: `${apt.client?.full_name || 'Client'} rescheduled ${apt.service?.name || 'appointment'} to ${format(new Date(apt.proposed_start_time), 'MMM d, HH:mm')}.`,
+                    description: `${apt.client?.full_name || 'Client'} rescheduled ${apt.service?.name || apt.service_name || 'appointment'} to ${format(new Date(apt.proposed_start_time), 'MMM d, HH:mm')}.`,
                     icon: 'swap-horiz',
                     iconColor: '#60A5FA',
                     iconBg: 'rgba(96, 165, 250, 0.12)',
@@ -371,7 +372,7 @@ export function MasterDashboardScreen() {
                                         </View>
                                         <View style={styles.divider} />
                                         <View style={styles.aptInfo}>
-                                            <MerakiText variant="bodyBold">{apt.service?.name || 'Service'}</MerakiText>
+                                            <MerakiText variant="bodyBold">{apt.service?.name || apt.service_name || 'Service'}</MerakiText>
                                             <MerakiText variant="caption" color={colors.textSecondary}>{apt.client?.full_name || 'Client'}</MerakiText>
                                         </View>
                                         <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
