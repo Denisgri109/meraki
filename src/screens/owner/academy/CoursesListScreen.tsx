@@ -71,10 +71,12 @@ export function CoursesListScreen() {
 
     const renderCourse = ({ item }: { item: Course }) => (
         <TouchableOpacity
-            style={styles.courseCard}
+            style={styles.courseCardWrapper}
             onPress={() => navigation.navigate('CourseEditor', { courseId: item.id })}
+            activeOpacity={0.85}
         >
-            <View style={styles.thumbnail}>
+            <View style={styles.courseCard}>
+                <View style={styles.thumbnail}>
                 {item.thumbnail_url ? (
                     <Image source={{ uri: item.thumbnail_url }} style={styles.thumbnailImage} />
                 ) : (
@@ -101,6 +103,7 @@ export function CoursesListScreen() {
                         <MerakiText variant="caption" style={styles.metaText}>{item.enrollment_count} students</MerakiText>
                     </View>
                 </View>
+            </View>
             </View>
         </TouchableOpacity>
     );
@@ -139,14 +142,23 @@ export function CoursesListScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: 'transparent' },
     list: { padding: spacing.lg, paddingBottom: 100 },
+    courseCardWrapper: {
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 6,
+        marginBottom: spacing.md,
+    },
     courseCard: {
         flexDirection: 'row',
         backgroundColor: colors.surface,
         borderRadius: 16,
         overflow: 'hidden',
-        marginBottom: spacing.md,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
     },
     thumbnail: {
         width: 100,

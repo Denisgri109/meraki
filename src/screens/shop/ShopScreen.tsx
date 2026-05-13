@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
-    Alert,
     TextInput,
     Modal,
     Dimensions,
@@ -20,6 +19,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
+import { useModal } from '../../contexts/ModalContext';
 import { Card, Button, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing, layout, gradients } from '../../theme';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
@@ -52,6 +52,7 @@ export function ShopScreen() {
     const navigation = useNavigation<any>();
     const { profile, checkSession } = useAuth();
     const { addToCart, getItemCount } = useCart();
+    const { showAlert } = useModal();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
@@ -108,7 +109,7 @@ export function ShopScreen() {
 
     const handleAddProduct = async () => {
         if (!newProduct.name || !newProduct.retail_price || !newProduct.wholesale_price) {
-            Alert.alert('Error', 'Please fill in all required fields');
+            showAlert('Error', 'Please fill in all required fields', 'error');
             return;
         }
 
@@ -125,7 +126,7 @@ export function ShopScreen() {
 
             if (error) throw error;
 
-            Alert.alert('Success', 'Product added successfully');
+            showAlert('Success', 'Product added successfully', 'success');
             setShowAddModal(false);
             setNewProduct({
                 name: '',
@@ -137,7 +138,7 @@ export function ShopScreen() {
             });
             fetchProducts();
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setSaving(false);
         }
@@ -145,7 +146,7 @@ export function ShopScreen() {
 
     const handleQuickAddToCart = (product: Product) => {
         if (product.stock_count === 0) {
-            Alert.alert('Out of Stock', 'This product is currently unavailable.');
+            showAlert('Out of Stock', 'This product is currently unavailable.', 'info');
             return;
         }
 
@@ -615,9 +616,13 @@ const styles = StyleSheet.create({
         borderColor: colors.background,
     },
     cartBadgeText: {
-        fontSize: 9,
+        fontSize: 10,
         fontWeight: '800',
         color: '#FFFFFF',
+        textAlign: 'center',
+        includeFontPadding: false,
+        textAlignVertical: 'center',
+        lineHeight: 12,
     },
 
     // Search — Minimal rounded bar
@@ -916,7 +921,7 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
     },
     categoryOptionTextActive: {
-        color: colors.text,
+        color: colors.textInvert,
         fontWeight: '700',
     },
 });

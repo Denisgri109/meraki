@@ -10,10 +10,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Audio } from 'expo-av';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ScreenBackground, MerakiText, Card, Button } from '../../components/ui';
 import { colors, spacing, layout, gradients } from '../../theme';
+
+// Check if a URL points to a streaming platform (not a direct file)
+const isStreamingUrl = (url: string): boolean => {
+    return (
+        url.includes('youtube.com') ||
+        url.includes('youtu.be') ||
+        url.includes('vimeo.com') ||
+        url.includes('mux.com')
+    );
+};
 
 interface Course {
     id: string;
@@ -85,10 +96,50 @@ export function CourseDetailScreen() {
             }
 
             setLessons(lessonsData || []);
+
+            // Probe real video durations in the background and auto-correct stale values
+            probeLessonDurations(lessonsData || []);
         } catch (error) {
             console.error('Error fetching lessons:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const probeLessonDurations = async (lessonsToProbe: any[]) => {
+        const corrected = [...lessonsToProbe];
+        let hasChanges = false;
+
+        await Promise.all(
+            lessonsToProbe.map(async (lesson: any, index: number) => {
+                if (!lesson.video_url || isStreamingUrl(lesson.video_url)) return;
+                try {
+                    const { sound, status } = await Audio.Sound.createAsync(
+                        { uri: lesson.video_url },
+                        { shouldPlay: false }
+                    );
+                    if (status.isLoaded && status.durationMillis) {
+                        const realSeconds = Math.round(status.durationMillis / 1000);
+                        if (lesson.duration_minutes !== realSeconds) {
+                            corrected[index] = { ...lesson, duration_minutes: realSeconds };
+                            hasChanges = true;
+                            // Update DB silently
+                            (supabase as any)
+                                .from('lessons')
+                                .update({ duration_minutes: realSeconds })
+                                .eq('id', lesson.id)
+                                .then(() => console.log(`Fixed duration for "${lesson.title}": ${realSeconds}s`));
+                        }
+                    }
+                    await sound.unloadAsync();
+                } catch (e) {
+                    // Ignore probe errors — keep DB value
+                }
+            })
+        );
+
+        if (hasChanges) {
+            setLessons(corrected);
         }
     };
 
@@ -99,7 +150,11 @@ export function CourseDetailScreen() {
     };
 
     const getTotalDuration = () => {
-        return lessons.reduce((acc, lesson) => acc + (lesson.duration_minutes || 0), 0);
+        const totalSeconds = lessons.reduce((acc, lesson) => acc + (lesson.duration_minutes || 0), 0);
+        if (totalSeconds < 60) return { value: totalSeconds, unit: 'Sec' };
+        if (totalSeconds < 3600) return { value: Math.round(totalSeconds / 60), unit: 'Min' };
+        const hours = totalSeconds / 3600;
+        return { value: hours.toFixed(1), unit: 'Hrs' };
     };
 
     return (
@@ -148,8 +203,8 @@ export function CourseDetailScreen() {
                                 <MerakiText variant="caption" align="center" color={colors.textMuted}>Lessons</MerakiText>
                             </Card>
                             <Card variant="glass" style={styles.statCard}>
-                                <MerakiText variant="h2" align="center">{getTotalDuration()}</MerakiText>
-                                <MerakiText variant="caption" align="center" color={colors.textMuted}>Min</MerakiText>
+                                <MerakiText variant="h2" align="center">{getTotalDuration().value}</MerakiText>
+                                <MerakiText variant="caption" align="center" color={colors.textMuted}>{getTotalDuration().unit}</MerakiText>
                             </Card>
                             <Card variant="glass" style={styles.statCard}>
                                 <MerakiText variant="h2" align="center">{getOverallProgress()}%</MerakiText>
@@ -229,7 +284,11 @@ export function CourseDetailScreen() {
                                                         <View style={styles.lessonMeta}>
                                                             {!!lesson.duration_minutes && (
                                                                 <MerakiText variant="caption" color={colors.textMuted}>
-                                                                    ⏱️ {lesson.duration_minutes} min
+                                                                    ⏱️ {lesson.duration_minutes < 60
+                                                                        ? `${lesson.duration_minutes}s`
+                                                                        : lesson.duration_minutes < 3600
+                                                                            ? `${Math.round(lesson.duration_minutes / 60)} min`
+                                                                            : `${(lesson.duration_minutes / 3600).toFixed(1)} hrs`}
                                                                 </MerakiText>
                                                             )}
                                                             {lesson.has_homework && (

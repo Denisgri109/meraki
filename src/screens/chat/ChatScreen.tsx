@@ -8,7 +8,6 @@ import {
     TextInput,
     Platform,
     ActivityIndicator,
-    Alert,
     Image,
     Modal,
     Dimensions,
@@ -28,6 +27,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { useAuth } from '../../contexts/AuthContext';
+import { useModal } from '../../contexts/ModalContext';
 import { ScreenBackground, MerakiText } from '../../components/ui';
 import { SwipeableMessage } from '../../components/chat/SwipeableMessage';
 import { MessageContextMenu } from '../../components/chat/MessageContextMenu';
@@ -58,6 +58,7 @@ export function ChatScreen() {
     const navigation = useNavigation();
     const route = useRoute<RouteProp<ChatStackParamList, 'Chat'>>();
     const { user } = useAuth();
+    const { showAlert, showConfirm } = useModal();
     const { conversationId, otherUser, isSupportChat } = route.params;
 
     const [loading, setLoading] = useState(true);
@@ -217,7 +218,7 @@ export function ChatScreen() {
         } catch (error: any) {
             setMessages((prev) => prev.filter(m => m.id !== optimisticId));
             setNewMessage(messageText);
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'error');
         } finally {
             setSending(false);
         }
@@ -273,7 +274,7 @@ export function ChatScreen() {
     const pickMedia = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission needed', 'Please grant camera roll access');
+            showAlert('Permission needed', 'Please grant camera roll access', 'error');
             return;
         }
 
@@ -288,7 +289,7 @@ export function ChatScreen() {
                 await uploadMedia(result.assets[0]);
             }
         } catch (error: any) {
-            Alert.alert('Error', 'Failed to pick media: ' + error.message);
+            showAlert('Error', 'Failed to pick media: ' + error.message, 'error');
         }
     };
 
@@ -345,7 +346,7 @@ export function ChatScreen() {
 
         } catch (error: any) {
             setMessages((prev) => prev.filter(m => m.id !== optimisticId));
-            Alert.alert('Error', 'Failed to send media: ' + error.message);
+            showAlert('Error', 'Failed to send media: ' + error.message, 'error');
         } finally {
             setSending(false);
         }
@@ -363,7 +364,7 @@ export function ChatScreen() {
                 .single();
 
             if (convError || !conv) {
-                Alert.alert('Error', 'Could not load conversation details');
+                showAlert('Error', 'Could not load conversation details', 'error');
                 setShowBookingsModal(false);
                 return;
             }
@@ -387,7 +388,7 @@ export function ChatScreen() {
             if (error) throw error;
             setBookings(data || []);
         } catch (error: any) {
-            Alert.alert('Error', 'Failed to load bookings: ' + error.message);
+            showAlert('Error', 'Failed to load bookings: ' + error.message, 'error');
             setShowBookingsModal(false);
         } finally {
             setBookingsLoading(false);
@@ -432,7 +433,7 @@ export function ChatScreen() {
             .eq('id', message.id);
 
         if (error) {
-            Alert.alert('Error', 'Failed to delete message: ' + error.message);
+            showAlert('Error', 'Failed to delete message: ' + error.message, 'error');
             fetchMessages();
         }
     };
@@ -466,7 +467,7 @@ export function ChatScreen() {
             >
                 {isMe ? (
                     <LinearGradient
-                        colors={['#f4256a', '#d4145a']}
+                        colors={[colors.primary, colors.primary]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={[
@@ -713,7 +714,7 @@ export function ChatScreen() {
                                 onPress={sendMessage}
                             >
                                 <LinearGradient
-                                    colors={!newMessage.trim() || sending ? ['rgba(0, 0, 0, 0.08)', 'rgba(0, 0, 0, 0.08)'] : ['#f4256a', '#d4145a']}
+                                    colors={!newMessage.trim() || sending ? ['rgba(0, 0, 0, 0.08)', 'rgba(0, 0, 0, 0.08)'] : [colors.primary, colors.primary]}
                                     style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
                                 >
                                     <MerakiText style={[styles.sendButtonText, { color: 'white' }]}>
@@ -1011,7 +1012,7 @@ const styles = StyleSheet.create({
     },
     bubbleGradient: {
         borderBottomRightRadius: 4,
-        shadowColor: '#d4145a',
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 5,
@@ -1056,7 +1057,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     messageTimeRight: {
-        color: 'rgba(0, 0, 0, 0.60)',
+        color: 'rgba(255, 255, 255, 0.70)',
     },
 
     // Media
@@ -1158,7 +1159,7 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#f4256a',
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,

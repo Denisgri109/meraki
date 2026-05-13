@@ -24,7 +24,7 @@ export type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
     SelectDateTime: { serviceId: string; masterId: string };
-    BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
+    BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
     ConsultationWaiting: { consultationId: string; serviceId: string; masterId: string };
 };
 

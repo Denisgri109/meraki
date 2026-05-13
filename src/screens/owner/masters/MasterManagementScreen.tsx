@@ -132,7 +132,7 @@ export function MasterManagementScreen() {
                     colors={['rgba(88,166,255,0.20)', 'rgba(88,166,255,0.05)']}
                     style={styles.avatar}
                 >
-                    <MaterialCommunityIcons name="email-send" size={22} color="#58A6FF" />
+                    <MaterialCommunityIcons name="email-edit" size={22} color="#58A6FF" />
                 </LinearGradient>
                 <View style={styles.cardInfo}>
                     <MerakiText variant="bodyBold" numberOfLines={1}>{item.full_name}</MerakiText>

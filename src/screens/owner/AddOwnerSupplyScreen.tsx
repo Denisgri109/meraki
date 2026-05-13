@@ -179,7 +179,7 @@ export function AddOwnerSupplyScreen() {
                                         style={styles.adjustButton}
                                         onPress={() => handleAdjustQuantity(-1)}
                                     >
-                                        <MaterialCommunityIcons name="minus" size={24} color={colors.text} />
+                                        <MaterialCommunityIcons name="minus" size={24} color={colors.textInvert} />
                                     </TouchableOpacity>
                                     <TextInput
                                         style={[styles.input, styles.quantityInput]}
@@ -192,7 +192,7 @@ export function AddOwnerSupplyScreen() {
                                         style={styles.adjustButton}
                                         onPress={() => handleAdjustQuantity(1)}
                                     >
-                                        <MaterialCommunityIcons name="plus" size={24} color={colors.text} />
+                                        <MaterialCommunityIcons name="plus" size={24} color={colors.textInvert} />
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
     },
     unitChipTextActive: {
-        color: colors.text,
+        color: colors.textInvert,
         fontWeight: '600',
     },
     customUnitContainer: {

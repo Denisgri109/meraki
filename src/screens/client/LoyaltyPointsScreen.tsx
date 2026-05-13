@@ -141,7 +141,6 @@ export function LoyaltyPointsScreen() {
 
         } catch (error) {
             console.error('Error fetching loyalty data:', error);
-            // Alert.alert('Error', 'Failed to load loyalty points data');
         } finally {
             setLoading(false);
             setRefreshing(false);

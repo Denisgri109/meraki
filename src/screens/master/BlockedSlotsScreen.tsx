@@ -225,7 +225,7 @@ export function BlockedSlotsScreen() {
                                                 onPress={() => setStartTime(t)}
                                                 style={[styles.timeOption, startTime === t && styles.timeOptionSelected]}
                                             >
-                                                <Text style={styles.timeText}>{t}</Text>
+                                                <Text style={[styles.timeText, startTime === t && styles.timeTextSelected]}>{t}</Text>
                                             </TouchableOpacity>
                                         ))}
                                     </ScrollView>
@@ -239,7 +239,7 @@ export function BlockedSlotsScreen() {
                                                 onPress={() => setEndTime(t)}
                                                 style={[styles.timeOption, endTime === t && styles.timeOptionSelected]}
                                             >
-                                                <Text style={styles.timeText}>{t}</Text>
+                                                <Text style={[styles.timeText, endTime === t && styles.timeTextSelected]}>{t}</Text>
                                             </TouchableOpacity>
                                         ))}
                                     </ScrollView>
@@ -300,6 +300,7 @@ const styles = StyleSheet.create({
     timeOption: { padding: spacing.sm, alignItems: 'center' },
     timeOptionSelected: { backgroundColor: colors.primary },
     timeText: { color: colors.text },
+    timeTextSelected: { color: '#fff' },
     modalButtons: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
 });
 

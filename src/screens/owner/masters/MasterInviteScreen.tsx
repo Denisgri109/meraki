@@ -9,7 +9,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
@@ -21,10 +20,12 @@ import { ScreenBackground, Card, MerakiText, Input, Button } from '../../../comp
 import { colors, spacing, layout } from '../../../theme';
 import { inviteMaster } from '../../../services/masterManagementService';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useModal } from '../../../contexts/ModalContext';
 
 export function MasterInviteScreen() {
     const navigation = useNavigation<any>();
     const { user } = useAuth();
+    const { showAlert } = useModal();
 
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
@@ -34,14 +35,14 @@ export function MasterInviteScreen() {
 
     const handleInvite = async () => {
         if (!fullName.trim() || !email.trim()) {
-            Alert.alert('Required Fields', 'Please enter at least a name and email address.');
+            showAlert('Required Fields', 'Please enter at least a name and email address.', 'info');
             return;
         }
         if (!user) return;
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email.trim())) {
-            Alert.alert('Invalid Email', 'Please enter a valid email address.');
+            showAlert('Invalid Email', 'Please enter a valid email address.', 'error');
             return;
         }
 
@@ -58,13 +59,14 @@ export function MasterInviteScreen() {
         setSubmitting(false);
 
         if (error) {
-            Alert.alert('Error', error.message || 'Failed to send invitation');
+            showAlert('Error', error.message || 'Failed to send invitation', 'error');
         } else {
-            Alert.alert(
+            showAlert(
                 'Invitation Sent!',
                 `${fullName.trim()} has been invited to join Merakí as a beauty master.`,
-                [{ text: 'OK', onPress: () => navigation.goBack() }]
+                'success'
             );
+            navigation.goBack();
         }
     };
 

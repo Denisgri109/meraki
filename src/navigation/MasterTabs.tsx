@@ -50,7 +50,7 @@ export type DashboardStackParamList = {
     Portfolio: undefined;
     MyServices: undefined;
     BlockedSlots: undefined;
-    CreateService: undefined;
+    CreateService: { service?: any } | undefined;
     Availability: undefined;
     Settings: undefined;
     BusinessSettings: undefined;
@@ -133,7 +133,7 @@ export type MenuStackParamList = {
     HelpSupport: undefined;
     TermsOfService: undefined;
     PrivacyPolicy: undefined;
-    CreateService: undefined;
+    CreateService: { service?: any } | undefined;
     ServiceSupplies: { serviceId?: string } | undefined;
 };
 

@@ -247,7 +247,7 @@ export function ServiceSuppliesScreen() {
                     style={styles.linkButton}
                     onPress={() => handleOpenLinkModal(item)}
                 >
-                    <MerakiText variant="caption" color={colors.text} style={{ fontWeight: '600' }}>+ Link Supply</MerakiText>
+                    <MerakiText variant="caption" color={colors.textInvert} style={{ fontWeight: '600' }}>+ Link Supply</MerakiText>
                 </TouchableOpacity>
             </View>
 
@@ -321,7 +321,7 @@ export function ServiceSuppliesScreen() {
                             style={styles.emptyButton}
                             onPress={() => (navigation as any).navigate('CreateService')}
                         >
-                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>Create Service</MerakiText>
+                            <MerakiText variant="body" color={colors.textInvert} style={{ fontWeight: '600' }}>Create Service</MerakiText>
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -371,7 +371,7 @@ export function ServiceSuppliesScreen() {
                                                 >
                                                     <MerakiText
                                                         variant="body"
-                                                        color={colors.text}
+                                                        color={selectedSupply?.id === supply.id ? colors.textInvert : colors.text}
                                                         style={selectedSupply?.id === supply.id ? { fontWeight: '600' } : undefined}
                                                     >
                                                         {supply.name} ({supply.quantity} {supply.unit} available)
@@ -412,7 +412,7 @@ export function ServiceSuppliesScreen() {
                                                     onPress={handleLinkSupply}
                                                     disabled={!selectedSupply || saving}
                                                 >
-                                                    <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>
+                                                    <MerakiText variant="body" color={colors.textInvert} style={{ fontWeight: '600' }}>
                                                         {saving ? 'Linking...' : 'Link Supply'}
                                                     </MerakiText>
                                                 </TouchableOpacity>

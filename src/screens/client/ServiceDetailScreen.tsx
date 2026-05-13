@@ -19,14 +19,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import { PreBookingQuestionnaireModal } from '../../components/booking';
 import { colors, spacing } from '../../theme';
-import { Service, Profile, BookingConsultation } from '../../types/database';
+import { Service, Profile, BookingConsultation, Tables } from '../../types/database';
 import { useHideTabBar } from '../../hooks/useHideTabBar';
 
 type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
     SelectDateTime: { serviceId: string; masterId: string };
-    BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
+    BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
     ConsultationWaiting: { consultationId: string; serviceId: string; masterId: string };
 };
 
@@ -35,14 +35,17 @@ type ServiceDetailScreenProps = {
     route: RouteProp<BookingStackParamList, 'ServiceDetail'>;
 };
 
+type PilatesSettings = Tables<'pilates_settings'>;
+
 export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenProps) {
     useHideTabBar();
     const { serviceId } = route.params;
-    const { profile } = useAuth();
+    const { user, profile } = useAuth();
     const userCountry = profile?.country || null;
     const { showAlert } = useModal();
     const [service, setService] = useState<Service | null>(null);
     const [master, setMaster] = useState<Profile | null>(null);
+    const [pilatesSettings, setPilatesSettings] = useState<PilatesSettings | null>(null);
     const [loading, setLoading] = useState(true);
     const [checkingConsultation, setCheckingConsultation] = useState(false);
     const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
@@ -50,7 +53,7 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [serviceId, user?.id, userCountry]);
 
     const fetchData = async () => {
         try {
@@ -86,7 +89,7 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
             // Extract profiles
             let availableMasters = (masterServiceData || [])
                 .map((item: any) => item.profiles)
-                .filter((profile: any) => profile !== null);
+                .filter((profile: any) => profile !== null && profile.id !== user?.id);
 
             // Country filter: only show masters from the client's country
             if (userCountry) {
@@ -111,6 +114,16 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                 }
 
                 setMaster(selectedProfile);
+            }
+
+            if (serviceData?.category === 'Pilates') {
+                const { data: pilatesData } = await supabase
+                    .from('pilates_settings')
+                    .select('*')
+                    .eq('service_id', serviceData.id)
+                    .maybeSingle();
+
+                setPilatesSettings(pilatesData || null);
             }
 
             setService(serviceData);
@@ -163,6 +176,10 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
 
     const handleContinue = async () => {
         if (!master) return;
+        if (master.id === user?.id) {
+            showAlert('Unavailable', 'You cannot book an appointment with yourself.', 'warning');
+            return;
+        }
 
         // Check if service requires consultation
         if (service?.requires_consultation) {
@@ -315,6 +332,31 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                                 </Text>
                             </View>
                         )}
+
+                        {service.category === 'Pilates' && pilatesSettings && (
+                            <View style={styles.pilatesCard}>
+                                <View style={styles.pilatesRow}>
+                                    <MaterialIcons name="fitness-center" size={16} color={colors.primary} />
+                                    <Text style={styles.pilatesText}>{pilatesSettings.default_level || 'All levels'}</Text>
+                                </View>
+                                <View style={styles.pilatesRow}>
+                                    <MaterialIcons name="groups" size={16} color={colors.primary} />
+                                    <Text style={styles.pilatesText}>Up to {pilatesSettings.default_capacity || 6} clients</Text>
+                                </View>
+                                <View style={styles.pilatesRow}>
+                                    <MaterialIcons name="inventory-2" size={16} color={colors.primary} />
+                                    <Text style={styles.pilatesText}>
+                                        {pilatesSettings.equipment_provided ? 'Equipment provided' : 'Bring your own equipment'}
+                                    </Text>
+                                </View>
+                                {pilatesSettings.equipment_notes && (
+                                    <Text style={styles.pilatesNote}>{pilatesSettings.equipment_notes}</Text>
+                                )}
+                                {pilatesSettings.location_notes && (
+                                    <Text style={styles.pilatesNote}>{pilatesSettings.location_notes}</Text>
+                                )}
+                            </View>
+                        )}
                     </View>
 
                     {/* Specialist Info (Auto-assigned) */}
@@ -363,7 +405,7 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                     <Button
                         title={getButtonText()}
                         onPress={handleContinue}
-                        disabled={!master || checkingConsultation}
+                        disabled={!master || master.id === user?.id || checkingConsultation}
                         loading={checkingConsultation}
                         fullWidth
                     />
@@ -458,6 +500,30 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: colors.primary,
         fontWeight: '500',
+    },
+    pilatesCard: {
+        backgroundColor: 'rgba(45, 122, 90, 0.08)',
+        borderRadius: 16,
+        padding: spacing.md,
+        marginTop: spacing.lg,
+        borderWidth: 1,
+        borderColor: 'rgba(45, 122, 90, 0.16)',
+        gap: spacing.sm,
+    },
+    pilatesRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+    },
+    pilatesText: {
+        fontSize: 14,
+        color: colors.text,
+        fontWeight: '500',
+    },
+    pilatesNote: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        lineHeight: 20,
     },
     masterSection: {
         padding: spacing.lg,

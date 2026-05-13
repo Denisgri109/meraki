@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -112,7 +112,6 @@ export type Database = {
           start_date?: string | null
           updated_at?: string | null
         }
-
         Update: {
           campaign_type?: string
           created_at?: string | null
@@ -203,6 +202,8 @@ export type Database = {
         Row: {
           aftercare_sent: boolean | null
           auto_cancel_scheduled: boolean | null
+          cancellation_fee_amount: number | null
+          cancellation_reason: string | null
           client_confirmed: boolean | null
           client_id: string
           confirmation_deadline: string | null
@@ -238,6 +239,8 @@ export type Database = {
         Insert: {
           aftercare_sent?: boolean | null
           auto_cancel_scheduled?: boolean | null
+          cancellation_fee_amount?: number | null
+          cancellation_reason?: string | null
           client_confirmed?: boolean | null
           client_id: string
           confirmation_deadline?: string | null
@@ -273,6 +276,8 @@ export type Database = {
         Update: {
           aftercare_sent?: boolean | null
           auto_cancel_scheduled?: boolean | null
+          cancellation_fee_amount?: number | null
+          cancellation_reason?: string | null
           client_confirmed?: boolean | null
           client_id?: string
           confirmation_deadline?: string | null
@@ -995,6 +1000,80 @@ export type Database = {
           },
         ]
       }
+      lesson_qa_messages: {
+        Row: {
+          content: string | null
+          course_id: string
+          created_at: string | null
+          id: string
+          is_pinned: boolean | null
+          is_question: boolean | null
+          lesson_id: string
+          media_type: string | null
+          media_url: string | null
+          parent_message_id: string | null
+          sender_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          content?: string | null
+          course_id: string
+          created_at?: string | null
+          id?: string
+          is_pinned?: boolean | null
+          is_question?: boolean | null
+          lesson_id: string
+          media_type?: string | null
+          media_url?: string | null
+          parent_message_id?: string | null
+          sender_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string | null
+          course_id?: string
+          created_at?: string | null
+          id?: string
+          is_pinned?: boolean | null
+          is_question?: boolean | null
+          lesson_id?: string
+          media_type?: string | null
+          media_url?: string | null
+          parent_message_id?: string | null
+          sender_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_qa_messages_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_qa_messages_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_qa_messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_qa_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_qa_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lessons: {
         Row: {
           chapter_id: string | null
@@ -1424,6 +1503,7 @@ export type Database = {
         Row: {
           accepts_new_clients: boolean | null
           auto_charge_after_grace_period: boolean | null
+          auto_reply_message: string | null
           cancellation_charge_percent: number | null
           confirmation_response_timeout_hours: number | null
           confirmation_timing_hours: number | null
@@ -1439,6 +1519,8 @@ export type Database = {
           master_id: string
           no_show_charge_percent: number | null
           require_tc_acceptance: boolean | null
+          support_email: string | null
+          support_phone: string | null
           terms_and_conditions: string | null
           terms_updated_at: string | null
           updated_at: string | null
@@ -1446,6 +1528,7 @@ export type Database = {
         Insert: {
           accepts_new_clients?: boolean | null
           auto_charge_after_grace_period?: boolean | null
+          auto_reply_message?: string | null
           cancellation_charge_percent?: number | null
           confirmation_response_timeout_hours?: number | null
           confirmation_timing_hours?: number | null
@@ -1461,6 +1544,8 @@ export type Database = {
           master_id: string
           no_show_charge_percent?: number | null
           require_tc_acceptance?: boolean | null
+          support_email?: string | null
+          support_phone?: string | null
           terms_and_conditions?: string | null
           terms_updated_at?: string | null
           updated_at?: string | null
@@ -1468,6 +1553,7 @@ export type Database = {
         Update: {
           accepts_new_clients?: boolean | null
           auto_charge_after_grace_period?: boolean | null
+          auto_reply_message?: string | null
           cancellation_charge_percent?: number | null
           confirmation_response_timeout_hours?: number | null
           confirmation_timing_hours?: number | null
@@ -1483,6 +1569,8 @@ export type Database = {
           master_id?: string
           no_show_charge_percent?: number | null
           require_tc_acceptance?: boolean | null
+          support_email?: string | null
+          support_phone?: string | null
           terms_and_conditions?: string | null
           terms_updated_at?: string | null
           updated_at?: string | null
@@ -1549,8 +1637,10 @@ export type Database = {
           content: string | null
           conversation_id: string | null
           created_at: string | null
+          edited_at: string | null
           id: string
           is_deleted: boolean | null
+          is_read: boolean
           media_type: string | null
           media_url: string | null
           read_at: string | null
@@ -1561,8 +1651,10 @@ export type Database = {
           content?: string | null
           conversation_id?: string | null
           created_at?: string | null
+          edited_at?: string | null
           id?: string
           is_deleted?: boolean | null
+          is_read?: boolean
           media_type?: string | null
           media_url?: string | null
           read_at?: string | null
@@ -1573,8 +1665,10 @@ export type Database = {
           content?: string | null
           conversation_id?: string | null
           created_at?: string | null
+          edited_at?: string | null
           id?: string
           is_deleted?: boolean | null
+          is_read?: boolean
           media_type?: string | null
           media_url?: string | null
           read_at?: string | null
@@ -1766,9 +1860,14 @@ export type Database = {
           id: string
           notes: string | null
           shipping_address: string | null
+          shipping_city: string | null
           shipping_cost: number | null
           shipping_country: string | null
           shipping_method: string | null
+          shipping_name: string | null
+          shipping_phone: string | null
+          shipping_postal_code: string | null
+          shipping_status: string | null
           status: string | null
           stripe_payment_intent_id: string | null
           total: number
@@ -1782,9 +1881,14 @@ export type Database = {
           id?: string
           notes?: string | null
           shipping_address?: string | null
+          shipping_city?: string | null
           shipping_cost?: number | null
           shipping_country?: string | null
           shipping_method?: string | null
+          shipping_name?: string | null
+          shipping_phone?: string | null
+          shipping_postal_code?: string | null
+          shipping_status?: string | null
           status?: string | null
           stripe_payment_intent_id?: string | null
           total: number
@@ -1798,9 +1902,14 @@ export type Database = {
           id?: string
           notes?: string | null
           shipping_address?: string | null
+          shipping_city?: string | null
           shipping_cost?: number | null
           shipping_country?: string | null
           shipping_method?: string | null
+          shipping_name?: string | null
+          shipping_phone?: string | null
+          shipping_postal_code?: string | null
+          shipping_status?: string | null
           status?: string | null
           stripe_payment_intent_id?: string | null
           total?: number
@@ -1814,6 +1923,65 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      owner_service_supplies: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          quantity_per_service: number
+          service_id: string
+          supply_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          quantity_per_service?: number
+          service_id: string
+          supply_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          quantity_per_service?: number
+          service_id?: string
+          supply_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_service_supplies_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_service_supplies_supply_id_fkey"
+            columns: ["supply_id"]
+            isOneToOne: false
+            referencedRelation: "owner_low_stock_supplies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_service_supplies_supply_id_fkey"
+            columns: ["supply_id"]
+            isOneToOne: false
+            referencedRelation: "owner_supplies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_service_supplies_supply_id_fkey"
+            columns: ["supply_id"]
+            isOneToOne: false
+            referencedRelation: "owner_supply_usage_summary"
+            referencedColumns: ["supply_id"]
           },
         ]
       }
@@ -1983,7 +2151,7 @@ export type Database = {
           status: string
           stripe_payment_intent_id: string
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           amount: number
@@ -1997,7 +2165,7 @@ export type Database = {
           status: string
           stripe_payment_intent_id: string
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -2011,7 +2179,7 @@ export type Database = {
           status?: string
           stripe_payment_intent_id?: string
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2037,7 +2205,7 @@ export type Database = {
           created_at: string | null
           currency: string | null
           id: string
-          master_id: string
+          master_id: string | null
           notes: string | null
           period_end: string | null
           period_start: string | null
@@ -2050,7 +2218,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           id?: string
-          master_id: string
+          master_id?: string | null
           notes?: string | null
           period_end?: string | null
           period_start?: string | null
@@ -2063,7 +2231,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           id?: string
-          master_id?: string
+          master_id?: string | null
           notes?: string | null
           period_end?: string | null
           period_start?: string | null
@@ -2646,6 +2814,8 @@ export type Database = {
           invited_by: string | null
           is_master: boolean | null
           is_verified: boolean | null
+          latitude: number | null
+          longitude: number | null
           loyalty_points: number | null
           master_status: string | null
           notification_preferences: Json | null
@@ -2654,6 +2824,7 @@ export type Database = {
           push_token: string | null
           push_token_updated_at: string | null
           role: Database["public"]["Enums"]["user_role"]
+          search_radius_km: number | null
           service_radius_km: number | null
           specialties: string[] | null
           stripe_connect_id: string | null
@@ -2684,6 +2855,8 @@ export type Database = {
           invited_by?: string | null
           is_master?: boolean | null
           is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           loyalty_points?: number | null
           master_status?: string | null
           notification_preferences?: Json | null
@@ -2692,6 +2865,7 @@ export type Database = {
           push_token?: string | null
           push_token_updated_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          search_radius_km?: number | null
           service_radius_km?: number | null
           specialties?: string[] | null
           stripe_connect_id?: string | null
@@ -2722,6 +2896,8 @@ export type Database = {
           invited_by?: string | null
           is_master?: boolean | null
           is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           loyalty_points?: number | null
           master_status?: string | null
           notification_preferences?: Json | null
@@ -2730,6 +2906,7 @@ export type Database = {
           push_token?: string | null
           push_token_updated_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          search_radius_km?: number | null
           service_radius_km?: number | null
           specialties?: string[] | null
           stripe_connect_id?: string | null
@@ -3328,27 +3505,40 @@ export type Database = {
         Returns: string
       }
       book_appointment_with_confirmation:
-      | {
+        | {
+            Args: {
+              p_credit_id?: string
+              p_deposit_amount?: number
+              p_deposit_payment_intent_id?: string
+              p_master_id: string
+              p_notes?: string
+              p_service_id: string
+              p_start_time: string
+              p_stripe_payment_intent_id?: string
+              p_stripe_setup_intent_id?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_master_id: string
+              p_notes?: string
+              p_service_id: string
+              p_start_time: string
+              p_stripe_payment_intent_id: string
+              p_stripe_setup_intent_id: string
+            }
+            Returns: string
+          }
+      book_pilates_session: {
         Args: {
+          p_credit_id?: string
           p_deposit_amount?: number
           p_deposit_payment_intent_id?: string
-          p_master_id: string
           p_notes?: string
-          p_service_id: string
-          p_start_time: string
+          p_session_id: string
           p_stripe_payment_intent_id?: string
           p_stripe_setup_intent_id?: string
-        }
-        Returns: string
-      }
-      | {
-        Args: {
-          p_master_id: string
-          p_notes?: string
-          p_service_id: string
-          p_start_time: string
-          p_stripe_payment_intent_id: string
-          p_stripe_setup_intent_id: string
         }
         Returns: string
       }
@@ -3386,6 +3576,14 @@ export type Database = {
       decrement_stock: {
         Args: { p_product_id: string; p_quantity?: number }
         Returns: boolean
+      }
+      ensure_pilates_sessions: {
+        Args: {
+          p_end_date?: string
+          p_service_id: string
+          p_start_date?: string
+        }
+        Returns: number
       }
       get_appointments_for_auto_cancel: {
         Args: never
@@ -3471,6 +3669,12 @@ export type Database = {
           total_scans: number
         }[]
       }
+      handle_reschedule_expiration: { Args: never; Returns: undefined }
+      invoke_edge_function: {
+        Args: { function_name: string; payload?: Json }
+        Returns: number
+      }
+      is_owner_user: { Args: { p_user_id?: string }; Returns: boolean }
       is_valid_role: { Args: { role_text: string }; Returns: boolean }
       process_no_show_charge: {
         Args: { p_appointment_id: string; p_charge_now?: boolean }
@@ -3506,21 +3710,21 @@ export type Database = {
     }
     Enums: {
       appointment_status:
-      | "pending"
-      | "confirmed"
-      | "completed"
-      | "cancelled"
-      | "no_show"
-      | "pending_cancellation"
-      | "pending_reschedule"
-      | "reschedule_pending"
-      | "cancelled_free"
-      | "cancelled_charge"
+        | "pending"
+        | "confirmed"
+        | "completed"
+        | "cancelled"
+        | "no_show"
+        | "pending_cancellation"
+        | "pending_reschedule"
+        | "reschedule_pending"
+        | "cancelled_free"
+        | "cancelled_charge"
       booking_consultation_status:
-      | "pending"
-      | "approved"
-      | "declined"
-      | "chat_requested"
+        | "pending"
+        | "approved"
+        | "declined"
+        | "chat_requested"
       user_role: "client" | "master" | "owner" | "pending_master"
     }
     CompositeTypes: {
@@ -3529,128 +3733,122 @@ export type Database = {
   }
 }
 
-export type Service = Database['public']['Tables']['services']['Row'];
-export type MasterSupply = Database['public']['Tables']['master_supplies']['Row'];
-export type ServiceSupply = Database['public']['Tables']['service_supplies']['Row'];
-export type Portfolio = Database['public']['Tables']['portfolios']['Row'];
-export type MasterService = Database['public']['Tables']['master_services']['Row'];
-
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {
@@ -3678,11 +3876,18 @@ export const Constants = {
   },
 } as const
 
-export type BlockedSlot = Database['public']['Tables']['blocked_slots']['Row']
-export type BookingConsultation = Database['public']['Tables']['booking_consultations']['Row']
-export type Profile = Database['public']['Tables']['profiles']['Row']
-export type OwnerSupply = Database['public']['Tables']['owner_supplies']['Row']
-export type Appointment = Database['public']['Tables']['appointments']['Row']
-export type UserRole = Database['public']['Enums']['user_role']
-export type PhotoConsultation = Database['public']['Tables']['photo_consultations']['Row']
-export type LoyaltyReward = Database['public']['Tables']['loyalty_rewards']['Row']
+export type Service = Database['public']['Tables']['services']['Row'];
+export type UserRole = Database['public']['Enums']['user_role'];
+export type MasterSupply = Database['public']['Tables']['master_supplies']['Row'];
+export type ServiceSupply = Database['public']['Tables']['service_supplies']['Row'];
+export type OwnerSupply = Database['public']['Tables']['owner_supplies']['Row'];
+export type OwnerServiceSupply = Database['public']['Tables']['owner_service_supplies']['Row'];
+export type LessonQAMessage = Database['public']['Tables']['lesson_qa_messages']['Row'];
+export type Portfolio = Database['public']['Tables']['portfolios']['Row'];
+export type MasterService = Database['public']['Tables']['master_services']['Row'];
+export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type BookingConsultation = Database['public']['Tables']['booking_consultations']['Row'];
+export type PhotoConsultation = Database['public']['Tables']['photo_consultations']['Row'];
+export type LoyaltyReward = Database['public']['Tables']['loyalty_rewards']['Row'];
+export type BlockedSlot = Database['public']['Tables']['blocked_slots']['Row'];
+export type Appointment = Database['public']['Tables']['appointments']['Row'];

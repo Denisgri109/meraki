@@ -32,7 +32,7 @@ type BookingStackParamList = {
     ServiceDetail: { serviceId: string };
     MasterDetail: { masterId: string };
     SelectDateTime: { serviceId: string; masterId: string };
-    BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
+    BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
 };
 
 type MasterDetailScreenProps = {

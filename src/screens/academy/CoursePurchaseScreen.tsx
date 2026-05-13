@@ -3,7 +3,6 @@ import {
     View,
     StyleSheet,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
     Image,
     ScrollView,
@@ -12,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useConfirmPayment, CardField } from '../../utils/stripe';
+import { useModal } from '../../contexts/ModalContext';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ScreenBackground, Button, MerakiText, Card } from '../../components/ui';
@@ -46,6 +46,7 @@ export function CoursePurchaseScreen() {
     const { course } = route.params;
     const { user, profile } = useAuth();
     const { confirmPayment } = useConfirmPayment();
+    const { showAlert, showConfirm } = useModal();
 
     const [loading, setLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -93,17 +94,17 @@ export function CoursePurchaseScreen() {
 
     const handlePurchase = async () => {
         if (!user) {
-            Alert.alert('Error', 'Please log in to purchase course');
+            showAlert('Error', 'Please log in to purchase course', 'error');
             return;
         }
 
         if (!showNewCard && !selectedCardId) {
-            Alert.alert('Payment Required', 'Please select a payment method to continue.');
+            showAlert('Payment Required', 'Please select a payment method to continue.', 'error');
             return;
         }
 
         if (showNewCard && !newCardComplete) {
-            Alert.alert('Card Required', 'Please enter your card details to continue.');
+            showAlert('Card Required', 'Please enter your card details to continue.', 'error');
             return;
         }
 
@@ -161,17 +162,9 @@ export function CoursePurchaseScreen() {
 
             setIsSuccess(true);
 
-            Alert.alert(
-                '🎉 Success!',
-                'You have successfully enrolled in the course.',
-                [{ text: 'OK' }]
-            );
-
-            // Navigate immediately
-            navigation.navigate('Home');
-
+            showAlert('🎉 Success!', 'You have successfully enrolled in the course.', 'success', { onConfirm: () => navigation.navigate('Home') });
         } catch (error: any) {
-            Alert.alert('Purchase Failed', error.message || 'Something went wrong');
+            showAlert('Purchase Failed', error.message || 'Something went wrong', 'error');
         } finally {
             setLoading(false);
         }

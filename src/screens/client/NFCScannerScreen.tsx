@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,7 +13,7 @@ import { useModal } from '../../contexts/ModalContext';
 export function NFCScannerScreen() {
     const navigation = useNavigation();
     const { user } = useAuth();
-    const { showModal, hideModal } = useModal();
+    const { showModal, hideModal, showAlert } = useModal();
     const [hasNfc, setHasNfc] = useState<boolean | null>(null);
     const [scanning, setScanning] = useState(false);
 
@@ -57,7 +57,7 @@ export function NFCScannerScreen() {
 
     const processTag = async (tag: any) => {
         if (!tag.ndefMessage && !tag.id) {
-            Alert.alert('Error', 'Invalid Tag');
+            showAlert('Error', 'Invalid Tag', 'error');
             return;
         }
 
@@ -72,7 +72,7 @@ export function NFCScannerScreen() {
             // Fallback to ID if no NDEF, though our stamps use NDEF text records
             // This might need adjustment based on how tags are written. 
             // For now assume NDEF text record "stamp:master_id"
-            Alert.alert('Error', 'Empty or unsupported tag');
+            showAlert('Error', 'Empty or unsupported tag', 'error');
             return;
         }
 

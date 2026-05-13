@@ -72,7 +72,7 @@ export type HomeStackParamList = {
     DiscoverMasters: undefined;
     PhotoConsultationRequest: { masterId?: string } | undefined;
     SelectDateTime: { serviceId: string; masterId: string };
-    BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
+    BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
 };
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();

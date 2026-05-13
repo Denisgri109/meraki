@@ -14,9 +14,10 @@ import { RouteProp } from '@react-navigation/native';
 import { format, addDays, startOfDay, setHours, setMinutes, isBefore } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
+import { useAuth } from '../../contexts/AuthContext';
 import { Button, Card, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
-import { Service, Profile } from '../../types/database';
+import { Service, Profile, Tables } from '../../types/database';
 import { getDeviceTimezone, getTimezoneAbbreviation, COMMON_TIMEZONES } from '../../utils/timezone';
 import { useHideTabBar } from '../../hooks/useHideTabBar';
 
@@ -24,12 +25,19 @@ type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
     SelectDateTime: { serviceId: string; masterId: string };
-    BookingConfirm: { serviceId: string; masterId: string; dateTime: string };
+    BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
 };
 
 type SelectDateTimeScreenProps = {
     navigation: NativeStackNavigationProp<BookingStackParamList, 'SelectDateTime'>;
     route: RouteProp<BookingStackParamList, 'SelectDateTime'>;
+};
+
+type PilatesHost = Tables<'pilates_hosts'>;
+type PilatesBooking = Pick<Tables<'pilates_session_bookings'>, 'id' | 'status'>;
+type PilatesSession = Tables<'pilates_class_sessions'> & {
+    host: PilatesHost | null;
+    pilates_session_bookings: PilatesBooking[] | null;
 };
 
 // Generate next 14 days
@@ -55,6 +63,7 @@ const generateTimeSlots = () => {
 export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreenProps) {
     useHideTabBar();
     const { serviceId, masterId } = route.params;
+    const { user } = useAuth();
     const [service, setService] = useState<Service | null>(null);
     const [master, setMaster] = useState<Profile | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
@@ -64,6 +73,8 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
     const [isFetchingSlots, setIsFetchingSlots] = useState(false);
     const [masterAvailability, setMasterAvailability] = useState<any[]>([]);
     const [blockedSlots, setBlockedSlots] = useState<any[]>([]);
+    const [pilatesSessions, setPilatesSessions] = useState<PilatesSession[]>([]);
+    const [selectedPilatesSession, setSelectedPilatesSession] = useState<PilatesSession | null>(null);
 
     const dates = generateDates();
 
@@ -109,13 +120,13 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [serviceId, masterId, user?.id]);
 
     useEffect(() => {
-        if (master) {
+        if (master && service?.category !== 'Pilates') {
             fetchBookedSlots();
         }
-    }, [selectedDate, master]);
+    }, [selectedDate, master, service?.category]);
 
     const fetchData = async () => {
         try {
@@ -142,10 +153,42 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
             setMaster(masterRes.data as Profile);
             setMasterAvailability((availabilityRes.data as any[]) || []);
             setBlockedSlots((blockedRes.data as any[]) || []);
+
+            if ((serviceRes.data as Service)?.category === 'Pilates') {
+                await fetchPilatesSessions();
+            }
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchPilatesSessions = async () => {
+        try {
+            const startDate = new Date().toISOString().slice(0, 10);
+            const endDate = new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+            await supabase.rpc('ensure_pilates_sessions', {
+                p_service_id: serviceId,
+                p_start_date: startDate,
+                p_end_date: endDate,
+            });
+            const { data, error } = await supabase
+                .from('pilates_class_sessions')
+                .select('*, host:pilates_hosts(*), pilates_session_bookings(id, status)')
+                .eq('service_id', serviceId)
+                .gte('starts_at', new Date().toISOString())
+                .lt('starts_at', new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString())
+                .eq('status', 'scheduled')
+                .order('starts_at');
+
+            if (error) throw error;
+            setPilatesSessions(((data as unknown as PilatesSession[]) || []).filter((session) => {
+                const hostId = session.host?.profile_id || session.owner_id;
+                return hostId !== user?.id;
+            }));
+        } catch (error) {
+            console.error('Error fetching Pilates sessions:', error);
         }
     };
 
@@ -217,6 +260,21 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
     };
 
     const handleContinue = () => {
+        if (masterId === user?.id) return;
+
+        if (service?.category === 'Pilates') {
+            if (!selectedPilatesSession) return;
+            const hostId = selectedPilatesSession.host?.profile_id || selectedPilatesSession.owner_id;
+            if (hostId === user?.id) return;
+            navigation.navigate('BookingConfirm', {
+                serviceId,
+                masterId: selectedPilatesSession.host?.profile_id || selectedPilatesSession.owner_id,
+                dateTime: selectedPilatesSession.starts_at,
+                pilatesSessionId: selectedPilatesSession.id,
+            });
+            return;
+        }
+
         if (selectedTime) {
             if (!isSlotAvailable(selectedTime)) {
                 // Safety check: Don't allow continuing if slot is not available
@@ -233,6 +291,23 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
             });
         }
     };
+
+    const getBookedCount = (session: PilatesSession) => {
+        return session.pilates_session_bookings?.filter(item => item.status === 'booked').length || 0;
+    };
+
+    const getSpotsLeft = (session: PilatesSession) => {
+        return Math.max(0, session.capacity - getBookedCount(session));
+    };
+
+    const groupedPilatesSessions = pilatesSessions.reduce<Record<string, PilatesSession[]>>((acc, session) => {
+        const date = new Date(session.starts_at);
+        const key = date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+        acc[key] = [...(acc[key] || []), session];
+        return acc;
+    }, {});
+    const selectedPilatesHostId = selectedPilatesSession?.host?.profile_id || selectedPilatesSession?.owner_id;
+    const isSelfBooking = Boolean(user?.id && (service?.category === 'Pilates' ? selectedPilatesHostId === user.id : masterId === user.id));
 
     if (loading) {
         return (
@@ -259,7 +334,51 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                         <View style={{ width: 40 }} />
                     </View>
 
-                    {/* Date Selection */}
+                    {service?.category === 'Pilates' ? (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Choose a Pilates Class</Text>
+                            {pilatesSessions.length > 0 ? (
+                                Object.entries(groupedPilatesSessions).map(([dateLabel, sessions]) => (
+                                    <View key={dateLabel} style={styles.pilatesDayGroup}>
+                                        <Text style={styles.pilatesDayTitle}>{dateLabel}</Text>
+                                        {sessions.map(session => {
+                                            const spotsLeft = getSpotsLeft(session);
+                                            const isFull = spotsLeft <= 0;
+                                            const isSelected = selectedPilatesSession?.id === session.id;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={session.id}
+                                                    style={[
+                                                        styles.pilatesSessionCard,
+                                                        isSelected && styles.pilatesSessionSelected,
+                                                        isFull && styles.pilatesSessionFull,
+                                                    ]}
+                                                    disabled={isFull}
+                                                    onPress={() => setSelectedPilatesSession(session)}
+                                                >
+                                                    <View>
+                                                        <Text style={styles.pilatesSessionTime}>
+                                                            {new Date(session.starts_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </Text>
+                                                        <Text style={styles.pilatesSessionHost}>{session.host?.display_name || 'Pilates host'}</Text>
+                                                        <Text style={styles.pilatesSessionMeta}>{session.level} · {Math.round((new Date(session.ends_at).getTime() - new Date(session.starts_at).getTime()) / 60000)} min</Text>
+                                                    </View>
+                                                    <View style={[styles.spotsBadge, isFull && styles.spotsBadgeFull]}>
+                                                        <Text style={[styles.spotsBadgeText, isFull && styles.spotsBadgeTextFull]}>{isFull ? 'Full' : `${spotsLeft} left`}</Text>
+                                                    </View>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+                                ))
+                            ) : (
+                                <View style={styles.noSlotsContainer}>
+                                    <Text style={styles.noSlotsText}>No Pilates classes are available yet.</Text>
+                                </View>
+                            )}
+                        </View>
+                    ) : (
+                    <>
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Choose a Date</Text>
                         <ScrollView
@@ -374,19 +493,21 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                             </View>
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Specialist</Text>
-                                <Text style={styles.summaryValue}>{master.full_name}</Text>
+                                <Text style={styles.summaryValue}>{selectedPilatesSession?.host?.display_name || master.full_name}</Text>
                             </View>
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Date</Text>
-                                <Text style={styles.summaryValue}>{format(selectedDate, 'EEEE, MMMM d')}</Text>
+                                <Text style={styles.summaryValue}>{selectedPilatesSession ? format(new Date(selectedPilatesSession.starts_at), 'EEEE, MMMM d') : format(selectedDate, 'EEEE, MMMM d')}</Text>
                             </View>
-                            {selectedTime && (
+                            {(selectedTime || selectedPilatesSession) && (
                                 <View style={styles.summaryRow}>
                                     <Text style={styles.summaryLabel}>Time</Text>
-                                    <Text style={styles.summaryValue}>{format(selectedTime, 'HH:mm')}</Text>
+                                    <Text style={styles.summaryValue}>{selectedPilatesSession ? format(new Date(selectedPilatesSession.starts_at), 'HH:mm') : selectedTime ? format(selectedTime, 'HH:mm') : ''}</Text>
                                 </View>
                             )}
                         </Card>
+                    )}
+                    </>
                     )}
                 </ScrollView>
 
@@ -395,7 +516,7 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                     <Button
                         title="Continue"
                         onPress={handleContinue}
-                        disabled={!selectedTime || isFetchingSlots}
+                        disabled={isSelfBooking || (service?.category === 'Pilates' ? !selectedPilatesSession : !selectedTime || isFetchingSlots)}
                         fullWidth
                     />
                 </View>
@@ -539,6 +660,69 @@ const styles = StyleSheet.create({
     },
     timeSlotTextSelected: {
         color: '#FFFFFF',
+    },
+    pilatesDayGroup: {
+        marginBottom: spacing.lg,
+    },
+    pilatesDayTitle: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: colors.textSecondary,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: spacing.sm,
+    },
+    pilatesSessionCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: spacing.md,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: '#DDD6FE',
+        backgroundColor: '#F5F3FF',
+        marginBottom: spacing.sm,
+    },
+    pilatesSessionSelected: {
+        borderColor: '#10B981',
+        backgroundColor: '#ECFDF5',
+    },
+    pilatesSessionFull: {
+        opacity: 0.45,
+        backgroundColor: colors.surfaceLight,
+    },
+    pilatesSessionTime: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: colors.text,
+        marginBottom: 2,
+    },
+    pilatesSessionHost: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#6D28D9',
+        marginBottom: 2,
+    },
+    pilatesSessionMeta: {
+        fontSize: 12,
+        color: colors.textSecondary,
+    },
+    spotsBadge: {
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xs,
+        borderRadius: 999,
+        backgroundColor: '#D1FAE5',
+    },
+    spotsBadgeFull: {
+        backgroundColor: '#E5E7EB',
+    },
+    spotsBadgeText: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#047857',
+    },
+    spotsBadgeTextFull: {
+        color: colors.textMuted,
     },
     summaryCard: {
         margin: spacing.lg,

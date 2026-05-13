@@ -926,7 +926,7 @@ const styles = StyleSheet.create({
         borderColor: colors.primary,
     },
     categoryOptionText: { color: colors.textSecondary },
-    categoryOptionTextActive: { color: colors.text, fontWeight: '600' },
+    categoryOptionTextActive: { color: colors.textInvert, fontWeight: '600' },
     inputGroup: { gap: spacing.sm },
     inputLabel: { fontWeight: '600', color: colors.text },
     input: {

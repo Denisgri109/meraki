@@ -1167,7 +1167,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary, borderRadius: 8, minWidth: 16, height: 16,
         alignItems: 'center', justifyContent: 'center',
     },
-    badgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
+    badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700', textAlign: 'center', includeFontPadding: false, textAlignVertical: 'center', lineHeight: 12 },
 
     // Search
     searchBar: {
