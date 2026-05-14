@@ -223,18 +223,3 @@ CREATE TRIGGER update_master_applications_updated_at
 CREATE TRIGGER update_photo_consultations_updated_at
     BEFORE UPDATE ON photo_consultations
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- ============================================
--- 8. EDGE FUNCTION INVOKER POLICY
--- ============================================
-
--- Allow edge functions to access tables
-CREATE POLICY "Allow edge function access to master_applications"
-  ON master_applications FOR ALL
-  USING (true)
-  WITH CHECK (true);
-
-CREATE POLICY "Allow edge function access to photo_consultations"
-  ON photo_consultations FOR ALL
-  USING (true)
-  WITH CHECK (true);
