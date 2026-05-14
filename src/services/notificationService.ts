@@ -42,7 +42,6 @@ export function setupNotificationResponseListener(onTap: NotificationTapHandler)
 
     notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
         const data = response.notification.request.content.data as NotificationData;
-        console.log('Notification tapped:', data);
         onTap(data);
     });
 
