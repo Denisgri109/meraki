@@ -204,7 +204,14 @@ describe('fetchMasterCounts', () => {
         });
 
         // Resolve both Promise.all calls
-        profileChain.eq.mockResolvedValue({ count: 5, error: null });
+        // Note: the mock for `eq` needs to return another chained object if called repeatedly,
+        // or a promise. Since the first `eq` calls `.eq()` again, we need to handle that.
+        // But for mock flexibility, we can just make `.eq` return a mock chain that resolves.
+        profileChain.eq = jest.fn().mockImplementation(() => {
+            const chain = createChainMock();
+            chain.eq = jest.fn().mockResolvedValue({ count: 5, error: null });
+            return chain;
+        });
         pendingChain.eq.mockResolvedValue({ count: 3, error: null });
 
         const result = await fetchMasterCounts();
