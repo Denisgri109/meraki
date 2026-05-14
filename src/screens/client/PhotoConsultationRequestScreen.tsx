@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../../lib/supabase';
 import { Button, ScreenBackground } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
@@ -84,7 +86,7 @@ export function PhotoConsultationRequestScreen() {
 
                 for (const asset of result.assets) {
                     if (!asset.base64) continue;
-                    const fileName = `consultations/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+                    const fileName = `consultations/${Date.now()}_${uuidv4()}.jpg`;
 
                     const { data, error } = await supabase.storage
                         .from('consultation-photos')
