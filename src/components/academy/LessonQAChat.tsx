@@ -199,7 +199,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                         );
                     }
                 } catch (pushErr) {
-                    console.log('Push notification skipped:', pushErr);
+                    console.warn('Push notification skipped:', pushErr);
                 }
             }
 
@@ -221,7 +221,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                         );
                     }
                 } catch (pushErr) {
-                    console.log('Push notification skipped:', pushErr);
+                    console.warn('Push notification skipped:', pushErr);
                 }
             }
         } catch (err: any) {
@@ -632,7 +632,7 @@ async function sendPushNotification(
             }),
         });
     } catch (err) {
-        console.log('Push notification send error:', err);
+        console.warn('Push notification send error:', err);
     }
 }
 
