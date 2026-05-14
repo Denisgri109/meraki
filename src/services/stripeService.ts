@@ -55,7 +55,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
  */
 export async function createSetupIntent(userId: string, userEmail?: string, customerId?: string): Promise<SetupIntentResult> {
     if (SIMULATION_MODE) {
-        console.log('[Stripe Service] Simulation Mode: Creating Mock SetupIntent');
+        console.debug('[Stripe Service] Simulation Mode: Creating Mock SetupIntent');
         await delay(500);
         return {
             clientSecret: 'seti_mock_secret_' + Math.random().toString(36).substr(2, 9),
@@ -142,7 +142,7 @@ export async function deletePaymentMethod(paymentMethodId: string): Promise<bool
  */
 export async function createPaymentIntent(params: CreatePaymentIntentParams): Promise<PaymentIntentResult> {
     if (SIMULATION_MODE) {
-        console.log('[Stripe Service] Simulation Mode: Creating Mock PaymentIntent', params);
+        console.debug('[Stripe Service] Simulation Mode: Creating Mock PaymentIntent', params);
         await delay(1000);
         return {
             clientSecret: 'pi_mock_secret_' + Math.random().toString(36).substr(2, 9),
