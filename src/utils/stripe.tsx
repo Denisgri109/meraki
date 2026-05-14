@@ -67,7 +67,6 @@ const createMockHook = (hookName: string) => () => {
     // console.log(`[Stripe Mock] Using ${hookName}`);
     return {
         confirmPayment: async () => {
-            console.log('[Stripe Mock] Confirming payment...');
             // Wait a bit to simulate network request
             await new Promise(resolve => setTimeout(resolve, 1500));
             return {
@@ -79,7 +78,6 @@ const createMockHook = (hookName: string) => () => {
             };
         },
         confirmSetupIntent: async () => {
-            console.log('[Stripe Mock] Confirming setup intent...');
             await new Promise(resolve => setTimeout(resolve, 1000));
             return {
                 setupIntent: {
@@ -91,7 +89,6 @@ const createMockHook = (hookName: string) => () => {
         },
         initPaymentSheet: async () => ({ error: null }),
         presentPaymentSheet: async () => {
-            console.log('[Stripe Mock] Presenting payment sheet...');
             await new Promise(resolve => setTimeout(resolve, 1000));
             return { error: null };
         },
