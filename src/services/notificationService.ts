@@ -42,7 +42,6 @@ export function setupNotificationResponseListener(onTap: NotificationTapHandler)
 
     notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
         const data = response.notification.request.content.data as NotificationData;
-        console.log('Notification tapped:', data);
         onTap(data);
     });
 
@@ -66,7 +65,7 @@ export function setupForegroundNotificationListener(
 export async function registerForPushNotificationsAsync(userId: string) {
     // Push notifications don't work in Expo Go - silently skip
     if (isExpoGo) {
-        console.log('Push notifications are not available in Expo Go. Use a development build for full functionality.');
+        console.info('Push notifications are not available in Expo Go. Use a development build for full functionality.');
         return null;
     }
 
@@ -104,7 +103,7 @@ export async function registerForPushNotificationsAsync(userId: string) {
             finalStatus = status;
         }
         if (finalStatus !== 'granted') {
-            console.log('Push notification permission not granted');
+            console.warn('Push notification permission not granted');
             // Allow app to continue even if push is rejected
             return null;
         }
@@ -114,7 +113,7 @@ export async function registerForPushNotificationsAsync(userId: string) {
             const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
             if (!projectId) {
-                console.log('No projectId found');
+                console.warn('No projectId found');
                 return null;
             }
 
@@ -122,7 +121,6 @@ export async function registerForPushNotificationsAsync(userId: string) {
                 projectId,
             })).data;
 
-            console.log('Push Token:', token);
             // alert('Push Token generated: ' + token); // Uncomment for debugging
 
             // Save token to user profile
@@ -140,11 +138,11 @@ export async function registerForPushNotificationsAsync(userId: string) {
             }
 
         } catch (e: any) {
-            console.log('Push notifications error:', e);
+            console.error('Push notifications error:', e);
             return null;
         }
     } else {
-        console.log('Push notifications require a physical device');
+        console.warn('Push notifications require a physical device');
     }
 
     return token;
