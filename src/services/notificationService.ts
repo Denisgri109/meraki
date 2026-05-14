@@ -114,7 +114,7 @@ export async function registerForPushNotificationsAsync(userId: string) {
             const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
             if (!projectId) {
-                console.log('No projectId found');
+                console.warn('No projectId found');
                 return null;
             }
 
