@@ -35,10 +35,6 @@ CREATE POLICY "Masters can view their campaign notification history"
     )
   );
 
-CREATE POLICY "System can insert campaign notifications"
-  ON campaign_notifications_sent FOR INSERT
-  WITH CHECK (true); -- Edge function uses service role
-
 CREATE POLICY "Owners can view all campaign notifications"
   ON campaign_notifications_sent FOR ALL
   USING (
