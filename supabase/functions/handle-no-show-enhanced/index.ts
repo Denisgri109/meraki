@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Enhanced Handle No-Show Edge Function
 // This version checks if client confirmed attendance before charging the no-show fee
@@ -219,7 +220,65 @@ Deno.serve(async (req: Request) => {
 
         // Send no-show fee charged email
         if (appointment.profiles?.email) {
-            // TODO: Send email notification about no-show fee
+            const startDate = new Date(appointment.start_time);
+            const formattedDate = startDate.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+            const formattedTime = startDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+
+            // Use result.amount_received if available, fallback to calculated amount
+            const finalAmount = result.amount_received ? result.amount_received : amountToCapture;
+            const amountFormatted = (finalAmount / 100).toFixed(2);
+            const currencyCode = result.currency || paymentIntent.currency || "USD";
+            const currencyFormatted = currencyCode.toUpperCase();
+
+            const emailContent = {
+                to: appointment.profiles.email,
+                subject: "No-Show Fee Charged",
+                html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #dc3545;">No-Show Fee Charged</h2>
+
+                    <p>Hello ${appointment.profiles.full_name || "there"},</p>
+
+                    <p>We missed you at your confirmed appointment:</p>
+
+                    <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                      <p><strong>Date:</strong> ${formattedDate}</p>
+                      <p><strong>Time:</strong> ${formattedTime}</p>
+                    </div>
+
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                      <p style="margin: 0; color: #856404;">
+                        <strong>As per our cancellation policy, a no-show fee of ${amountFormatted} ${currencyFormatted} has been charged to your card.</strong>
+                      </p>
+                    </div>
+
+                    <p>If you believe this is an error or need to reschedule, please contact us.</p>
+
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+                    <p style="font-size: 12px; color: #999; text-align: center;">
+                      Meraki App
+                    </p>
+                  </div>
+                `,
+            };
+
+            try {
+                const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("PROJECT_URL") ?? "";
+                const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+
+                const supabaseClient = createClient(supabaseUrl, supabaseKey, {
+                    auth: {
+                        autoRefreshToken: false,
+                        persistSession: false,
+                    },
+                });
+
+                await supabaseClient.functions.invoke("send-email", {
+                    body: emailContent,
+                });
+            } catch (emailError) {
+                console.error("Failed to send no-show fee email:", emailError);
+            }
         }
 
         return new Response(
