@@ -204,8 +204,8 @@ describe('fetchMasterCounts', () => {
         });
 
         // Resolve both Promise.all calls
-        profileChain.eq.mockResolvedValue({ count: 5, error: null });
-        pendingChain.eq.mockResolvedValue({ count: 3, error: null });
+        profileChain.then = (resolve: any) => resolve({ count: 5, error: null });
+        pendingChain.then = (resolve: any) => resolve({ count: 3, error: null });
 
         const result = await fetchMasterCounts();
         expect(result.activeMasters).toBe(5);
