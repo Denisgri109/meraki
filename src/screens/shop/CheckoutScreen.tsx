@@ -178,7 +178,9 @@ export function CheckoutScreen() {
 
             if (error) throw new Error('Could not verify stock availability');
 
-            const productStockMap = new Map(products?.map((p: any) => [p.id, p.stock_count]));
+            const productStockMap = new Map<string, number>(
+                (products ?? []).map((p: any) => [p.id as string, (p.stock_count ?? 0) as number])
+            );
 
             for (const item of items) {
                 const stockCount = productStockMap.get(item.id);
