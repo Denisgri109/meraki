@@ -75,7 +75,7 @@ serve(async (req) => {
           .select(`
             *,
             client:client_id (full_name, email, stripe_customer_id),
-            master:master_id (full_name, email, stripe_connect_id),
+            master:master_id (full_name, email, stripe_connect_id, currency_code),
             service:service_id (name)
           `)
           .eq("id", appt.appointment_id)
@@ -91,7 +91,7 @@ serve(async (req) => {
           // Create a new payment intent for the no-show charge
           const paymentIntent = await stripe.paymentIntents.create({
             amount: Math.round(appt.no_show_charge_amount * 100), // Convert to cents
-            currency: "usd", // TODO: Get from master settings
+            currency: (appointment.master.currency_code || "usd").toLowerCase(),
             customer: appointment.client.stripe_customer_id,
             description: `Auto no-show fee for ${appointment.service.name} - Grace period expired`,
             metadata: {
