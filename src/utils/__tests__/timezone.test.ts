@@ -197,8 +197,10 @@ describe('formatCurrency', () => {
         expect(formatCurrency(50000, 'KRW')).toBe('₩50,000');
     });
 
-    it('formats negative amount correctly', () => {
+    it('formats negative amounts correctly', () => {
         expect(formatCurrency(-10.50, 'EUR')).toBe('€-10.50');
+        expect(formatCurrency(-25, 'USD')).toBe('$-25.00');
+        expect(formatCurrency(-1000, 'JPY')).toBe('¥-1,000');
     });
 
     it('defaults to EUR when no currency specified', () => {
