@@ -140,7 +140,7 @@ export async function registerForPushNotificationsAsync(userId: string) {
             }
 
         } catch (e: any) {
-            console.log('Push notifications error:', e);
+            console.error('Push notifications error:', e);
             return null;
         }
     } else {
