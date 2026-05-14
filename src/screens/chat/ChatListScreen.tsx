@@ -195,23 +195,30 @@ export function ChatListScreen() {
             let allConversations = convData || [];
 
             // Fetch other user details and last message for all conversations
-            // This part involves multiple requests, so we'll wrap the Promise.all logic carefully
+            // N+1 Optimization: Collect unique user IDs and fetch them in one query
+            const userIds = Array.from(new Set((allConversations as any[]).map(conv => isMaster ? conv.client_id : conv.master_id)));
+
+            let userMap: Record<string, any> = {};
+            if (userIds.length > 0) {
+                const { data: usersData, error: usersError } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, avatar_url')
+                    .in('id', userIds);
+
+                if (!usersError && usersData) {
+                    userMap = usersData.reduce((acc, user) => {
+                        acc[user.id] = { full_name: user.full_name, avatar_url: user.avatar_url };
+                        return acc;
+                    }, {} as Record<string, any>);
+                } else if (usersError) {
+                    console.error('Error fetching users batch:', usersError);
+                }
+            }
+
             const convWithUsers = await Promise.all(
                 (allConversations as any[]).map(async (conv: any) => {
                     const otherUserId = isMaster ? conv.client_id : conv.master_id;
-
-                    // These individual lookups are usually fast, but we should generic safe fetch them 
-                    // or just rely on the main timeout if we were fetching all at once.
-                    // For now, let's just do standard await to avoid overhead on every single small request,
-                    // relying on the implemented timeouts in the main requests to handle the bulk of issues.
-                    // However, if one of these hangs, the whole screen hangs.
-                    // Let's use a simple timeout for the whole batch if possible, or just keep individual.
-
-                    const { data: userData } = await supabase
-                        .from('profiles')
-                        .select('full_name, avatar_url')
-                        .eq('id', otherUserId)
-                        .single();
+                    const userData = userMap[otherUserId] || null;
 
                     // Fetch the last message for this conversation
                     const { data: lastMsgData } = await (supabase as any)
