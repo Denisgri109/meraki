@@ -121,8 +121,6 @@ export async function registerForPushNotificationsAsync(userId: string) {
                 projectId,
             })).data;
 
-            // alert('Push Token generated: ' + token); // Uncomment for debugging
-
             // Save token to user profile
             if (userId && token) {
                 const { error } = await supabase
@@ -132,8 +130,6 @@ export async function registerForPushNotificationsAsync(userId: string) {
 
                 if (error) {
                     console.error('Error saving push token:', error);
-                } else {
-                    // alert('Push notifications registered successfully!');
                 }
             }
 
