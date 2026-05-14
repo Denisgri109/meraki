@@ -204,7 +204,9 @@ describe('fetchMasterCounts', () => {
         });
 
         // Resolve both Promise.all calls
-        profileChain.eq.mockResolvedValue({ count: 5, error: null });
+        profileChain.eq.mockReturnValue({
+             eq: jest.fn().mockResolvedValue({ count: 5, error: null })
+        });
         pendingChain.eq.mockResolvedValue({ count: 3, error: null });
 
         const result = await fetchMasterCounts();
