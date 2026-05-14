@@ -169,18 +169,24 @@ export function CheckoutScreen() {
         setLoading(true);
 
         try {
-            // 1. Check stock availability for all items
+            // 1. Check stock availability for all items in a single query
+            const itemIds = items.map(item => item.id);
+            const { data: products, error } = await (supabase as any)
+                .from('products')
+                .select('id, stock_count')
+                .in('id', itemIds);
+
+            if (error) throw new Error('Could not verify stock availability');
+
+            const productStockMap = new Map(products?.map((p: any) => [p.id, p.stock_count]));
+
             for (const item of items) {
-                const { data: product, error } = await (supabase as any)
-                    .from('products')
-                    .select('stock_count')
-                    .eq('id', item.id)
-                    .single();
-
-                if (error) throw new Error(`Could not verify stock for ${item.name}`);
-
-                if (product.stock_count < item.quantity) {
-                    throw new Error(`Insufficient stock for ${item.name}. Only ${product.stock_count} available.`);
+                const stockCount = productStockMap.get(item.id);
+                if (stockCount === undefined) {
+                    throw new Error(`Could not verify stock for ${item.name}`);
+                }
+                if (stockCount < item.quantity) {
+                    throw new Error(`Insufficient stock for ${item.name}. Only ${stockCount} available.`);
                 }
             }
 
