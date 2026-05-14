@@ -178,6 +178,10 @@ describe('formatCurrency', () => {
         expect(formatCurrency(50000, 'KRW')).toBe('₩50,000');
     });
 
+    it('formats negative amount correctly', () => {
+        expect(formatCurrency(-10.50, 'EUR')).toBe('€-10.50');
+    });
+
     it('defaults to EUR when no currency specified', () => {
         expect(formatCurrency(10)).toBe('€10.00');
     });
