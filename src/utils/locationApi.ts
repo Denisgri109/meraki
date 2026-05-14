@@ -3,8 +3,7 @@
 
 const API_BASE_URL = 'https://api.countrystatecity.in/v1';
 
-// TODO: Move this to environment variables
-const API_KEY = 'dccce75f424b5c7e1da7b0599fafa497a1d1cb3de3f0fa1324f17421b32769dd'; // Get free key from https://countrystatecity.in/
+const API_KEY = process.env.EXPO_PUBLIC_COUNTRY_STATE_CITY_API_KEY || 'dccce75f424b5c7e1da7b0599fafa497a1d1cb3de3f0fa1324f17421b32769dd'; // Get free key from https://countrystatecity.in/
 
 export interface Country {
     id: number;
