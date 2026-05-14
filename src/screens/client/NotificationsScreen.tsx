@@ -139,10 +139,20 @@ export function NotificationsScreen() {
                         .order('created_at', { ascending: false }).limit(10);
                     const { data: messages } = await safeSupabaseFetch(messagesPromise, { timeout: 5000 });
 
-                    if (messages) {
+                    if (messages && (messages as any[]).length > 0) {
+                        const senderIds = Array.from(new Set((messages as any[]).map(m => m.sender_id)));
+                        const sendersPromise = supabase.from('profiles').select('id, full_name').in('id', senderIds);
+                        const { data: sendersData } = await safeSupabaseFetch(sendersPromise as any, { timeout: 3000 });
+
+                        const sendersMap = new Map();
+                        if (sendersData) {
+                            for (const sender of (sendersData as any[])) {
+                                sendersMap.set(sender.id, sender);
+                            }
+                        }
+
                         for (const msg of (messages as any[])) {
-                            const senderPromise = supabase.from('profiles').select('full_name').eq('id', msg.sender_id).single();
-                            const { data: sender } = await safeSupabaseFetch(senderPromise as any, { timeout: 3000 });
+                            const sender = sendersMap.get(msg.sender_id);
                             allNotifications.push({
                                 id: `msg-${msg.id}`,
                                 title: `Message from ${(sender as any)?.full_name || 'User'}`,
