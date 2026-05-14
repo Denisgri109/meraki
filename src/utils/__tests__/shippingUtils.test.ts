@@ -36,6 +36,23 @@ describe('getShippingCost', () => {
         expect(getShippingCost('')).toBe(0);
     });
 
+    it('returns 0 for lowercase country codes (ie)', () => {
+        expect(getShippingCost('ie')).toBe(0);
+    });
+
+    it('returns 0 for mixed case country codes (Gb)', () => {
+        expect(getShippingCost('Gb')).toBe(0);
+    });
+
+    it('returns 0 for non-string types passed at runtime', () => {
+        // @ts-ignore - testing runtime behavior
+        expect(getShippingCost(null)).toBe(0);
+        // @ts-ignore - testing runtime behavior
+        expect(getShippingCost(undefined)).toBe(0);
+        // @ts-ignore - testing runtime behavior
+        expect(getShippingCost(123)).toBe(0);
+    });
+
     it('returns a positive number for every European country', () => {
         EUROPEAN_COUNTRIES.forEach(country => {
             expect(getShippingCost(country.code)).toBeGreaterThan(0);
@@ -57,6 +74,27 @@ describe('getCountryName', () => {
 
     it('returns the code itself for unknown country', () => {
         expect(getCountryName('US')).toBe('US');
+    });
+
+    it('returns the code itself for lowercase country codes (ie)', () => {
+        expect(getCountryName('ie')).toBe('ie');
+    });
+
+    it('returns the code itself for mixed case country codes (De)', () => {
+        expect(getCountryName('De')).toBe('De');
+    });
+
+    it('returns the code itself for empty string', () => {
+        expect(getCountryName('')).toBe('');
+    });
+
+    it('handles non-string types passed at runtime gracefully', () => {
+        // @ts-ignore - testing runtime behavior
+        expect(getCountryName(null)).toBe(null);
+        // @ts-ignore - testing runtime behavior
+        expect(getCountryName(undefined)).toBe(undefined);
+        // @ts-ignore - testing runtime behavior
+        expect(getCountryName(123)).toBe(123);
     });
 });
 
