@@ -57,8 +57,6 @@ export function DeepLinkHandler({ children }: DeepLinkHandlerProps) {
 
     const processDeepLink = async (url: string) => {
         try {
-            console.log('Processing deep link:', url);
-
             // Parse the URL
             // Expected format: meraki://loyalty/stamp?master_id=XXX
             if (!url.includes('loyalty/stamp')) {
