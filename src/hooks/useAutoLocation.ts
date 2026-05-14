@@ -67,11 +67,11 @@ export function useAutoLocation() {
                                         updates.country_code = found.iso2;
                                     }
                                 } catch (e) {
-                                    console.log('Could not resolve country code:', e);
+                                    console.error('Could not resolve country code:', e);
                                 }
                             }
                         } catch (locErr) {
-                            console.log('Location detection error:', locErr);
+                            console.error('Location detection error:', locErr);
                         }
                     }
                 } else {
