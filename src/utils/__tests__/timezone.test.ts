@@ -142,6 +142,25 @@ describe('getDeviceTimezone', () => {
         expect(typeof tz).toBe('string');
         expect(tz.length).toBeGreaterThan(0);
     });
+
+    it('falls back to UTC if Intl.DateTimeFormat throws an error', () => {
+        // Save the original Intl.DateTimeFormat
+        const originalDateTimeFormat = Intl.DateTimeFormat;
+
+        try {
+            // Mock Intl.DateTimeFormat to throw an error
+            const mockDateTimeFormat = jest.fn().mockImplementation(() => {
+                throw new Error('Test error');
+            });
+            global.Intl.DateTimeFormat = mockDateTimeFormat as any;
+
+            const tz = getDeviceTimezone();
+            expect(tz).toBe('UTC');
+        } finally {
+            // Restore the original Intl.DateTimeFormat
+            global.Intl.DateTimeFormat = originalDateTimeFormat;
+        }
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
