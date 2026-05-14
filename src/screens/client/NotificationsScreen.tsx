@@ -244,10 +244,10 @@ export function NotificationsScreen() {
     const markAllAsRead = async () => {
         // Mark messages as read in DB
         const unreadMessages = notifications.filter(n => n.type === 'message' && !n.read);
-        for (const n of unreadMessages) {
+        if (unreadMessages.length > 0) {
             try {
-                const msgId = n.id.replace('msg-', '');
-                await (supabase as any).from('messages').update({ read_at: new Date().toISOString() }).eq('id', msgId);
+                const messageIds = unreadMessages.map(n => n.id.replace('msg-', ''));
+                await (supabase as any).from('messages').update({ read_at: new Date().toISOString() }).in('id', messageIds);
             } catch (e) { /* Ignore */ }
         }
 
