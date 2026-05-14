@@ -64,7 +64,6 @@ const MockCardField: React.FC<MockCardFieldProps> = ({ style, onCardChange, card
 
 // Mock hooks that return simulated success
 const createMockHook = (hookName: string) => () => {
-    // console.log(`[Stripe Mock] Using ${hookName}`);
     return {
         confirmPayment: async () => {
             console.log('[Stripe Mock] Confirming payment...');
