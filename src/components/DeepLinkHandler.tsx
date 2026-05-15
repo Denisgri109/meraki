@@ -57,7 +57,71 @@ export function DeepLinkHandler({ children }: DeepLinkHandlerProps) {
 
     const processDeepLink = async (url: string) => {
         try {
-            // Parse the URL
+            // ── Auth callback (email change confirm, etc.) ──────────────
+            // Format: meraki://auth-callback?code=...
+            //     or: meraki://auth-callback?token_hash=...&type=email_change
+            if (url.includes('auth-callback')) {
+                const u = new URL(url);
+                const code = u.searchParams.get('code');
+                const tokenHash = u.searchParams.get('token_hash');
+                const type = u.searchParams.get('type');
+
+                if (code) {
+                    const { error } = await supabase.auth.exchangeCodeForSession(code);
+                    if (error) {
+                        showModal({
+                            title: 'Confirmation failed',
+                            message: error.message || 'Could not confirm. Try again or request a new link.',
+                            confirmText: 'OK',
+                            hideCancel: true,
+                            type: 'error',
+                            onConfirm: hideModal,
+                        });
+                    } else {
+                        showModal({
+                            title: 'Confirmed',
+                            message: 'Your email change link has been confirmed. Both old and new email links must be opened to finish the change.',
+                            confirmText: 'OK',
+                            hideCancel: true,
+                            type: 'success',
+                            onConfirm: hideModal,
+                        });
+                    }
+                    return;
+                }
+
+                if (tokenHash && type) {
+                    const { error } = await supabase.auth.verifyOtp({
+                        type: type as any,
+                        token_hash: tokenHash,
+                    });
+                    if (error) {
+                        showModal({
+                            title: 'Confirmation failed',
+                            message: error.message || 'Could not confirm. Try again or request a new link.',
+                            confirmText: 'OK',
+                            hideCancel: true,
+                            type: 'error',
+                            onConfirm: hideModal,
+                        });
+                    } else {
+                        showModal({
+                            title: 'Confirmed',
+                            message: 'Email confirmation processed successfully.',
+                            confirmText: 'OK',
+                            hideCancel: true,
+                            type: 'success',
+                            onConfirm: hideModal,
+                        });
+                    }
+                    return;
+                }
+
+                console.warn('auth-callback deep link missing code/token_hash');
+                return;
+            }
+
+            // ── Loyalty stamp scan ──────────────────────────────────────
             // Expected format: meraki://loyalty/stamp?master_id=XXX
             if (!url.includes('loyalty/stamp')) {
                 return; // Not a stamp deep link

@@ -121,6 +121,20 @@ export function ProfileScreen() {
     const [sendingOtp, setSendingOtp] = useState(false);
     const [otpSent, setOtpSent] = useState(false);
 
+    // Change Email (deep link callback handles confirmation)
+    const [emailModalVisible, setEmailModalVisible] = useState(false);
+    const [newEmailValue, setNewEmailValue] = useState('');
+    const [updatingEmail, setUpdatingEmail] = useState(false);
+
+    // Delete Account (phrase + email OTP)
+    const DELETE_PHRASE = 'DELETE MY ACCOUNT';
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [deletePhraseInput, setDeletePhraseInput] = useState('');
+    const [deleteOtpCode, setDeleteOtpCode] = useState('');
+    const [deleteOtpSent, setDeleteOtpSent] = useState(false);
+    const [sendingDeleteOtp, setSendingDeleteOtp] = useState(false);
+    const [deletingAccount, setDeletingAccount] = useState(false);
+
     // Location API data
     const [countries, setCountries] = useState<Country[]>([]);
     const [loadingCountries, setLoadingCountries] = useState(false);
@@ -282,6 +296,106 @@ export function ProfileScreen() {
             showAlert('Error', err.message || 'Failed to reset password.', 'error');
         } finally {
             setChangingPassword(false);
+        }
+    };
+
+    const handleOpenEmailModal = () => {
+        setNewEmailValue('');
+        setEmailModalVisible(true);
+    };
+
+    const handleChangeEmail = async () => {
+        const trimmed = newEmailValue.trim().toLowerCase();
+        if (!trimmed || !trimmed.includes('@')) {
+            showAlert('Invalid email', 'Please enter a valid email address.', 'error');
+            return;
+        }
+        if (profile?.email && trimmed === profile.email.toLowerCase()) {
+            showAlert('Already your email', 'That is already your current email.', 'error');
+            return;
+        }
+        setUpdatingEmail(true);
+        try {
+            // Deep link callback handled by DeepLinkHandler — both confirmation
+            // links open the app via meraki://auth-callback?...
+            const { error } = await supabase.auth.updateUser(
+                { email: trimmed },
+                { emailRedirectTo: 'meraki://auth-callback' }
+            );
+            if (error) throw error;
+            setEmailModalVisible(false);
+            showAlert(
+                'Confirmation sent',
+                'Open BOTH email links (old + new) on this device to finish the change. Tapping each link opens Merakí and confirms automatically.',
+                'success'
+            );
+        } catch (err: any) {
+            showAlert('Error', err?.message || 'Failed to update email.', 'error');
+        } finally {
+            setUpdatingEmail(false);
+        }
+    };
+
+    const handleOpenDeleteModal = () => {
+        setDeletePhraseInput('');
+        setDeleteOtpCode('');
+        setDeleteOtpSent(false);
+        setDeleteModalVisible(true);
+    };
+
+    const handleSendDeleteOtp = async () => {
+        const email = profile?.email;
+        if (!email) {
+            showAlert('Error', 'No email on profile — contact support.', 'error');
+            return;
+        }
+        if (deletePhraseInput !== DELETE_PHRASE) {
+            showAlert('Phrase mismatch', `Type the phrase exactly: ${DELETE_PHRASE}`, 'error');
+            return;
+        }
+        setSendingDeleteOtp(true);
+        try {
+            const { error } = await supabase.auth.signInWithOtp({
+                email,
+                options: { shouldCreateUser: false },
+            });
+            if (error) throw error;
+            setDeleteOtpSent(true);
+            showAlert('Code sent', 'A 6-digit code was emailed to you.', 'success');
+        } catch (err: any) {
+            showAlert('Error', err?.message || 'Failed to send code.', 'error');
+        } finally {
+            setSendingDeleteOtp(false);
+        }
+    };
+
+    const handleConfirmDeleteAccount = async () => {
+        if (deletePhraseInput !== DELETE_PHRASE) {
+            showAlert('Phrase mismatch', `Type the phrase exactly: ${DELETE_PHRASE}`, 'error');
+            return;
+        }
+        if (!/^\d{6}$/.test(deleteOtpCode.trim())) {
+            showAlert('Invalid code', 'Enter the 6-digit code from your email.', 'error');
+            return;
+        }
+        setDeletingAccount(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('delete-account', {
+                body: { otp: deleteOtpCode.trim(), phrase: deletePhraseInput },
+            });
+            const errorMessage =
+                (error && (error as any).message) ||
+                (data && (data as any).error) ||
+                (typeof data === 'string' ? data : null);
+            if (errorMessage) throw new Error(errorMessage);
+            if (!data?.success) throw new Error('Unexpected response from server');
+
+            setDeleteModalVisible(false);
+            showAlert('Account deleted', 'Your account has been permanently deleted.', 'success');
+            await signOut();
+        } catch (err: any) {
+            showAlert('Error', err?.message || 'Failed to delete account.', 'error');
+            setDeletingAccount(false);
         }
     };
 
@@ -455,7 +569,10 @@ export function ProfileScreen() {
                 <View style={styles.readOnlyContainer}>
                     <MerakiText style={styles.readOnlyField}>{profile?.email}</MerakiText>
                 </View>
-                <MerakiText style={styles.hintText}>Email cannot be changed</MerakiText>
+                <TouchableOpacity onPress={handleOpenEmailModal} style={emailStyles.changeEmailLink}>
+                    <MaterialIcons name="alternate-email" size={14} color={colors.primary} />
+                    <MerakiText style={emailStyles.changeEmailText}>Change Email</MerakiText>
+                </TouchableOpacity>
             </View>
 
             <View style={styles.inputGroup}>
@@ -904,6 +1021,16 @@ export function ProfileScreen() {
                         <MerakiText style={styles.signOutText}>Sign Out</MerakiText>
                     </TouchableOpacity>
 
+                    {/* Danger Zone — Delete Account */}
+                    <TouchableOpacity
+                        style={emailStyles.dangerButton}
+                        onPress={handleOpenDeleteModal}
+                        activeOpacity={0.8}
+                    >
+                        <MaterialIcons name="warning" size={16} color={colors.error} />
+                        <MerakiText style={emailStyles.dangerButtonText}>Delete Account</MerakiText>
+                    </TouchableOpacity>
+
                     {/* App Version */}
                     <MerakiText style={styles.version}>Merakí v0.1.0-Luxe</MerakiText>
                 </ScrollView>
@@ -1211,6 +1338,172 @@ export function ProfileScreen() {
                                     </TouchableOpacity>
                                 </View>
                             </LinearGradient>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* ── Change Email Modal ─────────────────────────────────── */}
+                <Modal
+                    visible={emailModalVisible}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => !updatingEmail && setEmailModalVisible(false)}
+                    statusBarTranslucent
+                >
+                    <View style={emailStyles.overlay}>
+                        <TouchableOpacity
+                            style={StyleSheet.absoluteFill}
+                            activeOpacity={1}
+                            onPress={() => !updatingEmail && setEmailModalVisible(false)}
+                        />
+                        <View style={emailStyles.modalCard}>
+                            <View style={emailStyles.modalHeader}>
+                                <View style={emailStyles.iconCircle}>
+                                    <MaterialIcons name="alternate-email" size={24} color={colors.primary} />
+                                </View>
+                                <MerakiText variant="h2" style={emailStyles.modalTitle}>Change Email</MerakiText>
+                                <MerakiText style={emailStyles.modalSubtitle}>
+                                    Enter your new email. You will receive confirmation links at BOTH your old and new addresses — open both to finish the change.
+                                </MerakiText>
+                            </View>
+
+                            <View style={emailStyles.fieldGroup}>
+                                <MerakiText style={emailStyles.fieldLabel}>Current Email</MerakiText>
+                                <View style={emailStyles.readonlyRow}>
+                                    <MerakiText style={emailStyles.readonlyText}>{profile?.email}</MerakiText>
+                                </View>
+                            </View>
+
+                            <View style={emailStyles.fieldGroup}>
+                                <MerakiText style={emailStyles.fieldLabel}>New Email</MerakiText>
+                                <View style={emailStyles.inputRow}>
+                                    <TextInput
+                                        style={emailStyles.input}
+                                        value={newEmailValue}
+                                        onChangeText={setNewEmailValue}
+                                        placeholder="name@example.com"
+                                        placeholderTextColor={colors.textMuted}
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                        autoComplete="email"
+                                        editable={!updatingEmail}
+                                    />
+                                </View>
+                            </View>
+
+                            <Button
+                                title={updatingEmail ? 'Sending…' : 'Send Confirmation Links'}
+                                onPress={handleChangeEmail}
+                                loading={updatingEmail}
+                                fullWidth
+                                style={{ marginTop: spacing.sm }}
+                            />
+
+                            <TouchableOpacity
+                                style={emailStyles.modalCancel}
+                                onPress={() => !updatingEmail && setEmailModalVisible(false)}
+                                disabled={updatingEmail}
+                            >
+                                <MerakiText style={emailStyles.modalCancelText}>Cancel</MerakiText>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* ── Delete Account Modal ───────────────────────────────── */}
+                <Modal
+                    visible={deleteModalVisible}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => !deletingAccount && setDeleteModalVisible(false)}
+                    statusBarTranslucent
+                >
+                    <View style={emailStyles.overlay}>
+                        <TouchableOpacity
+                            style={StyleSheet.absoluteFill}
+                            activeOpacity={1}
+                            onPress={() => !deletingAccount && setDeleteModalVisible(false)}
+                        />
+                        <View style={emailStyles.modalCard}>
+                            <View style={emailStyles.modalHeader}>
+                                <View style={[emailStyles.iconCircle, { backgroundColor: 'rgba(239,68,68,0.12)' }]}>
+                                    <MaterialIcons name="warning" size={24} color={colors.error} />
+                                </View>
+                                <MerakiText variant="h2" style={[emailStyles.modalTitle, { color: colors.error }]}>
+                                    Delete Account
+                                </MerakiText>
+                                <MerakiText style={emailStyles.modalSubtitle}>
+                                    This is permanent. All bookings, services, messages, and personal data tied to {profile?.email} will be erased.
+                                </MerakiText>
+                            </View>
+
+                            <View style={emailStyles.fieldGroup}>
+                                <MerakiText style={emailStyles.fieldLabel}>
+                                    Type{' '}
+                                    <MerakiText style={{ color: colors.error, fontWeight: '700' }}>
+                                        {DELETE_PHRASE}
+                                    </MerakiText>{' '}
+                                    to confirm
+                                </MerakiText>
+                                <View style={emailStyles.inputRow}>
+                                    <TextInput
+                                        style={emailStyles.input}
+                                        value={deletePhraseInput}
+                                        onChangeText={setDeletePhraseInput}
+                                        placeholder={DELETE_PHRASE}
+                                        placeholderTextColor={colors.textMuted}
+                                        autoCapitalize="characters"
+                                        autoCorrect={false}
+                                        editable={!deletingAccount}
+                                    />
+                                </View>
+                            </View>
+
+                            {deleteOtpSent && (
+                                <View style={emailStyles.fieldGroup}>
+                                    <MerakiText style={emailStyles.fieldLabel}>6-digit code from email</MerakiText>
+                                    <View style={emailStyles.inputRow}>
+                                        <TextInput
+                                            style={[emailStyles.input, { letterSpacing: 6, textAlign: 'center', fontSize: 18 }]}
+                                            value={deleteOtpCode}
+                                            onChangeText={(t) => setDeleteOtpCode(t.replace(/\D/g, '').slice(0, 6))}
+                                            placeholder="000000"
+                                            placeholderTextColor={colors.textMuted}
+                                            keyboardType="numeric"
+                                            maxLength={6}
+                                            editable={!deletingAccount}
+                                        />
+                                    </View>
+                                </View>
+                            )}
+
+                            {!deleteOtpSent ? (
+                                <Button
+                                    title={sendingDeleteOtp ? 'Sending code…' : 'Send 6-digit code to my email'}
+                                    onPress={handleSendDeleteOtp}
+                                    loading={sendingDeleteOtp}
+                                    disabled={deletePhraseInput !== DELETE_PHRASE}
+                                    fullWidth
+                                    style={{ marginTop: spacing.sm, backgroundColor: colors.error }}
+                                />
+                            ) : (
+                                <Button
+                                    title={deletingAccount ? 'Deleting…' : 'Permanently delete my account'}
+                                    onPress={handleConfirmDeleteAccount}
+                                    loading={deletingAccount}
+                                    disabled={deletePhraseInput !== DELETE_PHRASE || deleteOtpCode.length !== 6}
+                                    fullWidth
+                                    style={{ marginTop: spacing.sm, backgroundColor: colors.error }}
+                                />
+                            )}
+
+                            <TouchableOpacity
+                                style={emailStyles.modalCancel}
+                                onPress={() => !deletingAccount && setDeleteModalVisible(false)}
+                                disabled={deletingAccount}
+                            >
+                                <MerakiText style={emailStyles.modalCancelText}>Cancel</MerakiText>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </Modal>
@@ -1619,6 +1912,124 @@ const cpStyles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
         color: colors.textSecondary,
+    },
+});
+
+// ─── Email Change + Delete Account Modal Styles ────────────────────
+const emailStyles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: spacing.lg,
+    },
+    modalCard: {
+        width: '100%',
+        maxWidth: 380,
+        backgroundColor: colors.surface,
+        borderRadius: 20,
+        padding: spacing.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    modalHeader: {
+        alignItems: 'center',
+        marginBottom: spacing.lg,
+    },
+    iconCircle: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: 'rgba(212, 168, 83, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing.md,
+    },
+    modalTitle: {
+        color: colors.text,
+        marginBottom: spacing.xs,
+        textAlign: 'center',
+    },
+    modalSubtitle: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 18,
+    },
+    fieldGroup: {
+        marginBottom: spacing.md,
+    },
+    fieldLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: colors.textSecondary,
+        marginBottom: spacing.xs,
+        letterSpacing: 0.3,
+    },
+    inputRow: {
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingHorizontal: spacing.md,
+    },
+    input: {
+        height: 48,
+        fontSize: 15,
+        color: colors.text,
+    },
+    readonlyRow: {
+        backgroundColor: 'rgba(0, 0, 0, 0.06)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.md,
+    },
+    readonlyText: {
+        fontSize: 15,
+        color: colors.textSecondary,
+    },
+    modalCancel: {
+        marginTop: spacing.md,
+        paddingVertical: spacing.sm,
+        alignItems: 'center',
+    },
+    modalCancelText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.textSecondary,
+    },
+    changeEmailLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 8,
+        alignSelf: 'flex-start',
+    },
+    changeEmailText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: colors.primary,
+    },
+    dangerButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: spacing.md,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(239, 68, 68, 0.35)',
+        backgroundColor: 'rgba(239, 68, 68, 0.04)',
+        marginBottom: spacing.lg,
+    },
+    dangerButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.error,
+        letterSpacing: 0.3,
     },
 });
 
