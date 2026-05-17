@@ -1456,6 +1456,8 @@ export type Database = {
           created_at: string | null
           custom_duration: number | null
           custom_price: number | null
+          deposit_override_type: string | null
+          deposit_override_value: number | null
           id: string
           is_available: boolean | null
           master_id: string
@@ -1466,6 +1468,8 @@ export type Database = {
           created_at?: string | null
           custom_duration?: number | null
           custom_price?: number | null
+          deposit_override_type?: string | null
+          deposit_override_value?: number | null
           id?: string
           is_available?: boolean | null
           master_id: string
@@ -1476,6 +1480,8 @@ export type Database = {
           created_at?: string | null
           custom_duration?: number | null
           custom_price?: number | null
+          deposit_override_type?: string | null
+          deposit_override_value?: number | null
           id?: string
           is_available?: boolean | null
           master_id?: string
