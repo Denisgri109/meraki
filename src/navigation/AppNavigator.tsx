@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { NotificationProvider, useNotifications } from '../contexts/NotificationContext';
 import { DeepLinkHandler } from '../components/DeepLinkHandler';
 import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt';
+import { TestPanel } from '../components/TestPanel';
 import { AuthStack } from './AuthStack';
 import { ClientTabs } from './ClientTabs';
 import { MasterTabs } from './MasterTabs';
@@ -185,6 +186,9 @@ export function AppNavigator() {
                     onDismiss={dismissCityModal}
                 />
             )}
+
+            {/* QA Test Panel - only renders for whitelisted test accounts */}
+            {session && <TestPanel />}
         </>
     );
 }
