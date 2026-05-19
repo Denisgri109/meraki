@@ -9,7 +9,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") || "https://meraki-app.example.com",
     "Access-Control-Allow-Methods": "POST",
     "Access-Control-Allow-Headers": "authorization, content-type",
 };
