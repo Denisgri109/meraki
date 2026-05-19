@@ -1,11 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
 interface Product {
     id: string;
     name: string;
@@ -19,6 +14,19 @@ interface AdminProfile {
 }
 
 Deno.serve(async (req: Request) => {
+    // Dynamic CORS implementation
+    const origin = req.headers.get("origin") || "";
+    const allowedOriginsStr = Deno.env.get("ALLOWED_ORIGINS") || "";
+    const allowedOrigins = allowedOriginsStr.split(",").map(o => o.trim()).filter(Boolean);
+
+    const corsHeaders: Record<string, string> = {
+        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    };
+
+    if (allowedOrigins.includes(origin)) {
+        corsHeaders["Access-Control-Allow-Origin"] = origin;
+    }
+
     // Handle CORS preflight
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });
