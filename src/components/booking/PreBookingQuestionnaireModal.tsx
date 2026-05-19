@@ -160,9 +160,10 @@ export function PreBookingQuestionnaireModal({
 
             resetForm();
             onSubmit(data.id);
-        } catch (error: any) {
-            console.error('Error submitting consultation:', error);
-            showAlert('Error', error.message || 'Failed to submit consultation request', 'error');
+        } catch (error) {
+            const err = error as Error;
+            console.error('Error submitting consultation:', err);
+            showAlert('Error', err.message || 'Failed to submit consultation request', 'error');
         } finally {
             setLoading(false);
         }
