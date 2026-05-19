@@ -73,6 +73,8 @@ type ProfileStackParamList = {
     LoyaltyPoints: undefined;
     PaymentMethods: undefined;
     Notifications: undefined;
+    Menu: undefined;
+    MenuMain: undefined;
 };
 
 export function ProfileScreen() {
@@ -943,10 +945,8 @@ export function ProfileScreen() {
                                     // Or just let the user use the bottom tabs.
                                     // But to be safe vs "not handled" crash:
                                     if (profile?.role === 'client') {
-                                        // @ts-ignore
                                         navigation.navigate('Menu');
                                     } else {
-                                        // @ts-ignore
                                         navigation.navigate('MenuMain');
                                     }
                                 }
