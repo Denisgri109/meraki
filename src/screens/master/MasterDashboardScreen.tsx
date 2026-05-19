@@ -179,10 +179,32 @@ export function MasterDashboardScreen() {
                 for (const msg of ((messages as any[]) || [])) { if (!latestBySender.has(msg.sender_id)) latestBySender.set(msg.sender_id, msg); }
                 unreadCount = latestBySender.size;
                 const uniqueMessages = Array.from(latestBySender.values()).slice(0, 3);
-                recentMsgs = await Promise.all(uniqueMessages.map(async (msg: any) => {
-                    const { data: sender } = await safeSupabaseFetch(supabase.from('profiles').select('full_name').eq('id', msg.sender_id).single() as any);
-                    return { id: msg.id, content: msg.content, media_type: msg.media_type, created_at: msg.created_at, sender_name: (sender as any)?.full_name || 'Client', conversation_id: msg.conversation_id };
-                }));
+
+                const senderIds = [...new Set(uniqueMessages.map((msg: any) => msg.sender_id))];
+                const senderMap = new Map<string, string>();
+
+                if (senderIds.length > 0) {
+                    const { data: senders } = await safeSupabaseFetch(
+                        supabase.from('profiles').select('id, full_name').in('id', senderIds) as any
+                    );
+                    if (senders) {
+                        (senders as any[]).forEach(sender => {
+                            senderMap.set(sender.id, sender.full_name);
+                        });
+                    }
+                }
+
+                recentMsgs = uniqueMessages.map((msg: any) => {
+                    const senderName = senderMap.get(msg.sender_id) || 'Client';
+                    return {
+                        id: msg.id,
+                        content: msg.content,
+                        media_type: msg.media_type,
+                        created_at: msg.created_at,
+                        sender_name: senderName,
+                        conversation_id: msg.conversation_id
+                    };
+                });
             }
             const todayEarnings = ((todayData as any[]) || []).filter(apt => apt.status === 'completed').reduce((sum, apt) => sum + (apt.price || 0), 0);
             setAppointments((allAppointmentsData as unknown as Appointment[]) || []);
