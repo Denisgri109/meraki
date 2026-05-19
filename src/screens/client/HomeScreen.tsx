@@ -152,25 +152,31 @@ export function ClientHomeScreen() {
         const effectiveLng = loc?.lng ?? userLng;
 
         try {
-            const profilePromise = (supabase as any).from('profiles').select('loyalty_points').eq('id', user.id).single();
-            const { data: profileData } = await safeSupabaseFetch(profilePromise, { timeout: 5000, errorMessage: 'Failed to load loyalty data' });
-            if (profileData) setLoyaltyPoints((profileData as any).loyalty_points || 0);
-
             const now = new Date().toISOString();
+            const profilePromise = (supabase as any).from('profiles').select('loyalty_points').eq('id', user.id).single();
             const appointmentsPromise = (supabase as any)
                 .from('appointments')
                 .select(`id, start_time, end_time, status, service_name, service:services (name, duration_minutes, base_price), master:profiles!appointments_master_id_fkey (full_name)`)
                 .eq('client_id', user.id).in('status', ['confirmed', 'pending']).gte('start_time', now).order('start_time', { ascending: true }).limit(5);
-            const { data: appointments } = await safeSupabaseFetch(appointmentsPromise, { timeout: 8000 });
+            const visitsPromise = (supabase as any).from('appointments').select('*', { count: 'exact', head: true }).eq('client_id', user.id).eq('status', 'completed');
+            const ordersPromise = (supabase as any).from('orders').select('id, total, status, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3);
+
+            const [
+                { data: profileData },
+                { data: appointments },
+                { count: visitCount },
+                { data: orders }
+            ] = await Promise.all([
+                safeSupabaseFetch(profilePromise, { timeout: 5000, errorMessage: 'Failed to load loyalty data' }),
+                safeSupabaseFetch(appointmentsPromise, { timeout: 8000 }),
+                visitsPromise,
+                safeSupabaseFetch(ordersPromise, { timeout: 5000 })
+            ]);
+
+            if (profileData) setLoyaltyPoints((profileData as any).loyalty_points || 0);
             setUpcomingAppointments((appointments as any) || []);
             setNextAppointment((appointments as any)?.[0] || null);
-
-            const visitsPromise = (supabase as any).from('appointments').select('*', { count: 'exact', head: true }).eq('client_id', user.id).eq('status', 'completed');
-            const { count: visitCount } = await visitsPromise;
             setTotalVisits(visitCount || 0);
-
-            const ordersPromise = (supabase as any).from('orders').select('id, total, status, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3);
-            const { data: orders } = await safeSupabaseFetch(ordersPromise, { timeout: 5000 });
             setRecentOrders((orders as any) || []);
 
             // Fetch featured masters with their lat/lng for distance filtering
