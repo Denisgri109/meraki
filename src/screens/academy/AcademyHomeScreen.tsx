@@ -135,18 +135,42 @@ export function AcademyHomeScreen() {
 
             if (error) throw error;
 
+            const coursesData = data || [];
+
+            // Extract all course IDs for a single query
+            const courseIds = coursesData.map((c: Course) => c.id);
+
+            let allLessons: any[] = [];
+            if (courseIds.length > 0) {
+                // Fetch all lessons for all displayed courses in one query
+                const { data: lessonsData, error: lessonsError } = await (supabase as any)
+                    .from('lessons')
+                    .select('id, course_id, duration_minutes, video_url')
+                    .in('course_id', courseIds);
+
+                if (!lessonsError && lessonsData) {
+                    allLessons = lessonsData;
+                }
+            }
+
+            // Group lessons by course_id for fast lookup
+            const lessonsByCourse = allLessons.reduce((acc, lesson) => {
+                if (!acc[lesson.course_id]) {
+                    acc[lesson.course_id] = [];
+                }
+                acc[lesson.course_id].push(lesson);
+                return acc;
+            }, {} as Record<string, any[]>);
+
             const enrichedCourses = await Promise.all(
-                (data || []).map(async (course: Course) => {
-                    // Fetch lessons with video_url so we can probe real durations
-                    const { data: lessonData, count } = await (supabase as any)
-                        .from('lessons')
-                        .select('id, duration_minutes, video_url', { count: 'exact' })
-                        .eq('course_id', course.id);
+                coursesData.map(async (course: Course) => {
+                    const courseLessons = lessonsByCourse[course.id] || [];
+                    const count = courseLessons.length;
 
                     // Probe real video durations for direct uploads
                     let totalSeconds = 0;
                     await Promise.all(
-                        (lessonData || []).map(async (lesson: any) => {
+                        courseLessons.map(async (lesson: any) => {
                             if (lesson.video_url && !isStreamingUrl(lesson.video_url)) {
                                 const realDuration = await probeVideoDuration(lesson.video_url);
                                 if (realDuration !== null) {
@@ -169,7 +193,7 @@ export function AcademyHomeScreen() {
 
                     return {
                         ...course,
-                        lesson_count: count || 0,
+                        lesson_count: count,
                         rating: parseFloat(getRandomRating()),
                         duration: formatTotalDuration(totalSeconds),
                         instructor: {
