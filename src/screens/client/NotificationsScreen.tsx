@@ -181,9 +181,7 @@ export function NotificationsScreen() {
 
                 if (appointments) {
                     for (const apt of (appointments as any[])) {
-                        const aptService = apt.service as any;
-                        const aptClient = apt.client as any;
-                        const aptMaster = apt.master as any;
+                        const { service: aptService, client: aptClient, master: aptMaster } = apt as any;
                         let title = '', body = '';
 
                         if (isMaster) {
