@@ -1,8 +1,39 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+
+// Define allowed origins for CORS
+const allowedOrigins = [
+  "https://meraki.app",
+  "https://www.meraki.app",
+  "http://localhost:3000",
+  "http://localhost:8081",
+  "exp://localhost:8081" // Expo development
+];
+
+// Get trusted origins from environment or use defaults
+const getTrustedOrigins = () => {
+  const envOrigins = Deno.env.get("ALLOWED_ORIGINS");
+  if (envOrigins) {
+    return envOrigins.split(",").map(o => o.trim());
+  }
+  return allowedOrigins;
+};
+
+// Function to generate CORS headers based on the request origin
+const getCorsHeaders = (req: Request) => {
+  const origin = req.headers.get("Origin") || "";
+  const trustedOrigins = getTrustedOrigins();
+
+  // Check if the origin is in the trusted list, otherwise fallback to the first trusted origin
+  // (In production, you might want to return no CORS headers or a strict default if origin is unknown)
+  const isTrusted = trustedOrigins.includes(origin);
+  const allowOrigin = isTrusted ? origin : trustedOrigins[0];
+
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
 };
 
 // Using Resend for email delivery (recommended for Supabase)
@@ -12,7 +43,7 @@ const FROM_EMAIL = Deno.env.get("FROM_EMAIL") || "noreply@meraki.app";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -24,7 +55,7 @@ serve(async (req) => {
           error: "Missing required fields: to, subject, and html or text",
         }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           status: 400,
         }
       );
@@ -51,7 +82,7 @@ serve(async (req) => {
             subject,
           }),
           {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
             status: 200,
           }
         );
@@ -62,7 +93,7 @@ serve(async (req) => {
           error: "Email service not configured. Please set RESEND_API_KEY environment variable.",
         }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           status: 500,
         }
       );
@@ -99,7 +130,7 @@ serve(async (req) => {
         subject,
       }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         status: 200,
       }
     );
@@ -108,7 +139,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         status: 500,
       }
     );
