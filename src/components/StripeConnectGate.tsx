@@ -9,6 +9,7 @@ import {
     Dimensions,
     AppState,
     AppStateStatus,
+    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -64,14 +65,12 @@ export function StripeConnectGate() {
             );
 
             if (fnError) {
-                console.error('Function error details:', fnError);
                 let errorMsg = 'An unknown error occurred';
 
                 // Supabase FunctionsHttpError hides the actual response body
                 if (fnError.name === 'FunctionsHttpError' && fnError.context) {
                     try {
                         const contextData = await fnError.context.json();
-                        console.error('Extracted context:', contextData);
                         errorMsg = contextData.error || JSON.stringify(contextData);
                         if (contextData.param) {
                             errorMsg += ` (Param: ${contextData.param})`;
@@ -91,8 +90,9 @@ export function StripeConnectGate() {
                 await Linking.openURL(data.url);
             }
         } catch (err: any) {
-            console.error('Onboarding error:', err);
-            setError(err.message || 'Failed to start onboarding. Please try again.');
+            const errorMsg = err.message || 'Failed to start onboarding. Please try again.';
+            setError(errorMsg);
+            Alert.alert('Onboarding Error', errorMsg);
         } finally {
             setLoading(false);
         }
@@ -119,8 +119,9 @@ export function StripeConnectGate() {
             // Refresh the profile to pick up the updated stripe_connect_status
             await refreshProfile();
         } catch (err: any) {
-            console.error('Status check error:', err);
-            setError(err.message || 'Failed to check status. Please try again.');
+            const errorMsg = err.message || 'Failed to check status. Please try again.';
+            setError(errorMsg);
+            Alert.alert('Status Check Error', errorMsg);
         } finally {
             setCheckingStatus(false);
         }
