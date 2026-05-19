@@ -66,7 +66,7 @@ export async function fetchActiveMasters(): Promise<{ data: MasterProfile[] | nu
 /**
  * Fetch all pending masters (invited but not yet registered)
  */
-export async function fetchPendingMasters(): Promise<{ data: PendingMaster[] | null; error: any }> {
+export async function fetchPendingMasters(): Promise<{ data: PendingMaster[] | null; error: Error | null }> {
     const { data, error } = await safeSupabaseFetch(
         supabase
             .from('pending_masters')
