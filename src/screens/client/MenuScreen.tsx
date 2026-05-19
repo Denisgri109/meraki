@@ -12,13 +12,22 @@ import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { MenuStackParamList } from '../../navigation/ClientTabs';
 import { colors, spacing, gradients } from '../../theme';
 import { ScreenBackground, MerakiText } from '../../components/ui';
 import { safeGoBack } from '../../navigation/navigationUtils';
 
 const { width } = Dimensions.get('window');
 
-const QUICK_ACTIONS = [
+type QuickAction = {
+    icon: string;
+    label: string;
+    route: keyof MenuStackParamList;
+    gradient: string[];
+};
+
+const QUICK_ACTIONS: QuickAction[] = [
     { icon: 'receipt-long', label: 'Orders', route: 'Orders', gradient: ['#8B5CF6', '#6D28D9'] },
     { icon: 'star-outline', label: 'Loyalty', route: 'LoyaltyPoints', gradient: ['#F59E0B', '#D97706'] },
     { icon: 'credit-card', label: 'Payment', route: 'PaymentMethods', gradient: ['#3B82F6', '#2563EB'] },
@@ -26,11 +35,10 @@ const QUICK_ACTIONS = [
 ];
 
 export function MenuScreen() {
-    const navigation = useNavigation<any>();
+    const navigation = useNavigation<NativeStackNavigationProp<MenuStackParamList>>();
     const { profile, signOut } = useAuth();
 
-    const handleNavigate = (screen: string) => {
-        // @ts-ignore - Dynamic navigation
+    const handleNavigate = (screen: keyof MenuStackParamList) => {
         navigation.navigate(screen);
     };
 
@@ -112,15 +120,15 @@ export function MenuScreen() {
                     {/* ── Support ── */}
                     <MerakiText style={styles.sectionLabel}>SUPPORT</MerakiText>
                     <View style={styles.listGroup}>
-                        {[
+                        {([
                             { icon: 'help-outline', label: 'Help & Support', route: 'HelpSupport' },
                             { icon: 'description', label: 'Terms of Service', route: 'TermsOfService' },
                             { icon: 'shield', label: 'Privacy Policy', route: 'PrivacyPolicy' },
-                        ].map((item, index) => (
+                        ] as const).map((item, index) => (
                             <TouchableOpacity
                                 key={item.label}
                                 style={[styles.listItem, index === 2 && { borderBottomWidth: 0 }]}
-                                onPress={() => handleNavigate(item.route)}
+                                onPress={() => handleNavigate(item.route as keyof MenuStackParamList)}
                             >
                                 <View style={styles.listIconWrap}>
                                     <MaterialIcons name={item.icon as any} size={20} color="rgba(0, 0, 0, 0.40)" />
