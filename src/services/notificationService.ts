@@ -113,8 +113,7 @@ export async function registerForPushNotificationsAsync(userId: string) {
             const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
             if (!projectId) {
-                console.warn('No projectId found');
-                return null;
+                throw new Error('No projectId found');
             }
 
             token = (await Notifications.getExpoPushTokenAsync({

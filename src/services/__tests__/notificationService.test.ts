@@ -128,7 +128,7 @@ describe('notificationService', () => {
         it('returns null if permission is ultimately not granted', async () => {
             (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'undetermined' });
             (Notifications.requestPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
             const token = await registerForPushNotificationsAsync('user_123');
 
@@ -140,12 +140,12 @@ describe('notificationService', () => {
         it('returns null if projectId is missing', async () => {
             (Constants as any).expoConfig = { extra: { eas: {} } };
             (Constants as any).easConfig = {};
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
             const token = await registerForPushNotificationsAsync('user_123');
 
             expect(token).toBeNull();
-            expect(consoleSpy).toHaveBeenCalledWith('No projectId found');
+            expect(consoleSpy).toHaveBeenCalledWith('Push notifications error:', new Error('No projectId found'));
             consoleSpy.mockRestore();
         });
 
@@ -189,7 +189,7 @@ describe('notificationService', () => {
             const mockError = new Error('Token error');
             (Notifications.getExpoPushTokenAsync as jest.Mock).mockRejectedValue(mockError);
 
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
             const token = await registerForPushNotificationsAsync('user_123');
 
