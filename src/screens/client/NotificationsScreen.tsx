@@ -144,12 +144,7 @@ export function NotificationsScreen() {
                         const sendersPromise = supabase.from('profiles').select('id, full_name').in('id', senderIds);
                         const { data: sendersData } = await safeSupabaseFetch(sendersPromise as any, { timeout: 3000 });
 
-                        const sendersMap = new Map();
-                        if (sendersData) {
-                            for (const sender of (sendersData as any[])) {
-                                sendersMap.set(sender.id, sender);
-                            }
-                        }
+                        const sendersMap = new Map(((sendersData as any[]) || []).map(sender => [sender.id, sender]));
 
                         for (const msg of (messages as any[])) {
                             const sender = sendersMap.get(msg.sender_id);
