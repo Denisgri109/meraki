@@ -15,6 +15,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useModal } from '../contexts/ModalContext';
 import { Button, MerakiText } from './ui';
 import { colors, spacing } from '../theme';
 
@@ -26,6 +27,7 @@ import { colors, spacing } from '../theme';
  */
 export function StripeConnectGate() {
     const { profile, refreshProfile } = useAuth();
+    const { showAlert } = useModal();
     const [loading, setLoading] = useState(false);
     const [checkingStatus, setCheckingStatus] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -64,14 +66,12 @@ export function StripeConnectGate() {
             );
 
             if (fnError) {
-                console.error('Function error details:', fnError);
                 let errorMsg = 'An unknown error occurred';
 
                 // Supabase FunctionsHttpError hides the actual response body
                 if (fnError.name === 'FunctionsHttpError' && fnError.context) {
                     try {
                         const contextData = await fnError.context.json();
-                        console.error('Extracted context:', contextData);
                         errorMsg = contextData.error || JSON.stringify(contextData);
                         if (contextData.param) {
                             errorMsg += ` (Param: ${contextData.param})`;
@@ -91,8 +91,9 @@ export function StripeConnectGate() {
                 await Linking.openURL(data.url);
             }
         } catch (err: any) {
-            console.error('Onboarding error:', err);
-            setError(err.message || 'Failed to start onboarding. Please try again.');
+            const message = err.message || 'Failed to start onboarding. Please try again.';
+            showAlert('Onboarding Error', message, 'error');
+            setError(message);
         } finally {
             setLoading(false);
         }
@@ -119,8 +120,9 @@ export function StripeConnectGate() {
             // Refresh the profile to pick up the updated stripe_connect_status
             await refreshProfile();
         } catch (err: any) {
-            console.error('Status check error:', err);
-            setError(err.message || 'Failed to check status. Please try again.');
+            const message = err.message || 'Failed to check status. Please try again.';
+            showAlert('Status Check Error', message, 'error');
+            setError(message);
         } finally {
             setCheckingStatus(false);
         }
