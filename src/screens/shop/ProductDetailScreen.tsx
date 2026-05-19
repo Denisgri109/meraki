@@ -188,7 +188,7 @@ export function ProductDetailScreen() {
                 try {
                     await (supabase as any).functions.invoke('low-stock-alert');
                 } catch (e) {
-                    console.log('Low stock alert error:', e);
+                    console.error('Low stock alert error:', e);
                 }
             }
 
