@@ -45,6 +45,10 @@ jest.mock('expo-image-picker', () => ({
     MediaTypeOptions: { Images: 'Images', Videos: 'Videos' },
 }));
 
+// Mock environment variables for Supabase
+process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'test-key';
+
 // Mock expo-secure-store
 jest.mock('expo-secure-store', () => ({
     getItemAsync: jest.fn(),
