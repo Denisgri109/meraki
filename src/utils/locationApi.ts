@@ -3,7 +3,11 @@
 
 const API_BASE_URL = 'https://api.countrystatecity.in/v1';
 
-const API_KEY = process.env.EXPO_PUBLIC_COUNTRY_STATE_CITY_API_KEY || 'dccce75f424b5c7e1da7b0599fafa497a1d1cb3de3f0fa1324f17421b32769dd'; // Get free key from https://countrystatecity.in/
+const API_KEY = process.env.EXPO_PUBLIC_COUNTRY_STATE_CITY_API_KEY || ''; // Get free key from https://countrystatecity.in/
+
+if (!API_KEY) {
+    console.warn('EXPO_PUBLIC_COUNTRY_STATE_CITY_API_KEY is not set. Location API requests may fail.');
+}
 
 export interface Country {
     id: number;
