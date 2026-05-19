@@ -463,6 +463,115 @@ Deno.serve(async (req: Request) => {
                 return jsonResponse({ ok: true, action, summary });
             }
 
+            case "nuclear_wipe": {
+                // ☢️ NUCLEAR WIPE — delete ALL rows from content tables.
+                // Preserves: profiles, european_countries, global_settings.
+                // Order matters: child tables before parent tables (FK constraints).
+                const summary: Record<string, number> = {};
+
+                const wipeTable = async (table: string, filter?: string) => {
+                    try {
+                        let query = admin.from(table).delete({ count: "exact" });
+                        // Supabase requires a filter on delete — use a tautology
+                        if (filter) {
+                            query = query.or(filter);
+                        } else {
+                            query = query.gte("created_at", "1970-01-01");
+                        }
+                        const { count, error } = await query;
+                        if (error) {
+                            console.warn(`nuclear_wipe: ${table} error:`, error.message);
+                            summary[table] = -1;
+                        } else {
+                            summary[table] = count || 0;
+                        }
+                    } catch (e) {
+                        console.warn(`nuclear_wipe: ${table} exception:`, e);
+                        summary[table] = -1;
+                    }
+                };
+
+                // ── Child / junction tables first ───────────────────────
+                await wipeTable("lesson_qa_messages");
+                await wipeTable("homework_submissions");
+                await wipeTable("lesson_progress");
+                await wipeTable("course_enrollments");
+                await wipeTable("academy_submissions");
+                await wipeTable("lessons");
+                await wipeTable("chapters");
+                await wipeTable("courses");
+
+                await wipeTable("campaign_notifications_sent");
+                await wipeTable("notification_logs");
+                await wipeTable("notification_log");
+                await wipeTable("scheduled_notifications");
+
+                await wipeTable("stamp_history");
+                await wipeTable("client_stamps");
+                await wipeTable("loyalty_rewards");
+                await wipeTable("loyalty_transactions");
+                await wipeTable("loyalty_cards");
+                await wipeTable("loyalty_qr_codes");
+
+                await wipeTable("supply_consumption_log");
+                await wipeTable("service_supplies");
+                await wipeTable("master_supplies");
+                await wipeTable("owner_supply_consumption_log");
+                await wipeTable("owner_service_supplies");
+                await wipeTable("owner_supplies");
+
+                await wipeTable("order_items");
+                await wipeTable("payments");
+                await wipeTable("refunds");
+                await wipeTable("payouts");
+                await wipeTable("orders");
+
+                await wipeTable("messages");
+                await wipeTable("conversations");
+
+                await wipeTable("consultation_responses");
+                await wipeTable("photo_consultations");
+                await wipeTable("booking_consultations");
+                await wipeTable("tc_acceptances");
+
+                await wipeTable("appointment_confirmations");
+                await wipeTable("appointments");
+
+                await wipeTable("pilates_session_bookings");
+                await wipeTable("pilates_class_sessions");
+                await wipeTable("pilates_schedule_templates");
+                await wipeTable("pilates_hosts");
+                await wipeTable("pilates_settings");
+
+                await wipeTable("blocked_slots");
+                await wipeTable("master_availability");
+                await wipeTable("master_settings");
+                await wipeTable("aftercare_campaigns");
+
+                await wipeTable("master_services");
+                await wipeTable("services");
+
+                await wipeTable("payment_methods");
+                await wipeTable("portfolios");
+                await wipeTable("inventory");
+                await wipeTable("products");
+                await wipeTable("pending_masters");
+                await wipeTable("master_applications");
+                await wipeTable("user_credits");
+
+                // Reset loyalty points on profiles (don't delete profiles)
+                {
+                    const { count } = await admin
+                        .from("profiles")
+                        .update({ loyalty_points: 0 }, { count: "exact" })
+                        .gte("created_at", "1970-01-01");
+                    summary["profiles_loyalty_reset"] = count || 0;
+                }
+
+                const totalDeleted = Object.values(summary).filter(v => v > 0).reduce((a, b) => a + b, 0);
+                return jsonResponse({ ok: true, action, summary, total_deleted: totalDeleted });
+            }
+
             default:
                 return jsonResponse({ error: `Unknown action: ${action}` }, 400);
         }

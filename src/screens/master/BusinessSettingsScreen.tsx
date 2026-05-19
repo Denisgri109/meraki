@@ -79,15 +79,7 @@ const PILATES_LEVEL_OPTIONS = [
     { value: 'All levels', label: 'All levels' },
 ];
 
-const PERCENTAGE_OPTIONS = [
-    { value: 0, label: '0% (No charge)' },
-    { value: 25, label: '25%' },
-    { value: 50, label: '50%' },
-    { value: 75, label: '75%' },
-    { value: 100, label: '100% (Full charge)' },
-];
-
-type PickerType = 'confirmation' | 'late_arrival' | 'pilates_level' | 'cancellation_percent' | 'noshow_percent' | null;
+type PickerType = 'confirmation' | 'late_arrival' | 'pilates_level' | null;
 
 export function BusinessSettingsScreen() {
     const navigation = useNavigation();
@@ -443,17 +435,19 @@ export function BusinessSettingsScreen() {
                         </TouchableOpacity>
                     </Card>
 
-                    {/* No-Show Charge */}
+                    {/* Cancellation & No-Show Policy (Fixed) */}
                     <Card style={styles.section}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
                             <MaterialCommunityIcons name="account-cancel-outline" size={20} color={colors.accent} />
-                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>No-Show Charge</MerakiText>
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Cancellation & No-Show Policy</MerakiText>
                         </View>
                         <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
-                            Clients who confirm but don't show up will be charged 100% of the service price.
+                            Platform-wide policy applied to all bookings.
                         </MerakiText>
-                        <View style={styles.selector}>
-                            <Text style={styles.selectorText}>100%</Text>
+                        <View style={styles.policyBox}>
+                            <Text style={styles.policyText}>
+                                Cancel for free up to <Text style={styles.policyBold}>24 hours</Text> before your session. Cancellations within this window are subject to a <Text style={styles.policyBold}>50% fee</Text>. No-Shows are billed at <Text style={styles.policyBold}>100%</Text>.
+                            </Text>
                         </View>
                     </Card>
 
@@ -880,6 +874,22 @@ const styles = StyleSheet.create({
         fontSize: 18,
         color: colors.primary,
         fontWeight: '600',
+    },
+    policyBox: {
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        borderRadius: 12,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    policyText: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        lineHeight: 22,
+    },
+    policyBold: {
+        fontWeight: '700',
+        color: colors.text,
     },
 });
 

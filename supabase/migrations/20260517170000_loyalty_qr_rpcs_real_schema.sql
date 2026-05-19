@@ -16,7 +16,7 @@ BEGIN
 
   IF NOT EXISTS (SELECT 1 FROM public.loyalty_qr_codes q WHERE q.user_id = p_user_id) THEN
     LOOP
-      v_code := encode(gen_random_bytes(16), 'hex');
+      v_code := encode(extensions.gen_random_bytes(16), 'hex');
       EXIT WHEN NOT EXISTS (SELECT 1 FROM public.loyalty_qr_codes q WHERE q.code = v_code);
     END LOOP;
 
@@ -51,7 +51,7 @@ BEGIN
   END IF;
 
   LOOP
-    v_code := encode(gen_random_bytes(16), 'hex');
+    v_code := encode(extensions.gen_random_bytes(16), 'hex');
     EXIT WHEN NOT EXISTS (SELECT 1 FROM public.loyalty_qr_codes q WHERE q.code = v_code);
   END LOOP;
 
@@ -94,7 +94,7 @@ BEGIN
 
   IF v_existing_id IS NULL THEN
     LOOP
-      v_code := encode(gen_random_bytes(16), 'hex');
+      v_code := encode(extensions.gen_random_bytes(16), 'hex');
       EXIT WHEN NOT EXISTS (SELECT 1 FROM public.loyalty_qr_codes q WHERE q.code = v_code);
     END LOOP;
     INSERT INTO public.loyalty_qr_codes (user_id, code, points_value, is_active)
