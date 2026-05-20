@@ -6,13 +6,31 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") || "https://meraki.app";
-
-const corsHeaders = {
-    "Access-Control-Allow-Origin": allowedOrigin,
+const baseCorsHeaders = {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+function getCorsHeaders(req: Request) {
+    const origin = req.headers.get("Origin");
+    let allowedOrigin = "https://meraki.app"; // Default fallback safe origin
+
+    if (origin) {
+        const allowedOriginsEnv = Deno.env.get("ALLOWED_ORIGINS");
+        const allowedOrigins = allowedOriginsEnv ? allowedOriginsEnv.split(",").map(o => o.trim()) : ["https://meraki.app"];
+
+        // Always allow localhost for development if needed, or stick strictly to the list
+        // In this security fix, we stick to the configured list.
+        if (allowedOrigins.includes(origin)) {
+            allowedOrigin = origin;
+        }
+    }
+
+    return {
+        ...baseCorsHeaders,
+        "Access-Control-Allow-Origin": allowedOrigin,
+    };
+}
 
 const shippingCosts: Record<string, number> = {
     GB: 4.99,
@@ -80,11 +98,13 @@ type RequestBody = {
     };
 };
 
-function jsonResponse(body: unknown, status = 200) {
+function jsonResponse(body: unknown, status = 200, req?: Request) {
+    // If req is not passed, fallback to a safe default. In practice we will pass it.
+    const headers = req ? getCorsHeaders(req) : { ...baseCorsHeaders, "Access-Control-Allow-Origin": "https://meraki.app" };
     return new Response(JSON.stringify(body), {
         status,
         headers: {
-            ...corsHeaders,
+            ...headers,
             "Content-Type": "application/json",
         },
     });
@@ -114,17 +134,17 @@ function validateBody(body: RequestBody) {
 
 Deno.serve(async (req: Request) => {
     if (req.method === "OPTIONS") {
-        return new Response("ok", { headers: corsHeaders });
+        return new Response("ok", { headers: getCorsHeaders(req) });
     }
 
     if (req.method !== "POST") {
-        return jsonResponse({ error: "Method not allowed" }, 405);
+        return jsonResponse({ error: "Method not allowed" }, 405, req);
     }
 
     try {
         const authHeader = req.headers.get("Authorization");
         if (!authHeader) {
-            return jsonResponse({ error: "Missing Authorization header" }, 401);
+            return jsonResponse({ error: "Missing Authorization header" }, 401, req);
         }
 
         const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -133,13 +153,13 @@ Deno.serve(async (req: Request) => {
 
         const { data: userData, error: authError } = await authClient.auth.getUser();
         if (authError || !userData.user) {
-            return jsonResponse({ error: "Unauthorized", details: authError?.message }, 401);
+            return jsonResponse({ error: "Unauthorized", details: authError?.message }, 401, req);
         }
 
         const body = (await req.json()) as RequestBody;
         const validationError = validateBody(body);
         if (validationError) {
-            return jsonResponse({ error: validationError }, 400);
+            return jsonResponse({ error: validationError }, 400, req);
         }
 
         const stripeResponse = await fetch(`https://api.stripe.com/v1/payment_intents/${body.payment_intent_id}`, {
@@ -151,24 +171,24 @@ Deno.serve(async (req: Request) => {
 
         const paymentIntent = await stripeResponse.json();
         if (!stripeResponse.ok || paymentIntent.error) {
-            return jsonResponse({ error: paymentIntent.error?.message || "Could not verify payment" }, 400);
+            return jsonResponse({ error: paymentIntent.error?.message || "Could not verify payment" }, 400, req);
         }
 
         if (paymentIntent.status !== "succeeded") {
-            return jsonResponse({ error: "Payment has not succeeded" }, 400);
+            return jsonResponse({ error: "Payment has not succeeded" }, 400, req);
         }
 
         if (paymentIntent.metadata?.user_id !== userData.user.id) {
-            return jsonResponse({ error: "Payment does not belong to this user" }, 403);
+            return jsonResponse({ error: "Payment does not belong to this user" }, 403, req);
         }
 
         if (paymentIntent.metadata?.appointment_id) {
-            return jsonResponse({ error: "Payment intent is not a shop payment" }, 400);
+            return jsonResponse({ error: "Payment intent is not a shop payment" }, 400, req);
         }
 
         const requestedCurrency = (body.currency || paymentIntent.currency || "").toLowerCase();
         if (paymentIntent.currency !== requestedCurrency) {
-            return jsonResponse({ error: "Payment currency mismatch" }, 400);
+            return jsonResponse({ error: "Payment currency mismatch" }, 400, req);
         }
 
         const country = body.shipping.country.toUpperCase();
@@ -203,11 +223,11 @@ Deno.serve(async (req: Request) => {
         });
 
         if (error) {
-            return jsonResponse({ error: error.message }, 400);
+            return jsonResponse({ error: error.message }, 400, req);
         }
 
-        return jsonResponse(data);
+        return jsonResponse(data, 200, req);
     } catch (error) {
-        return jsonResponse({ error: "Failed to finalize order", details: String(error) }, 500);
+        return jsonResponse({ error: "Failed to finalize order", details: String(error) }, 500, req);
     }
 });
