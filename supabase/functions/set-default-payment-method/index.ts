@@ -76,21 +76,24 @@ Deno.serve(async (req: Request) => {
             );
         }
 
-        // Detach the payment method
-        const detachRes = await fetch(
-            `https://api.stripe.com/v1/payment_methods/${payment_method_id}/detach`,
+        // Update customer default payment method
+        const updateRes = await fetch(
+            `https://api.stripe.com/v1/customers/${customerId}`,
             {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${STRIPE_SECRET_KEY}`,
                     "Content-Type": "application/x-www-form-urlencoded",
                 },
+                body: new URLSearchParams({
+                    "invoice_settings[default_payment_method]": payment_method_id,
+                }),
             }
         );
-        const detachResult = await detachRes.json();
-        if (detachResult.error) {
+        const updateResult = await updateRes.json();
+        if (updateResult.error) {
             return new Response(
-                JSON.stringify({ error: detachResult.error.message }),
+                JSON.stringify({ error: updateResult.error.message }),
                 { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
             );
         }
@@ -100,9 +103,9 @@ Deno.serve(async (req: Request) => {
             { headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
     } catch (error) {
-        console.error("Error deleting payment method:", error);
+        console.error("Error setting default payment method:", error);
         return new Response(
-            JSON.stringify({ error: "Failed to delete payment method" }),
+            JSON.stringify({ error: "Failed to set default payment method" }),
             { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
     }

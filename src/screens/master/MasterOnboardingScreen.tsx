@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { ScreenBackground, Button, Card } from '../../components/ui';
+import { ScreenBackground, Button } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
 
@@ -21,37 +21,37 @@ const ONBOARDING_STEPS = [
     {
         id: 'welcome',
         title: 'Welcome to Merakí!',
-        description: 'You\'re all set up as a Master. Let\'s get you ready to start accepting bookings.',
+        description: 'You\'re all set up as a Professional. Here\'s a quick overview of everything you can do on the platform.',
         icon: '✨',
     },
     {
         id: 'profile',
-        title: 'Complete Your Profile',
-        description: 'Add your bio, experience, and a profile photo to help clients find you.',
+        title: 'Your Profile',
+        description: 'Your profile is where clients discover you. You can add your bio, experience, and a profile photo from Settings at any time.',
         icon: '👤',
     },
     {
         id: 'services',
-        title: 'Add Your Services',
-        description: 'Create the services you offer with your own pricing and duration.',
+        title: 'Your Services',
+        description: 'Create and manage the services you offer — set your own pricing, duration, and categories. Head to Services whenever you\'re ready.',
         icon: '💅',
     },
     {
         id: 'availability',
-        title: 'Set Your Availability',
-        description: 'Choose when you\'re available for bookings and block off time as needed.',
+        title: 'Your Availability',
+        description: 'Control when you\'re available for bookings. Set your working hours and block off time as needed from the Availability page.',
         icon: '📅',
     },
     {
         id: 'portfolio',
-        title: 'Build Your Portfolio',
-        description: 'Upload photos of your best work to attract more clients.',
+        title: 'Your Portfolio',
+        description: 'Showcase your best work with a photo portfolio. Clients can browse your gallery before booking — add photos from Settings whenever you like.',
         icon: '📸',
     },
     {
         id: 'business_settings',
         title: 'Business Settings',
-        description: 'Configure your business details, cancellation policy, and payment methods.',
+        description: 'Manage your business details, cancellation policy, and payment settings all in one place from Settings.',
         icon: '🏢',
     },
 ];
@@ -168,88 +168,6 @@ export function MasterOnboardingScreen() {
                                 {currentStepData.description}
                             </Text>
 
-                            {/* Action Cards */}
-                            <View style={styles.actionCards}>
-                                {currentStepData.id === 'profile' && (
-                                    <TouchableOpacity
-                                        style={styles.actionCard}
-                                        onPress={() => {
-                                            (navigation as any).navigate('MasterApp', {
-                                                screen: 'Menu',
-                                                params: { screen: 'Profile' }
-                                            });
-                                        }}
-                                    >
-                                        <Text style={styles.actionCardIcon}>✏️</Text>
-                                        <Text style={styles.actionCardText}>Edit Profile Now</Text>
-                                        <Text style={styles.actionCardArrow}>→</Text>
-                                    </TouchableOpacity>
-                                )}
-
-                                {currentStepData.id === 'services' && (
-                                    <TouchableOpacity
-                                        style={styles.actionCard}
-                                        onPress={() => {
-                                            (navigation as any).navigate('MasterApp', {
-                                                screen: 'Menu',
-                                                params: { screen: 'MyServices' }
-                                            });
-                                        }}
-                                    >
-                                        <Text style={styles.actionCardIcon}>➕</Text>
-                                        <Text style={styles.actionCardText}>Add Services Now</Text>
-                                        <Text style={styles.actionCardArrow}>→</Text>
-                                    </TouchableOpacity>
-                                )}
-
-                                {currentStepData.id === 'availability' && (
-                                    <TouchableOpacity
-                                        style={styles.actionCard}
-                                        onPress={() => {
-                                            (navigation as any).navigate('MasterApp', {
-                                                screen: 'Menu',
-                                                params: { screen: 'Availability' }
-                                            });
-                                        }}
-                                    >
-                                        <Text style={styles.actionCardIcon}>🕐</Text>
-                                        <Text style={styles.actionCardText}>Set Availability Now</Text>
-                                        <Text style={styles.actionCardArrow}>→</Text>
-                                    </TouchableOpacity>
-                                )}
-
-                                {currentStepData.id === 'portfolio' && (
-                                    <TouchableOpacity
-                                        style={styles.actionCard}
-                                        onPress={() => {
-                                            (navigation as any).navigate('MasterApp', {
-                                                screen: 'Menu',
-                                                params: { screen: 'Portfolio' }
-                                            });
-                                        }}
-                                    >
-                                        <Text style={styles.actionCardIcon}>📸</Text>
-                                        <Text style={styles.actionCardText}>Add Portfolio Photos</Text>
-                                        <Text style={styles.actionCardArrow}>→</Text>
-                                    </TouchableOpacity>
-                                )}
-
-                                {currentStepData.id === 'business_settings' && (
-                                    <TouchableOpacity
-                                        style={styles.actionCard}
-                                        onPress={() => {
-                                            (navigation as any).navigate('MasterApp', {
-                                                screen: 'Menu',
-                                                params: { screen: 'BusinessSettings' }
-                                            });
-                                        }}
-                                    >
-                                        <Text style={styles.actionCardIcon}>🏢</Text>
-                                        <Text style={styles.actionCardText}>Configure Business Settings</Text>
-                                        <Text style={styles.actionCardArrow}>→</Text>
-                                    </TouchableOpacity>
-                                )}
-                            </View>
                         </View>
 
                         {/* Buttons */}
@@ -337,33 +255,6 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         paddingHorizontal: spacing.lg,
         marginBottom: spacing.xl,
-    },
-    actionCards: {
-        width: '100%',
-        gap: spacing.md,
-    },
-    actionCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-        borderRadius: 12,
-        padding: spacing.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    actionCardIcon: {
-        fontSize: 20,
-        marginRight: spacing.md,
-    },
-    actionCardText: {
-        flex: 1,
-        fontSize: 16,
-        color: colors.text,
-        fontWeight: '500',
-    },
-    actionCardArrow: {
-        fontSize: 20,
-        color: colors.primary,
     },
     buttonContainer: {
         marginTop: spacing.xl,
