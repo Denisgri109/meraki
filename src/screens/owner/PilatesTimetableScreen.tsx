@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
@@ -114,12 +114,7 @@ export function PilatesTimetableScreen() {
         [sessions],
     );
 
-    useEffect(() => {
-        loadData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [service.id, user?.id]);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         if (!user?.id) return;
         setLoading(true);
         try {
@@ -181,7 +176,11 @@ export function PilatesTimetableScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [service.id, user?.id, showAlert]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     const saveSettings = async () => {
         if (!user?.id) return;
