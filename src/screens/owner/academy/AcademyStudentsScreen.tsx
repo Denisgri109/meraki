@@ -56,43 +56,75 @@ export function AcademyStudentsScreen() {
 
             if (error) throw error;
 
-            const enrichedEnrollments = await Promise.all(
-                (enrollmentData || []).map(async (enrollment: any) => {
-                    const { data: courseLessons } = await (supabase as any)
-                        .from('lessons')
-                        .select('id')
-                        .eq('course_id', enrollment.course_id);
+            // Extract unique courses and students
+            const courseIds = [...new Set((enrollmentData || []).map((e: any) => e.course_id))];
+            const studentIds = [...new Set((enrollmentData || []).map((e: any) => e.student_id))];
 
-                    const lessonIds = (courseLessons || []).map((l: any) => l.id);
+            // Fetch all lessons for these courses in one query
+            const { data: allLessons } = await (supabase as any)
+                .from('lessons')
+                .select('id, course_id')
+                .in('course_id', courseIds.length > 0 ? courseIds : ['no-match']);
 
-                    const { count: completedLessons } = await (supabase as any)
-                        .from('lesson_progress')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('user_id', enrollment.student_id)
-                        .in('lesson_id', lessonIds.length > 0 ? lessonIds : ['no-match'])
-                        .not('completed_at', 'is', null);
+            // Group lessons by course_id
+            const lessonsByCourse = (allLessons || []).reduce((acc: any, lesson: any) => {
+                if (!acc[lesson.course_id]) acc[lesson.course_id] = [];
+                acc[lesson.course_id].push(lesson.id);
+                return acc;
+            }, {});
 
-                    const { data: lastProgress } = await (supabase as any)
-                        .from('lesson_progress')
-                        .select('updated_at')
-                        .eq('user_id', enrollment.student_id)
-                        .order('updated_at', { ascending: false })
-                        .limit(1);
+            const allLessonIds = (allLessons || []).map((l: any) => l.id);
 
-                    // Re-fetch total lessons count to be safe (or use courseLessons.length)
-                    const totalLessonsCount = courseLessons?.length || 0;
+            // Fetch all progress for these students and lessons in one query
+            const { data: allProgress } = await (supabase as any)
+                .from('lesson_progress')
+                .select('user_id, lesson_id, completed_at, updated_at')
+                .in('user_id', studentIds.length > 0 ? studentIds : ['no-match'])
+                .in('lesson_id', allLessonIds.length > 0 ? allLessonIds : ['no-match']);
 
-                    const progress = totalLessonsCount > 0
-                        ? Math.min(Math.round((completedLessons / totalLessonsCount) * 100), 100)
-                        : 0;
+            // Group progress by user_id
+            const progressByUser = (allProgress || []).reduce((acc: any, prog: any) => {
+                if (!acc[prog.user_id]) acc[prog.user_id] = { completed: new Set(), latestUpdate: null };
 
-                    return {
-                        ...enrollment,
-                        progress,
-                        lastActive: lastProgress?.[0]?.updated_at || enrollment.enrolled_at,
-                    };
-                })
-            );
+                if (prog.completed_at) {
+                    acc[prog.user_id].completed.add(prog.lesson_id);
+                }
+
+                if (prog.updated_at) {
+                    const updateDate = new Date(prog.updated_at).getTime();
+                    const currentLatest = acc[prog.user_id].latestUpdate ? new Date(acc[prog.user_id].latestUpdate).getTime() : 0;
+                    if (updateDate > currentLatest) {
+                        acc[prog.user_id].latestUpdate = prog.updated_at;
+                    }
+                }
+
+                return acc;
+            }, {});
+
+            const enrichedEnrollments = (enrollmentData || []).map((enrollment: any) => {
+                const courseLessonIds = lessonsByCourse[enrollment.course_id] || [];
+                const totalLessonsCount = courseLessonIds.length;
+
+                const userProg = progressByUser[enrollment.student_id] || { completed: new Set(), latestUpdate: null };
+
+                // Count how many of THIS course's lessons the user has completed
+                let completedLessonsCount = 0;
+                for (const lid of courseLessonIds) {
+                    if (userProg.completed.has(lid)) {
+                        completedLessonsCount++;
+                    }
+                }
+
+                const progress = totalLessonsCount > 0
+                    ? Math.min(Math.round((completedLessonsCount / totalLessonsCount) * 100), 100)
+                    : 0;
+
+                return {
+                    ...enrollment,
+                    progress,
+                    lastActive: userProg.latestUpdate || enrollment.enrolled_at,
+                };
+            });
 
             setEnrollments(enrichedEnrollments);
 
@@ -104,12 +136,12 @@ export function AcademyStudentsScreen() {
                 .from('courses')
                 .select('id, price');
 
-            const totalRevenue = enrichedEnrollments.reduce((sum, e) => {
+            const totalRevenue = enrichedEnrollments.reduce((sum: number, e: any) => {
                 const course = courses?.find((c: any) => c.id === e.course?.id);
                 return sum + (course?.price || 0);
             }, 0);
 
-            const completed = enrichedEnrollments.filter(e => e.completed_at).length;
+            const completed = enrichedEnrollments.filter((e: any) => e.completed_at).length;
             const completionRate = enrichedEnrollments.length > 0
                 ? Math.round((completed / enrichedEnrollments.length) * 100)
                 : 0;
