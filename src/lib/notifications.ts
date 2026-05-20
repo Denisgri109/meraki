@@ -31,7 +31,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 
     // Check if physical device (push notifications don't work on simulators)
     if (!Device.isDevice) {
-        console.log('Push notifications require a physical device');
+        console.debug('Push notifications require a physical device');
         return null;
     }
 
@@ -46,7 +46,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     }
 
     if (finalStatus !== 'granted') {
-        console.log('Failed to get push token - permission not granted');
+        console.warn('Failed to get push token - permission not granted');
         return null;
     }
 
@@ -55,7 +55,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
         const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
         if (!projectId) {
-            console.log('No project ID found for push notifications');
+            console.warn('No project ID found for push notifications');
             return null;
         }
 
@@ -64,7 +64,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
         });
 
         token = pushToken.data;
-        console.log('Push token obtained:', token);
+        console.debug('Push token obtained successfully');
     } catch (error) {
         console.error('Error getting push token:', error);
         return null;
@@ -122,7 +122,7 @@ export async function savePushToken(userId: string, token: string): Promise<bool
             return false;
         }
 
-        console.log('Push token saved successfully');
+        console.debug('Push token saved successfully');
         return true;
     } catch (error) {
         console.error('Error saving push token:', error);
