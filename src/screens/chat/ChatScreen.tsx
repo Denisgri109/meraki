@@ -62,6 +62,7 @@ export function ChatScreen() {
     const { conversationId, otherUser, isSupportChat } = route.params;
 
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [sending, setSending] = useState(false);
@@ -149,6 +150,8 @@ export function ChatScreen() {
     }, [conversationId, user?.id]);
 
     const fetchMessages = async () => {
+        setFetchError(null);
+        setLoading(true);
         try {
             const messagesPromise = (supabase as any)
                 .from('messages')
@@ -160,13 +163,13 @@ export function ChatScreen() {
             const { data, error } = await safeSupabaseFetch(messagesPromise, { timeout: 8000 });
 
             if (error) {
-                console.log('Messages fetch error:', error.message);
+                setFetchError(error.message || 'Failed to load messages');
                 setMessages([]);
                 return;
             }
             setMessages((data as Message[]) || []);
-        } catch (error) {
-            console.error('Error fetching messages:', error);
+        } catch (error: any) {
+            setFetchError(error.message || 'Failed to load messages');
         } finally {
             setLoading(false);
         }
@@ -600,6 +603,23 @@ export function ChatScreen() {
             <ScreenBackground>
                 <SafeAreaView style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={colors.primary} />
+                </SafeAreaView>
+            </ScreenBackground>
+        );
+    }
+
+    if (fetchError) {
+        return (
+            <ScreenBackground>
+                <SafeAreaView style={styles.loadingContainer}>
+                    <MerakiText style={{ color: colors.error, marginBottom: 16, textAlign: 'center' }}>
+                        {fetchError}
+                    </MerakiText>
+                    <TouchableOpacity onPress={fetchMessages} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.primary, borderRadius: 8 }}>
+                        <MerakiText style={{ color: 'white', fontWeight: 'bold' }}>
+                            Retry
+                        </MerakiText>
+                    </TouchableOpacity>
                 </SafeAreaView>
             </ScreenBackground>
         );
