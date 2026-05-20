@@ -73,7 +73,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Safety timeout in case auth check hangs
         const timeout = setTimeout(() => {
             if (loading) {
-                console.log('Auth check timed out, setting loading to false');
                 setLoading(false);
             }
         }, 5000);
