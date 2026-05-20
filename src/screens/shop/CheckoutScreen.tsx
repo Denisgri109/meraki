@@ -201,7 +201,6 @@ export function CheckoutScreen() {
             let paymentIntentId = '';
 
             if (USE_SIMULATION) {
-                console.log('Using simulated payment flow');
                 await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
                 paymentIntentId = 'pi_simulated_' + Math.random().toString(36).substr(2, 9);
             } else {
