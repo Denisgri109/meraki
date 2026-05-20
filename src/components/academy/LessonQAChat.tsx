@@ -517,7 +517,12 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                             </MerakiText>
                         </View>
                     </View>
-                    <TouchableOpacity onPress={() => setReplyTo(null)}>
+                    <TouchableOpacity
+                        onPress={() => setReplyTo(null)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Cancel reply"
+                        accessibilityHint="Cancels replying to the selected message"
+                    >
                         <MaterialIcons name="close" size={18} color={colors.textMuted} />
                     </TouchableOpacity>
                 </View>
@@ -529,6 +534,9 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                     {/* Camera button */}
                     <TouchableOpacity
                         style={styles.mediaBtn}
+                        accessibilityRole="button"
+                        accessibilityLabel="Upload photo"
+                        accessibilityHint="Opens image picker to send a photo"
                         onPress={() => {
                             showModal({
                                 title: 'Add Photo',
@@ -578,6 +586,9 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                         style={[styles.sendBtn, (!messageText.trim() || sending) && styles.sendBtnDisabled]}
                         onPress={() => sendMessage(messageText)}
                         disabled={!messageText.trim() || sending}
+                        accessibilityRole="button"
+                        accessibilityLabel="Send message"
+                        accessibilityHint="Sends your typed message"
                     >
                         {sending ? (
                             <ActivityIndicator size="small" color="#FFF" />
