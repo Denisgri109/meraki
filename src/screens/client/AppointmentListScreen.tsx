@@ -128,8 +128,7 @@ export function AppointmentListScreen() {
                     service:services(name, duration_minutes),
                     master:profiles!appointments_master_id_fkey(full_name, push_token)
                 `)
-                // @ts-ignore - user check handled above
-                .eq('client_id', user?.id)
+                .eq('client_id', user!.id)
                 .order('start_time', { ascending: false });
 
             const { data, error } = await safeSupabaseFetch(queryPromise as any, { timeout: 8000 });
@@ -157,7 +156,7 @@ export function AppointmentListScreen() {
                         service:services(name),
                         master:profiles!booking_consultations_master_id_fkey(full_name)
                     `)
-                    .eq('client_id', user?.id)
+                    .eq('client_id', user!.id)
                     .in('status', ['pending', 'approved', 'declined', 'chat_requested'])
                     .order('created_at', { ascending: false });
 
