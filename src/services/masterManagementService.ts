@@ -52,7 +52,7 @@ export type InviteMasterPayload = {
 /**
  * Fetch all active/verified masters (profiles with role=master or is_master=true)
  */
-export async function fetchActiveMasters(): Promise<{ data: MasterProfile[] | null; error: any }> {
+export async function fetchActiveMasters(): Promise<{ data: MasterProfile[] | null; error: Error | unknown }> {
     const { data, error } = await safeSupabaseFetch(
         supabase
             .from('profiles')
