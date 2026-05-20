@@ -58,6 +58,8 @@ jest.mock('expo-location', () => ({
     getCurrentPositionAsync: jest.fn().mockResolvedValue({
         coords: { latitude: 53.3498, longitude: -6.2603 },
     }),
+    reverseGeocodeAsync: jest.fn().mockResolvedValue([]),
+    Accuracy: { Low: 1, Balanced: 2, High: 3, Highest: 4, BestForNavigation: 5 },
 }));
 
 // Mock expo-clipboard
