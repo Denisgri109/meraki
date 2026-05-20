@@ -119,7 +119,7 @@ export function NotificationsScreen() {
                 if (prefs.cleared_at) {
                     clearedAt = new Date(prefs.cleared_at).getTime();
                 }
-            } catch (e) { console.log('Error fetching cleared_at:', e); }
+            } catch (e) { console.warn('Error fetching cleared_at, gracefully degrading to 0:', e); }
 
             const field = isMaster ? 'master_id' : 'client_id';
             const allNotifications: Notification[] = [];
