@@ -19,8 +19,12 @@ export function safeGoBack<T extends Record<string, any>>(
     if (canGoBack) {
         navigation.goBack();
     } else if (fallbackRoute) {
-        // @ts-ignore - navigation.navigate is dynamically typed
-        navigation.navigate(fallbackRoute, fallbackParams);
+        navigation.dispatch(
+            CommonActions.navigate({
+                name: fallbackRoute,
+                params: fallbackParams,
+            })
+        );
     }
 }
 
