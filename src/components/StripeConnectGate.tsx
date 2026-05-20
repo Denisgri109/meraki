@@ -90,9 +90,10 @@ export function StripeConnectGate() {
             if (data?.url) {
                 await Linking.openURL(data.url);
             }
-        } catch (err: any) {
-            console.error('Onboarding error:', err);
-            setError(err.message || 'Failed to start onboarding. Please try again.');
+        } catch (err: unknown) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            console.error('Onboarding error:', error);
+            setError(error.message || 'Failed to start onboarding. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -118,9 +119,10 @@ export function StripeConnectGate() {
 
             // Refresh the profile to pick up the updated stripe_connect_status
             await refreshProfile();
-        } catch (err: any) {
-            console.error('Status check error:', err);
-            setError(err.message || 'Failed to check status. Please try again.');
+        } catch (err: unknown) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            console.error('Status check error:', error);
+            setError(error.message || 'Failed to check status. Please try again.');
         } finally {
             setCheckingStatus(false);
         }
