@@ -1,0 +1,167 @@
+﻿[
+    {
+        "pr":  5,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    {
+        "pr":  6,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  7,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  8,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    {
+        "pr":  9,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  10,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  11,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    {
+        "pr":  12,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  13,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  14,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    {
+        "pr":  15,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    {
+        "pr":  16,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  17,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  18,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  19,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  20,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    {
+        "pr":  21,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    {
+        "pr":  22,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    {
+        "pr":  23,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  24,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  25,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  26,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  27,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    {
+        "pr":  28,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    {
+        "pr":  29,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  30,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  31,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    {
+        "pr":  32,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  33,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  34,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  35,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    {
+        "pr":  36,
+        "result":  "merged",
+        "output":  ""
+    },
+    {
+        "pr":  37,
+        "result":  "failed",
+        "output":  "gh : GraphQL: Pull Request has merge conflicts (mergePullRequest)\r\nAt C:\\Users\\denis\\Desktop\\meraki_app\\meraki_web\\merge_all_prs.ps1:13 char:12\r\n+     $out = gh pr merge $n --repo $repo --merge --admin --delete-branc ...\r\n+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (GraphQL: Pull R...rgePullRequest):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    }
+]
