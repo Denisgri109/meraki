@@ -92,7 +92,7 @@ export function DeepLinkHandler({ children }: DeepLinkHandlerProps) {
 
                 if (tokenHash && type) {
                     const { error } = await supabase.auth.verifyOtp({
-                        type: type as any,
+                        type: type as import('@supabase/supabase-js').EmailOtpType,
                         token_hash: tokenHash,
                     });
                     if (error) {
