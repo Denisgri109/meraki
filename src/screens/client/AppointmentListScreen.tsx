@@ -434,11 +434,11 @@ export function AppointmentListScreen() {
     const upcomingAppointments = appointments
         .filter(apt => new Date(apt.start_time) >= now && !apt.status.startsWith('cancelled'))
         .sort((a, b) => {
-            // Priority sort: actionable items first
+            // Priority sort: actionable items first (reschedule proposals need attention)
             const getPriority = (apt: Appointment) => {
                 if ((apt.status === 'pending_reschedule' || apt.status === 'reschedule_pending') && apt.reschedule_initiated_by !== user?.id) return 0;
-                if (apt.status === 'pending' || apt.status === 'awaiting_confirmation') return 1;
-                return 2;
+                // Legacy pending/awaiting_confirmation — same priority as confirmed
+                return 1;
             };
             const pA = getPriority(a);
             const pB = getPriority(b);

@@ -454,7 +454,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 console.warn('Failed to auto-create conversation', err);
             }
 
-            // Send push notification to Master about new booking (pending confirmation)
+            // Send push notification to Master about new confirmed booking
             if (master?.push_token) {
                 try {
                     await fetch('https://exp.host/--/api/v2/push/send', {
@@ -466,8 +466,8 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                         body: JSON.stringify({
                             to: master.push_token,
                             sound: 'default',
-                            title: 'New Booking Request 📅',
-                            body: `${profile?.full_name || 'A client'} requested ${service.name} on ${format(startTime, 'MMM d')} at ${format(startTime, 'HH:mm')}. Awaiting client confirmation.`,
+                            title: 'New Booking Confirmed ✅',
+                            body: `${profile?.full_name || 'A client'} booked ${service.name} on ${format(startTime, 'MMM d')} at ${format(startTime, 'HH:mm')}.`,
                             data: { appointmentId: appointmentId },
                         }),
                     });
@@ -482,8 +482,8 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
             setModalConfig({
                 visible: true,
-                title: 'Request Sent! 📅',
-                message: `Your appointment request with ${master?.full_name} has been received!${discountMsg}\n\n📧 You'll receive a confirmation request soon.\n\n💳 Card securely saved for booking.`,
+                title: 'Booking Confirmed! ✅',
+                message: `Your appointment with ${master?.full_name} has been confirmed!${discountMsg}\n\n📅 ${format(startTime, 'EEEE, MMMM d')} at ${format(startTime, 'HH:mm')}\n\n💳 Payment processed successfully.`,
                 type: 'success',
                 onConfirm: () => {
                     setModalConfig(prev => ({ ...prev, visible: false }));

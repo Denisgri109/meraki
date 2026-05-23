@@ -161,6 +161,8 @@ export function MasterAppointmentsScreen() {
         }
     };
 
+    // Legacy: Accept booking — no longer needed since bookings arrive pre-confirmed.
+    // Kept for backward compatibility with any old 'pending'/'awaiting_confirmation' appointments.
     const handleConfirm = (id: string) => {
         setModalConfig({
             visible: true,
@@ -176,6 +178,8 @@ export function MasterAppointmentsScreen() {
         });
     };
 
+    // Legacy: Decline booking — no longer needed since bookings arrive pre-confirmed.
+    // Kept for backward compatibility with any old 'pending'/'awaiting_confirmation' appointments.
     const handleDecline = (id: string) => {
         setModalConfig({
             visible: true,
@@ -470,7 +474,7 @@ export function MasterAppointmentsScreen() {
         const getStatusBadge = () => {
             if (isConfirmed && apt.confirmation?.confirmed) return { label: 'Confirmed', color: '#22C55E', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.2)' };
             if (isConfirmed) return { label: 'Confirmed', color: '#22C55E', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.2)' };
-            if (isPending) return { label: 'Waiting', color: '#D4AF37', bg: 'rgba(212,175,55,0.1)', border: 'rgba(212,175,55,0.2)' };
+            if (isPending) return { label: 'Pending', color: '#D4AF37', bg: 'rgba(212,175,55,0.1)', border: 'rgba(212,175,55,0.2)' };
             if (isReschedule) return { label: 'Reschedule', color: colors.primary, bg: 'rgba(236,19,55,0.1)', border: 'rgba(236,19,55,0.2)' };
             if (isCompleted) return { label: 'Completed', color: '#6366F1', bg: 'rgba(99,102,241,0.1)', border: 'rgba(99,102,241,0.2)' };
             if (isCancelled) return { label: 'Cancelled', color: '#EF4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)' };
@@ -542,15 +546,18 @@ export function MasterAppointmentsScreen() {
                     )}
                 </View>
 
-                {/* Pending: Accept / Decline Buttons */}
+                {/* Legacy pending appointments — show info-only badge, no accept/decline needed */}
                 {isPending && (
-                    <View style={styles.stitchAcceptDecline}>
-                        <TouchableOpacity style={styles.stitchAcceptButton} onPress={() => handleConfirm(apt.id)}>
-                            <MerakiText variant="label" color="#fff" style={{ fontWeight: '700', fontSize: 14 }}>Accept</MerakiText>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.stitchDeclineButton} onPress={() => handleDecline(apt.id)}>
-                            <MerakiText variant="label" color={colors.textSecondary} style={{ fontWeight: '600', fontSize: 14 }}>Decline</MerakiText>
-                        </TouchableOpacity>
+                    <View style={styles.stitchActionRow}>
+                        <View style={styles.stitchActionIcons} />
+                        <View style={styles.stitchActionButtons}>
+                            <TouchableOpacity style={styles.stitchSmallBtn} onPress={() => handleCancelAppointment(apt.id)}>
+                                <MerakiText variant="caption" color={colors.textSecondary} style={styles.stitchSmallBtnText}>Cancel</MerakiText>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.stitchSmallBtnPrimary} onPress={() => handleConfirm(apt.id)}>
+                                <MerakiText variant="caption" color={colors.primary} style={styles.stitchSmallBtnText}>Confirm</MerakiText>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 )}
 
