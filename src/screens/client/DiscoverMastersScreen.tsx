@@ -50,6 +50,19 @@ export function DiscoverMastersScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [masters, setMasters] = useState<Master[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedTag, setSelectedTag] = useState('');
+
+    const trendingTags = ['Balayage', 'Gel Nails', 'Lash Extensions', 'Facial', 'Braids', 'Microblading', 'Keratin', 'Waxing'];
+    const tagGradients = [
+        ['#F472B6', '#FDA4AF'],
+        ['#A78BFA', '#D8B4FE'],
+        ['#60A5FA', '#67E8F9'],
+        ['#34D399', '#5EEAD4'],
+        ['#FBBF24', '#FCD34D'],
+        ['#818CF8', '#93C5FD'],
+        ['#FB7185', '#F9A8D4'],
+        ['#2DD4BF', '#6EE7B7'],
+    ];
 
     // Use profile as fallback
     const [userCity, setUserCity] = useState<string | null>(profile?.city || null);
@@ -177,13 +190,29 @@ export function DiscoverMastersScreen() {
         }
 
         // 2. Search Query Filter
-        if (!searchQuery.trim()) return true;
-        const query = searchQuery.toLowerCase();
-        return (
-            master.full_name?.toLowerCase().includes(query) ||
-            master.city?.toLowerCase().includes(query) ||
-            master.country?.toLowerCase().includes(query)
-        );
+        let passesSearch = true;
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            passesSearch = !!(
+                master.full_name?.toLowerCase().includes(query) ||
+                master.city?.toLowerCase().includes(query) ||
+                master.country?.toLowerCase().includes(query)
+            );
+        }
+
+        // 3. Trending Tag Filter
+        let passesTag = true;
+        if (selectedTag) {
+            const t = selectedTag.toLowerCase();
+            // Match tag in bio, name, or specialties (assuming specialties isn't loaded here but bio/name might contain it)
+            passesTag = !!(
+                master.bio?.toLowerCase().includes(t) ||
+                master.full_name?.toLowerCase().includes(t) ||
+                (master as any).specialties?.toLowerCase().includes(t)
+            );
+        }
+
+        return passesSearch && passesTag;
     });
 
     // Sort: masters in user's city first
@@ -239,7 +268,7 @@ export function DiscoverMastersScreen() {
                         <MaterialIcons name="search" size={20} color={colors.textMuted} />
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Search by name or city..."
+                            placeholder="Search by name, specialty, or city..."
                             placeholderTextColor={colors.textMuted}
                             value={searchQuery}
                             onChangeText={setSearchQuery}
@@ -250,6 +279,34 @@ export function DiscoverMastersScreen() {
                             </TouchableOpacity>
                         )}
                     </Card>
+
+                    {/* Trending Tags */}
+                    <View style={styles.tagsContainer}>
+                        <View style={styles.tagsHeader}>
+                            <View style={styles.tagsIconWrap}>
+                                <MaterialIcons name="trending-up" size={12} color="#fff" />
+                            </View>
+                            <MerakiText style={styles.tagsTitle}>Popular</MerakiText>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagsScroll}>
+                            {trendingTags.map((tag, idx) => {
+                                const isSelected = selectedTag === tag;
+                                return (
+                                    <TouchableOpacity
+                                        key={tag}
+                                        onPress={() => setSelectedTag(isSelected ? '' : tag)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <View style={[styles.tagPill, isSelected ? styles.tagPillSelected : styles.tagPillUnselected]}>
+                                            <MerakiText style={[styles.tagText, isSelected ? styles.tagTextSelected : styles.tagTextUnselected]}>
+                                                {tag}
+                                            </MerakiText>
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
                 </View>
 
                 <ScrollView
@@ -378,6 +435,7 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.xs,
         borderWidth: 1,
         borderColor: 'rgba(0, 0, 0, 0.08)',
+        marginBottom: spacing.md,
     },
     searchInput: {
         flex: 1,
@@ -455,6 +513,17 @@ const styles = StyleSheet.create({
     },
     emptyTitle: { color: colors.text, marginBottom: spacing.sm },
     emptyText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+    tagsContainer: { marginBottom: spacing.sm },
+    tagsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 },
+    tagsIconWrap: { width: 24, height: 24, borderRadius: 6, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center' },
+    tagsTitle: { fontSize: 12, fontWeight: '700', color: colors.text, textTransform: 'uppercase', letterSpacing: 0.5 },
+    tagsScroll: { gap: 8, paddingRight: spacing.lg },
+    tagPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, flexDirection: 'row', alignItems: 'center' },
+    tagPillUnselected: { backgroundColor: colors.surface, borderColor: 'rgba(0, 0, 0, 0.08)' },
+    tagPillSelected: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
+    tagText: { fontSize: 13, fontWeight: '600' },
+    tagTextUnselected: { color: colors.textSecondary },
+    tagTextSelected: { color: '#FFFFFF' },
 });
 
 export default DiscoverMastersScreen;

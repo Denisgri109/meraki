@@ -971,6 +971,22 @@ export function ClientHomeScreen() {
                                     </LinearGradient>
                                     <MerakiText style={styles.quickActionLabel}>Shop</MerakiText>
                                 </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.quickAction}
+                                    onPress={() => navigation.navigate('Academy')}
+                                    activeOpacity={0.85}
+                                >
+                                    <LinearGradient
+                                        colors={['#D0E8FF', '#A0CFFF']}
+                                        style={styles.quickActionIcon}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <MaterialIcons name="school" size={22} color="#1E65A0" />
+                                    </LinearGradient>
+                                    <MerakiText style={styles.quickActionLabel}>Academy</MerakiText>
+                                </TouchableOpacity>
                             </View>
 
                             {/* Next Appointment */}

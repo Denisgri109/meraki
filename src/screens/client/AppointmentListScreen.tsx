@@ -457,8 +457,8 @@ export function AppointmentListScreen() {
         cancelled: { bg: '#FEE2E2', text: '#991B1B' },
         cancelled_free: { bg: '#FEE2E2', text: '#991B1B' },
         cancelled_charge: { bg: '#FEE2E2', text: '#991B1B' },
-        reschedule_pending: { bg: 'rgba(200, 160, 77, 0.15)', text: colors.primary },
-        no_show: { bg: '#F3F4F6', text: '#374151' },
+        reschedule_pending: { bg: '#EDE9FE', text: '#7C3AED' },
+        no_show: { bg: '#FFE4E6', text: '#E11D48' },
     };
 
     // Format status for display
@@ -471,7 +471,7 @@ export function AppointmentListScreen() {
             cancelled_free: 'Cancelled',
             cancelled_charge: 'Cancelled (Fee)',
             reschedule_pending: 'Reschedule Pending',
-            no_show: 'No Show',
+            no_show: 'No-Show',
         };
         return statusLabels[status] || status.charAt(0).toUpperCase() + status.slice(1);
     };
