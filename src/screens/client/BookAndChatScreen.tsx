@@ -95,7 +95,6 @@ const HIDDEN_SCREENS = [
     'ServiceDetail',
     'SelectDateTime',
     'BookingConfirm',
-    'PhotoConsultationRequest',
     'MasterDetail',
     'ConsultationWaiting',
 ];

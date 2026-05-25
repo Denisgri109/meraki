@@ -35,7 +35,6 @@ import {
     PointsHistoryScreen,
 } from '../screens/client';
 
-import PhotoConsultationRequestScreen from '../screens/client/PhotoConsultationRequestScreen';
 import { ShopScreen, ProductDetailScreen, CartScreen, CheckoutScreen } from '../screens/shop';
 import { ChatListScreen } from '../screens/chat';
 import {
@@ -70,7 +69,6 @@ export type HomeStackParamList = {
     ServiceDetail: { serviceId: string };
 
     DiscoverMasters: undefined;
-    PhotoConsultationRequest: { masterId?: string } | undefined;
     SelectDateTime: { serviceId: string; masterId: string };
     BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
 };
@@ -101,7 +99,6 @@ function HomeStackNavigator() {
             <HomeStack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
 
             <HomeStack.Screen name="DiscoverMasters" component={DiscoverMastersScreen} />
-            <HomeStack.Screen name="PhotoConsultationRequest" component={PhotoConsultationRequestScreen} />
             <HomeStack.Screen name="SelectDateTime" component={SelectDateTimeScreen} />
             <HomeStack.Screen name="BookingConfirm" component={BookingConfirmScreen} />
         </HomeStack.Navigator>
@@ -319,7 +316,6 @@ function ClientTabsInner() {
                                 'ServiceDetail',
                                 'SelectDateTime',
                                 'BookingConfirm',
-                                'PhotoConsultationRequest',
                                 'MasterDetail',
                                 'ConsultationWaiting',
                             ];
