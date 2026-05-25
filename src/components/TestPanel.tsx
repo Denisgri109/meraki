@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { colors } from '../theme';
+import { scheduleLocalNotification, NotificationData } from '../lib/notifications';
 
 // ─── Test accounts whitelist ──────────────────────────────────────────────
 const TEST_ACCOUNTS: ReadonlyArray<{ email: string; label: string; short: string; id: string }> = [
@@ -72,6 +73,52 @@ interface SeedAction {
     params?: Record<string, unknown>;
     destructive?: boolean;
 }
+
+interface NotificationScenario {
+    id: 'appointment_reminder' | 'confirmation_request' | 'message' | 'promotion' | 'aftercare' | 'consultation_response';
+    label: string;
+    description: string;
+    icon: keyof typeof MaterialIcons.glyphMap;
+}
+
+const NOTIFICATION_SCENARIOS: NotificationScenario[] = [
+    {
+        id: 'appointment_reminder',
+        label: 'Appointment Reminder',
+        description: 'Simulates a reminder notification. Deep links to booking details.',
+        icon: 'notifications-active',
+    },
+    {
+        id: 'confirmation_request',
+        label: 'Confirmation Request',
+        description: 'Simulates a confirmation request. Deep links to booking details.',
+        icon: 'verified-user',
+    },
+    {
+        id: 'message',
+        label: 'New Chat Message',
+        description: 'Simulates a chat message notification. Deep links to chat thread.',
+        icon: 'chat',
+    },
+    {
+        id: 'aftercare',
+        label: 'Aftercare Campaign',
+        description: 'Simulates an aftercare alert. Deep links to Master details page.',
+        icon: 'favorite',
+    },
+    {
+        id: 'consultation_response',
+        label: 'Consultation Response',
+        description: 'Simulates a style consultation update. Deep links to Bookings tab.',
+        icon: 'rate-review',
+    },
+    {
+        id: 'promotion',
+        label: 'Promotional Offer',
+        description: 'Simulates a marketing/promotion notification. Deep links to Shop.',
+        icon: 'local-offer',
+    },
+];
 
 const SEED_ACTIONS: SeedAction[] = [
     // ═══════════════════════════════════════════════════════════════════
@@ -193,6 +240,7 @@ export function TestPanel() {
     const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
     const [pendingAccount, setPendingAccount] = useState<string | null>(null);
     const [expandedCategory, setExpandedCategory] = useState<string | null>('Appointments');
+    const [notificationsExpanded, setNotificationsExpanded] = useState(false);
     const [runningAction, setRunningAction] = useState<string | null>(null);
     const [results, setResults] = useState<SeedResult[]>([]);
     // Map of email -> cached password (loaded from AsyncStorage on mount).
@@ -288,6 +336,160 @@ export function TestPanel() {
 
     const pushResult = (r: Omit<SeedResult, 'at'>) => {
         setResults((prev) => [{ ...r, at: Date.now() }, ...prev].slice(0, 6));
+    };
+
+    const fetchNotificationTargetId = async (type: string): Promise<{ id: string; isFallback: boolean }> => {
+        try {
+            if (type === 'appointment_reminder' || type === 'confirmation_request') {
+                // 1. Check user's appointments
+                let { data } = await supabase
+                    .from('appointments')
+                    .select('id')
+                    .or(`client_id.eq.${user?.id},master_id.eq.${user?.id}`)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (data?.id) return { id: data.id, isFallback: false };
+
+                // 2. Check any appointments
+                const { data: anyApt } = await supabase
+                    .from('appointments')
+                    .select('id')
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (anyApt?.id) return { id: anyApt.id, isFallback: false };
+
+                return { id: '00000000-0000-0000-0000-000000000000', isFallback: true };
+            }
+            if (type === 'message') {
+                // 1. Check user's conversations
+                let { data } = await supabase
+                    .from('conversations')
+                    .select('id')
+                    .or(`client_id.eq.${user?.id},master_id.eq.${user?.id}`)
+                    .order('last_message_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (data?.id) return { id: data.id, isFallback: false };
+
+                // 2. Check any conversations
+                const { data: anyConvo } = await supabase
+                    .from('conversations')
+                    .select('id')
+                    .order('last_message_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (anyConvo?.id) return { id: anyConvo.id, isFallback: false };
+
+                return { id: '00000000-0000-0000-0000-000000000000', isFallback: true };
+            }
+            if (type === 'aftercare') {
+                // Check any master profile
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('is_master', true)
+                    .limit(1)
+                    .maybeSingle();
+                if (data?.id) return { id: data.id, isFallback: false };
+                return { id: 'aab4ab46-76d5-4a98-8487-2a6f1b8a2a1b', isFallback: true }; // daxyburn
+            }
+            if (type === 'consultation_response') {
+                // Check user's booking consultations
+                let { data } = await supabase
+                    .from('booking_consultations')
+                    .select('id')
+                    .eq('client_id', user?.id || '')
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (data?.id) return { id: data.id, isFallback: false };
+
+                // Check any booking consultations
+                const { data: anyConsult } = await supabase
+                    .from('booking_consultations')
+                    .select('id')
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (anyConsult?.id) return { id: anyConsult.id, isFallback: false };
+
+                return { id: '00000000-0000-0000-0000-000000000000', isFallback: true };
+            }
+        } catch (err) {
+            console.error('Error fetching target ID:', err);
+        }
+        return { id: '00000000-0000-0000-0000-000000000000', isFallback: true };
+    };
+
+    const simulateNotification = async (type: 'appointment_reminder' | 'confirmation_request' | 'message' | 'promotion' | 'aftercare' | 'consultation_response') => {
+        let title = '';
+        let body = '';
+        let dataPayload: NotificationData = { type };
+
+        if (type === 'promotion') {
+            title = '🎉 Special Promotion!';
+            body = 'Enjoy 20% off all hair styling products today. Tap to shop!';
+        } else {
+            const targetInfo = await fetchNotificationTargetId(type);
+            const id = targetInfo.id;
+            const isFallback = targetInfo.isFallback;
+
+            if (type === 'appointment_reminder') {
+                title = '📅 Appointment Reminder';
+                body = `Upcoming booking with Master Daxy tomorrow at 2:00 PM. ${isFallback ? '[Fallback ID]' : ''}`;
+                dataPayload.appointmentId = id;
+            } else if (type === 'confirmation_request') {
+                title = '⚠️ Confirmation Required';
+                body = `Please confirm your upcoming appointment to secure your slot. ${isFallback ? '[Fallback ID]' : ''}`;
+                dataPayload.appointmentId = id;
+            } else if (type === 'message') {
+                title = '💬 New Message from Daxy';
+                body = `Hey! Just wanted to confirm if we're still on for tomorrow. ${isFallback ? '[Fallback ID]' : ''}`;
+                dataPayload.conversationId = id;
+            } else if (type === 'aftercare') {
+                title = '💝 Style Aftercare Tips';
+                body = `Check out customized aftercare tips for your recent treatment. ${isFallback ? '[Fallback ID]' : ''}`;
+                dataPayload.masterId = id;
+            } else if (type === 'consultation_response') {
+                title = '✨ Consultation Approved';
+                body = `Your style consultation has been reviewed and approved. Tap to view notes. ${isFallback ? '[Fallback ID]' : ''}`;
+                dataPayload.consultationId = id;
+            }
+
+            if (isFallback) {
+                pushResult({
+                    ok: true,
+                    label: `Simulated ${type.replace('_', ' ')}`,
+                    message: 'Scheduled (1.5s delay). Note: Fallback ID used. Please run seeders first for working deep links.',
+                });
+            } else {
+                pushResult({
+                    ok: true,
+                    label: `Simulated ${type.replace('_', ' ')}`,
+                    message: `Scheduled successfully (1.5s delay) with ID: ${id.substring(0, 8)}...`,
+                });
+            }
+        }
+
+        if (type === 'promotion') {
+            pushResult({
+                ok: true,
+                label: 'Simulated promotion',
+                message: 'Scheduled successfully (1.5s delay). Will redirect to Shop tab.',
+            });
+        }
+
+        try {
+            await scheduleLocalNotification(title, body, dataPayload, 1.5);
+        } catch (err: any) {
+            pushResult({
+                ok: false,
+                label: `Failed to schedule ${type}`,
+                message: err.message || String(err),
+            });
+        }
     };
 
     // ─── Account switching ─────────────────────────────────────────────
@@ -761,6 +963,54 @@ export function TestPanel() {
                                     </View>
                                 );
                             })}
+
+                            {/* ── Notification Simulators ─────────────── */}
+                            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>NOTIFICATION SIMULATORS</Text>
+                            <Text style={styles.helperText}>
+                                Schedules local notifications mimicking production push payloads to test context deep-linking.
+                            </Text>
+
+                            <View style={styles.categoryBox}>
+                                <TouchableOpacity
+                                    onPress={() => setNotificationsExpanded(!notificationsExpanded)}
+                                    style={styles.categoryHeader}
+                                >
+                                    <Text style={styles.categoryTitle}>Notification Scenarios</Text>
+                                    <View style={styles.categoryRight}>
+                                        <Text style={styles.categoryCount}>{NOTIFICATION_SCENARIOS.length}</Text>
+                                        <MaterialIcons
+                                            name={notificationsExpanded ? 'expand-less' : 'expand-more'}
+                                            size={20}
+                                            color={colors.textMuted}
+                                        />
+                                    </View>
+                                </TouchableOpacity>
+                                {notificationsExpanded && (
+                                    <View>
+                                        {NOTIFICATION_SCENARIOS.map((act) => {
+                                            return (
+                                                <TouchableOpacity
+                                                    key={act.id}
+                                                    onPress={() => simulateNotification(act.id)}
+                                                    style={styles.scenarioRow}
+                                                >
+                                                    <View style={styles.scenarioIconBox}>
+                                                        <MaterialIcons
+                                                            name={act.icon}
+                                                            size={16}
+                                                            color="#6366F1"
+                                                        />
+                                                    </View>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={styles.scenarioLabel}>{act.label}</Text>
+                                                        <Text style={styles.scenarioDesc}>{act.description}</Text>
+                                                    </View>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+                                )}
+                            </View>
 
                             {/* ── Recent results ─────────────────────── */}
                             {results.length > 0 && (

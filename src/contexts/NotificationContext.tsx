@@ -167,22 +167,26 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
         if (!data?.type) return;
 
+        const appointmentId = data.appointmentId || data.appointment_id;
+        const conversationId = data.conversationId || data.conversation_id;
+        const masterId = data.masterId || data.master_id;
+
         switch (data.type) {
             case 'appointment_reminder':
             case 'confirmation_request':
-                if (data.appointmentId) {
+                if (appointmentId) {
                     navigation.navigate('Book', {
                         screen: 'AppointmentDetails',
-                        params: { appointmentId: data.appointmentId },
+                        params: { appointmentId },
                     });
                 }
                 break;
 
             case 'message':
-                if (data.conversationId) {
+                if (conversationId) {
                     navigation.navigate('Messages', {
                         screen: 'Chat',
-                        params: { conversationId: data.conversationId },
+                        params: { conversationId },
                     });
                 } else {
                     navigation.navigate('Messages');
@@ -194,8 +198,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
                 break;
 
             case 'aftercare':
-                if (data.masterId) {
-                    navigation.navigate('MasterDetail', { masterId: data.masterId });
+                if (masterId) {
+                    navigation.navigate('MasterDetail', { masterId });
                 }
                 break;
 

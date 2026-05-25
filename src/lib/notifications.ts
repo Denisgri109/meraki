@@ -18,9 +18,13 @@ Notifications.setNotificationHandler({
 export interface NotificationData {
     type: 'appointment_reminder' | 'confirmation_request' | 'message' | 'promotion' | 'aftercare' | 'consultation_response';
     appointmentId?: string;
+    appointment_id?: string;
     conversationId?: string;
+    conversation_id?: string;
     masterId?: string;
+    master_id?: string;
     consultationId?: string;
+    consultation_id?: string;
 }
 
 /**
