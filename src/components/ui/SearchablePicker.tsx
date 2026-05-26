@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.xs,
     },
     itemSelected: {
-        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+        backgroundColor: colors.inputBackground,
     },
     itemContent: {
         flex: 1,

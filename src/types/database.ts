@@ -2822,6 +2822,7 @@ export type Database = {
           is_verified: boolean | null
           latitude: number | null
           longitude: number | null
+          location_setup_completed: boolean | null
           loyalty_points: number | null
           master_status: string | null
           notification_preferences: Json | null
@@ -2833,6 +2834,8 @@ export type Database = {
           search_radius_km: number | null
           service_radius_km: number | null
           specialties: string[] | null
+          state: string | null
+          state_code: string | null
           stripe_connect_id: string | null
           stripe_connect_status: string | null
           stripe_customer_id: string | null
@@ -2863,6 +2866,7 @@ export type Database = {
           is_verified?: boolean | null
           latitude?: number | null
           longitude?: number | null
+          location_setup_completed?: boolean | null
           loyalty_points?: number | null
           master_status?: string | null
           notification_preferences?: Json | null
@@ -2874,6 +2878,8 @@ export type Database = {
           search_radius_km?: number | null
           service_radius_km?: number | null
           specialties?: string[] | null
+          state?: string | null
+          state_code?: string | null
           stripe_connect_id?: string | null
           stripe_connect_status?: string | null
           stripe_customer_id?: string | null
@@ -2904,6 +2910,7 @@ export type Database = {
           is_verified?: boolean | null
           latitude?: number | null
           longitude?: number | null
+          location_setup_completed?: boolean | null
           loyalty_points?: number | null
           master_status?: string | null
           notification_preferences?: Json | null
@@ -2915,6 +2922,8 @@ export type Database = {
           search_radius_km?: number | null
           service_radius_km?: number | null
           specialties?: string[] | null
+          state?: string | null
+          state_code?: string | null
           stripe_connect_id?: string | null
           stripe_connect_status?: string | null
           stripe_customer_id?: string | null

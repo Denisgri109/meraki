@@ -19,15 +19,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing, gradients } from '../../theme';
 
-// Haversine distance in km between two lat/lng points
-function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 type Master = {
     id: string;
     full_name: string;
@@ -64,12 +55,12 @@ export function DiscoverMastersScreen() {
         ['#2DD4BF', '#6EE7B7'],
     ];
 
-    // Use profile as fallback
+    // Use profile as fallback. Radius is now defined by country + state/region
+    // (city / lat-lng are no longer used for filtering).
     const [userCity, setUserCity] = useState<string | null>(profile?.city || null);
     const [userCountry, setUserCountry] = useState<string | null>(profile?.country || null);
-    const [userLat, setUserLat] = useState<number | null>((profile as any)?.latitude || null);
-    const [userLng, setUserLng] = useState<number | null>((profile as any)?.longitude || null);
-    const searchRadiusKm: number = (profile as any)?.search_radius_km ?? 50;
+    const userState: string | null = (profile as any)?.state || null;
+    const userStateCode: string | null = (profile as any)?.state_code || null;
 
     useEffect(() => {
         const init = async () => {
@@ -95,8 +86,6 @@ export function DiscoverMastersScreen() {
                 if (address?.country) {
                     setUserCountry(address.country);
                 }
-                setUserLat(location.coords.latitude);
-                setUserLng(location.coords.longitude);
             }
         } catch (error) {
             console.log('Location detection failed:', error);
@@ -115,6 +104,8 @@ export function DiscoverMastersScreen() {
                     avatar_url,
                     city,
                     country,
+                    state,
+                    state_code,
                     latitude,
                     longitude,
                     bio
@@ -173,20 +164,25 @@ export function DiscoverMastersScreen() {
     }, []);
 
     const filteredMasters = masters.filter((master) => {
-        // 1. Country & Radius Filter (Strict)
-        if (userCountry) {
-            if (!master.country) return false;
-            const uCountry = userCountry.toLowerCase().trim();
-            const mCountry = master.country.toLowerCase().trim();
-            if (uCountry !== mCountry) return false;
+        // 1. Country + State/Region Filter (Strict)
+        if (!userCountry) return false; // must have a known user country
+        if (!master.country) return false;
+        const uCountry = userCountry.toLowerCase().trim();
+        const mCountry = master.country.toLowerCase().trim();
+        if (uCountry !== mCountry) return false;
 
-            if (searchRadiusKm > 0 && userLat && userLng && master.latitude && master.longitude) {
-                const dist = haversineDistanceKm(userLat, userLng, master.latitude, master.longitude);
-                if (dist > searchRadiusKm) return false;
+        // Same state / region scope when the user has one set.
+        const uStateCode = (userStateCode || '').toLowerCase().trim();
+        const uStateName = (userState || '').toLowerCase().trim();
+        if (uStateCode || uStateName) {
+            const mStateCode = ((master as any).state_code || '').toLowerCase().trim();
+            const mStateName = ((master as any).state || '').toLowerCase().trim();
+            if (!mStateCode && !mStateName) return false;
+            if (uStateCode && mStateCode) {
+                if (uStateCode !== mStateCode) return false;
+            } else if (uStateName && mStateName) {
+                if (uStateName !== mStateName) return false;
             }
-        } else {
-            // Must have a known user country to display masters nearby
-            return false;
         }
 
         // 2. Search Query Filter
@@ -361,11 +357,17 @@ export function DiscoverMastersScreen() {
                                                     ]}>
                                                         {master.city}{master.country ? `, ${master.country}` : ''}
                                                     </MerakiText>
-                                                    {userCity?.toLowerCase() === master.city?.toLowerCase() && (
+                                                    {(master as any).state ? (
+                                                        <View style={styles.distanceBadge}>
+                                                            <MerakiText style={styles.distanceBadgeText}>
+                                                                {(master as any).state}
+                                                            </MerakiText>
+                                                        </View>
+                                                    ) : userCity?.toLowerCase() === master.city?.toLowerCase() ? (
                                                         <View style={styles.nearbyBadge}>
                                                             <MerakiText style={styles.nearbyBadgeText}>Nearby</MerakiText>
                                                         </View>
-                                                    )}
+                                                    ) : null}
                                                 </View>
                                             )}
                                             <View style={styles.statsRow}>
@@ -484,6 +486,16 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(200, 160, 77, 0.3)',
     },
     nearbyBadgeText: { fontSize: 10, color: colors.primary, fontWeight: '700', textTransform: 'uppercase' },
+    distanceBadge: {
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+        marginLeft: spacing.sm,
+        borderWidth: 1,
+        borderColor: 'rgba(139, 92, 246, 0.2)',
+    },
+    distanceBadgeText: { fontSize: 10, color: '#7C3AED', fontWeight: '700' },
     statsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     serviceBadge: {
         backgroundColor: 'rgba(0, 0, 0, 0.04)',

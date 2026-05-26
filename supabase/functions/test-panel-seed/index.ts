@@ -572,6 +572,29 @@ Deno.serve(async (req: Request) => {
                 return jsonResponse({ ok: true, action, summary, total_deleted: totalDeleted });
             }
 
+            case "reset_location": {
+                // Reset location fields for a specific test account so the
+                // location gate modal re-triggers on next load.
+                const targetId = pickActor(params.target_id, user.id);
+                const { data, error } = await admin
+                    .from("profiles")
+                    .update({
+                        country: null,
+                        country_code: null,
+                        state: null,
+                        state_code: null,
+                        city: null,
+                        latitude: null,
+                        longitude: null,
+                        location_setup_completed: false,
+                    })
+                    .eq("id", targetId)
+                    .select("id, country, state, city, location_setup_completed")
+                    .single();
+                if (error) throw error;
+                return jsonResponse({ ok: true, action, row: data });
+            }
+
             default:
                 return jsonResponse({ error: `Unknown action: ${action}` }, 400);
         }

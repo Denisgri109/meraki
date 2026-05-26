@@ -55,15 +55,6 @@ interface FeaturedMaster {
     longitude: number | null;
 }
 
-// Haversine distance in km between two lat/lng points
-function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 interface Master {
     id: string;
     full_name: string;
@@ -135,9 +126,8 @@ export function ClientHomeScreen() {
     const [courseResults, setCourseResults] = useState<SearchCourseResult[]>([]);
 
     const [userCountry, setUserCountry] = useState<string | null>(profile?.country || null);
-    const [userLat, setUserLat] = useState<number | null>((profile as any)?.latitude || null);
-    const [userLng, setUserLng] = useState<number | null>((profile as any)?.longitude || null);
-    const searchRadiusKm: number = (profile as any)?.search_radius_km ?? 50;
+    const userState: string | null = (profile as any)?.state || null;
+    const userStateCode: string | null = (profile as any)?.state_code || null;
     const [searchLoading, setSearchLoading] = useState(false);
     const [locationReady, setLocationReady] = useState(false);
 
@@ -146,10 +136,24 @@ export function ClientHomeScreen() {
         const isSessionValid = await checkSession();
         if (!isSessionValid) { setLoading(false); setRefreshing(false); return; }
 
-        // Use passed-in location (fresh from detectUserLocation) over stale state
+        // Use passed-in location (fresh from detectUserLocation) over stale state.
+        // Radius is now defined by country + state/region — city/lat-lng are not used.
         const effectiveCountry = loc?.country || profile?.country || userCountry;
-        const effectiveLat = loc?.lat ?? userLat;
-        const effectiveLng = loc?.lng ?? userLng;
+        const effState = (userState || '').toLowerCase().trim();
+        const effStateCode = (userStateCode || '').toLowerCase().trim();
+        const matchesUserRegion = (m: { country: string | null; state?: string | null; state_code?: string | null }) => {
+            if (!effectiveCountry) return false;
+            if (!m.country || m.country.toLowerCase().trim() !== effectiveCountry.toLowerCase().trim()) return false;
+            if (effStateCode || effState) {
+                const ms = (m.state || '').toLowerCase().trim();
+                const msc = (m.state_code || '').toLowerCase().trim();
+                if (!ms && !msc) return false;
+                if (effStateCode && msc) return effStateCode === msc;
+                if (effState && ms) return effState === ms;
+                return false;
+            }
+            return true;
+        };
 
         try {
             const now = new Date().toISOString();
@@ -179,33 +183,25 @@ export function ClientHomeScreen() {
             setTotalVisits(visitCount || 0);
             setRecentOrders((orders as any) || []);
 
-            // Fetch featured masters with their lat/lng for distance filtering
-            // Exclude the logged-in user so owners/masters never see themselves in the client view
-            const mastersPromise = (supabase as any).from('profiles').select('id, full_name, avatar_url, bio, country, latitude, longitude').or('is_master.eq.true,role.eq.master,role.eq.owner').neq('id', user.id).limit(50);
+            // Fetch featured masters with their state/region info for filtering.
+            // Exclude the logged-in user so owners/masters never see themselves in the client view.
+            const mastersPromise = (supabase as any).from('profiles').select('id, full_name, avatar_url, bio, country, state, state_code, latitude, longitude').or('is_master.eq.true,role.eq.master,role.eq.owner').neq('id', user.id).limit(50);
             const { data: masters } = await safeSupabaseFetch(mastersPromise, { timeout: 5000 });
 
-            // Filter masters by country + radius
+            // Filter masters by country + state/region
             let filteredMasters = (masters as FeaturedMaster[]) || [];
             if (effectiveCountry) {
-                const uCountry = effectiveCountry.toLowerCase().trim();
-                filteredMasters = filteredMasters.filter(m => {
-                    if (!m.country || m.country.toLowerCase().trim() !== uCountry) return false;
-                    if (searchRadiusKm > 0 && effectiveLat && effectiveLng && m.latitude && m.longitude) {
-                        const dist = haversineDistanceKm(effectiveLat, effectiveLng, m.latitude, m.longitude);
-                        if (dist > searchRadiusKm) return false;
-                    }
-                    return true;
-                });
+                filteredMasters = filteredMasters.filter(m => matchesUserRegion(m as any));
             } else {
                 // No country detected at all — show nothing rather than unfiltered data
                 filteredMasters = [];
             }
             setFeaturedMasters(filteredMasters);
 
-            // Fetch services with master country info for filtering
+            // Fetch services with master country + state info for filtering
             const servicesPromise = (supabase as any)
                 .from('services')
-                .select('*, master_services!inner(is_available, master_id, master:profiles!master_services_master_id_fkey(country, latitude, longitude))')
+                .select('*, master_services!inner(is_available, master_id, master:profiles!master_services_master_id_fkey(country, state, state_code, latitude, longitude))')
                 .eq('is_active', true)
                 .eq('master_services.is_available', true)
                 .order('name')
@@ -221,19 +217,13 @@ export function ClientHomeScreen() {
                 return hasOtherMaster;
             });
             if (effectiveCountry) {
-                const uCountry = effectiveCountry.toLowerCase().trim();
                 filteredServices = filteredServices.filter(service => {
                     const masterServices = service.master_services || [];
                     return masterServices.some((ms: any) => {
                         if (ms.master_id === user.id) return false; // Skip self
                         const masterProfile = ms.master;
-                        if (!masterProfile?.country) return false;
-                        if (masterProfile.country.toLowerCase().trim() !== uCountry) return false;
-                        if (searchRadiusKm > 0 && effectiveLat && effectiveLng && masterProfile.latitude && masterProfile.longitude) {
-                            const dist = haversineDistanceKm(effectiveLat, effectiveLng, masterProfile.latitude, masterProfile.longitude);
-                            if (dist > searchRadiusKm) return false;
-                        }
-                        return true;
+                        if (!masterProfile) return false;
+                        return matchesUserRegion(masterProfile);
                     });
                 });
             } else {
@@ -342,8 +332,6 @@ export function ClientHomeScreen() {
     const detectUserLocationInBackground = async () => {
         // Sync profile values into state
         if (profile?.country && !userCountry) setUserCountry(profile.country);
-        if ((profile as any)?.latitude) setUserLat((profile as any).latitude);
-        if ((profile as any)?.longitude) setUserLng((profile as any).longitude);
         try {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status === 'granted') {
@@ -355,9 +343,9 @@ export function ClientHomeScreen() {
                 if (address?.country) {
                     setUserCountry(address.country);
                 }
-                setUserLat(location.coords.latitude);
-                setUserLng(location.coords.longitude);
-                // Return the GPS-resolved location for optional re-fetch
+                // Return the GPS-resolved location for optional re-fetch.
+                // Lat/lng are returned for backward compat with fetchHomeData's
+                // signature but no longer used for filtering.
                 return {
                     country: address?.country || profile?.country || null,
                     lat: location.coords.latitude,

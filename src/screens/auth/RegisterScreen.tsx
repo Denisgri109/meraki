@@ -14,7 +14,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import { supabase } from '../../lib/supabase';
-import { Button, Input, MerakiText } from '../../components/ui';
+import { Button, Input, MerakiText, SearchablePicker } from '../../components/ui';
+import { getAllCountries, getCitiesOfCountry, type Country, type City } from '../../utils/locationApi';
 import { colors, spacing, layout } from '../../theme';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -58,7 +59,28 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
         email?: string;
         password?: string;
         confirmPassword?: string;
+        country?: string;
+        city?: string;
     }>({});
+
+    // Location fields
+    const [selectedCountry, setSelectedCountry] = useState('');
+    const [selectedCountryCode, setSelectedCountryCode] = useState('');
+    const [selectedCity, setSelectedCity] = useState('');
+    const [countries, setCountries] = useState<Country[]>([]);
+    const [cities, setCities] = useState<City[]>([]);
+    const [loadingCountries, setLoadingCountries] = useState(true);
+    const [loadingCities, setLoadingCities] = useState(false);
+    const [showCountryPicker, setShowCountryPicker] = useState(false);
+    const [showCityPicker, setShowCityPicker] = useState(false);
+
+    // Load countries on mount
+    useState(() => {
+        getAllCountries().then((data) => {
+            setCountries(data);
+            setLoadingCountries(false);
+        }).catch(() => setLoadingCountries(false));
+    });
 
     const validate = () => {
         const newErrors: typeof errors = {};
@@ -68,6 +90,8 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             const phoneValidation = validateIrishPhone(phone);
             if (!phoneValidation.valid) newErrors.phone = phoneValidation.error;
         }
+        if (!selectedCountry.trim()) newErrors.country = 'Please select your country';
+        if (!selectedCity.trim()) newErrors.city = 'Please select your city';
         const emailValidation = validateEmail(email);
         if (!emailValidation.valid) newErrors.email = emailValidation.error;
         const passwordValidation = validatePassword(password);
@@ -109,6 +133,19 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
             );
 
             if (signUpError) throw signUpError;
+
+            // Save location to profile
+            const { data: { user: newUser } } = await supabase.auth.getUser();
+            if (newUser) {
+                await supabase
+                    .from('profiles')
+                    .update({
+                        country: selectedCountry,
+                        country_code: selectedCountryCode,
+                        city: selectedCity,
+                    })
+                    .eq('id', newUser.id);
+            }
 
             const { error: otpError } = await supabase.auth.resend({
                 type: 'signup',
@@ -244,6 +281,37 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                             </View>
 
                             <View style={styles.inputGroup}>
+                                <MerakiText style={styles.inputLabel}>COUNTRY</MerakiText>
+                                <TouchableOpacity
+                                    style={[styles.locationField, errors.country ? styles.locationFieldError : null]}
+                                    onPress={() => setShowCountryPicker(true)}
+                                >
+                                    <MaterialIcons name="location-on" size={20} color="rgba(0, 0, 0, 0.25)" />
+                                    <MerakiText style={[styles.locationFieldText, !selectedCountry && styles.locationFieldPlaceholder]}>
+                                        {selectedCountry || (loadingCountries ? 'Loading...' : 'Select your country')}
+                                    </MerakiText>
+                                    <MaterialIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.25)" />
+                                </TouchableOpacity>
+                                {errors.country && <MerakiText style={styles.fieldError}>{errors.country}</MerakiText>}
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <MerakiText style={styles.inputLabel}>CITY</MerakiText>
+                                <TouchableOpacity
+                                    style={[styles.locationField, errors.city ? styles.locationFieldError : null, !selectedCountry && styles.locationFieldDisabled]}
+                                    onPress={() => { if (selectedCountry && cities.length > 0) setShowCityPicker(true); }}
+                                    disabled={!selectedCountry}
+                                >
+                                    <MaterialIcons name="location-city" size={20} color="rgba(0, 0, 0, 0.25)" />
+                                    <MerakiText style={[styles.locationFieldText, !selectedCity && styles.locationFieldPlaceholder]}>
+                                        {selectedCity || (!selectedCountry ? 'Select country first' : loadingCities ? 'Loading...' : 'Select your city')}
+                                    </MerakiText>
+                                    <MaterialIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.25)" />
+                                </TouchableOpacity>
+                                {errors.city && <MerakiText style={styles.fieldError}>{errors.city}</MerakiText>}
+                            </View>
+
+                            <View style={styles.inputGroup}>
                                 <MerakiText style={styles.inputLabel}>EMAIL ADDRESS</MerakiText>
                                 <Input
                                     value={email}
@@ -355,6 +423,41 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                     </ScrollView>
                 </KeyboardAvoidingView>
             </SafeAreaView>
+            {/* Country Picker */}
+            <SearchablePicker
+                visible={showCountryPicker}
+                title="Select Country"
+                items={countries.map(c => ({ id: c.id, name: c.name, subtitle: c.iso2 }))}
+                onSelect={(item) => {
+                    const found = countries.find(c => c.id === item.id);
+                    if (found) {
+                        setSelectedCountry(found.name);
+                        setSelectedCountryCode(found.iso2);
+                        setSelectedCity('');
+                        setErrors(prev => ({ ...prev, country: undefined }));
+                        setLoadingCities(true);
+                        getCitiesOfCountry(found.iso2).then(data => {
+                            setCities(data);
+                            setLoadingCities(false);
+                        }).catch(() => setLoadingCities(false));
+                    }
+                    setShowCountryPicker(false);
+                }}
+                onClose={() => setShowCountryPicker(false)}
+            />
+
+            {/* City Picker */}
+            <SearchablePicker
+                visible={showCityPicker}
+                title="Select City"
+                items={cities.map(c => ({ id: c.id, name: c.name }))}
+                onSelect={(item) => {
+                    setSelectedCity(item.name);
+                    setErrors(prev => ({ ...prev, city: undefined }));
+                    setShowCityPicker(false);
+                }}
+                onClose={() => setShowCityPicker(false)}
+            />
         </View>
     );
 }
@@ -466,6 +569,37 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         letterSpacing: 1.5,
         textTransform: 'uppercase',
+    },
+    locationField: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.06)',
+        borderRadius: layout.borderRadius.xl,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        gap: 10,
+    },
+    locationFieldError: {
+        borderColor: '#FCA5A5',
+    },
+    locationFieldDisabled: {
+        opacity: 0.5,
+    },
+    locationFieldText: {
+        flex: 1,
+        fontSize: 14,
+        color: colors.text,
+    },
+    locationFieldPlaceholder: {
+        color: 'rgba(0, 0, 0, 0.25)',
+    },
+    fieldError: {
+        fontSize: 12,
+        color: '#EF4444',
+        marginTop: 4,
+        marginLeft: 16,
     },
     strengthContainer: {
         marginTop: -12,

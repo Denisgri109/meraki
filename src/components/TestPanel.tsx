@@ -217,6 +217,14 @@ const SEED_ACTIONS: SeedAction[] = [
     { id: 'order-paid', label: 'Order — Paid', description: '2× first product, paid', icon: 'paid', category: 'Shop', action: 'create_order', params: { status: 'paid', quantity: 2 } },
 
     // ═══════════════════════════════════════════════════════════════════
+    // Location
+    // ═══════════════════════════════════════════════════════════════════
+    { id: 'reset-location-self',   label: 'Reset My Location',       description: 'Clear country, state, city & location_setup_completed for current account. Re-triggers location gate.', icon: 'location-off', category: 'Location', action: 'reset_location', params: {} },
+    { id: 'reset-location-client', label: 'Reset Client Location',   description: 'Clear location for testclient@gmail.com.',                                                              icon: 'location-off', category: 'Location', action: 'reset_location', params: { target_id: '3f19e0f2-7e0b-4dc2-8a8e-3ac1939d9f1f' } },
+    { id: 'reset-location-owner',  label: 'Reset Owner Location',    description: 'Clear location for test@gmail.com.',                                                                     icon: 'location-off', category: 'Location', action: 'reset_location', params: { target_id: '744b77f1-e94f-4918-9c04-3b9f47288377' } },
+    { id: 'reset-location-master', label: 'Reset Master Location',   description: 'Clear location for daxyburn@gmail.com.',                                                                 icon: 'location-off', category: 'Location', action: 'reset_location', params: { target_id: 'aab4ab46-76d5-4a98-8487-2a6f1b8a2a1b' } },
+
+    // ═══════════════════════════════════════════════════════════════════
     // Cleanup
     // ═══════════════════════════════════════════════════════════════════
     { id: 'clear-all', label: 'Clear ALL Test Data', description: 'Delete appointments, consults, chats, orders, schedule, loyalty, supplies for 3 test accounts.', icon: 'delete-forever', category: 'Cleanup', action: 'clear_test_data', destructive: true },

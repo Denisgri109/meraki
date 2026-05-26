@@ -99,14 +99,18 @@ export function useAutoLocation() {
                     }
                 }
 
-                // 4. Check if city is missing
-                if (!profile.city) {
+                // 4. Gate the modal until the user has finished location setup
+                //    (country must be set AND they've been through the modal once,
+                //    so state/region is captured for radius filtering).
+                const setupDone = (profile as any).location_setup_completed === true;
+                if (!profile.country || !setupDone) {
                     setIsCityMissing(true);
                 }
             } catch (err) {
                 console.error('Auto-location detection error:', err);
-                // Still check city even if detection fails
-                if (!profile.city) {
+                // Still gate even if detection fails
+                const setupDone = (profile as any).location_setup_completed === true;
+                if (!profile.country || !setupDone) {
                     setIsCityMissing(true);
                 }
             }

@@ -13,21 +13,21 @@ import {
     ActivityIndicator,
     Dimensions,
     TextInput,
+    Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { SearchablePicker } from './ui';
-import { Card, MerakiText } from './ui';
-import { colors, spacing, gradients } from '../theme';
+import { colors, spacing } from '../theme';
 import {
     getAllCountries,
+    getStatesOfCountry,
     type Country,
+    type State,
 } from '../utils/locationApi';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface CitySelectionModalProps {
     visible: boolean;
@@ -47,18 +47,25 @@ export function CitySelectionModal({
     const { profile, refreshProfile } = useAuth();
     const [selectedCity, setSelectedCity] = useState('');
     const [countries, setCountries] = useState<Country[]>([]);
+    const [states, setStates] = useState<State[]>([]);
     const [loadingCountries, setLoadingCountries] = useState(false);
+    const [loadingStates, setLoadingStates] = useState(false);
     const [saving, setSaving] = useState(false);
     const [countryPickerVisible, setCountryPickerVisible] = useState(false);
+    const [statePickerVisible, setStatePickerVisible] = useState(false);
 
     // Local state for country selection (in case user wants to change)
     const [currentCountry, setCurrentCountry] = useState(detectedCountry);
     const [currentCountryCode, setCurrentCountryCode] = useState(detectedCountryCode);
+    const [currentState, setCurrentState] = useState('');
+    const [currentStateCode, setCurrentStateCode] = useState('');
 
     useEffect(() => {
         if (visible) {
             setCurrentCountry(detectedCountry);
             setCurrentCountryCode(detectedCountryCode);
+            setCurrentState('');
+            setCurrentStateCode('');
             setSelectedCity('');
 
             // Load countries
@@ -67,6 +74,25 @@ export function CitySelectionModal({
             }
         }
     }, [visible, detectedCountry, detectedCountryCode]);
+
+    // Load states whenever country code changes
+    useEffect(() => {
+        if (!currentCountryCode) {
+            setStates([]);
+            return;
+        }
+        let cancelled = false;
+        setLoadingStates(true);
+        getStatesOfCountry(currentCountryCode)
+            .then(data => {
+                if (!cancelled) setStates(data);
+            })
+            .catch(e => console.error('Failed to load states:', e))
+            .finally(() => {
+                if (!cancelled) setLoadingStates(false);
+            });
+        return () => { cancelled = true; };
+    }, [currentCountryCode]);
 
     const loadCountries = async () => {
         setLoadingCountries(true);
@@ -85,27 +111,40 @@ export function CitySelectionModal({
         if (found) {
             setCurrentCountry(found.name);
             setCurrentCountryCode(found.iso2);
+            setCurrentState('');
+            setCurrentStateCode('');
             setSelectedCity('');
         }
     };
 
+    const handleStateSelect = (item: { id: string | number; name: string }) => {
+        const found = states.find(s => s.id === item.id);
+        if (found) {
+            setCurrentState(found.name);
+            setCurrentStateCode(found.iso2);
+        }
+    };
+
+    const hasStates = states.length > 0;
+
     const handleSave = async () => {
-        if (!selectedCity.trim() || !profile?.id) return;
+        if (!profile?.id) return;
+        if (!currentCountryCode) return;
+        // If states exist for this country, require state selection
+        if (hasStates && !currentState) return;
 
         setSaving(true);
         try {
-            const updateData: Record<string, string> = {
-                city: selectedCity.trim(),
+            const updateData: Record<string, string | boolean | null> = {
+                city: selectedCity.trim() || null,
+                location_setup_completed: true,
                 updated_at: new Date().toISOString(),
             };
 
-            // Also update country if it was changed
-            if (currentCountry) {
-                updateData.country = currentCountry;
-            }
-            if (currentCountryCode) {
-                updateData.country_code = currentCountryCode;
-            }
+            if (currentCountry) updateData.country = currentCountry;
+            if (currentCountryCode) updateData.country_code = currentCountryCode;
+            updateData.state = currentState || null;
+            updateData.state_code = currentStateCode || null;
 
             const { error } = await supabase
                 .from('profiles')
@@ -123,10 +162,20 @@ export function CitySelectionModal({
         }
     };
 
+    const canSave =
+        !!currentCountryCode &&
+        (!hasStates || !!currentState);
+
     const countryPickerItems = countries.map(c => ({
         id: c.id,
         name: c.name,
         subtitle: c.iso2,
+    }));
+
+    const statePickerItems = states.map(s => ({
+        id: s.id,
+        name: s.name,
+        subtitle: s.iso2,
     }));
 
     return (
@@ -135,104 +184,102 @@ export function CitySelectionModal({
                 visible={visible}
                 transparent
                 animationType="fade"
-                onRequestClose={onDismiss}
+                onRequestClose={() => { /* non-dismissable */ }}
             >
                 <View style={styles.overlay}>
-                    <View style={styles.container}>
-                        <LinearGradient
-                            colors={['rgba(30, 20, 50, 0.98)', 'rgba(18, 10, 35, 0.99)']}
-                            style={styles.gradient}
-                        >
-                            {/* Header Icon */}
-                            <View style={styles.iconContainer}>
-                                <LinearGradient
-                                    colors={[gradients.primary[0], gradients.primary[1]]}
-                                    style={styles.iconGradient}
-                                >
-                                    <MaterialIcons name="location-on" size={28} color="#fff" />
-                                </LinearGradient>
-                            </View>
+                    <View style={styles.card}>
+                        {/* Decorative top accent bar */}
+                        <View style={styles.accentBar} />
 
-                            {/* Title */}
-                            <MerakiText variant="h2" style={styles.title}>
-                                Select Your City
-                            </MerakiText>
-                            <MerakiText style={styles.subtitle}>
-                                Please select your city to enable location-based features like nearby masters and services.
-                            </MerakiText>
+                        {/* Icon */}
+                        <View style={styles.iconCircle}>
+                            <MaterialIcons name="location-on" size={26} color={colors.white} />
+                        </View>
 
-                            {/* Country Display / Selector */}
+                        {/* Title & subtitle */}
+                        <Text style={styles.title}>Set your location</Text>
+                        <Text style={styles.subtitle}>
+                            Help us connect you with nearby professionals and services.
+                        </Text>
+
+                        {/* Country field */}
+                        <View style={styles.fieldGroup}>
+                            <Text style={styles.fieldLabel}>Country</Text>
+                            <TouchableOpacity
+                                style={styles.inputRow}
+                                onPress={() => setCountryPickerVisible(true)}
+                                activeOpacity={0.7}
+                            >
+                                <MaterialIcons name="flag" size={18} color={colors.textMuted} style={styles.inputIcon} />
+                                <Text style={currentCountry ? styles.inputValue : styles.inputPlaceholder} numberOfLines={1}>
+                                    {currentCountry || 'Select your country'}
+                                </Text>
+                                <MaterialIcons name="chevron-right" size={20} color={colors.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* State field — only when the country has states */}
+                        {(loadingStates || hasStates) && (
                             <View style={styles.fieldGroup}>
-                                <MerakiText style={styles.fieldLabel}>Country</MerakiText>
+                                <Text style={styles.fieldLabel}>State / Region</Text>
                                 <TouchableOpacity
-                                    onPress={() => setCountryPickerVisible(true)}
-                                >
-                                    <Card variant="glass" style={styles.selectorCard}>
-                                        <View style={styles.selectorRow}>
-                                            <MaterialIcons name="flag" size={18} color={colors.primary} />
-                                            <MerakiText style={currentCountry ? styles.selectorText : styles.selectorPlaceholder}>
-                                                {currentCountry || 'Select your country'}
-                                            </MerakiText>
-                                        </View>
-                                        <MaterialIcons name="expand-more" size={20} color={colors.textMuted} />
-                                    </Card>
-                                </TouchableOpacity>
-                            </View>
-
-                            {/* City Input */}
-                            <View style={styles.fieldGroup}>
-                                <MerakiText style={styles.fieldLabel}>City *</MerakiText>
-                                <Card variant="glass" style={[
-                                    styles.selectorCard,
-                                    !currentCountryCode && styles.selectorDisabled,
-                                    { paddingVertical: 0 }
-                                ]}>
-                                    <View style={[styles.selectorRow, { paddingVertical: spacing.sm }]}>
-                                        <MaterialIcons name="location-city" size={18} color={colors.primary} />
-                                        <TextInput
-                                            style={[styles.selectorText, { padding: 0 }]}
-                                            value={selectedCity}
-                                            onChangeText={setSelectedCity}
-                                            placeholder={currentCountryCode ? 'Enter your city name' : 'Select country first'}
-                                            placeholderTextColor={colors.textMuted}
-                                            editable={!!currentCountryCode}
-                                        />
-                                    </View>
-                                </Card>
-                            </View>
-
-                            {/* Buttons */}
-                            <View style={styles.buttonContainer}>
-                                <TouchableOpacity
-                                    style={[styles.saveButton, !selectedCity && styles.saveButtonDisabled]}
-                                    onPress={handleSave}
-                                    disabled={!selectedCity || saving}
-                                    activeOpacity={0.8}
-                                >
-                                    <LinearGradient
-                                        colors={selectedCity
-                                            ? [gradients.primary[0], gradients.primary[1]]
-                                            : ['rgba(100,100,100,0.3)', 'rgba(80,80,80,0.3)']
-                                        }
-                                        style={styles.saveButtonGradient}
-                                    >
-                                        {saving ? (
-                                            <ActivityIndicator size="small" color="#fff" />
-                                        ) : (
-                                            <MerakiText style={styles.saveButtonText}>Save City</MerakiText>
-                                        )}
-                                    </LinearGradient>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={styles.skipButton}
-                                    onPress={onDismiss}
+                                    style={[
+                                        styles.inputRow,
+                                        (loadingStates || !hasStates) && styles.inputDisabled,
+                                    ]}
+                                    onPress={() => hasStates && setStatePickerVisible(true)}
                                     activeOpacity={0.7}
+                                    disabled={loadingStates || !hasStates}
                                 >
-                                    <MerakiText style={styles.skipButtonText}>Skip for now</MerakiText>
+                                    <MaterialIcons name="map" size={18} color={colors.textMuted} style={styles.inputIcon} />
+                                    <Text style={currentState ? styles.inputValue : styles.inputPlaceholder} numberOfLines={1}>
+                                        {loadingStates
+                                            ? 'Loading states…'
+                                            : currentState || 'Select your state / region'}
+                                    </Text>
+                                    {loadingStates ? (
+                                        <ActivityIndicator size="small" color={colors.textMuted} />
+                                    ) : (
+                                        <MaterialIcons name="chevron-right" size={20} color={colors.textMuted} />
+                                    )}
                                 </TouchableOpacity>
                             </View>
-                        </LinearGradient>
+                        )}
+
+                        {/* City field */}
+                        <View style={styles.fieldGroup}>
+                            <Text style={styles.fieldLabel}>City <Text style={styles.fieldLabelMuted}>(optional)</Text></Text>
+                            <View style={[
+                                styles.inputRow,
+                                !currentCountryCode && styles.inputDisabled,
+                            ]}>
+                                <MaterialIcons name="location-city" size={18} color={colors.textMuted} style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.textInput}
+                                    value={selectedCity}
+                                    onChangeText={setSelectedCity}
+                                    placeholder={currentCountryCode ? 'Type your city name' : 'Select a country first'}
+                                    placeholderTextColor={colors.textMuted}
+                                    editable={!!currentCountryCode}
+                                    autoCapitalize="words"
+                                    returnKeyType="done"
+                                />
+                            </View>
+                        </View>
+
+                        {/* Save button */}
+                        <TouchableOpacity
+                            style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
+                            onPress={handleSave}
+                            disabled={!canSave || saving}
+                            activeOpacity={0.85}
+                        >
+                            {saving ? (
+                                <ActivityIndicator size="small" color={colors.white} />
+                            ) : (
+                                <Text style={styles.saveBtnText}>Continue</Text>
+                            )}
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
@@ -249,6 +296,19 @@ export function CitySelectionModal({
                 loading={loadingCountries}
                 emptyMessage="No countries found"
             />
+
+            {/* State Picker */}
+            <SearchablePicker
+                visible={statePickerVisible}
+                title="Select State / Region"
+                items={statePickerItems}
+                selectedId={states.find(s => s.name === currentState)?.id}
+                onSelect={handleStateSelect}
+                onClose={() => setStatePickerVisible(false)}
+                searchPlaceholder="Search states..."
+                loading={loadingStates}
+                emptyMessage="No states available for this country"
+            />
         </>
     );
 }
@@ -256,44 +316,63 @@ export function CitySelectionModal({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        backgroundColor: 'rgba(0, 0, 0, 0.45)',
         justifyContent: 'center',
         alignItems: 'center',
         padding: spacing.lg,
     },
-    container: {
+    card: {
         width: width - spacing.lg * 2,
-        maxWidth: 400,
-        borderRadius: 28,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(200, 160, 77, 0.15)',
-    },
-    gradient: {
-        padding: spacing.xl,
+        maxWidth: 380,
+        backgroundColor: colors.white,
+        borderRadius: 24,
+        paddingTop: 0,
+        paddingHorizontal: spacing.xl,
+        paddingBottom: spacing.xl,
         alignItems: 'center',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.12,
+                shadowRadius: 24,
+            },
+            android: {
+                elevation: 12,
+            },
+        }),
     },
-    iconContainer: {
+    accentBar: {
+        width: 48,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: colors.accent,
+        marginTop: spacing.md,
         marginBottom: spacing.lg,
     },
-    iconGradient: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+    iconCircle: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: colors.black,
         alignItems: 'center',
         justifyContent: 'center',
+        marginBottom: spacing.md,
     },
     title: {
+        fontSize: 22,
+        fontWeight: '700',
         color: colors.text,
-        marginBottom: spacing.sm,
         textAlign: 'center',
+        marginBottom: 6,
+        letterSpacing: -0.3,
     },
     subtitle: {
         fontSize: 14,
         color: colors.textSecondary,
         textAlign: 'center',
-        marginBottom: spacing.xl,
         lineHeight: 20,
+        marginBottom: spacing.xl,
         paddingHorizontal: spacing.sm,
     },
     fieldGroup: {
@@ -303,68 +382,69 @@ const styles = StyleSheet.create({
     fieldLabel: {
         fontSize: 13,
         fontWeight: '600',
-        color: colors.textSecondary,
-        marginBottom: spacing.xs,
-        marginLeft: 4,
-    },
-    selectorCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: spacing.md,
-        borderWidth: 1,
-        borderColor: 'rgba(0, 0, 0, 0.08)',
-    },
-    selectorRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.sm,
-        flex: 1,
-    },
-    selectorText: {
-        fontSize: 15,
         color: colors.text,
-        flex: 1,
-    },
-    selectorPlaceholder: {
-        fontSize: 15,
-        color: colors.textMuted,
-        flex: 1,
-    },
-    selectorDisabled: {
-        opacity: 0.5,
-    },
-    buttonContainer: {
-        width: '100%',
-        marginTop: spacing.lg,
-        gap: spacing.md,
-    },
-    saveButton: {
-        borderRadius: 16,
-        overflow: 'hidden',
-    },
-    saveButtonDisabled: {
-        opacity: 0.6,
-    },
-    saveButtonGradient: {
-        paddingVertical: spacing.md,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 16,
-    },
-    saveButtonText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#fff',
+        marginBottom: 6,
+        marginLeft: 2,
+        textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
-    skipButton: {
-        paddingVertical: spacing.sm,
-        alignItems: 'center',
-    },
-    skipButtonText: {
-        fontSize: 14,
+    fieldLabelMuted: {
+        fontSize: 11,
+        fontWeight: '400',
         color: colors.textMuted,
+        textTransform: 'none',
+        letterSpacing: 0,
+    },
+    inputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.inputBackground,
+        borderRadius: 14,
+        paddingHorizontal: spacing.md,
+        paddingVertical: Platform.OS === 'ios' ? 14 : 10,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    inputDisabled: {
+        opacity: 0.45,
+    },
+    inputIcon: {
+        marginRight: spacing.sm,
+    },
+    inputValue: {
+        flex: 1,
+        fontSize: 15,
+        color: colors.text,
         fontWeight: '500',
+    },
+    inputPlaceholder: {
+        flex: 1,
+        fontSize: 15,
+        color: colors.textMuted,
+    },
+    textInput: {
+        flex: 1,
+        fontSize: 15,
+        color: colors.text,
+        padding: 0,
+        fontWeight: '500',
+    },
+    saveBtn: {
+        width: '100%',
+        backgroundColor: colors.black,
+        borderRadius: 14,
+        paddingVertical: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: spacing.lg,
+    },
+    saveBtnDisabled: {
+        backgroundColor: '#D1D5DB',
+    },
+    saveBtnText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: colors.white,
+        letterSpacing: 0.3,
     },
 });

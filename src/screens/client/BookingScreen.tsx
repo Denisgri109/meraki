@@ -19,15 +19,6 @@ import { ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { Service } from '../../types/database';
 
-// Haversine distance in km between two lat/lng points
-function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
@@ -90,32 +81,35 @@ const getCategoryMaterialIcon = (category: string | null): string => {
 export function BookingScreen({ navigation }: BookingScreenProps) {
     const { profile } = useAuth();
     const userCountry = profile?.country || null;
-    const userLat = (profile as any)?.latitude || null;
-    const userLng = (profile as any)?.longitude || null;
-    const searchRadiusKm: number = (profile as any)?.search_radius_km ?? 50;
+    const userState: string | null = (profile as any)?.state || null;
+    const userStateCode: string | null = (profile as any)?.state_code || null;
 
     const [services, setServices] = useState<Service[]>([]);
+    const [serviceDistances, setServiceDistances] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('All');
 
     useEffect(() => {
         fetchServices();
-    }, [userCountry, userLat, userLng]);
+    }, [userCountry, userState, userStateCode]);
 
     const fetchServices = async () => {
         try {
-            // Fetch services with master country info for filtering
+            // Fetch services with master country + state info for filtering
             const { data } = await supabase
                 .from('services')
-                .select('*, master_services!inner(is_available, profiles:master_id(country, latitude, longitude))')
+                .select('*, master_services!inner(is_available, profiles:master_id(country, state, state_code, latitude, longitude))')
                 .eq('is_active', true)
                 .eq('master_services.is_available', true)
                 .order('name');
 
             let filtered = (data as any[]) || [];
 
-            // Country and radius filter: only show services that have at least one master nearby
+            // Country + state/region filter: only show services with at least one master
+            // in the user's region. Radius is region-based, not km-based.
+            const uStateCode = (userStateCode || '').toLowerCase().trim();
+            const uStateName = (userState || '').toLowerCase().trim();
             if (userCountry) {
                 const uCountry = userCountry.toLowerCase().trim();
                 filtered = filtered.filter((service: any) => {
@@ -125,9 +119,16 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
                         if (!masterProfile || !masterProfile.country) return false;
                         if (masterProfile.country.toLowerCase().trim() !== uCountry) return false;
 
-                        if (searchRadiusKm > 0 && userLat && userLng && masterProfile.latitude && masterProfile.longitude) {
-                            const dist = haversineDistanceKm(userLat, userLng, masterProfile.latitude, masterProfile.longitude);
-                            if (dist > searchRadiusKm) return false;
+                        // Same state / region scope when the user has one set.
+                        if (uStateCode || uStateName) {
+                            const mStateCode = (masterProfile.state_code || '').toLowerCase().trim();
+                            const mStateName = (masterProfile.state || '').toLowerCase().trim();
+                            if (!mStateCode && !mStateName) return false;
+                            if (uStateCode && mStateCode) {
+                                if (uStateCode !== mStateCode) return false;
+                            } else if (uStateName && mStateName) {
+                                if (uStateName !== mStateName) return false;
+                            }
                         }
                         return true;
                     });
@@ -139,6 +140,7 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
 
             // Strip the master_services join data before setting state
             setServices(filtered.map(({ master_services, ...rest }: any) => rest) as Service[]);
+            setServiceDistances({});
         } catch (error) {
             console.error('Error fetching services:', error);
         } finally {
@@ -265,6 +267,13 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
                                                         <MerakiText style={styles.serviceDuration}>
                                                             {service.duration_minutes} min
                                                         </MerakiText>
+                                                        {serviceDistances[service.id] != null && (
+                                                            <View style={styles.distanceBadge}>
+                                                                <MerakiText style={styles.distanceBadgeText}>
+                                                                    {serviceDistances[service.id]} km
+                                                                </MerakiText>
+                                                            </View>
+                                                        )}
                                                     </View>
                                                 </View>
 
@@ -412,6 +421,19 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: 'rgba(26, 26, 26, 0.45)',
         fontWeight: '500',
+    },
+    distanceBadge: {
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(139, 92, 246, 0.2)',
+    },
+    distanceBadgeText: {
+        fontSize: 10,
+        color: '#7C3AED',
+        fontWeight: '700',
     },
     serviceImage: {
         width: 120,
