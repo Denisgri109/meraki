@@ -28,6 +28,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./public/logo512.png",
         "backgroundColor": "#121212"
       },
       "softwareKeyboardLayoutMode": "pan",
@@ -36,7 +37,9 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
-        "android.permission.NFC"
+        "android.permission.NFC",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "intentFilters": [
         {

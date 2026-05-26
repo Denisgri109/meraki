@@ -22,6 +22,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Let EAS run expo prebuild to regenerate native folders with correct AGP version
+/android
+/ios
+
 # credentials
 credentials.json
 google-services-key.json
