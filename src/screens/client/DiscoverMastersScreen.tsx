@@ -18,6 +18,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing, gradients } from '../../theme';
+import { isMasterWithinRange } from '../../utils/distance';
 
 type Master = {
     id: string;
@@ -55,12 +56,14 @@ export function DiscoverMastersScreen() {
         ['#2DD4BF', '#6EE7B7'],
     ];
 
-    // Use profile as fallback. Radius is now defined by country + state/region
-    // (city / lat-lng are no longer used for filtering).
+    // User location from profile — used for country + state match AND haversine fallback.
     const [userCity, setUserCity] = useState<string | null>(profile?.city || null);
     const [userCountry, setUserCountry] = useState<string | null>(profile?.country || null);
     const userState: string | null = (profile as any)?.state || null;
     const userStateCode: string | null = (profile as any)?.state_code || null;
+    const userLat: number | null = (profile as any)?.latitude || null;
+    const userLng: number | null = (profile as any)?.longitude || null;
+    const searchRadiusKm: number = (profile as any)?.search_radius_km ?? 100;
 
     useEffect(() => {
         const init = async () => {
@@ -163,27 +166,18 @@ export function DiscoverMastersScreen() {
         detectUserLocation();
     }, []);
 
-    const filteredMasters = masters.filter((master) => {
-        // 1. Country + State/Region Filter (Strict)
-        if (!userCountry) return false; // must have a known user country
-        if (!master.country) return false;
-        const uCountry = userCountry.toLowerCase().trim();
-        const mCountry = master.country.toLowerCase().trim();
-        if (uCountry !== mCountry) return false;
+    const userLoc = {
+        country: userCountry,
+        state: userState,
+        state_code: userStateCode,
+        latitude: userLat,
+        longitude: userLng,
+    };
 
-        // Same state / region scope when the user has one set.
-        const uStateCode = (userStateCode || '').toLowerCase().trim();
-        const uStateName = (userState || '').toLowerCase().trim();
-        if (uStateCode || uStateName) {
-            const mStateCode = ((master as any).state_code || '').toLowerCase().trim();
-            const mStateName = ((master as any).state || '').toLowerCase().trim();
-            if (!mStateCode && !mStateName) return false;
-            if (uStateCode && mStateCode) {
-                if (uStateCode !== mStateCode) return false;
-            } else if (uStateName && mStateName) {
-                if (uStateName !== mStateName) return false;
-            }
-        }
+    const filteredMasters = masters.filter((master) => {
+        // 1. Country + State/Region + Distance Filter
+        if (!userCountry) return false;
+        if (!isMasterWithinRange(userLoc, master as any, searchRadiusKm)) return false;
 
         // 2. Search Query Filter
         let passesSearch = true;

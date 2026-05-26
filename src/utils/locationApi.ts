@@ -33,6 +33,8 @@ export interface State {
     iso2: string;
     country_code: string;
     country_id: number;
+    latitude: string | null;
+    longitude: string | null;
 }
 
 export interface City {

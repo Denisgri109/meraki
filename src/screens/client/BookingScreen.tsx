@@ -18,6 +18,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { Service } from '../../types/database';
+import { isMasterWithinRange } from '../../utils/distance';
 
 type BookingStackParamList = {
     BookingMain: undefined;
@@ -83,6 +84,9 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
     const userCountry = profile?.country || null;
     const userState: string | null = (profile as any)?.state || null;
     const userStateCode: string | null = (profile as any)?.state_code || null;
+    const userLat: number | null = (profile as any)?.latitude || null;
+    const userLng: number | null = (profile as any)?.longitude || null;
+    const searchRadiusKm: number = (profile as any)?.search_radius_km ?? 100;
 
     const [services, setServices] = useState<Service[]>([]);
     const [serviceDistances, setServiceDistances] = useState<Record<string, number>>({});
@@ -106,31 +110,21 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
 
             let filtered = (data as any[]) || [];
 
-            // Country + state/region filter: only show services with at least one master
-            // in the user's region. Radius is region-based, not km-based.
-            const uStateCode = (userStateCode || '').toLowerCase().trim();
-            const uStateName = (userState || '').toLowerCase().trim();
+            // Country + state/region + haversine fallback filter.
+            const userLoc = {
+                country: userCountry,
+                state: userState,
+                state_code: userStateCode,
+                latitude: userLat,
+                longitude: userLng,
+            };
             if (userCountry) {
-                const uCountry = userCountry.toLowerCase().trim();
                 filtered = filtered.filter((service: any) => {
                     const masterServices = service.master_services || [];
                     return masterServices.some((ms: any) => {
                         const masterProfile = ms.profiles;
-                        if (!masterProfile || !masterProfile.country) return false;
-                        if (masterProfile.country.toLowerCase().trim() !== uCountry) return false;
-
-                        // Same state / region scope when the user has one set.
-                        if (uStateCode || uStateName) {
-                            const mStateCode = (masterProfile.state_code || '').toLowerCase().trim();
-                            const mStateName = (masterProfile.state || '').toLowerCase().trim();
-                            if (!mStateCode && !mStateName) return false;
-                            if (uStateCode && mStateCode) {
-                                if (uStateCode !== mStateCode) return false;
-                            } else if (uStateName && mStateName) {
-                                if (uStateName !== mStateName) return false;
-                            }
-                        }
-                        return true;
+                        if (!masterProfile) return false;
+                        return isMasterWithinRange(userLoc, masterProfile, searchRadiusKm);
                     });
                 });
             } else {

@@ -26,6 +26,7 @@ import { colors, spacing, gradients } from '../../theme';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { Service } from '../../types/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isMasterWithinRange } from '../../utils/distance';
 
 const { width } = Dimensions.get('window');
 
@@ -128,6 +129,9 @@ export function ClientHomeScreen() {
     const [userCountry, setUserCountry] = useState<string | null>(profile?.country || null);
     const userState: string | null = (profile as any)?.state || null;
     const userStateCode: string | null = (profile as any)?.state_code || null;
+    const userLat: number | null = (profile as any)?.latitude || null;
+    const userLng: number | null = (profile as any)?.longitude || null;
+    const searchRadiusKm: number = (profile as any)?.search_radius_km ?? 100;
     const [searchLoading, setSearchLoading] = useState(false);
     const [locationReady, setLocationReady] = useState(false);
 
@@ -137,22 +141,13 @@ export function ClientHomeScreen() {
         if (!isSessionValid) { setLoading(false); setRefreshing(false); return; }
 
         // Use passed-in location (fresh from detectUserLocation) over stale state.
-        // Radius is now defined by country + state/region — city/lat-lng are not used.
         const effectiveCountry = loc?.country || profile?.country || userCountry;
-        const effState = (userState || '').toLowerCase().trim();
-        const effStateCode = (userStateCode || '').toLowerCase().trim();
-        const matchesUserRegion = (m: { country: string | null; state?: string | null; state_code?: string | null }) => {
-            if (!effectiveCountry) return false;
-            if (!m.country || m.country.toLowerCase().trim() !== effectiveCountry.toLowerCase().trim()) return false;
-            if (effStateCode || effState) {
-                const ms = (m.state || '').toLowerCase().trim();
-                const msc = (m.state_code || '').toLowerCase().trim();
-                if (!ms && !msc) return false;
-                if (effStateCode && msc) return effStateCode === msc;
-                if (effState && ms) return effState === ms;
-                return false;
-            }
-            return true;
+        const userLoc = {
+            country: effectiveCountry,
+            state: userState,
+            state_code: userStateCode,
+            latitude: userLat,
+            longitude: userLng,
         };
 
         try {
@@ -188,10 +183,10 @@ export function ClientHomeScreen() {
             const mastersPromise = (supabase as any).from('profiles').select('id, full_name, avatar_url, bio, country, state, state_code, latitude, longitude').or('is_master.eq.true,role.eq.master,role.eq.owner').neq('id', user.id).limit(50);
             const { data: masters } = await safeSupabaseFetch(mastersPromise, { timeout: 5000 });
 
-            // Filter masters by country + state/region
+            // Filter masters: same state = pass, different state = haversine check.
             let filteredMasters = (masters as FeaturedMaster[]) || [];
             if (effectiveCountry) {
-                filteredMasters = filteredMasters.filter(m => matchesUserRegion(m as any));
+                filteredMasters = filteredMasters.filter(m => isMasterWithinRange(userLoc, m as any, searchRadiusKm));
             } else {
                 // No country detected at all — show nothing rather than unfiltered data
                 filteredMasters = [];
@@ -223,7 +218,7 @@ export function ClientHomeScreen() {
                         if (ms.master_id === user.id) return false; // Skip self
                         const masterProfile = ms.master;
                         if (!masterProfile) return false;
-                        return matchesUserRegion(masterProfile);
+                        return isMasterWithinRange(userLoc, masterProfile, searchRadiusKm);
                     });
                 });
             } else {

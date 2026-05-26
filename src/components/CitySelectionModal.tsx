@@ -59,6 +59,8 @@ export function CitySelectionModal({
     const [currentCountryCode, setCurrentCountryCode] = useState(detectedCountryCode);
     const [currentState, setCurrentState] = useState('');
     const [currentStateCode, setCurrentStateCode] = useState('');
+    const [currentStateLat, setCurrentStateLat] = useState<string | null>(null);
+    const [currentStateLng, setCurrentStateLng] = useState<string | null>(null);
 
     useEffect(() => {
         if (visible) {
@@ -66,6 +68,8 @@ export function CitySelectionModal({
             setCurrentCountryCode(detectedCountryCode);
             setCurrentState('');
             setCurrentStateCode('');
+            setCurrentStateLat(null);
+            setCurrentStateLng(null);
             setSelectedCity('');
 
             // Load countries
@@ -113,6 +117,8 @@ export function CitySelectionModal({
             setCurrentCountryCode(found.iso2);
             setCurrentState('');
             setCurrentStateCode('');
+            setCurrentStateLat(null);
+            setCurrentStateLng(null);
             setSelectedCity('');
         }
     };
@@ -122,6 +128,8 @@ export function CitySelectionModal({
         if (found) {
             setCurrentState(found.name);
             setCurrentStateCode(found.iso2);
+            setCurrentStateLat(found.latitude);
+            setCurrentStateLng(found.longitude);
         }
     };
 
@@ -135,8 +143,10 @@ export function CitySelectionModal({
 
         setSaving(true);
         try {
-            const updateData: Record<string, string | boolean | null> = {
+            const updateData: Record<string, string | boolean | number | null> = {
                 city: selectedCity.trim() || null,
+                latitude: currentStateLat ? parseFloat(currentStateLat) : null,
+                longitude: currentStateLng ? parseFloat(currentStateLng) : null,
                 location_setup_completed: true,
                 updated_at: new Date().toISOString(),
             };
