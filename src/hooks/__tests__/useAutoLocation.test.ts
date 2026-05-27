@@ -137,6 +137,7 @@ describe('useAutoLocation', () => {
             country: 'United States',
             country_code: 'US',
             city: 'New York',
+            location_setup_completed: true,
         };
         (useAuth as jest.Mock).mockReturnValue({
             profile: mockProfile,
