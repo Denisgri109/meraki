@@ -60,18 +60,20 @@ export async function safeSupabaseFetch<T>(
 
         return { data: result.data, error: null, timeout: false };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         clearTimeout(timeoutId!);
 
-        const isTimeout = error.message === errorMessage;
+        const err = error instanceof Error ? error : new Error(String(error));
 
-        console.error(`Supabase Fetch Error (${isTimeout ? 'Timeout' : 'Network/Auth'}):`, error);
+        const isTimeout = err.message === errorMessage;
 
-        if (throwError) throw error;
+        console.error(`Supabase Fetch Error (${isTimeout ? 'Timeout' : 'Network/Auth'}):`, err);
+
+        if (throwError) throw err;
 
         return {
             data: null,
-            error: error instanceof Error ? error : new Error(String(error)),
+            error: err,
             timeout: isTimeout
         };
     }
