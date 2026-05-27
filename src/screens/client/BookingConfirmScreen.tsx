@@ -320,7 +320,6 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             if (sessionError || !sessionData.session) {
                 throw new Error('Session expired. Please log in again.');
             }
-            console.log('Debug - Session refreshed, token exists:', !!sessionData.session.access_token);
 
             const requestBody = {
                 user_id: user?.id,
