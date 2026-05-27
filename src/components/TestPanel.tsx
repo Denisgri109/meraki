@@ -587,10 +587,11 @@ export function TestPanel() {
     };
 
     const handleClearPassword = async () => {
-        for (const a of TEST_ACCOUNTS) {
-            await AsyncStorage.removeItem(passwordKey(a.email));
-        }
-        await AsyncStorage.removeItem(LEGACY_PASSWORD_KEY);
+        const keysToRemove = [
+            ...TEST_ACCOUNTS.map((a) => passwordKey(a.email)),
+            LEGACY_PASSWORD_KEY,
+        ];
+        await AsyncStorage.multiRemove(keysToRemove);
         setSavedPasswords({});
         setHasAnySaved(false);
         setPassword('');
