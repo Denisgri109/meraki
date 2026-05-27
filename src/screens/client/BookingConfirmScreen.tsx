@@ -328,7 +328,6 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 customer_id: profile?.stripe_customer_id,
                 payment_method_id: showNewCard ? undefined : selectedCardId,
             };
-            console.log('Debug - Sending setup-intent request with body:', requestBody);
 
             const { data: setupIntentData, error: setupError } = await supabase.functions.invoke('setup-intent', {
                 body: requestBody,
