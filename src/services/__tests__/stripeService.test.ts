@@ -7,11 +7,14 @@
 // Mock the supabase module before import
 const mockInvoke = jest.fn();
 jest.mock('../../lib/supabase', () => ({
-    supabase: {
-        functions: {
-            invoke: mockInvoke,
-        },
-    },
+    __esModule: true,
+    get supabase() {
+        return {
+            functions: {
+                invoke: mockInvoke,
+            },
+        };
+    }
 }));
 
 import {
