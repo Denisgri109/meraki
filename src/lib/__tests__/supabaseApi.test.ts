@@ -42,19 +42,23 @@ describe('safeSupabaseFetch', () => {
     });
 
     it('handles timeout correctly', async () => {
-        // Create a promise that takes longer than the timeout
-        const slowPromise = new Promise<{ data: any; error: any }>((resolve) => {
-            setTimeout(() => resolve({ data: 'late', error: null }), 5000);
-        });
+        jest.useFakeTimers();
+        // Create a promise that we never resolve to simulate a timeout
+        const neverPromise = new Promise<{ data: any; error: any }>(() => {});
 
-        const result = await safeSupabaseFetch(slowPromise, {
+        const fetchPromise = safeSupabaseFetch(neverPromise, {
             timeout: 100, // Very short timeout
             errorMessage: 'Custom timeout',
         });
 
+        jest.advanceTimersByTime(200);
+
+        const result = await fetchPromise;
+
         expect(result.data).toBeNull();
         expect(result.error).toBeInstanceOf(Error);
         expect(result.timeout).toBe(true);
+        jest.useRealTimers();
     });
 
     it('throws error when throwError option is true', async () => {
