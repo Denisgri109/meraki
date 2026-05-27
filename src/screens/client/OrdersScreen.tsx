@@ -156,7 +156,7 @@ export function OrdersScreen() {
             if (!user?.id) return;
 
             // First fetch orders
-            const { data: ordersData, error: ordersError } = await (supabase as any)
+            const { data: ordersData, error: ordersError } = await supabase
                 .from('orders')
                 .select('*')
                 .eq('user_id', user.id)
@@ -169,7 +169,7 @@ export function OrdersScreen() {
             // Then fetch items for these orders
             const orderIds = orders.map(o => o.id);
             if (orderIds.length > 0) {
-                const { data: itemsData, error: itemsError } = await (supabase as any)
+                const { data: itemsData, error: itemsError } = await supabase
                     .from('order_items')
                     .select('*')
                     .in('order_id', orderIds);
@@ -371,7 +371,7 @@ export function OrdersScreen() {
     const handleChat = async (appointment: Appointment) => {
         if (!user || !appointment.master_id) return;
         try {
-            const { data: existing } = await (supabase as any)
+            const { data: existing } = await supabase
                 .from('conversations')
                 .select('id')
                 .eq('client_id', user.id)
@@ -381,7 +381,7 @@ export function OrdersScreen() {
             let conversationId = existing?.id;
 
             if (!conversationId) {
-                const { data: newConv, error } = await (supabase as any)
+                const { data: newConv, error } = await supabase
                     .from('conversations')
                     .insert({ client_id: user.id, master_id: appointment.master_id })
                     .select()
