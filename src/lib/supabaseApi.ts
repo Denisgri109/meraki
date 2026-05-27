@@ -48,7 +48,7 @@ export async function safeSupabaseFetch<T>(
         const result = await Promise.race([
             promise,
             timeoutPromise
-        ]) as { data: T | null; error: any };
+        ]);
 
         // Clear timeout if request completes successfully
         clearTimeout(timeoutId!);
