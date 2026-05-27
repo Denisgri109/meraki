@@ -135,7 +135,7 @@ export function OrdersScreen() {
                 .eq('client_id', user?.id)
                 .order('start_time', { ascending: false });
 
-            const { data, error } = await safeSupabaseFetch(queryPromise as any, { timeout: 8000 });
+            const { data, error } = await safeSupabaseFetch(queryPromise, { timeout: 8000 });
             if (error) throw error;
 
             // Filter out orphaned appointments (where master was deleted)
