@@ -366,7 +366,6 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                     captureMethod: 'automatic',
                 });
                 paymentIntentId = pId;
-                console.log('Debug - PaymentIntent created:', paymentIntentId);
 
                 // Confirm the payment
                 let paymentResult;
