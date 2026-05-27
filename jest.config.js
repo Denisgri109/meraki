@@ -44,6 +44,7 @@ module.exports = {
         'src/contexts/**/*.tsx',
         'src/lib/supabaseApi.ts',
         'src/lib/notifications.ts',
+        'src/hooks/**/*.ts',
         '!src/**/*.d.ts',
         '!src/**/__tests__/**',
         '!src/**/__mocks__/**',
