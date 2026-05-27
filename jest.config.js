@@ -1,6 +1,6 @@
 module.exports = {
     // Use react-native preset (simpler than jest-expo, avoids its broken setup)
-    preset: 'react-native',
+    preset: "react-native",
     setupFiles: ['./jest.setup.js'],
     transform: {
         '^.+\\.(js|jsx|ts|tsx)$': [

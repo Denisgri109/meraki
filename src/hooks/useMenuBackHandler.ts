@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
 import { BackHandler } from 'react-native';
-import { useFocusEffect, useNavigation, useRoute, RouteProp, NavigationProp } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, RouteProp, NavigationProp, ParamListBase } from '@react-navigation/native';
 import { safeGoBack } from '../navigation/navigationUtils';
 
 type MenuRouteProp = RouteProp<{ params: { from?: string } }, 'params'>;
 
 export function useMenuBackHandler() {
-    const navigation = useNavigation<NavigationProp<any>>();
+    const navigation = useNavigation<NavigationProp<ParamListBase>>();
     const route = useRoute<MenuRouteProp>();
 
     const handleBack = useCallback(() => {

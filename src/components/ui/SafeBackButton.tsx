@@ -6,7 +6,7 @@ import { colors } from '../../theme';
 
 interface SafeBackButtonProps {
     fallbackRoute?: string;
-    fallbackParams?: any;
+    fallbackParams?: Record<string, unknown>;
     style?: ViewStyle;
     icon?: string;
     onPress?: () => void;
