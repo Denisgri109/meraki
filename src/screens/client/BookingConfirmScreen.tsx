@@ -334,8 +334,6 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 body: requestBody,
             });
 
-            console.log('Debug - setup-intent response:', setupIntentData, setupError);
-
             if (setupError) throw setupError;
 
             // STEP 2: Confirm SetupIntent if using a new card
