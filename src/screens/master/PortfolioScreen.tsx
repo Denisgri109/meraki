@@ -143,8 +143,7 @@ export function PortfolioScreen() {
         let errors: string[] = [];
 
         try {
-            for (let i = 0; i < assets.length; i++) {
-                const asset = assets[i];
+            await Promise.all(assets.map(async (asset, i) => {
                 try {
                     const fileExt = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
                     const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
@@ -184,7 +183,7 @@ export function PortfolioScreen() {
                     console.error('Upload error for image ' + i, err);
                     errors.push(err.message || 'Unknown error');
                 }
-            }
+            }));
 
             if (successCount > 0) {
                 showAlert('Success', `${successCount} image${successCount > 1 ? 's' : ''} added to portfolio`, 'success');
