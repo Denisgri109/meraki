@@ -55,7 +55,6 @@ Deno.serve(async (req: Request) => {
                 { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
             );
         }
-        console.log("STRIPE_SECRET_KEY exists, length:", STRIPE_SECRET_KEY.length, "starts with:", STRIPE_SECRET_KEY.substring(0, 7));
 
         // 1. Verify JWT
         const authHeader = req.headers.get("Authorization");
