@@ -25,7 +25,7 @@ interface SafeResponse<T> {
  * @returns Object with data, error, and timeout status
  */
 export async function safeSupabaseFetch<T>(
-    promise: Promise<{ data: T | null; error: any }>,
+    promise: Promise<{ data: T | null; error: unknown }>,
     options: SafeFetchOptions = {}
 ): Promise<SafeResponse<T>> {
     const {
@@ -48,22 +48,22 @@ export async function safeSupabaseFetch<T>(
         const result = await Promise.race([
             promise,
             timeoutPromise
-        ]) as { data: T | null; error: any };
+        ]) as { data: T | null; error: unknown };
 
         // Clear timeout if request completes successfully
         clearTimeout(timeoutId!);
 
         if (result.error) {
             if (throwError) throw result.error;
-            return { data: null, error: result.error, timeout: false };
+            return { data: null, error: result.error as Error, timeout: false };
         }
 
         return { data: result.data, error: null, timeout: false };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         clearTimeout(timeoutId!);
 
-        const isTimeout = error.message === errorMessage;
+        const isTimeout = error instanceof Error && error.message === errorMessage;
 
         console.error(`Supabase Fetch Error (${isTimeout ? 'Timeout' : 'Network/Auth'}):`, error);
 
