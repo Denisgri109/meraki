@@ -45,12 +45,9 @@ describe('getShippingCost', () => {
     });
 
     it('returns 0 for non-string types passed at runtime', () => {
-        // @ts-ignore - testing runtime behavior
-        expect(getShippingCost(null)).toBe(0);
-        // @ts-ignore - testing runtime behavior
-        expect(getShippingCost(undefined)).toBe(0);
-        // @ts-ignore - testing runtime behavior
-        expect(getShippingCost(123)).toBe(0);
+        expect(getShippingCost(null as any)).toBe(0);
+        expect(getShippingCost(undefined as any)).toBe(0);
+        expect(getShippingCost(123 as any)).toBe(0);
     });
 
     it('returns a positive number for every European country', () => {
@@ -89,12 +86,9 @@ describe('getCountryName', () => {
     });
 
     it('handles non-string types passed at runtime gracefully', () => {
-        // @ts-ignore - testing runtime behavior
-        expect(getCountryName(null)).toBe(null);
-        // @ts-ignore - testing runtime behavior
-        expect(getCountryName(undefined)).toBe(undefined);
-        // @ts-ignore - testing runtime behavior
-        expect(getCountryName(123)).toBe(123);
+        expect(getCountryName(null as any)).toBe(null);
+        expect(getCountryName(undefined as any)).toBe(undefined);
+        expect(getCountryName(123 as any)).toBe(123);
     });
 });
 
