@@ -122,7 +122,7 @@ export function DeepLinkHandler({ children }: DeepLinkHandlerProps) {
             }
 
             // ── Loyalty stamp scan ──────────────────────────────────────
-            // Expected format: meraki://loyalty/stamp?master_id=XXX
+            // Expected format: meraki://loyalty/stamp?master_id=<master_id>
             if (!url.includes('loyalty/stamp')) {
                 return; // Not a stamp deep link
             }
