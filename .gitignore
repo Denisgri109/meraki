@@ -52,3 +52,8 @@ credentials/
 /ios/build
 /ios/*.xcworkspace
 /ios/DerivedData
+
+# Keystore files
+*.jks
+*.keystore
+!debug.keystore
