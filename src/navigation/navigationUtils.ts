@@ -11,7 +11,7 @@ import { NavigationProp, CommonActions } from '@react-navigation/native';
 export function safeGoBack<T extends Record<string, any>>(
     navigation: NavigationProp<T>,
     fallbackRoute?: string,
-    fallbackParams?: any
+    fallbackParams?: unknown
 ): void {
     const state = navigation.getState();
     const canGoBack = state && state.routes && state.routes.length > 1;
@@ -22,7 +22,7 @@ export function safeGoBack<T extends Record<string, any>>(
         navigation.dispatch(
             CommonActions.navigate({
                 name: fallbackRoute,
-                params: fallbackParams,
+                params: fallbackParams as object,
             })
         );
     }
