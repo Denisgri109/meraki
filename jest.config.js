@@ -42,6 +42,7 @@ module.exports = {
         'src/utils/**/*.ts',
         'src/services/**/*.ts',
         'src/contexts/**/*.tsx',
+        'src/components/ui/**/*.tsx',
         'src/lib/supabaseApi.ts',
         'src/lib/notifications.ts',
         '!src/**/*.d.ts',
