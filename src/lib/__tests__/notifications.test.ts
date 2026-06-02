@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import {
+    registerForPushNotificationsAsync,
     addNotificationResponseListener,
     addNotificationReceivedListener,
 } from '../notifications';
@@ -10,6 +11,28 @@ import {
 describe('notifications', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+    });
+
+
+    describe('registerForPushNotificationsAsync', () => {
+        it('should return null and log error if getting push token fails', async () => {
+            // Mock getPermissionsAsync to return granted so it proceeds to getExpoPushTokenAsync
+            (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValueOnce({ status: 'granted' });
+
+            // Mock getExpoPushTokenAsync to throw an error
+            const mockError = new Error('Test error getting token');
+            (Notifications.getExpoPushTokenAsync as jest.Mock).mockRejectedValueOnce(mockError);
+
+            // Spy on console.error
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+            const result = await registerForPushNotificationsAsync();
+
+            expect(result).toBeNull();
+            expect(consoleSpy).toHaveBeenCalledWith('Error getting push token:', mockError);
+
+            consoleSpy.mockRestore();
+        });
     });
 
     describe('addNotificationResponseListener', () => {
