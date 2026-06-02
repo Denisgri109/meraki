@@ -83,10 +83,9 @@ export function PreBookingQuestionnaireModal({
 
             if (!result.canceled && result.assets) {
                 setUploadingPhotos(true);
-                const uploadedUrls: string[] = [];
 
-                for (const asset of result.assets) {
-                    if (!asset.base64) continue;
+                const uploadPromises = result.assets.map(async (asset) => {
+                    if (!asset.base64) return null;
                     const fileName = `booking-consultations/${Date.now()}_${uuidv4()}.jpg`;
 
                     const { data, error } = await supabase.storage
@@ -101,8 +100,11 @@ export function PreBookingQuestionnaireModal({
                         .from('consultation-photos')
                         .getPublicUrl(data.path);
 
-                    uploadedUrls.push(publicUrl);
-                }
+                    return publicUrl;
+                });
+
+                const urls = await Promise.all(uploadPromises);
+                const uploadedUrls = urls.filter((url): url is string => url !== null);
 
                 setFormData(prev => ({
                     ...prev,
