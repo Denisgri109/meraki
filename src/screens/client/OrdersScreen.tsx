@@ -228,20 +228,13 @@ export function OrdersScreen() {
         if (!masterPushToken) return;
 
         try {
-            await fetch('https://exp.host/--/api/v2/push/send', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+            await supabase.functions.invoke('send-push-notification', { body: {
                     to: masterPushToken,
                     sound: 'default',
                     title: 'Appointment Canceled',
                     body: `${user?.user_metadata?.full_name || 'Client'} canceled their appointment. The slot is open again.`,
                     data: { appointmentId: apt.id },
-                }),
-            });
+                } });
         } catch (e) {
             console.error('Failed to send cancellation notification:', e);
         }
@@ -290,20 +283,13 @@ export function OrdersScreen() {
             : `${user?.user_metadata?.full_name || 'Client'} moved their appointment to ${format(newTime, 'EEEE, MMM d at HH:mm')}.`;
 
         try {
-            await fetch('https://exp.host/--/api/v2/push/send', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+            await supabase.functions.invoke('send-push-notification', { body: {
                     to: masterPushToken,
                     sound: 'default',
                     title: needsApproval ? 'Reschedule Request' : 'Appointment Rescheduled',
                     body: message,
                     data: { appointmentId: apt.id },
-                }),
-            });
+                } });
         } catch (e) {
             console.error('Failed to send reschedule notification:', e);
         }

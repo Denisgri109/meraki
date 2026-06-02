@@ -366,20 +366,13 @@ export function MasterAppointmentsScreen() {
             // Send Push Notification to Client
             const clientPushToken = (appointmentToReschedule as any).client?.push_token;
             if (clientPushToken) {
-                await fetch('https://exp.host/--/api/v2/push/send', {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
+                await supabase.functions.invoke('send-push-notification', { body: {
                         to: clientPushToken,
                         sound: 'default',
                         title: 'Reschedule Request',
                         body: `Master ${user?.user_metadata?.full_name || ''} proposed a new time for your appointment.`,
                         data: { appointmentId: appointmentToReschedule.id },
-                    }),
-                });
+                    } });
             }
 
             setShowRescheduleModal(false);

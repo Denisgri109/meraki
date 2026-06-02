@@ -627,21 +627,14 @@ async function sendPushNotification(
     data: Record<string, string>
 ) {
     try {
-        await fetch('https://exp.host/--/api/v2/push/send', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+        await supabase.functions.invoke('send-push-notification', { body: {
                 to: pushToken,
                 sound: 'default',
                 title,
                 body,
                 data,
                 channelId: 'messages',
-            }),
-        });
+            } });
     } catch (err) {
         console.error('Push notification send error:', err);
     }

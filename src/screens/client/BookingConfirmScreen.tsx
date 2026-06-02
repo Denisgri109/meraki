@@ -457,20 +457,13 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             // Send push notification to Master about new confirmed booking
             if (master?.push_token) {
                 try {
-                    await fetch('https://exp.host/--/api/v2/push/send', {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
+                    await supabase.functions.invoke('send-push-notification', { body: {
                             to: master.push_token,
                             sound: 'default',
                             title: 'New Booking Confirmed ✅',
                             body: `${profile?.full_name || 'A client'} booked ${service.name} on ${format(startTime, 'MMM d')} at ${format(startTime, 'HH:mm')}.`,
                             data: { appointmentId: appointmentId },
-                        }),
-                    });
+                        } });
                 } catch (e) {
                     console.error('Failed to send booking notification:', e);
                 }
