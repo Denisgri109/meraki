@@ -23,6 +23,8 @@ import {
     MerakiText
 } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { getRewardText } from '../../utils/loyalty';
+import { StampSlots } from '../../components/loyalty/StampSlots';
 
 const { width } = Dimensions.get('window');
 
@@ -100,45 +102,9 @@ export function StampCardsScreen() {
         );
     };
 
-    const getRewardText = (card: StampCard) => {
-        switch (card.reward_type) {
-            case 'free_service':
-                return 'Free Service';
-            case 'discount_percent':
-                return `${card.reward_value}% Off`;
-            case 'discount_amount':
-                return `€${card.reward_value} Off`;
-            default:
-                return 'Reward';
-        }
-    };
-
     const onRefresh = () => {
         setRefreshing(true);
         fetchCards();
-    };
-
-    const renderStampSlots = (card: StampCard) => {
-        const slots = [];
-        for (let i = 0; i < card.stamps_required; i++) {
-            const isCollected = i < card.stamps_collected;
-            slots.push(
-                <View
-                    key={i}
-                    style={[
-                        styles.stampSlot,
-                        isCollected && styles.stampSlotCollected
-                    ]}
-                >
-                    {isCollected ? (
-                        <MaterialIcons name="star" size={16} color="#fff" />
-                    ) : (
-                        <MaterialIcons name="star-border" size={16} color="rgba(0, 0, 0, 0.08)" />
-                    )}
-                </View>
-            );
-        }
-        return slots;
     };
 
     if (loading && !refreshing) {
@@ -243,9 +209,7 @@ export function StampCardsScreen() {
 
                                 {/* Slots Area */}
                                 <View style={styles.slotsContainer}>
-                                    <View style={styles.slotsGrid}>
-                                        {renderStampSlots(card)}
-                                    </View>
+                                    <StampSlots stampsRequired={card.stamps_required} stampsCollected={card.stamps_collected} />
                                     <View style={styles.progressLabelRow}>
                                         <MerakiText style={styles.progressText}>
                                             {card.stamps_collected} of {card.stamps_required} stamps collected
@@ -262,7 +226,7 @@ export function StampCardsScreen() {
                                 <View style={styles.cardFooter}>
                                     <View style={styles.footerInfo}>
                                         <MerakiText style={styles.footerLabel}>Reward</MerakiText>
-                                        <MerakiText variant="h4" style={styles.footerValue}>{getRewardText(card)}</MerakiText>
+                                        <MerakiText variant="h4" style={styles.footerValue}>{getRewardText(card.reward_type, card.reward_value)}</MerakiText>
                                     </View>
 
                                     {card.reward_available ? (
