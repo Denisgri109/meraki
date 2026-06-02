@@ -108,7 +108,7 @@ describe('validateIrishPhone', () => {
 // formatIrishPhone
 // ═══════════════════════════════════════════════════════════════════════════
 describe('formatIrishPhone', () => {
-    it('formats a raw mobile number to +353 XX XXX XXXX', () => {
+    it('formats a raw mobile number to +353 87 123 4567', () => {
         expect(formatIrishPhone('0871234567')).toBe('+353 87 123 4567');
     });
 
