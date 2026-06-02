@@ -258,7 +258,11 @@ export function MasterApplicationReviewScreen() {
                                         <TouchableOpacity
                                             key={i}
                                             style={styles.portfolioItem}
-                                            onPress={() => Linking.openURL(url).catch(() => {})}
+                                            onPress={() => {
+                                                if (url.startsWith('http://') || url.startsWith('https://')) {
+                                                    Linking.openURL(url).catch(() => {});
+                                                }
+                                            }}
                                         >
                                             <Image source={{ uri: url }} style={styles.portfolioImage} />
                                         </TouchableOpacity>
