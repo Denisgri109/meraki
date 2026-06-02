@@ -50,7 +50,7 @@ export function validateIrishPhone(phone: string): { valid: boolean; error?: str
         cleaned = cleaned.substring(1);
     }
 
-    // Now cleaned should be: XX XXXX XXX or similar (without country code or leading 0)
+    // Now cleaned should be: 87 123 4567 or similar (without country code or leading 0)
 
     // Check for valid mobile prefix
     const isMobile = IRISH_MOBILE_PREFIXES.some(prefix => cleaned.startsWith(prefix));
@@ -78,7 +78,7 @@ export function validateIrishPhone(phone: string): { valid: boolean; error?: str
 }
 
 /**
- * Formats a phone number to the standard Irish format: +353 XX XXX XXXX
+ * Formats a phone number to the standard Irish format: +353 87 123 4567
  * 
  * @param phone - The phone number in any format
  * @returns Formatted phone number or the original if invalid
@@ -108,7 +108,7 @@ export function formatIrishPhone(phone: string): string {
     const isMobile = IRISH_MOBILE_PREFIXES.some(prefix => cleaned.startsWith(prefix));
 
     if (isMobile && cleaned.length === 9) {
-        // Format as +353 XX XXX XXXX
+        // Format as +353 87 123 4567
         return `+353 ${cleaned.substring(0, 2)} ${cleaned.substring(2, 5)} ${cleaned.substring(5)}`;
     }
 
@@ -117,7 +117,7 @@ export function formatIrishPhone(phone: string): string {
 }
 
 /**
- * Normalizes a phone number to E.164 format for storage: +353XXXXXXXXX
+ * Normalizes a phone number to E.164 format for storage: +353871234567
  * 
  * @param phone - The phone number in any format
  * @returns E.164 formatted phone number or empty string if invalid
