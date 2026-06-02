@@ -42,19 +42,92 @@ describe('safeSupabaseFetch', () => {
     });
 
     it('handles timeout correctly', async () => {
-        // Create a promise that takes longer than the timeout
-        const slowPromise = new Promise<{ data: any; error: any }>((resolve) => {
-            setTimeout(() => resolve({ data: 'late', error: null }), 5000);
-        });
+        jest.useFakeTimers();
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-        const result = await safeSupabaseFetch(slowPromise, {
+        // A never-resolving promise to simulate an operation that takes too long
+        const slowPromise = new Promise<{ data: any; error: any }>(() => {});
+
+        const fetchPromise = safeSupabaseFetch(slowPromise, {
             timeout: 100, // Very short timeout
             errorMessage: 'Custom timeout',
         });
 
+        jest.advanceTimersByTime(100);
+
+        const result = await fetchPromise;
+
         expect(result.data).toBeNull();
         expect(result.error).toBeInstanceOf(Error);
         expect(result.timeout).toBe(true);
+        expect(consoleSpy).toHaveBeenCalled();
+
+        consoleSpy.mockRestore();
+        jest.useRealTimers();
+    });
+
+    it('throws error on timeout when throwError option is true', async () => {
+        jest.useFakeTimers();
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        const slowPromise = new Promise<{ data: any; error: any }>(() => {});
+
+        const fetchPromise = safeSupabaseFetch(slowPromise, {
+            timeout: 100,
+            errorMessage: 'Custom timeout',
+            throwError: true,
+        });
+
+        jest.advanceTimersByTime(100);
+
+        await expect(fetchPromise).rejects.toThrow('Custom timeout');
+        expect(consoleSpy).toHaveBeenCalled();
+
+        consoleSpy.mockRestore();
+        jest.useRealTimers();
+    });
+
+    it('catches and returns error when promise rejects (e.g., network error)', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const err = new Error('Network error');
+        const rejectedPromise = Promise.reject(err);
+
+        const result = await safeSupabaseFetch(rejectedPromise);
+
+        expect(result.data).toBeNull();
+        expect(result.error).toBe(err);
+        expect(result.timeout).toBe(false);
+        expect(consoleSpy).toHaveBeenCalled();
+
+        consoleSpy.mockRestore();
+    });
+
+    it('catches and throws error when promise rejects and throwError is true', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const err = new Error('Network error');
+        const rejectedPromise = Promise.reject(err);
+
+        await expect(
+            safeSupabaseFetch(rejectedPromise, { throwError: true })
+        ).rejects.toThrow('Network error');
+        expect(consoleSpy).toHaveBeenCalled();
+
+        consoleSpy.mockRestore();
+    });
+
+    it('wraps non-Error objects in an Error object when caught', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const rejectedPromise = Promise.reject('String error');
+
+        const result = await safeSupabaseFetch(rejectedPromise);
+
+        expect(result.data).toBeNull();
+        expect(result.error).toBeInstanceOf(Error);
+        expect(result.error?.message).toBe('String error');
+        expect(result.timeout).toBe(false);
+        expect(consoleSpy).toHaveBeenCalled();
+
+        consoleSpy.mockRestore();
     });
 
     it('throws error when throwError option is true', async () => {
@@ -107,6 +180,7 @@ describe('checkSessionHealth', () => {
     });
 
     it('returns false when there is an auth error', async () => {
+        const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
         (supabase.auth.getSession as jest.Mock).mockResolvedValue({
             data: { session: null },
             error: new Error('Auth error'),
@@ -114,12 +188,15 @@ describe('checkSessionHealth', () => {
 
         const result = await checkSessionHealth();
         expect(result).toBe(false);
+        consoleSpy.mockRestore();
     });
 
     it('returns false when getSession throws', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         (supabase.auth.getSession as jest.Mock).mockRejectedValue(new Error('Network error'));
 
         const result = await checkSessionHealth();
         expect(result).toBe(false);
+        consoleSpy.mockRestore();
     });
 });
