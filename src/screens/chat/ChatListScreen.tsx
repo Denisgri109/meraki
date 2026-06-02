@@ -187,7 +187,7 @@ export function ChatListScreen() {
             });
 
             if (convError) {
-                console.log('Conversations fetch error:', convError.message);
+                console.error('Conversations fetch error:', convError.message);
                 setConversations([]);
                 return;
             }
