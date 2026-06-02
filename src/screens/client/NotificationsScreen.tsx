@@ -233,10 +233,13 @@ export function NotificationsScreen() {
 
     const handleNotificationPress = async (notification: Notification) => {
         if (notification.type === 'message' && !notification.read) {
-            try {
-                const msgId = notification.id.replace('msg-', '');
-                await (supabase as any).from('messages').update({ read_at: new Date().toISOString() }).eq('id', msgId);
-            } catch (e) { console.log('Mark read error:', e); }
+            const msgId = notification.id.replace('msg-', '');
+            const updateMessage = async () => {
+                try {
+                    await (supabase as any).from('messages').update({ read_at: new Date().toISOString() }).eq('id', msgId);
+                } catch (e) { console.log('Mark read error:', e); }
+            };
+            updateMessage();
             setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
         }
         if (notification.type === 'message' && notification.data?.conversationId) {
@@ -248,20 +251,26 @@ export function NotificationsScreen() {
         // Mark messages as read in DB
         const unreadMessages = notifications.filter(n => n.type === 'message' && !n.read);
         if (unreadMessages.length > 0) {
-            try {
-                const messageIds = unreadMessages.map(n => n.id.replace('msg-', ''));
-                await (supabase as any).from('messages').update({ read_at: new Date().toISOString() }).in('id', messageIds);
-            } catch (e) { /* Ignore */ }
+            const messageIds = unreadMessages.map(n => n.id.replace('msg-', ''));
+            const updateMessages = async () => {
+                try {
+                    await (supabase as any).from('messages').update({ read_at: new Date().toISOString() }).in('id', messageIds);
+                } catch (e) { /* Ignore */ }
+            };
+            updateMessages();
         }
 
         // Save cleared_at time to db to hide everything up to now
         if (user?.id) {
-            try {
-                const now = new Date().toISOString();
-                const currentPrefs = profile?.notification_preferences as any || {};
-                const updatedPrefs = { ...currentPrefs, cleared_at: now };
-                await supabase.from('profiles').update({ notification_preferences: updatedPrefs }).eq('id', user.id);
-            } catch (e) { console.log('Error saving cleared_at:', e); }
+            const now = new Date().toISOString();
+            const currentPrefs = profile?.notification_preferences as any || {};
+            const updatedPrefs = { ...currentPrefs, cleared_at: now };
+            const updateProfiles = async () => {
+                try {
+                    await supabase.from('profiles').update({ notification_preferences: updatedPrefs }).eq('id', user.id);
+                } catch (e) { console.log('Error saving cleared_at:', e); }
+            };
+            updateProfiles();
         }
 
         // Clear local UI instantly
