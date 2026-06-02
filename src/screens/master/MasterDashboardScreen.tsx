@@ -180,7 +180,7 @@ export function MasterDashboardScreen() {
                 unreadCount = latestBySender.size;
                 const uniqueMessages = Array.from(latestBySender.values()).slice(0, 3);
 
-                const senderIds = [...new Set(uniqueMessages.map((msg: any) => msg.sender_id))];
+                const senderIds = uniqueMessages.map((msg: any) => msg.sender_id);
                 const senderMap = new Map<string, string>();
 
                 if (senderIds.length > 0) {
