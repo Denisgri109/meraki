@@ -97,11 +97,11 @@ export function ChatListScreen() {
                 } catch (geocodeError) {
                     // reverseGeocodeAsync can throw NullPointerException on some devices
                     // when getCountryCode() returns null — safe to ignore
-                    console.log('Reverse geocode failed (non-critical):', geocodeError);
+                    console.error('Reverse geocode failed (non-critical):', geocodeError);
                 }
             }
         } catch (error) {
-            console.log('Location detection failed:', error);
+            console.error('Location detection failed:', error);
         }
     };
 
@@ -187,7 +187,7 @@ export function ChatListScreen() {
             });
 
             if (convError) {
-                console.log('Conversations fetch error:', convError.message);
+                console.error('Conversations fetch error:', convError.message);
                 setConversations([]);
                 return;
             }
