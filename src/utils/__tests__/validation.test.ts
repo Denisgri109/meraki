@@ -58,6 +58,10 @@ describe('validateIrishPhone', () => {
         expect(validateIrishPhone('353871234567')).toEqual({ valid: true });
     });
 
+    it('validates a 00353 prefix mobile number', () => {
+        expect(validateIrishPhone('00353871234567')).toEqual({ valid: true });
+    });
+
     it('validates an 085 mobile number', () => {
         expect(validateIrishPhone('085 123 4567')).toEqual({ valid: true });
     });
@@ -102,6 +106,18 @@ describe('validateIrishPhone', () => {
         const result = validateIrishPhone('080 123 4567');
         expect(result.valid).toBe(false);
     });
+
+    it('rejects an Irish landline number that is too short', () => {
+        const result = validateIrishPhone('01 2345');
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('Invalid landline number length');
+    });
+
+    it('rejects an Irish landline number that is too long', () => {
+        const result = validateIrishPhone('01 2345 6789 012');
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('Invalid landline number length');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -118,6 +134,14 @@ describe('formatIrishPhone', () => {
 
     it('formats a number with 353 prefix', () => {
         expect(formatIrishPhone('353871234567')).toBe('+353 87 123 4567');
+    });
+
+    it('formats a number with 00353 prefix', () => {
+        expect(formatIrishPhone('00353871234567')).toBe('+353 87 123 4567');
+    });
+
+    it('formats a landline number', () => {
+        expect(formatIrishPhone('012345678')).toBe('+353 12345678');
     });
 
     it('returns empty string for empty input', () => {
@@ -140,6 +164,10 @@ describe('normalizeIrishPhone', () => {
 
     it('normalizes +353 format to E.164', () => {
         expect(normalizeIrishPhone('+353 87 123 4567')).toBe('+353871234567');
+    });
+
+    it('normalizes 00353 format to E.164', () => {
+        expect(normalizeIrishPhone('00353 87 123 4567')).toBe('+353871234567');
     });
 
     it('returns empty string for invalid number', () => {
