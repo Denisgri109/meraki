@@ -121,20 +121,13 @@ export function BookingConsultationReviewScreen() {
             const pushToken = clientProfile?.push_token;
             if (!pushToken) return;
 
-            await fetch('https://exp.host/--/api/v2/push/send', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+            await supabase.functions.invoke('send-push-notification', { body: {
                     to: pushToken,
                     sound: 'default',
                     title,
                     body,
                     data: { type: 'consultation_response', ...data },
-                }),
-            });
+                } });
         } catch (e) {
             console.error('Failed to send client notification:', e);
         }

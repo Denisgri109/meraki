@@ -192,20 +192,13 @@ export function AppointmentListScreen() {
         if (!masterPushToken) return;
 
         try {
-            await fetch('https://exp.host/--/api/v2/push/send', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+            await supabase.functions.invoke('send-push-notification', { body: {
                     to: masterPushToken,
                     sound: 'default',
                     title: 'Appointment Canceled',
                     body: `${user?.user_metadata?.full_name || 'Client'} canceled their appointment. The slot is open again.`,
                     data: { appointmentId: apt.id },
-                }),
-            });
+                } });
         } catch (e) {
             console.error('Failed to send cancellation notification:', e);
         }
@@ -267,20 +260,13 @@ export function AppointmentListScreen() {
         const message = `${user?.user_metadata?.full_name || 'Client'} rescheduled their appointment from ${format(oldTime, formatStr)} to ${format(newTime, formatStr)}.`;
 
         try {
-            await fetch('https://exp.host/--/api/v2/push/send', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+            await supabase.functions.invoke('send-push-notification', { body: {
                     to: masterPushToken,
                     sound: 'default',
                     title: 'Appointment Rescheduled',
                     body: message,
                     data: { appointmentId: apt.id },
-                }),
-            });
+                } });
         } catch (e) {
             console.error('Failed to send reschedule notification:', e);
         }
@@ -355,20 +341,13 @@ export function AppointmentListScreen() {
                     // Notify master
                     const masterPushToken = apt.master?.push_token;
                     if (masterPushToken) {
-                        await fetch('https://exp.host/--/api/v2/push/send', {
-                            method: 'POST',
-                            headers: {
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
+                        await supabase.functions.invoke('send-push-notification', { body: {
                                 to: masterPushToken,
                                 sound: 'default',
                                 title: 'Reschedule Approved',
                                 body: `${user?.user_metadata?.full_name || 'Client'} approved your reschedule request.`,
                                 data: { appointmentId: apt.id },
-                            }),
-                        });
+                            } });
                     }
 
                     showAlert('Success', 'Appointment rescheduled successfully.', 'success');
