@@ -136,7 +136,8 @@ describe('useAutoLocation', () => {
             timezone: 'America/New_York',
             country: 'United States',
             country_code: 'US',
-            city: 'New York', location_setup_completed: true,
+            city: 'New York',
+            location_setup_completed: true,
         };
         (useAuth as jest.Mock).mockReturnValue({
             profile: mockProfile,
@@ -152,7 +153,7 @@ describe('useAutoLocation', () => {
 
         expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
         expect(supabase.from).not.toHaveBeenCalled();
-        expect(result.current.isCityMissing).toBe(true);
+        expect(result.current.isCityMissing).toBe(false);
     });
 
     it('should handle Supabase update error gracefully', async () => {
