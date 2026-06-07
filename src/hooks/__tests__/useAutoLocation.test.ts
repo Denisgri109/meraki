@@ -37,7 +37,7 @@ describe('useAutoLocation', () => {
             timezone: null,
             country: null,
             country_code: null,
-            city: null,
+            city: null, location_setup_completed: false,
         };
 
         (useAuth as jest.Mock).mockReturnValue({
@@ -136,8 +136,7 @@ describe('useAutoLocation', () => {
             timezone: 'America/New_York',
             country: 'United States',
             country_code: 'US',
-            city: 'New York',
-            location_setup_completed: true,
+            city: 'New York', location_setup_completed: true,
         };
         (useAuth as jest.Mock).mockReturnValue({
             profile: mockProfile,

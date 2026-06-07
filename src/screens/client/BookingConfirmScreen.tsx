@@ -311,9 +311,6 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             }
 
             // STEP 1: Create SetupIntent to save card
-            console.log('Debug - user:', user);
-            console.log('Debug - user.id:', user?.id);
-            console.log('Debug - profile:', profile);
 
             // Ensure session is fresh before calling Edge Function
             const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -331,8 +328,6 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             const { data: setupIntentData, error: setupError } = await supabase.functions.invoke('setup-intent', {
                 body: requestBody,
             });
-
-            console.log('Debug - setup-intent response:', setupIntentData, setupError);
 
             if (setupError) throw setupError;
 
@@ -354,7 +349,6 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             let paymentIntentId: string | undefined;
 
             if (amountInCents > 0) {
-                console.log('Debug - Creating PaymentIntent for amount:', amountInCents, 'masterId:', masterId);
                 const { clientSecret, paymentIntentId: pId } = await createPaymentIntent({
                     amount: amountInCents,
                     customerId: profile?.stripe_customer_id || setupIntentData.customer_id,
@@ -364,7 +358,6 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                     captureMethod: 'automatic',
                 });
                 paymentIntentId = pId;
-                console.log('Debug - PaymentIntent created:', paymentIntentId);
 
                 // Confirm the payment
                 let paymentResult;
@@ -387,7 +380,6 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 if (paymentResult.error) {
                     throw new Error(paymentResult.error.message);
                 }
-                console.log('Debug - Payment confirmed successfully');
             }
 
             // STEP 4: Create appointment using the new confirmation flow
