@@ -156,7 +156,7 @@ export function OrdersScreen() {
             if (!user?.id) return;
 
             // First fetch orders
-            const { data: ordersData, error: ordersError } = await (supabase as any)
+            const { data: ordersData, error: ordersError } = await supabase
                 .from('orders')
                 .select('*')
                 .eq('user_id', user.id)
@@ -169,7 +169,7 @@ export function OrdersScreen() {
             // Then fetch items for these orders
             const orderIds = orders.map(o => o.id);
             if (orderIds.length > 0) {
-                const { data: itemsData, error: itemsError } = await (supabase as any)
+                const { data: itemsData, error: itemsError } = await supabase
                     .from('order_items')
                     .select('*')
                     .in('order_id', orderIds);
