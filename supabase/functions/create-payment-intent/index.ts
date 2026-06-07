@@ -20,14 +20,20 @@ interface RequestBody {
 }
 
 Deno.serve(async (req: Request) => {
+    const origin = req.headers.get("origin") || "";
+    const allowedOriginsStr = Deno.env.get("ALLOWED_ORIGINS") || "";
+    const allowedOrigins = allowedOriginsStr.split(",").map(o => o.trim()).filter(Boolean);
+
+    const corsHeaders: Record<string, string> = {
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+        "Access-Control-Allow-Origin": allowedOrigins.includes(origin) ? origin : "https://meraki.app",
+    };
+
     // Handle CORS
     if (req.method === "OPTIONS") {
         return new Response("ok", {
-            headers: {
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "POST, OPTIONS",
-                "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-            },
+            headers: corsHeaders,
         });
     }
 
@@ -39,7 +45,7 @@ Deno.serve(async (req: Request) => {
         if (!authHeader) {
             return new Response(
                 JSON.stringify({ error: "Missing Authorization header" }),
-                { status: 401, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
@@ -53,7 +59,7 @@ Deno.serve(async (req: Request) => {
             console.error("Auth error:", authError);
             return new Response(
                 JSON.stringify({ error: "Unauthorized", details: authError?.message }),
-                { status: 401, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
@@ -74,7 +80,7 @@ Deno.serve(async (req: Request) => {
         if (!amount) {
             return new Response(
                 JSON.stringify({ error: "Missing required field: amount" }),
-                { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
@@ -136,7 +142,7 @@ Deno.serve(async (req: Request) => {
             console.error("Stripe payment intent creation error:", paymentIntent.error);
             return new Response(
                 JSON.stringify({ error: paymentIntent.error.message }),
-                { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
@@ -146,17 +152,14 @@ Deno.serve(async (req: Request) => {
                 paymentIntentId: paymentIntent.id,
             }),
             {
-                headers: {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
             }
         );
     } catch (error) {
         console.error("Error creating payment intent:", error);
         return new Response(
             JSON.stringify({ error: "Failed to create payment intent", details: String(error) }),
-            { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
     }
 });
