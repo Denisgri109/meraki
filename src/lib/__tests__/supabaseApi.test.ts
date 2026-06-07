@@ -19,6 +19,16 @@ import { supabase } from '../supabase';
 // safeSupabaseFetch
 // ═══════════════════════════════════════════════════════════════════════════
 describe('safeSupabaseFetch', () => {
+    let consoleErrorSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        consoleErrorSpy.mockRestore();
+    });
+
     it('returns data on success', async () => {
         const mockData = [{ id: 1, name: 'Test' }];
         const promise = Promise.resolve({ data: mockData, error: null });
@@ -84,6 +94,29 @@ describe('safeSupabaseFetch', () => {
         expect(result.data).toBe('fast');
         expect(result.timeout).toBe(false);
     });
+
+    it('handles promise rejection with an Error object', async () => {
+        const err = new Error('Network failure');
+        const promise = Promise.reject(err);
+
+        const result = await safeSupabaseFetch(promise);
+
+        expect(result.data).toBeNull();
+        expect(result.error).toBe(err);
+        expect(result.timeout).toBe(false);
+    });
+
+    it('handles promise rejection with a non-Error object', async () => {
+        const promise = Promise.reject('Plain string error');
+
+        const result = await safeSupabaseFetch(promise);
+
+        expect(result.data).toBeNull();
+        expect(result.error).toBeInstanceOf(Error);
+        expect(result.error?.message).toBe('Plain string error');
+        expect(result.timeout).toBe(false);
+    });
+
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
