@@ -20,6 +20,7 @@ import { format, isToday, isTomorrow, parseISO, differenceInDays } from 'date-fn
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
+import { useModal } from '../../contexts/ModalContext';
 import { supabase } from '../../lib/supabase';
 import { ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing, gradients } from '../../theme';
@@ -102,6 +103,7 @@ interface ActivityFeedItem {
 export function ClientHomeScreen() {
     const navigation = useNavigation<any>();
     const { profile, user, checkSession } = useAuth();
+    const { showAlert } = useModal();
     const { getItemCount } = useCart();
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -524,6 +526,7 @@ export function ClientHomeScreen() {
             setActivityFeed([]);
         } catch (e) {
             console.log('Error clearing activity', e);
+            showAlert('Error', 'Failed to clear activity. Please try again.', 'error');
         }
     };
 
