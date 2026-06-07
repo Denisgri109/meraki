@@ -63,7 +63,8 @@ type Props = {
     isInstructor: boolean;
 };
 
-export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }: Props) {
+
+export function useLessonQA({ lessonId, courseId, instructorId, isInstructor }: Props) {
     const { user, profile } = useAuth();
     const { showAlert, showModal, hideModal } = useModal();
     const [messages, setMessages] = useState<QAMessage[]>([]);
@@ -73,8 +74,6 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
     const [replyTo, setReplyTo] = useState<QAMessage | null>(null);
     const [imageUploading, setImageUploading] = useState(false);
     const flatListRef = useRef<ScrollView>(null);
-
-    // ─── Load Messages ───────────────────────────────────────────────────────
 
     const loadMessages = useCallback(async () => {
         try {
@@ -93,8 +92,6 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
         }
     }, [lessonId]);
 
-    // ─── Real-Time Subscription ──────────────────────────────────────────────
-
     useEffect(() => {
         loadMessages();
 
@@ -109,7 +106,6 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                     filter: `lesson_id=eq.${lessonId}`,
                 },
                 async (payload) => {
-                    // Fetch the full message with sender profile
                     const { data } = await supabase
                         .from('lesson_qa_messages')
                         .select('*, sender:profiles!lesson_qa_messages_sender_id_fkey(full_name, avatar_url, role)')
@@ -118,11 +114,9 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
 
                     if (data) {
                         setMessages(prev => {
-                            // Avoid duplicates
                             if (prev.find(m => m.id === (data as any).id)) return prev;
                             return [...prev, data as unknown as QAMessage];
                         });
-                        // Auto-scroll to bottom
                         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
                     }
                 }
@@ -156,8 +150,6 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
         };
     }, [lessonId, loadMessages]);
 
-    // ─── Send Message ────────────────────────────────────────────────────────
-
     const sendMessage = async (content: string | null, mediaUrl: string | null = null, mediaType: string | null = null) => {
         if (!user || (!content?.trim() && !mediaUrl)) return;
 
@@ -181,7 +173,6 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
             setMessageText('');
             setReplyTo(null);
 
-            // Send push notification to instructor when student asks a question
             if (!isInstructor && instructorId) {
                 try {
                     const { data: instructorProfile } = await supabase
@@ -203,7 +194,6 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                 }
             }
 
-            // Notify student when instructor responds
             if (isInstructor && replyTo?.sender_id) {
                 try {
                     const { data: studentProfile } = await supabase
@@ -230,8 +220,6 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
             setSending(false);
         }
     };
-
-    // ─── Image Upload ────────────────────────────────────────────────────────
 
     const pickImage = async () => {
         try {
@@ -292,7 +280,6 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                     upsert: false,
                 });
 
-            // If bucket doesn't exist, fall back to homework-submissions bucket
             let publicUrl: string;
             if (uploadError) {
                 const fallbackFileName = `qa_${user.id}_${lessonId}_${Date.now()}.jpg`;
@@ -322,8 +309,6 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
         }
     };
 
-    // ─── Pin / Unpin ─────────────────────────────────────────────────────────
-
     const togglePin = async (messageId: string, currentlyPinned: boolean) => {
         if (!isInstructor) return;
         try {
@@ -336,105 +321,161 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
         }
     };
 
-    // ─── Render ──────────────────────────────────────────────────────────────
+    return {
+        messages,
+        messageText,
+        setMessageText,
+        sending,
+        loading,
+        replyTo,
+        setReplyTo,
+        imageUploading,
+        flatListRef,
+        sendMessage,
+        pickImage,
+        takePhoto,
+        togglePin,
+        user,
+        showModal,
+        hideModal
+    };
+}
 
-    const renderMessage = ({ item }: { item: QAMessage }) => {
-        const isOwn = item.sender_id === user?.id;
-        const isInstructorMsg = item.sender?.role === 'owner' || item.sender_id === instructorId;
-        const parentMsg = item.parent_message_id
-            ? messages.find(m => m.id === item.parent_message_id)
-            : null;
 
-        return (
-            <View style={[styles.messageContainer, isOwn && styles.messageContainerOwn]}>
-                {item.is_pinned && (
-                    <View style={styles.pinnedBadge}>
-                        <MaterialIcons name="push-pin" size={12} color={colors.accent} />
-                        <MerakiText variant="caption" color={colors.accent}>Pinned</MerakiText>
+type QAMessageItemProps = {
+    item: QAMessage;
+    isOwn: boolean;
+    isInstructorMsg: boolean;
+    isInstructor: boolean;
+    parentMsg: QAMessage | null;
+    messages: QAMessage[];
+    setReplyTo: (msg: QAMessage | null) => void;
+    togglePin: (messageId: string, currentlyPinned: boolean) => void;
+    showModal: any;
+    hideModal: any;
+};
+
+function QAMessageItem({
+    item,
+    isOwn,
+    isInstructorMsg,
+    isInstructor,
+    parentMsg,
+    setReplyTo,
+    togglePin,
+    showModal,
+    hideModal,
+}: QAMessageItemProps) {
+    return (
+        <View style={[styles.messageContainer, isOwn && styles.messageContainerOwn]}>
+            {item.is_pinned && (
+                <View style={styles.pinnedBadge}>
+                    <MaterialIcons name="push-pin" size={12} color={colors.accent} />
+                    <MerakiText variant="caption" color={colors.accent}>Pinned</MerakiText>
+                </View>
+            )}
+            <TouchableOpacity
+                style={[
+                    styles.messageBubble,
+                    isOwn ? styles.bubbleOwn : styles.bubbleOther,
+                    isInstructorMsg && !isOwn && styles.bubbleInstructor,
+                    item.is_pinned && styles.bubblePinned,
+                ]}
+                onLongPress={() => {
+                    if (isInstructor) {
+                        showModal({
+                            title: 'Message Actions',
+                            hideCancel: true,
+                            children: (
+                                <View style={{ gap: 10, width: '100%', marginTop: 10 }}>
+                                    <TouchableOpacity
+                                        style={[styles.actionBtn, { backgroundColor: colors.accent }]}
+                                        onPress={() => { hideModal(); togglePin(item.id, item.is_pinned); }}>
+                                        <MerakiText style={styles.actionBtnText}>{item.is_pinned ? 'Unpin' : 'Pin'}</MerakiText>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.actionBtn, { backgroundColor: colors.surfaceLight }]}
+                                        onPress={() => { hideModal(); setReplyTo(item); }}>
+                                        <MerakiText style={[styles.actionBtnText, { color: colors.text }]}>Reply</MerakiText>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.actionBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }]}
+                                        onPress={hideModal}>
+                                        <MerakiText style={[styles.actionBtnText, { color: colors.textSecondary }]}>Cancel</MerakiText>
+                                    </TouchableOpacity>
+                                </View>
+                            )
+                        });
+                    } else {
+                        setReplyTo(item);
+                    }
+                }}
+                activeOpacity={0.8}
+            >
+                {/* Sender name */}
+                {!isOwn && (
+                    <View style={styles.senderRow}>
+                        <MerakiText variant="caption" color={isInstructorMsg ? colors.accent : '#F472B6'} style={{ fontWeight: '700' }}>
+                            {item.sender?.full_name || 'Anonymous'}
+                        </MerakiText>
+                        {isInstructorMsg && (
+                            <View style={styles.instructorBadge}>
+                                <MerakiText style={styles.instructorBadgeText}>Instructor</MerakiText>
+                            </View>
+                        )}
                     </View>
                 )}
-                <TouchableOpacity
-                    style={[
-                        styles.messageBubble,
-                        isOwn ? styles.bubbleOwn : styles.bubbleOther,
-                        isInstructorMsg && !isOwn && styles.bubbleInstructor,
-                        item.is_pinned && styles.bubblePinned,
-                    ]}
-                    onLongPress={() => {
-                        if (isInstructor) {
-                            showModal({
-                                title: 'Message Actions',
-                                hideCancel: true,
-                                children: (
-                                    <View style={{ gap: 10, width: '100%', marginTop: 10 }}>
-                                        <TouchableOpacity 
-                                            style={[styles.actionBtn, { backgroundColor: colors.accent }]} 
-                                            onPress={() => { hideModal(); togglePin(item.id, item.is_pinned); }}>
-                                            <MerakiText style={styles.actionBtnText}>{item.is_pinned ? 'Unpin' : 'Pin'}</MerakiText>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity 
-                                            style={[styles.actionBtn, { backgroundColor: colors.surfaceLight }]} 
-                                            onPress={() => { hideModal(); setReplyTo(item); }}>
-                                            <MerakiText style={[styles.actionBtnText, { color: colors.text }]}>Reply</MerakiText>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity 
-                                            style={[styles.actionBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }]} 
-                                            onPress={hideModal}>
-                                            <MerakiText style={[styles.actionBtnText, { color: colors.textSecondary }]}>Cancel</MerakiText>
-                                        </TouchableOpacity>
-                                    </View>
-                                )
-                            });
-                        } else {
-                            setReplyTo(item);
-                        }
-                    }}
-                    activeOpacity={0.8}
-                >
-                    {/* Sender name */}
-                    {!isOwn && (
-                        <View style={styles.senderRow}>
-                            <MerakiText variant="caption" color={isInstructorMsg ? colors.accent : '#F472B6'} style={{ fontWeight: '700' }}>
-                                {item.sender?.full_name || 'Anonymous'}
-                            </MerakiText>
-                            {isInstructorMsg && (
-                                <View style={styles.instructorBadge}>
-                                    <MerakiText style={styles.instructorBadgeText}>Instructor</MerakiText>
-                                </View>
-                            )}
-                        </View>
-                    )}
 
-                    {/* Reply context */}
-                    {parentMsg && (
-                        <View style={styles.replyContext}>
-                            <View style={styles.replyBar} />
-                            <MerakiText variant="caption" color={colors.textMuted} numberOfLines={2}>
-                                {parentMsg.sender?.full_name}: {parentMsg.content || '📷 Photo'}
-                            </MerakiText>
-                        </View>
-                    )}
-
-                    {/* Media */}
-                    {item.media_url && (
-                        <Image source={{ uri: item.media_url }} style={styles.messageImage} resizeMode="cover" />
-                    )}
-
-                    {/* Content */}
-                    {item.content && (
-                        <MerakiText variant="body" color={isOwn ? '#FFF' : colors.text}>
-                            {item.content}
+                {/* Reply context */}
+                {parentMsg && (
+                    <View style={styles.replyContext}>
+                        <View style={styles.replyBar} />
+                        <MerakiText variant="caption" color={colors.textMuted} numberOfLines={2}>
+                            {parentMsg.sender?.full_name}: {parentMsg.content || '📷 Photo'}
                         </MerakiText>
-                    )}
+                    </View>
+                )}
 
-                    {/* Timestamp */}
-                    <MerakiText variant="caption" color={isOwn ? 'rgba(0, 0, 0, 0.40)' : colors.textMuted} style={styles.timestamp}>
-                        {formatTime(item.created_at)}
+                {/* Media */}
+                {item.media_url && (
+                    <Image source={{ uri: item.media_url }} style={styles.messageImage} resizeMode="cover" />
+                )}
+
+                {/* Content */}
+                {item.content && (
+                    <MerakiText variant="body" color={isOwn ? '#FFF' : colors.text}>
+                        {item.content}
                     </MerakiText>
-                </TouchableOpacity>
-            </View>
-        );
-    };
+                )}
+
+                {/* Timestamp */}
+                <MerakiText variant="caption" color={isOwn ? 'rgba(0, 0, 0, 0.40)' : colors.textMuted} style={styles.timestamp}>
+                    {formatTime(item.created_at)}
+                </MerakiText>
+            </TouchableOpacity>
+        </View>
+    );
+}
+
+export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }: Props) {
+    const {
+        messages,
+        messageText,
+        setMessageText,
+        sending,
+        loading,
+        replyTo,
+        setReplyTo,
+        imageUploading,
+        flatListRef,
+        sendMessage,
+        pickImage,
+        takePhoto,
+        togglePin,
+        user,
+        showModal,
+        hideModal
+    } = useLessonQA({ lessonId, courseId, instructorId, isInstructor });
 
     if (loading) {
         return (
@@ -495,11 +536,29 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                         </MerakiText>
                     </View>
                 ) : (
-                    messages.map((item) => (
-                        <React.Fragment key={item.id}>
-                            {renderMessage({ item })}
-                        </React.Fragment>
-                    ))
+                    messages.map((item) => {
+                        const isOwn = item.sender_id === user?.id;
+                        const isInstructorMsg = item.sender?.role === 'owner' || item.sender_id === instructorId;
+                        const parentMsg = item.parent_message_id
+                            ? messages.find(m => m.id === item.parent_message_id) || null
+                            : null;
+
+                        return (
+                            <QAMessageItem
+                                key={item.id}
+                                item={item}
+                                isOwn={isOwn}
+                                isInstructorMsg={isInstructorMsg}
+                                isInstructor={isInstructor}
+                                parentMsg={parentMsg}
+                                messages={messages}
+                                setReplyTo={setReplyTo}
+                                togglePin={togglePin}
+                                showModal={showModal}
+                                hideModal={hideModal}
+                            />
+                        );
+                    })
                 )}
             </ScrollView>
 
