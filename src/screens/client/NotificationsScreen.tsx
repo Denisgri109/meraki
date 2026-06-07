@@ -160,7 +160,7 @@ export function NotificationsScreen() {
                         }
                     }
                 }
-            } catch (e) { console.log('Message notifications error:', e); }
+            } catch (e) { console.error('Message notifications error:', e); }
 
             // 2. Fetch appointment notifications
             try {
@@ -195,7 +195,7 @@ export function NotificationsScreen() {
                         }
                     }
                 }
-            } catch (e) { console.log('Appointment notifications error:', e); }
+            } catch (e) { console.error('Appointment notifications error:', e); }
 
             // 3. Fetch low stock notifications for owners
             if (profile?.role === 'owner' && settings.stockAlerts) {
@@ -216,7 +216,7 @@ export function NotificationsScreen() {
                             }
                         }
                     }
-                } catch (e) { console.log('Low stock notifications error:', e); }
+                } catch (e) { console.error('Low stock notifications error:', e); }
             }
 
             allNotifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -236,7 +236,7 @@ export function NotificationsScreen() {
             try {
                 const msgId = notification.id.replace('msg-', '');
                 await (supabase as any).from('messages').update({ read_at: new Date().toISOString() }).eq('id', msgId);
-            } catch (e) { console.log('Mark read error:', e); }
+            } catch (e) { console.error('Mark read error:', e); }
             setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
         }
         if (notification.type === 'message' && notification.data?.conversationId) {
@@ -261,7 +261,7 @@ export function NotificationsScreen() {
                 const currentPrefs = profile?.notification_preferences as any || {};
                 const updatedPrefs = { ...currentPrefs, cleared_at: now };
                 await supabase.from('profiles').update({ notification_preferences: updatedPrefs }).eq('id', user.id);
-            } catch (e) { console.log('Error saving cleared_at:', e); }
+            } catch (e) { console.error('Error saving cleared_at:', e); }
         }
 
         // Clear local UI instantly
@@ -282,7 +282,7 @@ export function NotificationsScreen() {
                     stock_alerts: newSettings.stockAlerts,
                 };
                 await supabase.from('profiles').update({ notification_preferences: dbPrefs }).eq('id', user.id);
-            } catch (e) { console.log('Error saving notification preferences:', e); setSettings(settings); }
+            } catch (e) { console.error('Error saving notification preferences:', e); setSettings(settings); }
             finally { setSavingSettings(false); }
         }
     };
