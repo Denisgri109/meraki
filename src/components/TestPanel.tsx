@@ -264,10 +264,18 @@ export function TestPanel() {
     useEffect(() => {
         (async () => {
             const next: Record<string, string> = {};
-            for (const a of TEST_ACCOUNTS) {
-                const pw = await AsyncStorage.getItem(passwordKey(a.email));
-                if (pw) next[a.email.toLowerCase()] = pw;
+
+            const results = await Promise.all(
+                TEST_ACCOUNTS.map(async (a) => {
+                    const pw = await AsyncStorage.getItem(passwordKey(a.email));
+                    return { email: a.email.toLowerCase(), pw };
+                })
+            );
+
+            for (const res of results) {
+                if (res.pw) next[res.email] = res.pw;
             }
+
             // Legacy single-key fallback (used by older builds).
             const legacy = await AsyncStorage.getItem(LEGACY_PASSWORD_KEY);
             if (legacy && Object.keys(next).length === 0) {
