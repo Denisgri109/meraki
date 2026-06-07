@@ -316,7 +316,7 @@ export function OwnerDashboardScreen() {
             });
 
             setActivityFeed(feedItems);
-        } catch (e) { console.log('Activity feed error:', e); }
+        } catch (e) { console.error('Activity feed error:', e); }
     };
 
     const handleRefresh = () => { setRefreshing(true); fetchDashboardData(); };
