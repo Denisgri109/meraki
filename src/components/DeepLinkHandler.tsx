@@ -55,157 +55,160 @@ export function DeepLinkHandler({ children }: DeepLinkHandlerProps) {
         };
     }, [user]);
 
-    const processDeepLink = async (url: string) => {
-        try {
-            // ── Auth callback (email change confirm, etc.) ──────────────
-            // Format: meraki://auth-callback?code=...
-            //     or: meraki://auth-callback?token_hash=...&type=email_change
-            if (url.includes('auth-callback')) {
-                const u = new URL(url);
-                const code = u.searchParams.get('code');
-                const tokenHash = u.searchParams.get('token_hash');
-                const type = u.searchParams.get('type');
+    const handleAuthCallback = async (url: string) => {
+        const u = new URL(url);
+        const code = u.searchParams.get('code');
+        const tokenHash = u.searchParams.get('token_hash');
+        const type = u.searchParams.get('type');
 
-                if (code) {
-                    const { error } = await supabase.auth.exchangeCodeForSession(code);
-                    if (error) {
-                        showModal({
-                            title: 'Confirmation failed',
-                            message: error.message || 'Could not confirm. Try again or request a new link.',
-                            confirmText: 'OK',
-                            hideCancel: true,
-                            type: 'error',
-                            onConfirm: hideModal,
-                        });
-                    } else {
-                        showModal({
-                            title: 'Confirmed',
-                            message: 'Your email change link has been confirmed. Both old and new email links must be opened to finish the change.',
-                            confirmText: 'OK',
-                            hideCancel: true,
-                            type: 'success',
-                            onConfirm: hideModal,
-                        });
-                    }
-                    return;
-                }
-
-                if (tokenHash && type) {
-                    const { error } = await supabase.auth.verifyOtp({
-                        type: type as import('@supabase/supabase-js').EmailOtpType,
-                        token_hash: tokenHash,
-                    });
-                    if (error) {
-                        showModal({
-                            title: 'Confirmation failed',
-                            message: error.message || 'Could not confirm. Try again or request a new link.',
-                            confirmText: 'OK',
-                            hideCancel: true,
-                            type: 'error',
-                            onConfirm: hideModal,
-                        });
-                    } else {
-                        showModal({
-                            title: 'Confirmed',
-                            message: 'Email confirmation processed successfully.',
-                            confirmText: 'OK',
-                            hideCancel: true,
-                            type: 'success',
-                            onConfirm: hideModal,
-                        });
-                    }
-                    return;
-                }
-
-                console.warn('auth-callback deep link missing code/token_hash');
-                return;
-            }
-
-            // ── Loyalty stamp scan ──────────────────────────────────────
-            // Expected format: meraki://loyalty/stamp?master_id=123
-            if (!url.includes('loyalty/stamp')) {
-                return; // Not a stamp deep link
-            }
-
-            // Extract master_id from URL
-            const urlParams = new URL(url);
-            const masterId = urlParams.searchParams.get('master_id');
-
-            if (!masterId) {
-                console.error('No master_id in deep link');
-                return;
-            }
-
-            // Must be logged in as a client
-            if (!user) {
-                showModal({
-                    title: 'Login Required',
-                    message: 'Please log in to collect stamps.',
-                    confirmText: 'OK',
-                    hideCancel: true,
-                    type: 'warning',
-                    onConfirm: hideModal,
-                });
-                return;
-            }
-
-            // Don't allow masters/owners to collect stamps from themselves
-            if (masterId === user.id) {
-                showModal({
-                    title: 'Cannot Collect',
-                    message: 'You cannot collect stamps from yourself.',
-                    confirmText: 'OK',
-                    hideCancel: true,
-                    type: 'error',
-                    onConfirm: hideModal,
-                });
-                return;
-            }
-
-            // Call the stamp RPC
-            const { data: result, error } = await (supabase as any).rpc('process_stamp_scan', {
-                p_master_id: masterId,
-                p_client_id: user.id,
-            });
-
+        if (code) {
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
             if (error) {
-                console.error('Stamp scan error:', error);
                 showModal({
-                    title: 'Error',
-                    message: error.message || 'Failed to collect stamp',
+                    title: 'Confirmation failed',
+                    message: error.message || 'Could not confirm. Try again or request a new link.',
                     confirmText: 'OK',
                     hideCancel: true,
                     type: 'error',
                     onConfirm: hideModal,
-                });
-                return;
-            }
-
-            if (result.success) {
-                // Show success modal with animation
-                setStampResult({
-                    visible: true,
-                    cardName: result.card_name,
-                    masterName: result.master_name,
-                    stampsCollected: result.stamps_collected,
-                    stampsRequired: result.stamps_required,
-                    rewardAvailable: result.reward_available,
                 });
             } else {
                 showModal({
-                    title: 'Cannot Collect Stamp',
-                    message: result.message || 'Unable to process stamp',
+                    title: 'Confirmed',
+                    message: 'Your email change link has been confirmed. Both old and new email links must be opened to finish the change.',
                     confirmText: 'OK',
                     hideCancel: true,
-                    type: 'warning',
+                    type: 'success',
                     onConfirm: hideModal,
                 });
             }
-        } catch (error: any) {
+            return;
+        }
+
+        if (tokenHash && type) {
+            const { error } = await supabase.auth.verifyOtp({
+                type: type as import('@supabase/supabase-js').EmailOtpType,
+                token_hash: tokenHash,
+            });
+            if (error) {
+                showModal({
+                    title: 'Confirmation failed',
+                    message: error.message || 'Could not confirm. Try again or request a new link.',
+                    confirmText: 'OK',
+                    hideCancel: true,
+                    type: 'error',
+                    onConfirm: hideModal,
+                });
+            } else {
+                showModal({
+                    title: 'Confirmed',
+                    message: 'Email confirmation processed successfully.',
+                    confirmText: 'OK',
+                    hideCancel: true,
+                    type: 'success',
+                    onConfirm: hideModal,
+                });
+            }
+            return;
+        }
+
+        console.warn('auth-callback deep link missing code/token_hash');
+    };
+
+    const handleLoyaltyStamp = async (url: string) => {
+        const urlParams = new URL(url);
+        const masterId = urlParams.searchParams.get('master_id');
+
+        if (!masterId) {
+            console.error('No master_id in deep link');
+            return;
+        }
+
+        if (!user) {
+            showModal({
+                title: 'Login Required',
+                message: 'Please log in to collect stamps.',
+                confirmText: 'OK',
+                hideCancel: true,
+                type: 'warning',
+                onConfirm: hideModal,
+            });
+            return;
+        }
+
+        if (masterId === user.id) {
+            showModal({
+                title: 'Cannot Collect',
+                message: 'You cannot collect stamps from yourself.',
+                confirmText: 'OK',
+                hideCancel: true,
+                type: 'error',
+                onConfirm: hideModal,
+            });
+            return;
+        }
+
+        const { data, error } = await (supabase as any).rpc('process_stamp_scan', {
+            p_master_id: masterId,
+            p_client_id: user.id,
+        });
+
+        if (error) {
+            console.error('Stamp scan error:', error);
+            showModal({
+                title: 'Error',
+                message: error.message || 'Failed to collect stamp',
+                confirmText: 'OK',
+                hideCancel: true,
+                type: 'error',
+                onConfirm: hideModal,
+            });
+            return;
+        }
+
+        const result = data as {
+            success: boolean;
+            message?: string;
+            card_name: string;
+            master_name: string;
+            stamps_collected: number;
+            stamps_required: number;
+            reward_available: boolean;
+        };
+
+        if (result.success) {
+            setStampResult({
+                visible: true,
+                cardName: result.card_name,
+                masterName: result.master_name,
+                stampsCollected: result.stamps_collected,
+                stampsRequired: result.stamps_required,
+                rewardAvailable: result.reward_available,
+            });
+        } else {
+            showModal({
+                title: 'Cannot Collect Stamp',
+                message: result.message || 'Unable to process stamp',
+                confirmText: 'OK',
+                hideCancel: true,
+                type: 'warning',
+                onConfirm: hideModal,
+            });
+        }
+    };
+
+    const processDeepLink = async (url: string) => {
+        try {
+            if (url.includes('auth-callback')) {
+                await handleAuthCallback(url);
+            } else if (url.includes('loyalty/stamp')) {
+                await handleLoyaltyStamp(url);
+            }
+        } catch (error: unknown) {
             console.error('Deep link processing error:', error);
             showModal({
                 title: 'Error',
-                message: 'Something went wrong while processing the stamp.',
+                message: 'Something went wrong while processing the link.',
                 confirmText: 'OK',
                 hideCancel: true,
                 type: 'error',
