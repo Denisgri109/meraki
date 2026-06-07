@@ -4,7 +4,7 @@ import { safeGoBack, canGoBack } from '../navigation/navigationUtils';
 
 interface UseSafeBackOptions {
     fallbackRoute?: string;
-    fallbackParams?: Record<string, unknown>;
+    fallbackParams?: unknown;
 }
 
 interface UseSafeBackReturn {
