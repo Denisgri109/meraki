@@ -25,7 +25,7 @@ interface SafeResponse<T> {
  * @returns Object with data, error, and timeout status
  */
 export async function safeSupabaseFetch<T>(
-    promise: Promise<{ data: T | null; error: any }>,
+    promise: PromiseLike<{ data: T | null; error: any }>,
     options: SafeFetchOptions = {}
 ): Promise<SafeResponse<T>> {
     const {
@@ -34,7 +34,7 @@ export async function safeSupabaseFetch<T>(
         throwError = false
     } = options;
 
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     // Create a timeout promise that rejects after the specified duration
     const timeoutPromise = new Promise<never>((_, reject) => {
