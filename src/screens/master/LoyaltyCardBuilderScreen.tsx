@@ -17,6 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Card, Button, ScreenBackground } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
+import { getRewardText } from '../../utils/loyalty';
 
 type LoyaltyCard = {
     id: string;
@@ -216,33 +217,6 @@ export function LoyaltyCardBuilderScreen() {
         );
     };
 
-    const getRewardText = (type: string, value: number | null) => {
-        switch (type) {
-            case 'free_service':
-                return 'Free service';
-            case 'discount_percent':
-                return `${value}% off`;
-            case 'discount_amount':
-                return `€${value} off`;
-            default:
-                return 'Reward';
-        }
-    };
-
-    // Helper for selected reward display
-    const getSelectedRewardText = (reward: Reward) => {
-        switch (reward.credit_type) {
-            case 'service':
-                return 'Free Service';
-            case 'discount_percent':
-                return `${reward.discount_amount}% off`;
-            case 'discount_amount':
-                return `€${reward.discount_amount} off`;
-            default:
-                return 'Reward';
-        }
-    };
-
     const renderEditor = () => (
         <Modal visible={showEditor} animationType="slide" onRequestClose={() => setShowEditor(false)}>
             <ScreenBackground>
@@ -349,7 +323,7 @@ export function LoyaltyCardBuilderScreen() {
                                             onPress={() => setSelectedReward(reward)}
                                         >
                                             <Text style={styles.rewardItemName}>{reward.name}</Text>
-                                            <Text style={styles.rewardItemDetail}>{getSelectedRewardText(reward)}</Text>
+                                            <Text style={styles.rewardItemDetail}>{getRewardText(reward.credit_type, reward.discount_amount)}</Text>
                                         </TouchableOpacity>
                                     ))}
                                 </ScrollView>

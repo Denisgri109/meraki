@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { Card, Button, MerakiText } from '../ui';
 import { colors, spacing } from '../../theme';
 import { StampCard as StampCardType } from '../../types/loyalty';
+import { getRewardText } from '../../utils/loyalty';
+import { StampSlots } from './StampSlots';
 
 interface StampCardProps {
     card: StampCardType;
@@ -14,42 +16,6 @@ interface StampCardProps {
 }
 
 export const StampCard: React.FC<StampCardProps> = ({ card, onRedeem, style, hideRedeemButton }) => {
-
-    const getRewardText = (card: StampCardType) => {
-        switch (card.reward_type) {
-            case 'free_service':
-                return 'Free Service';
-            case 'discount_percent':
-                return `${card.reward_value}% Off`;
-            case 'discount_amount':
-                return `€${card.reward_value} Off`;
-            default:
-                return 'Reward';
-        }
-    };
-
-    const renderStampSlots = () => {
-        const slots = [];
-        for (let i = 0; i < card.stamps_required; i++) {
-            const isCollected = i < card.stamps_collected;
-            slots.push(
-                <View
-                    key={i}
-                    style={[
-                        styles.stampSlot,
-                        isCollected && styles.stampSlotCollected
-                    ]}
-                >
-                    {isCollected ? (
-                        <MaterialIcons name="star" size={16} color="#fff" />
-                    ) : (
-                        <MaterialIcons name="star-border" size={16} color="rgba(0, 0, 0, 0.08)" />
-                    )}
-                </View>
-            );
-        }
-        return slots;
-    };
 
     return (
         <Card variant="glass" style={[styles.stampCard, style]}>
@@ -84,9 +50,7 @@ export const StampCard: React.FC<StampCardProps> = ({ card, onRedeem, style, hid
 
             {/* Slots Area */}
             <View style={styles.slotsContainer}>
-                <View style={styles.slotsGrid}>
-                    {renderStampSlots()}
-                </View>
+                <StampSlots stampsRequired={card.stamps_required} stampsCollected={card.stamps_collected} />
                 <View style={styles.progressLabelRow}>
                     <MerakiText style={styles.progressText}>
                         {card.stamps_collected} of {card.stamps_required} stamps collected
@@ -103,7 +67,7 @@ export const StampCard: React.FC<StampCardProps> = ({ card, onRedeem, style, hid
             <View style={styles.cardFooter}>
                 <View style={styles.footerInfo}>
                     <MerakiText style={styles.footerLabel}>Reward</MerakiText>
-                    <MerakiText variant="h4" style={styles.footerValue}>{getRewardText(card)}</MerakiText>
+                    <MerakiText variant="h4" style={styles.footerValue}>{getRewardText(card.reward_type, card.reward_value)}</MerakiText>
                 </View>
 
                 {!hideRedeemButton && (
