@@ -371,7 +371,7 @@ export function OrdersScreen() {
     const handleChat = async (appointment: Appointment) => {
         if (!user || !appointment.master_id) return;
         try {
-            const { data: existing } = await (supabase as any)
+            const { data: existing } = await supabase
                 .from('conversations')
                 .select('id')
                 .eq('client_id', user.id)
@@ -381,7 +381,7 @@ export function OrdersScreen() {
             let conversationId = existing?.id;
 
             if (!conversationId) {
-                const { data: newConv, error } = await (supabase as any)
+                const { data: newConv, error } = await supabase
                     .from('conversations')
                     .insert({ client_id: user.id, master_id: appointment.master_id })
                     .select()
