@@ -177,19 +177,33 @@ export function OwnerDashboardScreen() {
             const todayStart = startOfDay(new Date()).toISOString();
             const todayEnd = endOfDay(new Date()).toISOString();
 
-            // Services
-            const { count: servicesCount } = await supabase.from('services').select('*', { count: 'exact', head: true }).eq('created_by', user.id);
-            const { count: activeServicesCount } = await supabase.from('services').select('*', { count: 'exact', head: true }).eq('created_by', user.id).eq('is_active', true);
-
-            // Today's Stats
+            // Create promises for parallel execution
+            const servicesCountPromise = supabase.from('services').select('*', { count: 'exact', head: true }).eq('created_by', user.id);
+            const activeServicesCountPromise = supabase.from('services').select('*', { count: 'exact', head: true }).eq('created_by', user.id).eq('is_active', true);
             const todayPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).gte('start_time', todayStart).lt('start_time', todayEnd).in('status', ['confirmed', 'pending', 'completed']).order('start_time');
-            const { data: todayData } = await safeSupabaseFetch(todayPromise as any);
-
-            // Upcoming confirmed
             const allAppointmentsPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).eq('status', 'confirmed').gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(5);
-            const { data: allAppointmentsData } = await safeSupabaseFetch(allAppointmentsPromise as any);
+            const pendingCountPromise = supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('master_id', user.id).eq('status', 'pending');
+            const conversationsPromise = safeSupabaseFetch(supabase.from('conversations').select('id').or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`) as any);
+            const lastViewedPromise = AsyncStorage.getItem('last_consultations_view');
 
-            const { count: pendingCount } = await supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('master_id', user.id).eq('status', 'pending');
+            // Execute all independent queries concurrently
+            const [
+                { count: servicesCount },
+                { count: activeServicesCount },
+                { data: todayData },
+                { data: allAppointmentsData },
+                { count: pendingCount },
+                { data: conversations },
+                lastViewed
+            ] = await Promise.all([
+                servicesCountPromise,
+                activeServicesCountPromise,
+                safeSupabaseFetch(todayPromise as any),
+                safeSupabaseFetch(allAppointmentsPromise as any),
+                pendingCountPromise,
+                conversationsPromise,
+                lastViewedPromise
+            ]);
 
             // Today's unique clients
             const todayClients = new Set(
@@ -199,7 +213,6 @@ export function OwnerDashboardScreen() {
 
             // Unread messages count
             let unreadCount = 0;
-            const { data: conversations } = await safeSupabaseFetch(supabase.from('conversations').select('id').or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`) as any);
             if (conversations && (conversations as any[]).length > 0) {
                 const convIds = (conversations as any[]).map((c: any) => c.id);
                 const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', convIds).neq('sender_id', user.id).eq('is_read', false);
@@ -238,7 +251,6 @@ export function OwnerDashboardScreen() {
             const todayEarnings = ((todayData as any[]) || []).filter(apt => apt.status === 'completed').reduce((sum, apt) => sum + (apt.price || 0), 0);
 
             // Fetch pending consultations count
-            const lastViewed = await AsyncStorage.getItem('last_consultations_view');
             let consultationsQuery = supabase
                 .from('booking_consultations')
                 .select('*', { count: 'exact', head: true })
