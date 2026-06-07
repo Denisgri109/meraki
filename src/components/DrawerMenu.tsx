@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { Profile } from '../types/database';
 import { colors, spacing } from '../theme';
 
 type DrawerMenuProps = {
@@ -21,10 +22,85 @@ type DrawerMenuProps = {
     onNavigate: (screen: string) => void;
 };
 
+
+type MenuSection = {
+    title: string;
+    items: MenuItemProps[];
+};
+
+const MENU_SECTIONS: MenuSection[] = [
+    {
+        title: 'QUICK ACTIONS',
+        items: [
+            { icon: '📅', label: 'My Orders', screen: 'Orders' },
+            { icon: '🔔', label: 'Notifications', screen: 'Notifications', badge: 2 },
+            { icon: '⭐', label: 'Loyalty Points', screen: 'LoyaltyPoints' },
+        ],
+    },
+    {
+        title: 'SUPPORT',
+        items: [
+            { icon: '❓', label: 'Help & Support', screen: 'HelpSupport' },
+            { icon: '📜', label: 'Terms of Service', screen: 'TermsOfService' },
+            { icon: '🔒', label: 'Privacy Policy', screen: 'PrivacyPolicy' },
+        ],
+    },
+    {
+        title: 'ACCOUNT',
+        items: [
+            { icon: '👤', label: 'Profile Settings', screen: 'Profile' },
+            { icon: '💳', label: 'Payment Methods', screen: 'PaymentMethods' },
+        ],
+    },
+];
+
+
+type DrawerHeaderProps = {
+    profile: Profile | null;
+    onClose: () => void;
+};
+
+const DrawerHeader = ({ profile, onClose }: DrawerHeaderProps) => (
+    <View style={styles.header}>
+        <View style={styles.userInfo}>
+            <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                    {profile?.full_name?.[0] || 'U'}
+                </Text>
+            </View>
+            <View style={styles.userDetails}>
+                <Text style={styles.userName}>{profile?.full_name || 'Guest'}</Text>
+                <Text style={styles.userRole}>
+                    {profile?.role === 'owner' ? 'Owner' : 'Client'}
+                </Text>
+            </View>
+        </View>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Text style={styles.closeIcon}>✕</Text>
+        </TouchableOpacity>
+    </View>
+);
+
+
+type DrawerFooterProps = {
+    onSignOut: () => void;
+};
+
+const DrawerFooter = ({ onSignOut }: DrawerFooterProps) => (
+    <View style={styles.footer}>
+        <TouchableOpacity style={styles.logoutButton} onPress={onSignOut}>
+            <Text style={styles.logoutIcon}>🚪</Text>
+            <Text style={styles.logoutText}>Sign Out</Text>
+        </TouchableOpacity>
+        <Text style={styles.versionText}>Merakí App v1.2.0 • Build 42</Text>
+    </View>
+);
+
 type MenuItemProps = {
+    screen?: string;
     icon: string;
     label: string;
-    onPress: () => void;
+    onPress?: () => void;
     badge?: number;
 };
 
@@ -90,99 +166,32 @@ export function DrawerMenu({ visible, onClose, onNavigate }: DrawerMenuProps) {
                     ]}
                 >
                     <SafeAreaView style={styles.drawerContent} edges={['top', 'bottom']}>
-                        {/* Header */}
-                        <View style={styles.header}>
-                            <View style={styles.userInfo}>
-                                <View style={styles.avatar}>
-                                    <Text style={styles.avatarText}>
-                                        {profile?.full_name?.[0] || 'U'}
-                                    </Text>
-                                </View>
-                                <View style={styles.userDetails}>
-                                    <Text style={styles.userName}>{profile?.full_name || 'Guest'}</Text>
-                                    <Text style={styles.userRole}>
-                                        {profile?.role === 'owner' ? 'Owner' : 'Client'}
-                                    </Text>
-                                </View>
-                            </View>
-                            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                                <Text style={styles.closeIcon}>✕</Text>
-                            </TouchableOpacity>
-                        </View>
+                        <DrawerHeader profile={profile} onClose={onClose} />
 
                         <ScrollView
                             style={styles.scrollView}
                             contentContainerStyle={styles.scrollContent}
                             showsVerticalScrollIndicator={false}
                         >
-                            {/* Quick Actions */}
-                            <View style={styles.sectionHeader}>
-                                <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
-                            </View>
-
-                            <MenuItem
-                                icon="📅"
-                                label="My Orders"
-                                onPress={() => handleNavigate('Orders')}
-                            />
-                            <MenuItem
-                                icon="🔔"
-                                label="Notifications"
-                                onPress={() => handleNavigate('Notifications')}
-                                badge={2}
-                            />
-                            <MenuItem
-                                icon="⭐"
-                                label="Loyalty Points"
-                                onPress={() => handleNavigate('LoyaltyPoints')}
-                            />
-
-                            {/* Support */}
-                            <View style={styles.sectionHeader}>
-                                <Text style={styles.sectionTitle}>SUPPORT</Text>
-                            </View>
-
-                            <MenuItem
-                                icon="❓"
-                                label="Help & Support"
-                                onPress={() => handleNavigate('HelpSupport')}
-                            />
-                            <MenuItem
-                                icon="📜"
-                                label="Terms of Service"
-                                onPress={() => handleNavigate('TermsOfService')}
-                            />
-                            <MenuItem
-                                icon="🔒"
-                                label="Privacy Policy"
-                                onPress={() => handleNavigate('PrivacyPolicy')}
-                            />
-
-                            {/* Account */}
-                            <View style={styles.sectionHeader}>
-                                <Text style={styles.sectionTitle}>ACCOUNT</Text>
-                            </View>
-
-                            <MenuItem
-                                icon="👤"
-                                label="Profile Settings"
-                                onPress={() => handleNavigate('Profile')}
-                            />
-                            <MenuItem
-                                icon="💳"
-                                label="Payment Methods"
-                                onPress={() => handleNavigate('PaymentMethods')}
-                            />
+                            {MENU_SECTIONS.map((section, sectionIdx) => (
+                                <React.Fragment key={section.title}>
+                                    <View style={styles.sectionHeader}>
+                                        <Text style={styles.sectionTitle}>{section.title}</Text>
+                                    </View>
+                                    {section.items.map((item, itemIdx) => (
+                                        <MenuItem
+                                            key={item.label}
+                                            icon={item.icon}
+                                            label={item.label}
+                                            badge={item.badge}
+                                            onPress={() => item.screen && handleNavigate(item.screen)}
+                                        />
+                                    ))}
+                                </React.Fragment>
+                            ))}
                         </ScrollView>
 
-                        {/* Footer */}
-                        <View style={styles.footer}>
-                            <TouchableOpacity style={styles.logoutButton} onPress={() => { onClose(); signOut(); }}>
-                                <Text style={styles.logoutIcon}>🚪</Text>
-                                <Text style={styles.logoutText}>Sign Out</Text>
-                            </TouchableOpacity>
-                            <Text style={styles.versionText}>Merakí App v1.2.0 • Build 42</Text>
-                        </View>
+                        <DrawerFooter onSignOut={() => { onClose(); signOut(); }} />
                     </SafeAreaView>
                 </Animated.View>
             </View>
