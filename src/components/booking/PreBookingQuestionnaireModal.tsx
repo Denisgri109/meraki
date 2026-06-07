@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -10,10 +10,15 @@ import {
     Image,
     ActivityIndicator,
 } from 'react-native';
+import { useModal } from '../../contexts/ModalContext';
 import { BlurView } from 'expo-blur';
+import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../../lib/supabase';
 import { Button } from '../ui';
 import { colors, spacing } from '../../theme';
-import { usePreBookingQuestionnaire } from './hooks/usePreBookingQuestionnaire';
 
 interface PreBookingQuestionnaireModalProps {
     visible: boolean;
@@ -39,21 +44,132 @@ export function PreBookingQuestionnaireModal({
     serviceName,
     masterId,
 }: PreBookingQuestionnaireModalProps) {
-    const {
-        formData,
-        setFormData,
-        loading,
-        uploadingPhotos,
-        handleClose,
-        pickPhotos,
-        removePhoto,
-        handleSubmit,
-    } = usePreBookingQuestionnaire({
-        serviceId,
-        masterId,
-        onClose,
-        onSubmit,
+    const { showAlert } = useModal();
+    const [loading, setLoading] = useState(false);
+    const [uploadingPhotos, setUploadingPhotos] = useState(false);
+
+    const [formData, setFormData] = useState({
+        hadBefore: false,
+        howLongAgo: '',
+        wasMyWork: false,
+        photos: [] as string[],
+        additionalNotes: '',
     });
+
+    const resetForm = () => {
+        setFormData({
+            hadBefore: false,
+            howLongAgo: '',
+            wasMyWork: false,
+            photos: [],
+            additionalNotes: '',
+        });
+    };
+
+    const handleClose = () => {
+        resetForm();
+        onClose();
+    };
+
+    const pickPhotos = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsMultipleSelection: true,
+                selectionLimit: 3,
+                quality: 0.8,
+                base64: true,
+            });
+
+            if (!result.canceled && result.assets) {
+                setUploadingPhotos(true);
+
+                const uploadPromises = result.assets.map(async (asset) => {
+                    if (!asset.base64) return null;
+                    const fileName = `booking-consultations/${Date.now()}_${uuidv4()}.jpg`;
+
+                    const { data, error } = await supabase.storage
+                        .from('consultation-photos')
+                        .upload(fileName, decode(asset.base64), {
+                            contentType: 'image/jpeg',
+                        });
+
+                    if (error) throw error;
+
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('consultation-photos')
+                        .getPublicUrl(data.path);
+
+                    return publicUrl;
+                });
+
+                const urls = await Promise.all(uploadPromises);
+                const uploadedUrls = urls.filter((url): url is string => url !== null);
+
+                setFormData(prev => ({
+                    ...prev,
+                    photos: [...prev.photos, ...uploadedUrls].slice(0, 3)
+                }));
+            }
+        } catch (error: any) {
+            console.error('Error uploading photos:', error);
+            showAlert('Error', 'Failed to upload photos. Please try again.', 'error');
+        } finally {
+            setUploadingPhotos(false);
+        }
+    };
+
+    const removePhoto = (url: string) => {
+        setFormData(prev => ({
+            ...prev,
+            photos: prev.photos.filter(p => p !== url)
+        }));
+    };
+
+    const handleSubmit = async () => {
+        // Validate
+        if (formData.hadBefore && !formData.howLongAgo) {
+            showAlert('Required', 'Please select how long ago you had this service.', 'error');
+            return;
+        }
+        if (formData.photos.length === 0) {
+            showAlert('Required', 'Please upload at least one photo of the current state.', 'error');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Not authenticated');
+
+            const { data, error } = await supabase
+                .from('booking_consultations')
+                .insert({
+                    client_id: user.id,
+                    service_id: serviceId,
+                    master_id: masterId,
+                    had_before: formData.hadBefore,
+                    how_long_ago: formData.hadBefore ? formData.howLongAgo : null,
+                    was_my_work: formData.hadBefore ? formData.wasMyWork : null,
+                    photo_urls: formData.photos,
+                    additional_notes: formData.additionalNotes.trim() || null,
+                    status: 'pending',
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            resetForm();
+            onSubmit(data.id);
+        } catch (error) {
+            const err = error as Error;
+            console.error('Error submitting consultation:', err);
+            showAlert('Error', err.message || 'Failed to submit consultation request', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <Modal
