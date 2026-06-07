@@ -1,4 +1,4 @@
-import { NavigationProp, CommonActions } from '@react-navigation/native';
+import { NavigationProp, CommonActions, ParamListBase } from '@react-navigation/native';
 
 /**
  * Safely navigate back if possible.
@@ -8,10 +8,10 @@ import { NavigationProp, CommonActions } from '@react-navigation/native';
  * @param fallbackRoute - The route to navigate to if we can't go back (default: 'HomeMain' for Client)
  * @param fallbackParams - Optional params for the fallback route
  */
-export function safeGoBack<T extends Record<string, any>>(
+export function safeGoBack<T extends ParamListBase>(
     navigation: NavigationProp<T>,
     fallbackRoute?: string,
-    fallbackParams?: any
+    fallbackParams?: Record<string, unknown>
 ): void {
     const state = navigation.getState();
     const canGoBack = state && state.routes && state.routes.length > 1;
@@ -34,7 +34,7 @@ export function safeGoBack<T extends Record<string, any>>(
  * @param navigation - The navigation prop
  * @returns boolean indicating if we can go back
  */
-export function canGoBack<T extends Record<string, any>>(
+export function canGoBack<T extends ParamListBase>(
     navigation: NavigationProp<T>
 ): boolean {
     const state = navigation.getState();
