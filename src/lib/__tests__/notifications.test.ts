@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import {
     addNotificationResponseListener,
     addNotificationReceivedListener,
+    registerForPushNotificationsAsync
 } from '../notifications';
 
 // Mock expo-notifications is already configured in jest.setup.js
@@ -10,6 +11,22 @@ import {
 describe('notifications', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+    });
+
+    describe('registerForPushNotificationsAsync', () => {
+        it('should handle getExpoPushTokenAsync failure and return null', async () => {
+            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+            const expectedError = new Error('Push token error');
+            (Notifications.getExpoPushTokenAsync as jest.Mock).mockRejectedValueOnce(expectedError);
+
+            const result = await registerForPushNotificationsAsync();
+
+            expect(result).toBeNull();
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Error getting push token:', expectedError);
+
+            consoleErrorSpy.mockRestore();
+        });
     });
 
     describe('addNotificationResponseListener', () => {
