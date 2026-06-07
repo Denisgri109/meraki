@@ -12,7 +12,7 @@ jest.mock('../../lib/supabase', () => ({
         return {
             functions: {
                 invoke: mockInvoke,
-            }
+            },
         };
     }
 }));

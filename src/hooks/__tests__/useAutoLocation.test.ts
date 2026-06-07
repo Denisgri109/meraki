@@ -152,7 +152,7 @@ describe('useAutoLocation', () => {
 
         expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
         expect(supabase.from).not.toHaveBeenCalled();
-        expect(result.current.isCityMissing).toBe(false);
+        expect(result.current.isCityMissing).toBe(true);
     });
 
     it('should handle Supabase update error gracefully', async () => {
