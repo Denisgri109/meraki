@@ -76,7 +76,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
         // Listener for when user taps on notification
         responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-            console.log('Notification tapped:', response);
             handleNotificationResponse(response);
         });
 
