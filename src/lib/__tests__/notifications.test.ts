@@ -1,8 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import {
-    registerForPushNotificationsAsync,
     addNotificationResponseListener,
     addNotificationReceivedListener,
+    registerForPushNotificationsAsync,
 } from '../notifications';
 
 // Mock expo-notifications is already configured in jest.setup.js
@@ -13,25 +13,23 @@ describe('notifications', () => {
         jest.clearAllMocks();
     });
 
-
     describe('registerForPushNotificationsAsync', () => {
-        it('should return null and log error if getting push token fails', async () => {
-            // Mock getPermissionsAsync to return granted so it proceeds to getExpoPushTokenAsync
-            (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValueOnce({ status: 'granted' });
+        it('should return the push token on success', async () => {
+            const token = await registerForPushNotificationsAsync();
+            expect(token).toBe('ExponentPushToken[test]');
+            expect(Notifications.getExpoPushTokenAsync).toHaveBeenCalledTimes(1);
+        });
 
-            // Mock getExpoPushTokenAsync to throw an error
-            const mockError = new Error('Test error getting token');
+        it('should return null and log an error if getting push token fails', async () => {
+            const mockError = new Error('Push token error');
             (Notifications.getExpoPushTokenAsync as jest.Mock).mockRejectedValueOnce(mockError);
+            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-            // Spy on console.error
-            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+            const token = await registerForPushNotificationsAsync();
 
-            const result = await registerForPushNotificationsAsync();
-
-            expect(result).toBeNull();
-            expect(consoleSpy).toHaveBeenCalledWith('Error getting push token:', mockError);
-
-            consoleSpy.mockRestore();
+            expect(token).toBeNull();
+            expect(Notifications.getExpoPushTokenAsync).toHaveBeenCalledTimes(1);
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Error getting push token:', mockError);
         });
     });
 
