@@ -109,7 +109,6 @@ export function VerifyOtpScreen({ navigation, route }: VerifyOtpScreenProps) {
                 'Your email has been verified. Welcome to Merakí!',
                 'success'
             );
-            // Navigation handled by AuthContext or listener usually, but explicit nav helps if not auto
         } catch (error: any) {
             console.error('OTP verification error:', error);
             showAlert('Verification Failed', error.message || 'Invalid or expired code. Please try again.', 'error');
