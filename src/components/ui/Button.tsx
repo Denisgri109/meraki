@@ -9,7 +9,8 @@ import {
     TouchableOpacityProps
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradients, layout, spacing } from '../../theme/colors';
+import { colors, gradients, layout } from '../../theme/colors';
+import { spacing } from '../../theme/spacing';
 
 interface ButtonProps extends TouchableOpacityProps {
     title: string;
