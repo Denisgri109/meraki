@@ -177,9 +177,11 @@ export function ChatListScreen() {
             const field = isMaster ? 'master_id' : 'client_id';
             const convPromise = (supabase as any)
                 .from('conversations')
-                .select('*')
+                .select('*, messages(content, media_type, is_deleted, created_at)')
                 .eq(field, user.id)
-                .order('last_message_at', { ascending: false });
+                .order('last_message_at', { ascending: false })
+                .order('created_at', { referencedTable: 'messages', ascending: false })
+                .limit(1, { referencedTable: 'messages' });
 
             const { data: convData, error: convError } = await safeSupabaseFetch(convPromise as any, {
                 timeout: 8000,
@@ -215,27 +217,23 @@ export function ChatListScreen() {
                 }
             }
 
-            const convWithUsers = await Promise.all(
-                (allConversations as any[]).map(async (conv: any) => {
-                    const otherUserId = isMaster ? conv.client_id : conv.master_id;
-                    const userData = userMap[otherUserId] || null;
+            const convWithUsers = (allConversations as any[]).map((conv: any) => {
+                const otherUserId = isMaster ? conv.client_id : conv.master_id;
+                const userData = userMap[otherUserId] || null;
 
-                    // Fetch the last message for this conversation
-                    const { data: lastMsgData } = await (supabase as any)
-                        .from('messages')
-                        .select('content, media_type, is_deleted')
-                        .eq('conversation_id', conv.id)
-                        .order('created_at', { ascending: false })
-                        .limit(1)
-                        .single();
+                // Extract last message from the joined messages array
+                const lastMsgData = conv.messages && conv.messages.length > 0
+                    ? conv.messages[0]
+                    : null;
 
-                    return {
-                        ...conv,
-                        other_user: userData,
-                        last_message: lastMsgData,
-                    };
-                })
-            );
+                const { messages, ...restConv } = conv;
+
+                return {
+                    ...restConv,
+                    other_user: userData,
+                    last_message: lastMsgData,
+                };
+            });
 
             setConversations(convWithUsers);
         } catch (error) {
