@@ -180,7 +180,7 @@ describe('checkSessionHealth', () => {
     });
 
     it('returns false when there is an auth error', async () => {
-        const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+        const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
         (supabase.auth.getSession as jest.Mock).mockResolvedValue({
             data: { session: null },
             error: new Error('Auth error'),
