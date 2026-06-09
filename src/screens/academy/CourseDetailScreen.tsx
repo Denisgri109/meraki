@@ -109,34 +109,47 @@ export function CourseDetailScreen() {
     const probeLessonDurations = async (lessonsToProbe: any[]) => {
         const corrected = [...lessonsToProbe];
         let hasChanges = false;
+        const updates: { id: string, duration_minutes: number, title: string }[] = [];
+        const CHUNK_SIZE = 3;
 
-        await Promise.all(
-            lessonsToProbe.map(async (lesson: any, index: number) => {
-                if (!lesson.video_url || isStreamingUrl(lesson.video_url)) return;
-                try {
-                    const { sound, status } = await Audio.Sound.createAsync(
-                        { uri: lesson.video_url },
-                        { shouldPlay: false }
-                    );
-                    if (status.isLoaded && status.durationMillis) {
-                        const realSeconds = Math.round(status.durationMillis / 1000);
-                        if (lesson.duration_minutes !== realSeconds) {
-                            corrected[index] = { ...lesson, duration_minutes: realSeconds };
-                            hasChanges = true;
-                            // Update DB silently
-                            (supabase as any)
-                                .from('lessons')
-                                .update({ duration_minutes: realSeconds })
-                                .eq('id', lesson.id)
-                                .then(() => console.log(`Fixed duration for "${lesson.title}": ${realSeconds}s`));
+        for (let i = 0; i < lessonsToProbe.length; i += CHUNK_SIZE) {
+            const chunk = lessonsToProbe.slice(i, i + CHUNK_SIZE);
+            await Promise.all(
+                chunk.map(async (lesson: any) => {
+                    const index = lessonsToProbe.indexOf(lesson);
+                    if (!lesson.video_url || isStreamingUrl(lesson.video_url)) return;
+                    try {
+                        const { sound, status } = await Audio.Sound.createAsync(
+                            { uri: lesson.video_url },
+                            { shouldPlay: false }
+                        );
+                        if (status.isLoaded && status.durationMillis) {
+                            const realSeconds = Math.round(status.durationMillis / 1000);
+                            if (lesson.duration_minutes !== realSeconds) {
+                                corrected[index] = { ...lesson, duration_minutes: realSeconds };
+                                hasChanges = true;
+                                updates.push({ id: lesson.id, duration_minutes: realSeconds, title: lesson.title });
+                            }
                         }
+                        await sound.unloadAsync();
+                    } catch (e) {
+                        // Ignore probe errors — keep DB value
                     }
-                    await sound.unloadAsync();
-                } catch (e) {
-                    // Ignore probe errors — keep DB value
-                }
-            })
-        );
+                })
+            );
+        }
+
+        for (const update of updates) {
+            try {
+                await (supabase as any)
+                    .from('lessons')
+                    .update({ duration_minutes: update.duration_minutes })
+                    .eq('id', update.id);
+                console.log(`Fixed duration for "${update.title}": ${update.duration_minutes}s`);
+            } catch (err) {
+                console.error('Failed to update DB for duration correction', err);
+            }
+        }
 
         if (hasChanges) {
             setLessons(corrected);
