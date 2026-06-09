@@ -1,4 +1,4 @@
-import { getCountryByCode, getAllCountries } from '../locationApi';
+import { getCountryByCode, getAllCountries, getStatesOfCountry } from '../locationApi';
 
 describe('locationApi', () => {
     const originalFetch = global.fetch;
@@ -144,6 +144,65 @@ describe('locationApi', () => {
             expect(result).toEqual([]);
             expect(console.error).toHaveBeenCalledWith(
                 'Error fetching countries:',
+                networkError
+            );
+        });
+    });
+
+    describe('getStatesOfCountry', () => {
+        const mockStates = [
+            { id: 1, name: 'State 1', iso2: 'S1', country_code: 'C1' },
+            { id: 2, name: 'State 2', iso2: 'S2', country_code: 'C1' },
+        ];
+
+        it('should return states list on successful fetch', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: async () => mockStates,
+            });
+
+            const result = await getStatesOfCountry('C1');
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                'https://api.countrystatecity.in/v1/countries/C1/states',
+                expect.any(Object)
+            );
+            expect(result).toEqual(mockStates);
+            expect(console.error).not.toHaveBeenCalled();
+        });
+
+        it('should return empty array and log error if response is not ok', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 500,
+            });
+
+            const result = await getStatesOfCountry('C1');
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                'https://api.countrystatecity.in/v1/countries/C1/states',
+                expect.any(Object)
+            );
+            expect(result).toEqual([]);
+            expect(console.error).toHaveBeenCalledWith(
+                'Error fetching states:',
+                expect.objectContaining({ message: 'Failed to fetch states' })
+            );
+        });
+
+        it('should return empty array and log error if fetch throws an exception', async () => {
+            const networkError = new Error('Network error');
+            (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
+
+            const result = await getStatesOfCountry('C1');
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                'https://api.countrystatecity.in/v1/countries/C1/states',
+                expect.any(Object)
+            );
+            expect(result).toEqual([]);
+            expect(console.error).toHaveBeenCalledWith(
+                'Error fetching states:',
                 networkError
             );
         });
