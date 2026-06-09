@@ -56,14 +56,13 @@ const TIMEZONES = [
     { value: 'UTC', label: 'UTC' },
 ];
 
-// Simple phone validation (basic international format)
-const validatePhone = (phone: string): { valid: boolean; error?: string } => {
-    if (!phone.trim()) return { valid: true };
-    const cleaned = phone.replace(/[\s\-\(\)\+]/g, '');
-    if (cleaned.length < 8) return { valid: false, error: 'Phone number too short' };
-    if (!/^\d+$/.test(cleaned)) return { valid: false, error: 'Invalid characters' };
-    return { valid: true };
-};
+import {
+    validatePhone,
+    formatPhone,
+    normalizePhone,
+    parsePhoneNumber,
+    SUPPORTED_COUNTRIES,
+} from '../../utils/validation';
 
 type ProfileStackParamList = {
     ProfileMain: undefined;
@@ -88,7 +87,10 @@ export function ProfileScreen() {
 
     // Personal Info
     const [editName, setEditName] = useState(profile?.full_name || '');
-    const [editPhone, setEditPhone] = useState(profile?.phone || '');
+    const initialParsedPhone = profile?.phone ? parsePhoneNumber(profile.phone) : { localNumber: '', countryCode: 'IE' };
+    const [editPhone, setEditPhone] = useState(initialParsedPhone.localNumber);
+    const [phoneCountryCode, setPhoneCountryCode] = useState(initialParsedPhone.countryCode);
+    const [showPhoneCountryPicker, setShowPhoneCountryPicker] = useState(false);
     const [editBio, setEditBio] = useState(profile?.bio || '');
     const [phoneError, setPhoneError] = useState<string | undefined>(undefined);
 
@@ -150,7 +152,14 @@ export function ProfileScreen() {
     const openEditModal = async () => {
         // Load all current values from profile
         setEditName(profile?.full_name || '');
-        setEditPhone(profile?.phone || '');
+        if (profile?.phone) {
+            const parsed = parsePhoneNumber(profile.phone);
+            setEditPhone(parsed.localNumber);
+            setPhoneCountryCode(parsed.countryCode);
+        } else {
+            setEditPhone('');
+            setPhoneCountryCode('IE');
+        }
         setEditBio(profile?.bio || '');
         setEditCity(profile?.city || '');
         setEditCountry(profile?.country || '');
@@ -404,7 +413,7 @@ export function ProfileScreen() {
     const handleSaveProfile = async () => {
         // Validate phone
         if (editPhone.trim()) {
-            const phoneValidation = validatePhone(editPhone);
+            const phoneValidation = validatePhone(editPhone, phoneCountryCode);
             if (!phoneValidation.valid) {
                 setPhoneError(phoneValidation.error);
                 return;
@@ -414,9 +423,10 @@ export function ProfileScreen() {
 
         setSaving(true);
         try {
+            const normalizedPhone = editPhone.trim() ? normalizePhone(editPhone, phoneCountryCode) : null;
             const updateData: any = {
                 full_name: editName,
-                phone: editPhone.trim() || null,
+                phone: normalizedPhone,
                 bio: editBio.trim() || null,
                 city: editCity.trim() || null,
                 country: editCountry || null,
@@ -445,7 +455,22 @@ export function ProfileScreen() {
 
     const handlePhoneChange = (text: string) => {
         setEditPhone(text);
+        // Auto-detect country code from prefix if pasted/typed
+        if (text.startsWith('+') || text.startsWith('00')) {
+            const parsed = parsePhoneNumber(text);
+            if (parsed.countryCode) {
+                setPhoneCountryCode(parsed.countryCode);
+                setEditPhone(parsed.localNumber);
+            }
+        }
         if (phoneError) setPhoneError(undefined);
+    };
+
+    const handlePhoneBlur = () => {
+        if (editPhone.trim()) {
+            const validation = validatePhone(editPhone, phoneCountryCode);
+            if (validation.valid) setEditPhone(formatPhone(editPhone, phoneCountryCode));
+        }
     };
 
     const handleChangePhoto = async () => {
@@ -579,18 +604,33 @@ export function ProfileScreen() {
 
             <View style={styles.inputGroup}>
                 <MerakiText style={styles.inputLabel}>Phone Number</MerakiText>
-                <Card variant="glass" style={[styles.inputContainer, phoneError && styles.inputError]}>
-                    <TextInput
-                        style={styles.input}
-                        value={editPhone}
-                        onChangeText={handlePhoneChange}
-                        placeholder="+1 234 567 8900"
-                        placeholderTextColor={colors.textMuted}
-                        keyboardType="phone-pad"
-                    />
-                </Card>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity
+                        style={[
+                            styles.phoneCodeButton,
+                            phoneError ? styles.phoneCodeButtonError : null
+                        ]}
+                        onPress={() => setShowPhoneCountryPicker(true)}
+                    >
+                        <MerakiText style={styles.phoneCodeText}>
+                            {SUPPORTED_COUNTRIES.find(c => c.code === phoneCountryCode)?.flag || '🇮🇪'} {SUPPORTED_COUNTRIES.find(c => c.code === phoneCountryCode)?.callingCode || '+353'}
+                        </MerakiText>
+                        <MaterialIcons name="arrow-drop-down" size={20} color={colors.text} />
+                    </TouchableOpacity>
+                    <Card variant="glass" style={[styles.inputContainer, { flex: 1 }, phoneError && styles.inputError]}>
+                        <TextInput
+                            style={styles.input}
+                            value={editPhone}
+                            onChangeText={handlePhoneChange}
+                            onBlur={handlePhoneBlur}
+                            placeholder="87 123 4567"
+                            placeholderTextColor={colors.textMuted}
+                            keyboardType="phone-pad"
+                        />
+                    </Card>
+                </View>
                 {phoneError && <MerakiText style={styles.errorText}>{phoneError}</MerakiText>}
-                <MerakiText style={styles.hintText}>Include country code (e.g., +1, +353, +44)</MerakiText>
+                <MerakiText style={styles.hintText}>Enter your phone number without the country code</MerakiText>
             </View>
 
             <View style={styles.inputGroup}>
@@ -1087,6 +1127,24 @@ export function ProfileScreen() {
 
                 {renderCurrencyModal()}
                 {renderTimezoneModal()}
+
+                {/* Phone Country Code Picker */}
+                <SearchablePicker
+                    visible={showPhoneCountryPicker}
+                    title="Select Country Calling Code"
+                    items={SUPPORTED_COUNTRIES.map(c => ({
+                        id: c.code,
+                        name: `${c.flag} ${c.name}`,
+                        subtitle: c.callingCode,
+                    }))}
+                    onSelect={(item) => {
+                        setPhoneCountryCode(String(item.id));
+                        if (phoneError) setPhoneError(undefined);
+                        setShowPhoneCountryPicker(false);
+                    }}
+                    onClose={() => setShowPhoneCountryPicker(false)}
+                    searchPlaceholder="Search countries..."
+                />
 
                 {/* Change Password Modal */}
                 <Modal
@@ -1730,6 +1788,25 @@ const styles = StyleSheet.create({
     dropdownItemText: { fontSize: 16, color: colors.text, flex: 1 },
     dropdownItemTextSelected: { color: colors.primary, fontWeight: '700' },
     checkmark: { fontSize: 18, color: colors.primary, fontWeight: '800' },
+    phoneCodeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.06)',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        height: 48,
+        gap: 4,
+    },
+    phoneCodeButtonError: {
+        borderColor: '#FCA5A5',
+    },
+    phoneCodeText: {
+        fontSize: 14,
+        color: colors.text,
+        fontWeight: '500',
+    },
 });
 
 // ─── Change Password Modal Styles ──────────────────────────────────

@@ -21,6 +21,9 @@ import { colors, spacing } from '../../theme';
 // Types for master settings
 interface MasterBusinessSettings {
     confirmation_timing_hours: number;
+    confirmation_response_timeout_hours: number;
+    auto_charge_after_grace_period: boolean;
+    deposit_percentage: number;
     late_arrival_minutes: number;
     terms_and_conditions: string | null;
     require_tc_acceptance: boolean;
@@ -41,6 +44,9 @@ interface PilatesSettings {
 
 const DEFAULT_SETTINGS: MasterBusinessSettings = {
     confirmation_timing_hours: 24,
+    confirmation_response_timeout_hours: 24,
+    auto_charge_after_grace_period: true,
+    deposit_percentage: 0,
     late_arrival_minutes: 15,
     terms_and_conditions: null,
     require_tc_acceptance: true,
@@ -79,7 +85,15 @@ const PILATES_LEVEL_OPTIONS = [
     { value: 'All levels', label: 'All levels' },
 ];
 
-type PickerType = 'confirmation' | 'late_arrival' | 'pilates_level' | null;
+const DEPOSIT_PERCENT_OPTIONS = [10, 20, 30, 50, 100];
+
+const RESPONSE_TIMEOUT_OPTIONS = [
+    { value: 12, label: '12 hours' },
+    { value: 24, label: '24 hours' },
+    { value: 48, label: '48 hours' },
+];
+
+type PickerType = 'confirmation' | 'late_arrival' | 'pilates_level' | 'response_timeout' | null;
 
 export function BusinessSettingsScreen() {
     const navigation = useNavigation();
@@ -120,6 +134,9 @@ export function BusinessSettingsScreen() {
             if (data) {
                 setSettings({
                     confirmation_timing_hours: data.confirmation_timing_hours ?? 24,
+                    confirmation_response_timeout_hours: data.confirmation_response_timeout_hours ?? 24,
+                    auto_charge_after_grace_period: data.auto_charge_after_grace_period ?? true,
+                    deposit_percentage: data.deposit_percentage ?? 0,
                     late_arrival_minutes: data.late_arrival_minutes ?? 15,
                     terms_and_conditions: data.terms_and_conditions,
                     require_tc_acceptance: data.require_tc_acceptance ?? true,
@@ -195,7 +212,17 @@ export function BusinessSettingsScreen() {
                 .upsert(
                     {
                         master_id: user.id,
-                        ...settings,
+                        confirmation_timing_hours: settings.confirmation_timing_hours,
+                        confirmation_response_timeout_hours: settings.confirmation_response_timeout_hours,
+                        auto_charge_after_grace_period: settings.auto_charge_after_grace_period,
+                        deposit_type: 'percentage',
+                        deposit_percentage: settings.deposit_percentage,
+                        deposit_amount: 0,
+                        late_arrival_minutes: settings.late_arrival_minutes,
+                        terms_and_conditions: settings.terms_and_conditions,
+                        require_tc_acceptance: settings.require_tc_acceptance,
+                        accepts_new_clients: settings.accepts_new_clients,
+                        is_visible_globally: settings.is_visible_globally,
                         terms_updated_at: settings.terms_and_conditions ? new Date().toISOString() : null,
                         updated_at: new Date().toISOString(),
                     },
@@ -257,7 +284,11 @@ export function BusinessSettingsScreen() {
                 title = 'Default Pilates Level';
                 currentValue = pilatesSettings.default_level;
                 break;
-
+            case 'response_timeout':
+                items = RESPONSE_TIMEOUT_OPTIONS;
+                title = 'Response Timeout';
+                currentValue = settings.confirmation_response_timeout_hours;
+                break;
         }
 
         const onSelect = (value: number | string) => {
@@ -271,7 +302,9 @@ export function BusinessSettingsScreen() {
                 case 'pilates_level':
                     setPilatesSettings({ ...pilatesSettings, default_level: String(value) });
                     break;
-
+                case 'response_timeout':
+                    setSettings({ ...settings, confirmation_response_timeout_hours: Number(value) });
+                    break;
             }
             setPickerVisible(null);
         };
@@ -413,6 +446,98 @@ export function BusinessSettingsScreen() {
                             </Text>
                             <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
                         </TouchableOpacity>
+                    </Card>
+
+                    {/* Response Timeout */}
+                    <Card style={styles.section}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="timer-sand" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Response Timeout</MerakiText>
+                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
+                            How long do clients have to confirm before automatic cancellation?
+                        </MerakiText>
+                        <TouchableOpacity
+                            style={styles.selector}
+                            onPress={() => setPickerVisible('response_timeout')}
+                        >
+                            <Text style={styles.selectorText}>
+                                {RESPONSE_TIMEOUT_OPTIONS.find(o => o.value === settings.confirmation_response_timeout_hours)?.label || '24 hours'}
+                            </Text>
+                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+                        </TouchableOpacity>
+
+                        <View style={[styles.switchRow, { marginTop: spacing.md }]}>
+                            <View style={styles.switchLabel}>
+                                <Text style={styles.switchTitle}>Auto-Cancel Unconfirmed</Text>
+                                <Text style={styles.switchDescription}>
+                                    Automatically cancel if client doesn't respond in time
+                                </Text>
+                            </View>
+                            <Switch
+                                value={settings.auto_charge_after_grace_period}
+                                onValueChange={(value) =>
+                                    setSettings({ ...settings, auto_charge_after_grace_period: value })
+                                }
+                                trackColor={{ false: colors.border, true: colors.primary }}
+                                thumbColor={colors.text}
+                            />
+                        </View>
+                    </Card>
+
+                    {/* Deposit Configuration */}
+                    <Card style={styles.section}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.xs }}>
+                            <MaterialCommunityIcons name="cash-lock" size={20} color={colors.accent} />
+                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600', fontSize: 18 }}>Deposit Configuration</MerakiText>
+                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.md }}>
+                            Require clients to pay a percentage deposit when booking.
+                        </MerakiText>
+
+                        <View style={styles.switchRow}>
+                            <View style={styles.switchLabel}>
+                                <Text style={styles.switchTitle}>Require Deposit</Text>
+                                <Text style={styles.switchDescription}>
+                                    Clients must pay to secure their booking
+                                </Text>
+                            </View>
+                            <Switch
+                                value={settings.deposit_percentage > 0}
+                                onValueChange={(value) =>
+                                    setSettings({ ...settings, deposit_percentage: value ? 20 : 0 })
+                                }
+                                trackColor={{ false: colors.border, true: colors.primary }}
+                                thumbColor={colors.text}
+                            />
+                        </View>
+
+                        {settings.deposit_percentage > 0 && (
+                            <View style={{ marginTop: spacing.md }}>
+                                <Text style={styles.inputLabel}>Deposit Percentage</Text>
+                                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: spacing.xs }}>
+                                    {DEPOSIT_PERCENT_OPTIONS.map((pct) => (
+                                        <TouchableOpacity
+                                            key={pct}
+                                            style={[
+                                                styles.percentPill,
+                                                settings.deposit_percentage === pct && styles.percentPillSelected,
+                                            ]}
+                                            onPress={() => setSettings({ ...settings, deposit_percentage: pct })}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.percentPillText,
+                                                    settings.deposit_percentage === pct && styles.percentPillTextSelected,
+                                                ]}
+                                            >
+                                                {pct}%
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+                        )}
                     </Card>
 
                     {/* Late Arrival Policy */}
@@ -890,6 +1015,27 @@ const styles = StyleSheet.create({
     policyBold: {
         fontWeight: '700',
         color: colors.text,
+    },
+    percentPill: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    },
+    percentPillSelected: {
+        borderColor: colors.primary,
+        backgroundColor: 'rgba(200, 160, 77, 0.2)',
+    },
+    percentPillText: {
+        fontSize: 14,
+        color: colors.text,
+        fontWeight: '500',
+    },
+    percentPillTextSelected: {
+        color: colors.primary,
+        fontWeight: '600',
     },
 });
 

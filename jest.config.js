@@ -37,7 +37,7 @@ module.exports = {
     moduleNameMapper: {
         '^@react-native-async-storage/async-storage$': '<rootDir>/src/__mocks__/asyncStorage.ts',
     },
-    testPathIgnorePatterns: ['/node_modules/', '/android/', '/ios/'],
+    testPathIgnorePatterns: ['/node_modules/', '/android/', '/ios/', 'babel.config.test.js'],
     collectCoverageFrom: [
         'src/utils/**/*.ts',
         'src/services/**/*.ts',

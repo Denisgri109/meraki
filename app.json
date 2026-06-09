@@ -19,10 +19,13 @@
       "infoPlist": {
         "NFCReaderUsageDescription": "This app uses NFC to pair loyalty stamp tags",
         "LSApplicationQueriesSchemes": [
+          "meraki",
           "meraki"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       },
       "associatedDomains": [
+        "applinks:meraki.app",
         "applinks:meraki.app"
       ]
     },

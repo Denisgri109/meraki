@@ -19,9 +19,11 @@ import { getAllCountries, getCitiesOfCountry, type Country, type City } from '..
 import { colors, spacing, layout } from '../../theme';
 import { StatusBar } from 'expo-status-bar';
 import {
-    validateIrishPhone,
-    formatIrishPhone,
-    normalizeIrishPhone,
+    validatePhone,
+    formatPhone,
+    normalizePhone,
+    parsePhoneNumber,
+    SUPPORTED_COUNTRIES,
     validateEmail,
     validatePassword,
     validateFullName,
@@ -46,6 +48,8 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     const { showAlert } = useModal();
     const [fullName, setFullName] = useState('');
     const [phone, setPhone] = useState('');
+    const [phoneCountryCode, setPhoneCountryCode] = useState('IE');
+    const [showPhoneCountryPicker, setShowPhoneCountryPicker] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -87,7 +91,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
         const nameValidation = validateFullName(fullName);
         if (!nameValidation.valid) newErrors.fullName = nameValidation.error;
         if (phone.trim()) {
-            const phoneValidation = validateIrishPhone(phone);
+            const phoneValidation = validatePhone(phone, phoneCountryCode);
             if (!phoneValidation.valid) newErrors.phone = phoneValidation.error;
         }
         if (!selectedCountry.trim()) newErrors.country = 'Please select your country';
@@ -103,13 +107,21 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
     const handlePhoneChange = (text: string) => {
         setPhone(text);
+        // Auto-detect country code from prefix if pasted/typed
+        if (text.startsWith('+') || text.startsWith('00')) {
+            const parsed = parsePhoneNumber(text);
+            if (parsed.countryCode) {
+                setPhoneCountryCode(parsed.countryCode);
+                setPhone(parsed.localNumber);
+            }
+        }
         if (errors.phone) setErrors({ ...errors, phone: undefined });
     };
 
     const handlePhoneBlur = () => {
         if (phone.trim()) {
-            const validation = validateIrishPhone(phone);
-            if (validation.valid) setPhone(formatIrishPhone(phone));
+            const validation = validatePhone(phone, phoneCountryCode);
+            if (validation.valid) setPhone(formatPhone(phone, phoneCountryCode));
         }
     };
 
@@ -122,7 +134,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
         setLoading(true);
         try {
-            const normalizedPhone = phone.trim() ? normalizeIrishPhone(phone) : null;
+            const normalizedPhone = phone.trim() ? normalizePhone(phone, phoneCountryCode) : null;
             const { error: signUpError } = await signUp(
                 email.trim().toLowerCase(),
                 password,
@@ -268,16 +280,33 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
                             <View style={styles.inputGroup}>
                                 <MerakiText style={styles.inputLabel}>PHONE NUMBER</MerakiText>
-                                <Input
-                                    value={phone}
-                                    onChangeText={handlePhoneChange}
-                                    onBlur={handlePhoneBlur}
-                                    keyboardType="phone-pad"
-                                    placeholder="+353 87 123 4567"
-                                    error={errors.phone}
-                                    variant="glass"
-                                    leftIcon={<MaterialIcons name="phone-iphone" size={20} color="rgba(0, 0, 0, 0.25)" />}
-                                />
+                                <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' }}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.phoneCodeButton,
+                                            errors.phone ? styles.phoneCodeButtonError : null
+                                        ]}
+                                        onPress={() => setShowPhoneCountryPicker(true)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <MerakiText style={styles.phoneCodeText}>
+                                            {(SUPPORTED_COUNTRIES.find(c => c.code === phoneCountryCode) || SUPPORTED_COUNTRIES[0]).flag}{' '}
+                                            {(SUPPORTED_COUNTRIES.find(c => c.code === phoneCountryCode) || SUPPORTED_COUNTRIES[0]).callingCode}
+                                        </MerakiText>
+                                        <MaterialIcons name="arrow-drop-down" size={20} color="rgba(0, 0, 0, 0.35)" />
+                                    </TouchableOpacity>
+                                    <Input
+                                        value={phone}
+                                        onChangeText={handlePhoneChange}
+                                        onBlur={handlePhoneBlur}
+                                        keyboardType="phone-pad"
+                                        placeholder={(SUPPORTED_COUNTRIES.find(c => c.code === phoneCountryCode) || SUPPORTED_COUNTRIES[0]).placeholder}
+                                        error={errors.phone}
+                                        variant="glass"
+                                        leftIcon={<MaterialIcons name="phone-iphone" size={20} color="rgba(0, 0, 0, 0.25)" />}
+                                        containerStyle={{ marginBottom: 0, flex: 1 }}
+                                    />
+                                </View>
                             </View>
 
                             <View style={styles.inputGroup}>
@@ -458,6 +487,23 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                 }}
                 onClose={() => setShowCityPicker(false)}
             />
+
+            {/* Phone Country Code Picker */}
+            <SearchablePicker
+                visible={showPhoneCountryPicker}
+                title="Select Country Calling Code"
+                items={SUPPORTED_COUNTRIES.map(c => ({
+                    id: c.code,
+                    name: `${c.flag} ${c.name}`,
+                    subtitle: c.callingCode
+                }))}
+                onSelect={(item) => {
+                    setPhoneCountryCode(String(item.id));
+                    if (errors.phone) setErrors(prev => ({ ...prev, phone: undefined }));
+                    setShowPhoneCountryPicker(false);
+                }}
+                onClose={() => setShowPhoneCountryPicker(false)}
+            />
         </View>
     );
 }
@@ -569,6 +615,25 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         letterSpacing: 1.5,
         textTransform: 'uppercase',
+    },
+    phoneCodeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.06)',
+        borderRadius: layout.borderRadius.full,
+        paddingHorizontal: 16,
+        height: 50,
+        gap: 4,
+    },
+    phoneCodeButtonError: {
+        borderColor: '#FCA5A5',
+    },
+    phoneCodeText: {
+        fontSize: 14,
+        color: colors.text,
+        fontWeight: '500',
     },
     locationField: {
         flexDirection: 'row',

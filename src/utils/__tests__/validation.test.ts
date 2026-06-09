@@ -10,6 +10,10 @@ import {
     validateEmail,
     validatePassword,
     validateFullName,
+    parsePhoneNumber,
+    validatePhone,
+    formatPhone,
+    normalizePhone,
 } from '../validation';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -261,5 +265,66 @@ describe('validateFullName', () => {
     it('rejects whitespace-only name', () => {
         const result = validateFullName('   ');
         expect(result.valid).toBe(false);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// International Phone Helpers (parse, validate, format, normalize)
+// ═══════════════════════════════════════════════════════════════════════════
+describe('International Phone Validation & Formatting Helpers', () => {
+    describe('parsePhoneNumber', () => {
+        it('parses Irish numbers correctly', () => {
+            expect(parsePhoneNumber('+353871234567')).toEqual({ countryCode: 'IE', localNumber: '871234567' });
+            expect(parsePhoneNumber('00353871234567')).toEqual({ countryCode: 'IE', localNumber: '871234567' });
+            expect(parsePhoneNumber('353871234567')).toEqual({ countryCode: 'IE', localNumber: '871234567' });
+            expect(parsePhoneNumber('0871234567')).toEqual({ countryCode: 'IE', localNumber: '871234567' });
+        });
+
+        it('parses UK numbers correctly', () => {
+            expect(parsePhoneNumber('+447700900000')).toEqual({ countryCode: 'GB', localNumber: '7700900000' });
+            expect(parsePhoneNumber('00447700900000')).toEqual({ countryCode: 'GB', localNumber: '7700900000' });
+            expect(parsePhoneNumber('447700900000')).toEqual({ countryCode: 'GB', localNumber: '7700900000' });
+        });
+
+        it('parses US numbers correctly', () => {
+            expect(parsePhoneNumber('+12015550123')).toEqual({ countryCode: 'US', localNumber: '2015550123' });
+            expect(parsePhoneNumber('0012015550123')).toEqual({ countryCode: 'US', localNumber: '2015550123' });
+            expect(parsePhoneNumber('12015550123')).toEqual({ countryCode: 'US', localNumber: '2015550123' });
+        });
+    });
+
+    describe('validatePhone', () => {
+        it('validates UK mobile numbers correctly', () => {
+            expect(validatePhone('7700900000', 'GB')).toEqual({ valid: true });
+            expect(validatePhone('07700900000', 'GB')).toEqual({ valid: true });
+            expect(validatePhone('770090000', 'GB')).toEqual({ valid: false, error: 'UK mobile numbers must be 10 digits' });
+        });
+
+        it('validates US numbers correctly', () => {
+            expect(validatePhone('2015550123', 'US')).toEqual({ valid: true });
+            expect(validatePhone('12015550123', 'US')).toEqual({ valid: true });
+            expect(validatePhone('0015550123', 'US')).toEqual({ valid: false, error: 'Area code cannot start with 0 or 1' });
+        });
+    });
+
+    describe('formatPhone', () => {
+        it('formats UK numbers', () => {
+            expect(formatPhone('7700900000', 'GB')).toBe('7700 900000');
+        });
+
+        it('formats US numbers', () => {
+            expect(formatPhone('2015550123', 'US')).toBe('(201) 555-0123');
+        });
+    });
+
+    describe('normalizePhone', () => {
+        it('normalizes UK numbers to E.164', () => {
+            expect(normalizePhone('7700900000', 'GB')).toBe('+447700900000');
+            expect(normalizePhone('07700900000', 'GB')).toBe('+447700900000');
+        });
+
+        it('normalizes US numbers to E.164', () => {
+            expect(normalizePhone('2015550123', 'US')).toBe('+12015550123');
+        });
     });
 });
