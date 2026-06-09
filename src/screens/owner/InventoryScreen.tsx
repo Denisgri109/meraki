@@ -22,18 +22,9 @@ import { supabase } from '../../lib/supabase';
 import { ScreenBackground, Button, ConfirmModal, MerakiText } from '../../components/ui';
 import { colors, spacing, gradients } from '../../theme';
 
-interface Product {
-    id: string;
-    name: string;
-    description: string | null;
-    image_url: string | null;
-    stock_count: number;
-    low_stock_threshold: number;
-    retail_price: number;
-    wholesale_price: number;
-    category: string | null;
-    is_active: boolean;
-}
+import { Database } from '../../types/database';
+
+type Product = Database['public']['Tables']['products']['Row'];
 
 const CATEGORIES = [
     { label: 'All', icon: 'sparkles' },
@@ -80,7 +71,7 @@ export function InventoryScreen() {
 
     const fetchProducts = async () => {
         try {
-            const { data, error } = await (supabase as any)
+            const { data, error } = await supabase
                 .from('products')
                 .select('*')
                 .eq('is_active', true)
@@ -103,8 +94,8 @@ export function InventoryScreen() {
 
     const handleEditStock = (product: Product) => {
         setEditingProduct(product);
-        setEditStock(product.stock_count.toString());
-        setEditThreshold(product.low_stock_threshold.toString());
+        setEditStock((product.stock_count || 0).toString());
+        setEditThreshold((product.low_stock_threshold || 5).toString());
     };
 
     const handleSaveStock = async () => {
@@ -115,7 +106,7 @@ export function InventoryScreen() {
             const newStockCount = parseInt(editStock) || 0;
             const newThreshold = parseInt(editThreshold) || 5;
 
-            const { error } = await (supabase as any)
+            const { error } = await supabase
                 .from('products')
                 .update({
                     stock_count: newStockCount,
@@ -214,7 +205,7 @@ export function InventoryScreen() {
 
         setSaving(true);
         try {
-            const { error } = await (supabase as any).from('products').insert({
+            const { error } = await supabase.from('products').insert({
                 name: newProduct.name,
                 description: newProduct.description || null,
                 image_url: newProduct.image_url || null,
@@ -253,9 +244,9 @@ export function InventoryScreen() {
     };
 
     const handleQuickStockAdjust = async (product: Product, delta: number) => {
-        const newStock = Math.max(0, product.stock_count + delta);
+        const newStock = Math.max(0, (product.stock_count || 0) + delta);
         try {
-            const { error } = await (supabase as any)
+            const { error } = await supabase
                 .from('products')
                 .update({ stock_count: newStock })
                 .eq('id', product.id);
@@ -268,7 +259,7 @@ export function InventoryScreen() {
             ));
 
             // Check for low stock notification
-            if (newStock < product.low_stock_threshold) {
+            if (newStock < (product.low_stock_threshold || 5)) {
                 try {
                     await supabase.functions.invoke('low-stock-alert');
                 } catch (e) {
@@ -290,7 +281,7 @@ export function InventoryScreen() {
             `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
             async () => {
                 try {
-                    const { error } = await (supabase as any)
+                    const { error } = await supabase
                         .from('products')
                         .delete()
                         .eq('id', product.id);
@@ -311,8 +302,8 @@ export function InventoryScreen() {
         );
     };
 
-    const getLowStockProducts = () => products.filter(p => p.stock_count < p.low_stock_threshold && p.stock_count > 0);
-    const getOutOfStockProducts = () => products.filter(p => p.stock_count === 0);
+    const getLowStockProducts = () => products.filter(p => (p.stock_count || 0) < (p.low_stock_threshold || 5) && (p.stock_count || 0) > 0);
+    const getOutOfStockProducts = () => products.filter(p => (p.stock_count || 0) === 0);
 
     const filteredProducts = products.filter(p => {
         const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
@@ -333,8 +324,8 @@ export function InventoryScreen() {
     };
 
     const getStockStatus = (product: Product) => {
-        if (product.stock_count === 0) return { label: 'Out of Stock', color: colors.error, bg: 'rgba(239,68,68,0.1)' };
-        if (product.stock_count < product.low_stock_threshold) return { label: 'Low Stock', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' };
+        if ((product.stock_count || 0) === 0) return { label: 'Out of Stock', color: colors.error, bg: 'rgba(239,68,68,0.1)' };
+        if ((product.stock_count || 0) < (product.low_stock_threshold || 5)) return { label: 'Low Stock', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' };
         return { label: 'In Stock', color: colors.success, bg: 'rgba(34,197,94,0.1)' };
     };
 
@@ -476,12 +467,12 @@ export function InventoryScreen() {
                                         <MerakiText variant="body" style={styles.productName} numberOfLines={1}>{product.name}</MerakiText>
                                         <MerakiText variant="caption" style={styles.productCategory}>{product.category}</MerakiText>
                                         <MerakiText variant="caption" style={styles.productThreshold}>
-                                            Alert at: {product.low_stock_threshold} units
+                                            Alert at: {(product.low_stock_threshold || 5)} units
                                         </MerakiText>
                                     </View>
                                     <View style={styles.stockControls}>
                                         <View style={styles.stockInfo}>
-                                            <MerakiText variant="h3" style={styles.stockCount}>{product.stock_count}</MerakiText>
+                                            <MerakiText variant="h3" style={styles.stockCount}>{(product.stock_count || 0)}</MerakiText>
                                             <View style={[styles.stockBadge, { backgroundColor: status.bg }]}>
                                                 <MerakiText variant="caption" style={[styles.stockBadgeText, { color: status.color }]}>
                                                     {status.label}
