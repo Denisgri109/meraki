@@ -25,7 +25,7 @@ interface SafeResponse<T> {
  * @returns Object with data, error, and timeout status
  */
 export async function safeSupabaseFetch<T>(
-    promise: Promise<{ data: T | null; error: any }>,
+    promise: PromiseLike<{ data: T | null; error: any }>,
     options: SafeFetchOptions = {}
 ): Promise<SafeResponse<T>> {
     const {
