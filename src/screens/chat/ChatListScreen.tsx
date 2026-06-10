@@ -74,6 +74,12 @@ export function ChatListScreen() {
 
     const detectLocation = async () => {
         try {
+            const servicesEnabled = await Location.hasServicesEnabledAsync();
+            if (!servicesEnabled) {
+                console.log('Location services are disabled on this device.');
+                return;
+            }
+
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status === 'granted') {
                 const location = await Location.getCurrentPositionAsync({
@@ -97,11 +103,11 @@ export function ChatListScreen() {
                 } catch (geocodeError) {
                     // reverseGeocodeAsync can throw NullPointerException on some devices
                     // when getCountryCode() returns null — safe to ignore
-                    console.error('Reverse geocode failed (non-critical):', geocodeError);
+                    console.log('Reverse geocode failed (non-critical):', geocodeError);
                 }
             }
         } catch (error) {
-            console.error('Location detection failed:', error);
+            console.log('Location detection failed (non-critical):', error);
         }
     };
 
