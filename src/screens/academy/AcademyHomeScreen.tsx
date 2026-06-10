@@ -171,6 +171,12 @@ export function AcademyHomeScreen() {
                     let totalSeconds = 0;
                     await Promise.all(
                         courseLessons.map(async (lesson: any) => {
+                            // Trust the cached value to avoid N+1 probing and updates
+                            if (typeof lesson.duration_minutes === 'number' && lesson.duration_minutes > 0) {
+                                totalSeconds += lesson.duration_minutes;
+                                return;
+                            }
+
                             if (lesson.video_url && !isStreamingUrl(lesson.video_url)) {
                                 const realDuration = await probeVideoDuration(lesson.video_url);
                                 if (realDuration !== null) {
