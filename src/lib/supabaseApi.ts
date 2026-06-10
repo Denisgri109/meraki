@@ -25,7 +25,7 @@ interface SafeResponse<T> {
  * @returns Object with data, error, and timeout status
  */
 export async function safeSupabaseFetch<T>(
-    promise: Promise<{ data: T | null; error: any }>,
+    promise: PromiseLike<{ data: T | null; error: any }>,
     options: SafeFetchOptions = {}
 ): Promise<SafeResponse<T>> {
     const {
@@ -88,7 +88,7 @@ export async function checkSessionHealth(): Promise<boolean> {
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error || !session) {
-            console.log('Session check failed:', error?.message);
+            console.debug('Session check failed:', error?.message);
             return false;
         }
 
