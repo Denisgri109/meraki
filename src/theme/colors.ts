@@ -158,7 +158,5 @@ export const layout = {
     },
 };
 
-// Re-export spacing locally so `import { colors, spacing } from './colors'` works
-export { spacing } from './spacing';
 
 export default colors;
