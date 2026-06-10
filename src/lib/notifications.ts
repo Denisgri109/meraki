@@ -175,7 +175,7 @@ export async function scheduleLocalNotification(
         content: {
             title,
             body,
-            data: data as any,
+            data: data as unknown as Record<string, unknown> | undefined,
             sound: 'default',
         },
         trigger,
