@@ -2,6 +2,7 @@
 // Handles all Stripe-related operations for the Merakí app
 
 import { supabase } from '../lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 
 // ============================================
 // TYPES
@@ -57,9 +58,9 @@ export async function createSetupIntent(userId: string, userEmail?: string, cust
     if (SIMULATION_MODE) {
         await delay(500);
         return {
-            clientSecret: 'seti_mock_secret_' + Math.random().toString(36).substr(2, 9),
-            setupIntentId: 'seti_mock_' + Math.random().toString(36).substr(2, 9),
-            customerId: customerId || 'cus_mock_' + Math.random().toString(36).substr(2, 9),
+            clientSecret: 'seti_mock_secret_' + uuidv4(),
+            setupIntentId: 'seti_mock_' + uuidv4(),
+            customerId: customerId || 'cus_mock_' + uuidv4(),
         };
     }
 
@@ -143,8 +144,8 @@ export async function createPaymentIntent(params: CreatePaymentIntentParams): Pr
     if (SIMULATION_MODE) {
         await delay(1000);
         return {
-            clientSecret: 'pi_mock_secret_' + Math.random().toString(36).substr(2, 9),
-            paymentIntentId: 'pi_mock_' + Math.random().toString(36).substr(2, 9),
+            clientSecret: 'pi_mock_secret_' + uuidv4(),
+            paymentIntentId: 'pi_mock_' + uuidv4(),
         };
     }
 
