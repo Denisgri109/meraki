@@ -177,7 +177,7 @@ export function InventoryScreen() {
 
             if (uploadError) {
                 if (uploadError.message.includes('Bucket not found')) {
-                    throw new Error('Storage bucket "products" does not exist. Please contact admin.');
+                    throw new Error('Failed to upload image. Please try again later.');
                 }
                 throw uploadError;
             }
