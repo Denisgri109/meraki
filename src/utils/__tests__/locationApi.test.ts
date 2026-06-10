@@ -72,6 +72,26 @@ describe('locationApi', () => {
             expect(errorArg.message).toBe('Failed to fetch country');
         });
 
+        it('should return null and log error if response.json() throws an error (e.g. malformed JSON)', async () => {
+            const jsonError = new SyntaxError('Unexpected token < in JSON');
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: async () => { throw jsonError; },
+            });
+
+            const result = await getCountryByCode('IE');
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                'https://api.countrystatecity.in/v1/countries/IE',
+                { headers: { 'X-CSCAPI-KEY': expect.any(String) } }
+            );
+            expect(result).toBeNull();
+            expect(console.error).toHaveBeenCalledWith(
+                'Error fetching country:',
+                jsonError
+            );
+        });
+
         it('should return null and log error if fetch throws an exception', async () => {
             const networkError = new Error('Network error');
             (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
