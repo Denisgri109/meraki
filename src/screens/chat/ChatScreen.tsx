@@ -469,111 +469,128 @@ export function ChatScreen() {
                 onLongPress={(e) => handleLongPress(item, e.nativeEvent.pageY)}
             >
                 {isMe ? (
-                    <LinearGradient
-                        colors={[colors.primary, colors.primary]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={[
+                    isDeleted ? (
+                        <View style={[
                             styles.messageBubble,
                             styles.bubbleGradient,
-                            isOptimistic && styles.bubbleOptimistic,
-                            isDeleted && styles.bubbleDeleted,
-                            hasMedia && { padding: 0 }
-                        ]}
-                    >
-                        {/* Reply Content */}
-                        {replyMessage && !isDeleted && (
-                            <View style={[styles.replyContainer, { borderLeftColor: 'rgba(0, 0, 0, 0.40)' }]}>
-                                <MerakiText style={[styles.replySender, { color: 'white' }]}>
-                                    {replyMessage.sender_id === user?.id ? 'You' : (otherUser?.full_name || 'User')}
-                                </MerakiText>
-                                <MerakiText numberOfLines={1} style={[styles.replyText, { color: 'rgba(0, 0, 0, 0.60)' }]}>
-                                    {replyMessage.is_deleted ? 'Message deleted' : (replyMessage.content || (replyMessage.media_url ? '📷 Media' : '...'))}
-                                </MerakiText>
-                            </View>
-                        )}
-
-                        {isDeleted ? (
+                            styles.bubbleDeleted
+                        ]}>
                             <MerakiText style={[styles.messageText, { fontStyle: 'italic', color: 'rgba(0, 0, 0, 0.55)' }]}>
                                 This message was deleted
                             </MerakiText>
-                        ) : (
-                            <>
-                                {item.media_url && (
-                                    <TouchableOpacity onPress={openPreview} activeOpacity={0.9} style={{ marginBottom: item.content ? 8 : 0 }}>
-                                        {item.media_type === 'video' ? (
-                                            <Video
-                                                source={{ uri: item.media_url }}
-                                                style={styles.mediaVideo}
-                                                useNativeControls={false}
-                                                resizeMode={ResizeMode.COVER}
-                                            />
-                                        ) : (
-                                            <Image source={{ uri: item.media_url }} style={styles.mediaImage} resizeMode="cover" />
-                                        )}
-                                    </TouchableOpacity>
-                                )}
-                                {item.content && (
-                                    <MerakiText style={[styles.messageText, styles.messageTextRight]}>
-                                        {item.content}
+                            <MerakiText style={[styles.messageTime, styles.messageTimeRight, { color: 'rgba(0, 0, 0, 0.35)' }]}>
+                                {isOptimistic ? 'Sending...' : format(new Date(item.created_at), 'HH:mm')}
+                            </MerakiText>
+                        </View>
+                    ) : (
+                        <LinearGradient
+                            colors={['#2C3E50', '#3D5166']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={[
+                                styles.messageBubble,
+                                styles.bubbleGradient,
+                                isOptimistic && styles.bubbleOptimistic,
+                                hasMedia && { padding: 0 }
+                            ]}
+                        >
+                            {/* Reply Content */}
+                            {replyMessage && !isDeleted && (
+                                <View style={[styles.replyContainer, { borderLeftColor: 'rgba(255, 255, 255, 0.40)' }]}>
+                                    <MerakiText style={[styles.replySender, { color: '#EDE7F6' }]}>
+                                        {replyMessage.sender_id === user?.id ? 'You' : (otherUser?.full_name || 'User')}
                                     </MerakiText>
-                                )}
-                            </>
-                        )}
-                        <MerakiText style={[styles.messageTime, styles.messageTimeRight]}>
-                            {isOptimistic ? 'Sending...' : format(new Date(item.created_at), 'HH:mm')}
-                        </MerakiText>
-                    </LinearGradient>
-                ) : (
-                    <View style={[
-                        styles.messageBubble,
-                        styles.bubbleGlass,
-                        isDeleted && styles.bubbleDeleted,
-                        hasMedia && { padding: 4 }
-                    ]}>
-                        {/* Reply Content */}
-                        {replyMessage && !isDeleted && (
-                            <View style={styles.replyContainer}>
-                                <MerakiText style={styles.replySender}>
-                                    {replyMessage.sender_id === user?.id ? 'You' : (otherUser?.full_name || 'User')}
-                                </MerakiText>
-                                <MerakiText numberOfLines={1} style={styles.replyText}>
-                                    {replyMessage.is_deleted ? 'Message deleted' : (replyMessage.content || (replyMessage.media_url ? '📷 Media' : '...'))}
-                                </MerakiText>
-                            </View>
-                        )}
+                                    <MerakiText numberOfLines={1} style={[styles.replyText, { color: 'rgba(255, 255, 255, 0.70)' }]}>
+                                        {replyMessage.is_deleted ? 'Message deleted' : (replyMessage.content || (replyMessage.media_url ? '📷 Media' : '...'))}
+                                    </MerakiText>
+                                </View>
+                            )}
 
-                        {isDeleted ? (
+                            {item.media_url && (
+                                <TouchableOpacity onPress={openPreview} activeOpacity={0.9} style={{ marginBottom: item.content ? 8 : 0 }}>
+                                    {item.media_type === 'video' ? (
+                                        <Video
+                                            source={{ uri: item.media_url }}
+                                            style={styles.mediaVideo}
+                                            useNativeControls={false}
+                                            resizeMode={ResizeMode.COVER}
+                                        />
+                                    ) : (
+                                        <Image source={{ uri: item.media_url }} style={styles.mediaImage} resizeMode="cover" />
+                                    )}
+                                </TouchableOpacity>
+                            )}
+                            {item.content && (
+                                <MerakiText style={[styles.messageText, styles.messageTextRight]}>
+                                    {item.content}
+                                </MerakiText>
+                            )}
+                            <MerakiText style={[styles.messageTime, styles.messageTimeRight]}>
+                                {isOptimistic ? 'Sending...' : format(new Date(item.created_at), 'HH:mm')}
+                            </MerakiText>
+                        </LinearGradient>
+                    )
+                ) : (
+                    isDeleted ? (
+                        <View style={[
+                            styles.messageBubble,
+                            styles.bubbleGlass,
+                            styles.bubbleDeleted
+                        ]}>
                             <MerakiText style={[styles.messageText, { fontStyle: 'italic', color: colors.textMuted }]}>
                                 This message was deleted
                             </MerakiText>
-                        ) : (
-                            <>
-                                {item.media_url && (
-                                    <TouchableOpacity onPress={openPreview} activeOpacity={0.9} style={{ marginBottom: item.content ? 8 : 0 }}>
-                                        {item.media_type === 'video' ? (
-                                            <Video
-                                                source={{ uri: item.media_url }}
-                                                style={styles.mediaVideo}
-                                                useNativeControls={false}
-                                                resizeMode={ResizeMode.COVER}
-                                            />
-                                        ) : (
-                                            <Image source={{ uri: item.media_url }} style={styles.mediaImage} resizeMode="cover" />
-                                        )}
-                                    </TouchableOpacity>
-                                )}
-                                {item.content && (
-                                    <MerakiText style={styles.messageText}>
-                                        {item.content}
+                            <MerakiText style={styles.messageTime}>
+                                {format(new Date(item.created_at), 'HH:mm')}
+                            </MerakiText>
+                        </View>
+                    ) : (
+                        <LinearGradient
+                            colors={['#EDE7F6', '#E8EAF6']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={[
+                                styles.messageBubble,
+                                styles.bubbleGlass,
+                                hasMedia && { padding: 4 }
+                            ]}
+                        >
+                            {/* Reply Content */}
+                            {replyMessage && !isDeleted && (
+                                <View style={[styles.replyContainer, { borderLeftColor: '#7E57C2' }]}>
+                                    <MerakiText style={[styles.replySender, { color: '#7E57C2' }]}>
+                                        {replyMessage.sender_id === user?.id ? 'You' : (otherUser?.full_name || 'User')}
                                     </MerakiText>
-                                )}
-                            </>
-                        )}
-                        <MerakiText style={styles.messageTime}>
-                            {format(new Date(item.created_at), 'HH:mm')}
-                        </MerakiText>
-                    </View>
+                                    <MerakiText numberOfLines={1} style={[styles.replyText, { color: '#6B7280' }]}>
+                                        {replyMessage.is_deleted ? 'Message deleted' : (replyMessage.content || (replyMessage.media_url ? '📷 Media' : '...'))}
+                                    </MerakiText>
+                                </View>
+                            )}
+
+                            {item.media_url && (
+                                <TouchableOpacity onPress={openPreview} activeOpacity={0.9} style={{ marginBottom: item.content ? 8 : 0 }}>
+                                    {item.media_type === 'video' ? (
+                                        <Video
+                                            source={{ uri: item.media_url }}
+                                            style={styles.mediaVideo}
+                                            useNativeControls={false}
+                                            resizeMode={ResizeMode.COVER}
+                                        />
+                                    ) : (
+                                        <Image source={{ uri: item.media_url }} style={styles.mediaImage} resizeMode="cover" />
+                                    )}
+                                </TouchableOpacity>
+                            )}
+                            {item.content && (
+                                <MerakiText style={styles.messageText}>
+                                    {item.content}
+                                </MerakiText>
+                            )}
+                            <MerakiText style={styles.messageTime}>
+                                {format(new Date(item.created_at), 'HH:mm')}
+                            </MerakiText>
+                        </LinearGradient>
+                    )
                 )}
             </TouchableOpacity>
         );
@@ -1032,21 +1049,20 @@ const styles = StyleSheet.create({
     },
     bubbleGradient: {
         borderBottomRightRadius: 4,
-        shadowColor: colors.primary,
+        shadowColor: '#2C3E50',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 5,
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
         elevation: 3,
     },
     bubbleGlass: {
-        backgroundColor: 'rgba(0, 0, 0, 0.06)',
         borderBottomLeftRadius: 4,
         borderWidth: 1,
-        borderColor: 'rgba(0, 0, 0, 0.04)',
+        borderColor: 'rgba(209, 196, 233, 0.4)',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
     },
     bubbleDeleted: {
         backgroundColor: 'rgba(0, 0, 0, 0.02)',

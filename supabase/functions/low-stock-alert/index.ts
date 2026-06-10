@@ -84,6 +84,8 @@ Deno.serve(async (req: Request) => {
                         title: "⚠️ Low Stock Alert",
                         body: `${product.name} has only ${product.stock_count} units left!`,
                         data: { type: "low_stock", productId: product.id },
+                        priority: "high",
+                        _contentAvailable: true,
                     });
                 }
             }

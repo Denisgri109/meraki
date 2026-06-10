@@ -60,7 +60,11 @@ Deno.serve(async (req: Request) => {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(payload),
+            body: JSON.stringify({
+                ...payload,
+                priority: payload.data?.priority || "high",
+                _contentAvailable: true,
+            }),
         });
 
         const result = await response.json();

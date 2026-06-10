@@ -106,6 +106,8 @@ Deno.serve(async (req: Request) => {
                         appointmentId: appointment_id,
                     },
                     channelId: 'appointments',
+                    priority: 'high',
+                    _contentAvailable: true,
                 };
 
                 const pushResponse = await fetch('https://exp.host/--/api/v2/push/send', {

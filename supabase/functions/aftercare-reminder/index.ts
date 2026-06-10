@@ -146,6 +146,8 @@ Deno.serve(async (req: Request) => {
                         campaign_id: campaign.id,
                         appointment_id: apt.id
                     },
+                    priority: "default" as const,
+                    _contentAvailable: true,
                 };
 
                 try {
@@ -222,6 +224,8 @@ Deno.serve(async (req: Request) => {
                 title: message.title,
                 body: message.body,
                 data: { type: "aftercare", appointmentId: apt.id },
+                priority: "default" as const,
+                _contentAvailable: true,
             });
 
             updatedIds.push(apt.id);

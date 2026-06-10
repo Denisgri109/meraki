@@ -16,6 +16,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.meraki.app",
+      "entitlements": {
+        "aps-environment": "production"
+      },
       "infoPlist": {
         "NFCReaderUsageDescription": "This app uses NFC to pair loyalty stamp tags",
         "LSApplicationQueriesSchemes": [

@@ -140,6 +140,8 @@ Deno.serve(async (req: Request) => {
                 message_id: messageRecord!.id,
             },
             channelId: "messages",
+            priority: "high",
+            _contentAvailable: true,
         };
 
         const response = await fetch("https://exp.host/--/api/v2/push/send", {

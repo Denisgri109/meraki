@@ -132,6 +132,7 @@ async function sendPushNotification(supabaseClient: any, pushToken: string, appt
       screen: "AppointmentConfirmation",
     },
     priority: "high",
+    _contentAvailable: true,
   };
 
   // Send via Expo Push API

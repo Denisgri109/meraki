@@ -75,6 +75,7 @@ Deno.serve(async (req: Request) => {
                 data: { type: "appointment_reminder", appointment_id: apt.id },
                 channelId: "appointments",
                 priority: "high",
+                _contentAvailable: true,
             });
             sentIds.push(`24h-${apt.id}`);
         }
@@ -92,6 +93,7 @@ Deno.serve(async (req: Request) => {
                 data: { type: "appointment_reminder", appointment_id: apt.id },
                 channelId: "appointments",
                 priority: "high",
+                _contentAvailable: true,
             });
 
             sentIds.push(`1h-${apt.id}`);

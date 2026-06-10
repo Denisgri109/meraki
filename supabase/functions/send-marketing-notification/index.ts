@@ -112,6 +112,8 @@ Deno.serve(async (req: Request) => {
                 type: "marketing",
                 ...(payload.data || {}),
             },
+            priority: "default",
+            _contentAvailable: true,
         }));
 
         // Send in batches of 100 (Expo limit)
