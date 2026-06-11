@@ -13,7 +13,7 @@ import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, CommonActions } from '@react-navigation/native';
-import { format, addDays, isSameDay, differenceInHours } from 'date-fns';
+import { format, addDays, isSameDay, differenceInHours, startOfDay, isBefore, setHours, setMinutes } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { useAuth } from '../../contexts/AuthContext';
@@ -41,7 +41,7 @@ type Appointment = {
     proposed_end_time: string | null;
     reschedule_initiated_by: string | null;
     service_name: string | null;
-    service: { name: string; duration_minutes: number } | null;
+    service: { name: string; duration_minutes: number; category?: string } | null;
     master: { full_name: string; push_token?: string } | null;
 };
 
@@ -85,6 +85,15 @@ export function AppointmentListScreen() {
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
     const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
+    // Reschedule availability data (mirrors booking flow)
+    const [rescheduleMasterAvailability, setRescheduleMasterAvailability] = useState<any[]>([]);
+    const [rescheduleBlockedSlots, setRescheduleBlockedSlots] = useState<any[]>([]);
+    const [rescheduleBookedSlots, setRescheduleBookedSlots] = useState<string[]>([]);
+    const [reschedulePilatesSessions, setReschedulePilatesSessions] = useState<any[]>([]);
+    const [selectedPilatesSession, setSelectedPilatesSession] = useState<any>(null);
+    const [rescheduleDataLoading, setRescheduleDataLoading] = useState(false);
+    const [isFetchingSlots, setIsFetchingSlots] = useState(false);
+
     // Helper: Check if appointment is within cancellation window (late change)
     const isWithinCancellationWindow = (startTime: string): boolean => {
         const appointmentDate = new Date(startTime);
@@ -125,7 +134,7 @@ export function AppointmentListScreen() {
                     proposed_end_time,
                     reschedule_initiated_by,
                     service_name,
-                    service:services(name, duration_minutes),
+                    service:services(name, duration_minutes, category),
                     master:profiles!appointments_master_id_fkey(full_name, push_token)
                 `)
                 .eq('client_id', user!.id)
@@ -243,12 +252,181 @@ export function AppointmentListScreen() {
         setAppointmentToCancel(null);
     };
 
-    const handleReschedule = (appointment: Appointment) => {
+    const handleReschedule = async (appointment: Appointment) => {
         setSelectedAppointment(appointment);
         setSelectedDate(null);
         setSelectedTime(null);
+        setSelectedPilatesSession(null);
+        setRescheduleBookedSlots([]);
         setShowRescheduleModal(true);
+        setRescheduleDataLoading(true);
+
+        try {
+            // Fetch master availability and blocked slots (mirrors SelectDateTimeScreen)
+            const [availRes, blockedRes] = await Promise.all([
+                safeSupabaseFetch(
+                    supabase.from('master_availability').select('*').eq('master_id', appointment.master_id).order('day_of_week') as any,
+                    { timeout: 5000 }
+                ),
+                safeSupabaseFetch(
+                    supabase.from('blocked_slots').select('*').eq('master_id', appointment.master_id) as any,
+                    { timeout: 5000 }
+                ),
+            ]);
+
+            setRescheduleMasterAvailability((availRes.data as any[]) || []);
+            setRescheduleBlockedSlots((blockedRes.data as any[]) || []);
+
+            // For Pilates services, fetch upcoming sessions
+            if (appointment.service?.category === 'Pilates' && appointment.service_id) {
+                try {
+                    const startDate = new Date().toISOString().slice(0, 10);
+                    const endDate = new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+                    await supabase.rpc('ensure_pilates_sessions', {
+                        p_service_id: appointment.service_id,
+                        p_start_date: startDate,
+                        p_end_date: endDate,
+                    });
+                    const { data: sessionsData } = await supabase
+                        .from('pilates_class_sessions')
+                        .select('*, host:pilates_hosts(*), pilates_session_bookings(id, status)')
+                        .eq('service_id', appointment.service_id)
+                        .gte('starts_at', new Date().toISOString())
+                        .lt('starts_at', new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString())
+                        .eq('status', 'scheduled')
+                        .order('starts_at');
+
+                    setReschedulePilatesSessions(
+                        ((sessionsData as any[]) || []).filter((session: any) => {
+                            const hostId = session.host?.profile_id || session.owner_id;
+                            return hostId !== user?.id;
+                        })
+                    );
+                } catch (e) {
+                    console.error('Error fetching Pilates sessions for reschedule:', e);
+                }
+            } else {
+                setReschedulePilatesSessions([]);
+            }
+        } catch (error) {
+            console.error('Error fetching reschedule data:', error);
+        } finally {
+            setRescheduleDataLoading(false);
+        }
     };
+
+    // Fetch booked slots when reschedule date changes (mirrors SelectDateTimeScreen)
+    const fetchRescheduleBookedSlots = async (date: Date, masterId: string) => {
+        try {
+            setIsFetchingSlots(true);
+            const dateStr = format(date, 'yyyy-MM-dd');
+            const { data } = await safeSupabaseFetch(
+                supabase
+                    .from('appointments')
+                    .select('start_time')
+                    .eq('master_id', masterId)
+                    .gte('start_time', `${dateStr}T00:00:00`)
+                    .lt('start_time', `${dateStr}T23:59:59`)
+                    .in('status', ['pending', 'confirmed']) as any,
+                { timeout: 5000 }
+            );
+            const booked = ((data as any[]) || []).map((apt: any) => {
+                const d = new Date(apt.start_time);
+                return `${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
+            });
+            setRescheduleBookedSlots(booked);
+
+            // Clear selected time if it's now booked
+            if (selectedTime) {
+                const [h, m] = selectedTime.split(':').map(Number);
+                const timeKey = `${h}:${m.toString().padStart(2, '0')}`;
+                if (booked.includes(timeKey)) {
+                    setSelectedTime(null);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching booked slots:', error);
+        } finally {
+            setIsFetchingSlots(false);
+        }
+    };
+
+    // Handle date selection in reschedule modal
+    const handleRescheduleDateSelect = (date: Date) => {
+        setSelectedDate(date);
+        setSelectedTime(null);
+        if (selectedAppointment) {
+            fetchRescheduleBookedSlots(date, selectedAppointment.master_id);
+        }
+    };
+
+    // Check if a day is available for the master (mirrors SelectDateTimeScreen)
+    const isRescheduleDayAvailable = (date: Date): boolean => {
+        const dayOfWeek = date.getDay();
+        return rescheduleMasterAvailability.some(
+            (a: any) => a.day_of_week === dayOfWeek && a.is_available
+        );
+    };
+
+    // Generate time slots for a given day based on master availability (mirrors SelectDateTimeScreen)
+    const generateRescheduleTimeSlots = (): Date[] => {
+        if (!selectedDate) return [];
+        const dayOfWeek = selectedDate.getDay();
+        const dayAvailability = rescheduleMasterAvailability.find(
+            (a: any) => a.day_of_week === dayOfWeek && a.is_available
+        );
+        if (!dayAvailability) return [];
+
+        const slots: Date[] = [];
+        const [startHour, startMin] = dayAvailability.start_time.split(':').map(Number);
+        const [endHour, endMin] = dayAvailability.end_time.split(':').map(Number);
+
+        let currentHour = startHour;
+        let currentMin = startMin || 0;
+        while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
+            slots.push(setMinutes(setHours(new Date(), currentHour), currentMin));
+            currentMin += 30;
+            if (currentMin >= 60) { currentMin = 0; currentHour++; }
+        }
+        return slots;
+    };
+
+    // Check if a reschedule time slot is available (mirrors SelectDateTimeScreen)
+    const isRescheduleSlotAvailable = (slot: Date): boolean => {
+        if (!selectedDate) return false;
+        const timeKey = `${slot.getHours()}:${slot.getMinutes().toString().padStart(2, '0')}`;
+
+        // Already booked
+        if (rescheduleBookedSlots.includes(timeKey)) return false;
+
+        // In the past
+        const slotDateTime = new Date(selectedDate);
+        slotDateTime.setHours(slot.getHours(), slot.getMinutes());
+        if (isBefore(slotDateTime, new Date())) return false;
+
+        // Blocked
+        for (const blocked of rescheduleBlockedSlots) {
+            const blockStart = new Date(blocked.start_time);
+            const blockEnd = new Date(blocked.end_time);
+            if (slotDateTime >= blockStart && slotDateTime < blockEnd) return false;
+        }
+        return true;
+    };
+
+    // Pilates helpers for reschedule
+    const getPilatesBookedCount = (session: any) =>
+        session.pilates_session_bookings?.filter((b: any) => b.status === 'booked').length || 0;
+    const getPilatesSpotsLeft = (session: any) =>
+        Math.max(0, session.capacity - getPilatesBookedCount(session));
+    const groupedReschedulePilates = reschedulePilatesSessions.reduce<Record<string, any[]>>((acc, session) => {
+        const date = new Date(session.starts_at);
+        const key = date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+        acc[key] = [...(acc[key] || []), session];
+        return acc;
+    }, {});
+
+    const rescheduleTimeSlots = generateRescheduleTimeSlots();
+    const rescheduleAvailableDates = Array.from({ length: 14 }, (_, i) => addDays(startOfDay(new Date()), i));
 
     // Notify master of reschedule
     const notifyMasterOfReschedule = async (apt: Appointment, newTime: Date) => {
@@ -273,19 +451,35 @@ export function AppointmentListScreen() {
     };
 
     const confirmReschedule = async () => {
-        if (!selectedAppointment || !selectedDate || !selectedTime) {
-            showAlert('Error', 'Please select a new date and time', 'error');
-            return;
+        const isPilates = selectedAppointment?.service?.category === 'Pilates';
+
+        if (isPilates) {
+            if (!selectedAppointment || !selectedPilatesSession) {
+                showAlert('Error', 'Please select a class session', 'error');
+                return;
+            }
+        } else {
+            if (!selectedAppointment || !selectedDate || !selectedTime) {
+                showAlert('Error', 'Please select a new date and time', 'error');
+                return;
+            }
         }
 
         setRescheduleLoading(true);
         try {
-            const [hours, minutes] = selectedTime.split(':').map(Number);
-            const newStartTime = new Date(selectedDate);
-            newStartTime.setHours(hours, minutes, 0, 0);
+            let newStartTime: Date;
+            let newEndTime: Date;
 
-            const duration = selectedAppointment.service?.duration_minutes || 60;
-            const newEndTime = new Date(newStartTime.getTime() + duration * 60000);
+            if (isPilates && selectedPilatesSession) {
+                newStartTime = new Date(selectedPilatesSession.starts_at);
+                newEndTime = new Date(selectedPilatesSession.ends_at);
+            } else {
+                const [hours, minutes] = selectedTime!.split(':').map(Number);
+                newStartTime = new Date(selectedDate!);
+                newStartTime.setHours(hours, minutes, 0, 0);
+                const duration = selectedAppointment!.service?.duration_minutes || 60;
+                newEndTime = new Date(newStartTime.getTime() + duration * 60000);
+            }
 
             // Early reschedule: Instant update, no approval needed
             const { error } = await supabase
@@ -299,11 +493,19 @@ export function AppointmentListScreen() {
                     proposed_end_time: null,
                     reschedule_initiated_by: null,
                 } as any)
-                .eq('id', selectedAppointment.id);
+                .eq('id', selectedAppointment!.id);
 
             if (error) throw error;
 
-            await notifyMasterOfReschedule(selectedAppointment, newStartTime);
+            if (isPilates && selectedPilatesSession) {
+                const { error: bookingError } = await supabase
+                    .from('pilates_session_bookings')
+                    .update({ session_id: selectedPilatesSession.id })
+                    .eq('appointment_id', selectedAppointment!.id);
+                if (bookingError) throw bookingError;
+            }
+
+            await notifyMasterOfReschedule(selectedAppointment!, newStartTime);
             showAlert('Success', 'Your appointment has been rescheduled.', 'success');
 
             setShowRescheduleModal(false);
@@ -365,10 +567,7 @@ export function AppointmentListScreen() {
 
     // Handle client counter-proposing a different time
     const handleCounterPropose = (apt: Appointment) => {
-        setSelectedAppointment(apt);
-        setSelectedDate(null);
-        setSelectedTime(null);
-        setShowRescheduleModal(true);
+        handleReschedule(apt);
     };
 
     const handleChat = async (appointment: Appointment) => {
@@ -483,8 +682,6 @@ export function AppointmentListScreen() {
         });
     };
 
-    const availableDates = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i + 1));
-    const timeSlots = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
 
     if (loading && !refreshing) {
         return (
@@ -782,60 +979,196 @@ export function AppointmentListScreen() {
                             <View style={{ width: 60 }} />
                         </View>
 
-                        <ScrollView style={styles.modalContent}>
-                            <Text style={styles.sectionTitle}>Select New Date</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.datesRow}>
-                                {availableDates.map((date) => (
-                                    <TouchableOpacity
-                                        key={date.toISOString()}
-                                        style={[
-                                            styles.dateCard,
-                                            selectedDate && isSameDay(date, selectedDate) && styles.dateCardActive,
-                                        ]}
-                                        onPress={() => setSelectedDate(date)}
-                                    >
-                                        <Text style={[
-                                            styles.dateDayName,
-                                            selectedDate && isSameDay(date, selectedDate) && styles.dateTextActive,
-                                        ]}>
-                                            {format(date, 'EEE')}
-                                        </Text>
-                                        <Text style={[
-                                            styles.dateDay,
-                                            selectedDate && isSameDay(date, selectedDate) && styles.dateTextActive,
-                                        ]}>
-                                            {format(date, 'd')}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
+                        <ScrollView contentContainerStyle={[styles.modalContent, { paddingBottom: 60 }]}>
+                            {rescheduleDataLoading ? (
+                                <View style={{ paddingVertical: 60, alignItems: 'center' }}>
+                                    <ActivityIndicator size="large" color={colors.text} />
+                                    <Text style={{ color: colors.textSecondary, marginTop: spacing.md, fontSize: 14 }}>
+                                        Loading availability...
+                                    </Text>
+                                </View>
+                            ) : selectedAppointment?.service?.category === 'Pilates' ? (
+                                /* ── Pilates: Show class sessions ── */
+                                <View>
+                                    <Text style={styles.sectionTitle}>Choose a Class</Text>
+                                    {reschedulePilatesSessions.length > 0 ? (
+                                        Object.entries(groupedReschedulePilates).map(([dateLabel, sessions]) => (
+                                            <View key={dateLabel} style={{ marginBottom: spacing.lg }}>
+                                                <Text style={{
+                                                    fontSize: 12, fontWeight: '700', color: colors.textSecondary,
+                                                    textTransform: 'uppercase', letterSpacing: 1, marginBottom: spacing.sm,
+                                                }}>{dateLabel}</Text>
+                                                {(sessions as any[]).map((session: any) => {
+                                                    const spotsLeft = getPilatesSpotsLeft(session);
+                                                    const isCurrentDate = selectedAppointment ? isSameDay(new Date(session.starts_at), new Date(selectedAppointment.start_time)) : false;
+                                                    const isFull = spotsLeft <= 0;
+                                                    const isSelected = selectedPilatesSession?.id === session.id;
+                                                    const isDisabled = isFull || isCurrentDate;
+                                                    return (
+                                                        <TouchableOpacity
+                                                            key={session.id}
+                                                            style={[
+                                                                {
+                                                                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                                                                    padding: spacing.md, borderRadius: 18, borderWidth: 1,
+                                                                    borderColor: isSelected ? '#10B981' : isCurrentDate ? colors.primary : '#DDD6FE',
+                                                                    backgroundColor: isSelected ? '#ECFDF5' : isCurrentDate ? 'rgba(109, 40, 217, 0.05)' : '#F5F3FF',
+                                                                    marginBottom: spacing.sm, opacity: isDisabled ? 0.45 : 1,
+                                                                },
+                                                            ]}
+                                                            disabled={isDisabled}
+                                                            onPress={() => setSelectedPilatesSession(session)}
+                                                        >
+                                                            <View>
+                                                                <Text style={{ fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 2 }}>
+                                                                    {new Date(session.starts_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </Text>
+                                                                <Text style={{ fontSize: 14, fontWeight: '700', color: '#6D28D9', marginBottom: 2 }}>
+                                                                    {session.host?.display_name || 'Pilates host'}
+                                                                </Text>
+                                                                <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                                                                    {session.level} · {Math.round((new Date(session.ends_at).getTime() - new Date(session.starts_at).getTime()) / 60000)} min
+                                                                </Text>
+                                                            </View>
+                                                            <View style={{
+                                                                paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
+                                                                borderRadius: 999, backgroundColor: isCurrentDate ? 'rgba(109, 40, 217, 0.15)' : isFull ? '#E5E7EB' : '#D1FAE5',
+                                                            }}>
+                                                                <Text style={{
+                                                                    fontSize: 12, fontWeight: '800',
+                                                                    color: isCurrentDate ? colors.primary : isFull ? colors.textMuted : '#047857',
+                                                                }}>
+                                                                    {isCurrentDate ? 'Current' : isFull ? 'Full' : `${spotsLeft} left`}
+                                                                </Text>
+                                                            </View>
+                                                        </TouchableOpacity>
+                                                    );
+                                                })}
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <View style={{
+                                            padding: spacing.xl, alignItems: 'center',
+                                            backgroundColor: 'rgba(0, 0, 0, 0.02)', borderRadius: 12,
+                                            borderWidth: 1, borderColor: colors.border,
+                                        }}>
+                                            <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center' }}>
+                                                No Pilates classes are available for rescheduling.
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                            ) : (
+                                /* ── Regular services: Date + Time selection ── */
+                                <View>
+                                    <Text style={styles.sectionTitle}>Select New Date</Text>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.datesRow}>
+                                        {rescheduleAvailableDates.map((date) => {
+                                            const isSelected = selectedDate && isSameDay(date, selectedDate);
+                                            const isCurrentDate = selectedAppointment ? isSameDay(date, new Date(selectedAppointment.start_time)) : false;
+                                            const isAvailable = !isCurrentDate && (rescheduleMasterAvailability.length === 0 || isRescheduleDayAvailable(date));
+                                            return (
+                                                <TouchableOpacity
+                                                    key={date.toISOString()}
+                                                    style={[
+                                                        styles.dateCard,
+                                                        isSelected && styles.dateCardActive,
+                                                        isCurrentDate && { borderColor: colors.primary, backgroundColor: 'rgba(109, 40, 217, 0.05)' },
+                                                        (!isAvailable && !isCurrentDate) && { opacity: 0.4, backgroundColor: colors.surfaceLight },
+                                                        isCurrentDate && { opacity: 0.6 },
+                                                    ]}
+                                                    onPress={() => isAvailable && handleRescheduleDateSelect(date)}
+                                                    disabled={!isAvailable}
+                                                >
+                                                    <Text style={[
+                                                        styles.dateDayName,
+                                                        isSelected && styles.dateTextActive,
+                                                        isCurrentDate && { color: colors.primary },
+                                                        (!isAvailable && !isCurrentDate) && { color: colors.textMuted },
+                                                     ]}>
+                                                        {format(date, 'EEE')}
+                                                    </Text>
+                                                    <Text style={[
+                                                        styles.dateDay,
+                                                        isSelected && styles.dateTextActive,
+                                                        isCurrentDate && { color: colors.primary },
+                                                        (!isAvailable && !isCurrentDate) && { color: colors.textMuted },
+                                                     ]}>
+                                                        {format(date, 'd')}
+                                                    </Text>
+                                                    {isCurrentDate && (
+                                                        <Text style={{ fontSize: 8, fontWeight: '700', color: colors.primary, marginTop: 2 }}>Current</Text>
+                                                    )}
+                                                    {!isAvailable && !isCurrentDate && (
+                                                        <Text style={{ fontSize: 9, color: colors.textMuted, marginTop: 2 }}>Off</Text>
+                                                    )}
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </ScrollView>
 
-                            <Text style={styles.sectionTitle}>Select New Time</Text>
-                            <View style={styles.timesGrid}>
-                                {timeSlots.map((time) => (
-                                    <TouchableOpacity
-                                        key={time}
-                                        style={[
-                                            styles.timeSlot,
-                                            selectedTime === time && styles.timeSlotActive,
-                                        ]}
-                                        onPress={() => setSelectedTime(time)}
-                                    >
-                                        <Text style={[
-                                            styles.timeSlotText,
-                                            selectedTime === time && styles.timeSlotTextActive,
-                                        ]}>
-                                            {time}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
+                                    <Text style={styles.sectionTitle}>Select New Time</Text>
+                                    {selectedDate ? (
+                                        rescheduleTimeSlots.length > 0 ? (
+                                            <View style={styles.timesGrid}>
+                                                {rescheduleTimeSlots.map((slot) => {
+                                                    const timeStr = format(slot, 'HH:mm');
+                                                    const available = isRescheduleSlotAvailable(slot);
+                                                    const isSelected = selectedTime === timeStr;
+                                                    return (
+                                                        <TouchableOpacity
+                                                            key={timeStr}
+                                                            style={[
+                                                                styles.timeSlot,
+                                                                (!available || isFetchingSlots) && styles.timeSlotUnavailable,
+                                                                isSelected && styles.timeSlotActive,
+                                                            ]}
+                                                            onPress={() => available && !isFetchingSlots && setSelectedTime(timeStr)}
+                                                            disabled={!available || isFetchingSlots}
+                                                        >
+                                                            <Text style={[
+                                                                styles.timeSlotText,
+                                                                (!available || isFetchingSlots) && styles.timeSlotTextUnavailable,
+                                                                isSelected && styles.timeSlotTextActive,
+                                                            ]}>
+                                                                {timeStr}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    );
+                                                })}
+                                            </View>
+                                        ) : (
+                                            <View style={{
+                                                padding: spacing.xl, alignItems: 'center',
+                                                backgroundColor: 'rgba(0, 0, 0, 0.02)', borderRadius: 12,
+                                                borderWidth: 1, borderColor: colors.border,
+                                            }}>
+                                                <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 }}>
+                                                    {rescheduleMasterAvailability.length === 0
+                                                        ? "This specialist hasn't set their availability yet. Please try another day or contact them directly."
+                                                        : 'No time slots available for this day. Please select a different date.'}
+                                                </Text>
+                                            </View>
+                                        )
+                                    ) : (
+                                        <View style={{ padding: spacing.lg, alignItems: 'center' }}>
+                                            <Text style={{ fontSize: 14, color: colors.textMuted }}>
+                                                Please select a date first
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
 
                             <Button
                                 title={rescheduleLoading ? "Rescheduling..." : "Confirm Reschedule"}
                                 onPress={confirmReschedule}
                                 loading={rescheduleLoading}
-                                disabled={rescheduleLoading || !selectedDate || !selectedTime}
+                                disabled={rescheduleLoading || (
+                                    selectedAppointment?.service?.category === 'Pilates'
+                                        ? !selectedPilatesSession
+                                        : !selectedDate || !selectedTime
+                                )}
                                 style={styles.confirmButton}
                             />
                         </ScrollView>
@@ -1379,10 +1712,17 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary,
         borderColor: colors.primary,
     },
+    timeSlotUnavailable: {
+        backgroundColor: colors.surfaceLight,
+        opacity: 0.3,
+    },
     timeSlotText: {
         fontSize: 14,
         color: colors.text,
         fontWeight: '500',
+    },
+    timeSlotTextUnavailable: {
+        color: colors.textMuted,
     },
     timeSlotTextActive: {
         color: '#FFF',

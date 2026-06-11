@@ -107,7 +107,7 @@ export function ClientHomeScreen() {
     const { getItemCount } = useCart();
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+    const [stampCardCount, setStampCardCount] = useState(0);
     const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
     const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
     const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -154,7 +154,7 @@ export function ClientHomeScreen() {
 
         try {
             const now = new Date().toISOString();
-            const profilePromise = (supabase as any).from('profiles').select('loyalty_points').eq('id', user.id).single();
+            const stampCardsPromise = (supabase as any).rpc("get_client_stamp_cards", { p_client_id: user.id });
             const appointmentsPromise = (supabase as any)
                 .from('appointments')
                 .select(`id, start_time, end_time, status, service_name, service:services (name, duration_minutes, base_price), master:profiles!appointments_master_id_fkey (full_name)`)
@@ -163,18 +163,18 @@ export function ClientHomeScreen() {
             const ordersPromise = (supabase as any).from('orders').select('id, total, status, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3);
 
             const [
-                { data: profileData },
+                { data: stampCardsData },
                 { data: appointments },
                 { count: visitCount },
                 { data: orders }
             ] = await Promise.all([
-                safeSupabaseFetch(profilePromise, { timeout: 5000, errorMessage: 'Failed to load loyalty data' }),
+                safeSupabaseFetch(stampCardsPromise, { timeout: 5000, errorMessage: 'Failed to load loyalty data' }),
                 safeSupabaseFetch(appointmentsPromise, { timeout: 8000 }),
                 visitsPromise,
                 safeSupabaseFetch(ordersPromise, { timeout: 5000 })
             ]);
 
-            if (profileData) setLoyaltyPoints((profileData as any).loyalty_points || 0);
+            setStampCardCount(stampCardsData ? (stampCardsData as any).length : 0);
             setUpcomingAppointments((appointments as any) || []);
             setNextAppointment((appointments as any)?.[0] || null);
             setTotalVisits(visitCount || 0);
@@ -928,7 +928,7 @@ export function ClientHomeScreen() {
 
                                 <TouchableOpacity
                                     style={styles.quickAction}
-                                    onPress={() => navigation.navigate('LoyaltyPoints')}
+                                    onPress={() => navigation.navigate('StampCards')}
                                     activeOpacity={0.85}
                                 >
                                     <LinearGradient
@@ -1104,9 +1104,9 @@ export function ClientHomeScreen() {
 
                             {/* Stats */}
                             <View style={styles.statsRow}>
-                                <TouchableOpacity style={styles.statCard} onPress={() => navigation.navigate('LoyaltyPoints')}>
-                                    <MerakiText style={styles.statValue}>{loading ? '...' : loyaltyPoints.toLocaleString()}</MerakiText>
-                                    <MerakiText style={styles.statLabel}>Loyalty Points</MerakiText>
+                                <TouchableOpacity style={styles.statCard} onPress={() => navigation.navigate('StampCards')}>
+                                    <MerakiText style={styles.statValue}>{loading ? '...' : stampCardCount}</MerakiText>
+                                    <MerakiText style={styles.statLabel}>Stamp Cards</MerakiText>
                                 </TouchableOpacity>
                                 <View style={styles.statCard}>
                                     <MerakiText style={styles.statValue}>{totalVisits}</MerakiText>

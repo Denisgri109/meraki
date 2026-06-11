@@ -55,6 +55,21 @@ export function NFCScannerScreen() {
         }
     };
 
+    const parseMasterId = (text: string): string | null => {
+        if (!text) return null;
+        const clean = text.trim();
+        if (clean.includes('loyalty/stamp')) {
+            const match = clean.match(/[?&]master_id=([^&]+)/);
+            if (match && match[1]) return match[1];
+        }
+        if (clean.startsWith('stamp:')) {
+            return clean.replace('stamp:', '').trim();
+        }
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(clean)) return clean;
+        return null;
+    };
+
     const processTag = async (tag: any) => {
         if (!tag.ndefMessage && !tag.id) {
             showAlert('Error', 'Invalid Tag', 'error');
@@ -78,28 +93,27 @@ export function NFCScannerScreen() {
 
         console.log('NFC Payload:', payload);
 
-        // Process logic same as QR
-        const isStamp = payload.startsWith('stamp:');
+        const masterId = parseMasterId(payload);
 
         try {
-            if (isStamp) {
-                const masterId = payload.replace('stamp:', '');
+            if (masterId) {
                 const { data: result, error } = await (supabase as any).rpc('process_stamp_scan', {
                     p_master_id: masterId,
                     p_client_id: user?.id
                 });
 
                 if (error) throw error;
-                handleScanResult(result, true);
+                handleScanResult(result);
 
             } else {
-                const { data: result, error } = await (supabase as any).rpc('process_qr_scan', {
-                    p_code: payload,
-                    p_client_id: user?.id
+                showModal({
+                    title: 'Scan Failed',
+                    message: 'Invalid Tag Payload. Please tap a valid Merakí loyalty stamp tag.',
+                    confirmText: 'Try Again',
+                    hideCancel: true,
+                    type: 'error',
+                    onConfirm: hideModal
                 });
-
-                if (error) throw error;
-                handleScanResult(result, false);
             }
 
         } catch (error: any) {
@@ -115,40 +129,26 @@ export function NFCScannerScreen() {
         }
     };
 
-    const handleScanResult = (result: any, isStamp: boolean) => {
+    const handleScanResult = (result: any) => {
         if (result.success) {
-            if (isStamp) {
-                const progressText = result.reward_available
-                    ? `${result.stamps_collected}/${result.stamps_required} stamps - REWARD READY!`
-                    : `${result.stamps_collected}/${result.stamps_required} stamps`;
+            const progressText = result.reward_available
+                ? `${result.stamps_collected}/${result.stamps_required} stamps - REWARD READY!`
+                : `${result.stamps_collected}/${result.stamps_required} stamps`;
 
-                showModal({
-                    title: result.reward_available ? '🎁 Reward Earned!' : '✓ Stamp Collected!',
-                    message: `${result.card_name} from ${result.master_name}\n\n${progressText}\n\n${result.message}`,
-                    confirmText: result.reward_available ? 'View My Cards' : 'Awesome',
-                    hideCancel: true,
-                    onConfirm: () => {
-                        hideModal();
-                        if (result.reward_available) {
-                            navigation.navigate('StampCards' as never);
-                        } else {
-                            navigation.goBack();
-                        }
-                    }
-                });
-            } else {
-                showModal({
-                    title: 'Success!',
-                    message: `You earned ${result.points} loyalty points!`,
-                    confirmText: 'Awesome',
-                    hideCancel: true,
-                    type: 'success',
-                    onConfirm: () => {
-                        hideModal();
+            showModal({
+                title: result.reward_available ? '🎁 Reward Earned!' : '✓ Stamp Collected!',
+                message: `${result.card_name} from ${result.master_name}\n\n${progressText}\n\n${result.message}`,
+                confirmText: result.reward_available ? 'View My Cards' : 'Awesome',
+                hideCancel: true,
+                onConfirm: () => {
+                    hideModal();
+                    if (result.reward_available) {
+                        navigation.navigate('StampCards' as never);
+                    } else {
                         navigation.goBack();
                     }
-                });
-            }
+                }
+            });
         } else {
             showModal({
                 title: 'Scan Failed',

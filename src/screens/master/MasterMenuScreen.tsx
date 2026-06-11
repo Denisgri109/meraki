@@ -108,7 +108,6 @@ export function MasterMenuScreen() {
                         ))}
                     </ScrollView>
 
-                    {/* ── Business Settings ── */}
                     <MerakiText style={styles.sectionLabel}>BUSINESS SETTINGS</MerakiText>
                     <View style={styles.listGroup}>
                         {[
@@ -116,14 +115,13 @@ export function MasterMenuScreen() {
                             { icon: 'tune', label: 'General Settings', route: 'Settings' },
                             { icon: 'card-giftcard', label: 'Loyalty Cards', route: 'LoyaltyCardBuilder' },
                             { icon: 'campaign', label: 'Aftercare Campaigns', route: 'AftercareCampaigns' },
-                            { icon: 'emoji-events', label: 'Manage Rewards', route: 'ManageRewards' },
                             { icon: 'block', label: 'Blocked Slots', route: 'BlockedSlots' },
                             { icon: 'photo-camera', label: 'Photo Consultations', route: 'PhotoConsultations' },
                             { icon: 'chat', label: 'Booking Consultations', route: 'BookingConsultations' },
                         ].map((item, index) => (
                             <TouchableOpacity
                                 key={item.label}
-                                style={[styles.listItem, index === 7 && { borderBottomWidth: 0 }]}
+                                style={[styles.listItem, index === 6 && { borderBottomWidth: 0 }]}
                                 onPress={() => handleNavigate(item.route)}
                             >
                                 <View style={styles.listIconWrap}>

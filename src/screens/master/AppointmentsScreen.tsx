@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { format, addDays, isSameDay } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 import { Button, ScreenBackground, MerakiModal, MerakiModalProps, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { cancelAndRefund } from '../../services/stripeService';
@@ -39,6 +40,7 @@ type Appointment = {
     confirmation_deadline: string | null;
     confirmation: { confirmed: boolean | null; confirmed_at: string | null } | null;
     service_name: string | null;
+    service_category: string | null;
     service: { name: string; duration_minutes: number } | null;
     client: { full_name: string; phone: string | null; push_token?: string } | null;
     deposit_amount?: number | null;
@@ -47,6 +49,7 @@ type Appointment = {
 
 export function MasterAppointmentsScreen() {
     const { user } = useAuth();
+    const navigation = useNavigation<any>();
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -101,6 +104,7 @@ export function MasterAppointmentsScreen() {
                     reschedule_initiated_by,
                     confirmation_deadline,
                     service_name,
+                    service_category,
                     service:services(name, duration_minutes),
                     client:profiles!appointments_client_id_fkey(full_name, phone, push_token),
                     confirmation:appointment_confirmations(confirmed, confirmed_at)
@@ -562,9 +566,15 @@ export function MasterAppointmentsScreen() {
                             <TouchableOpacity style={styles.stitchSmallBtn} onPress={() => handleCancelAppointment(apt.id)}>
                                 <MerakiText variant="caption" color={colors.textSecondary} style={styles.stitchSmallBtnText}>Cancel</MerakiText>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.stitchSmallBtnPrimary} onPress={() => handleRescheduleAppointment(apt)}>
-                                <MerakiText variant="caption" color={colors.primary} style={styles.stitchSmallBtnText}>Reschedule</MerakiText>
-                            </TouchableOpacity>
+                            {apt.service_category === 'Pilates' ? (
+                                <TouchableOpacity style={styles.stitchSmallBtnPrimary} onPress={() => navigation.navigate('MyServices')}>
+                                    <MerakiText variant="caption" color={colors.primary} style={styles.stitchSmallBtnText}>Studio Config</MerakiText>
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity style={styles.stitchSmallBtnPrimary} onPress={() => handleRescheduleAppointment(apt)}>
+                                    <MerakiText variant="caption" color={colors.primary} style={styles.stitchSmallBtnText}>Reschedule</MerakiText>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </View>
                 )}

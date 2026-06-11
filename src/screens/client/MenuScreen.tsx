@@ -29,7 +29,7 @@ type QuickAction = {
 
 const QUICK_ACTIONS: QuickAction[] = [
     { icon: 'receipt-long', label: 'Orders', route: 'Orders', gradient: ['#8B5CF6', '#6D28D9'] },
-    { icon: 'star-outline', label: 'Loyalty', route: 'LoyaltyPoints', gradient: ['#F59E0B', '#D97706'] },
+    { icon: 'star-outline', label: 'Loyalty', route: 'StampCards', gradient: ['#F59E0B', '#D97706'] },
     { icon: 'credit-card', label: 'Payment', route: 'PaymentMethods', gradient: ['#3B82F6', '#2563EB'] },
     { icon: 'history', label: 'History', route: 'PaymentHistory', gradient: ['#10B981', '#059669'] },
 ];

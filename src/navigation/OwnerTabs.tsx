@@ -49,7 +49,6 @@ import {
     SuppliesScreen,
     AddSupplyScreen,
     BookingConsultationReviewScreen,
-    ManageRewardsScreen,
     MasterEarningsScreen,
 } from '../screens/master';
 import PhotoConsultationReviewScreen from '../screens/master/PhotoConsultationReviewScreen';
@@ -90,7 +89,6 @@ export type OwnerDashboardStackParamList = {
     AftercareCampaigns: undefined;
     PhotoConsultations: undefined;
     BookingConsultations: undefined;
-    ManageRewards: undefined;
     PlatformAnalytics: undefined;
     CustomerOrders: undefined;
     OrderDetail: { order: any };
@@ -129,7 +127,6 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />
             <DashboardStack.Screen name="PhotoConsultations" component={PhotoConsultationReviewScreen} />
             <DashboardStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
-            <DashboardStack.Screen name="ManageRewards" component={ManageRewardsScreen} />
             <DashboardStack.Screen name="PlatformAnalytics" component={PlatformAnalyticsScreen} />
             <DashboardStack.Screen name="CustomerOrders" component={OwnerOrdersScreen} />
             <DashboardStack.Screen name="OrderDetail" component={OwnerOrderDetailScreen} />
@@ -184,7 +181,6 @@ export type MenuStackParamList = {
     AftercareCampaigns: undefined;
     BookingConsultations: undefined;
     PhotoConsultations: undefined;
-    ManageRewards: undefined;
     LoyaltyQR: undefined;
     PaymentMethods: undefined;
     HelpSupport: undefined;
@@ -233,7 +229,6 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />
             <MenuStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
             <MenuStack.Screen name="PhotoConsultations" component={PhotoConsultationReviewScreen} />
-            <MenuStack.Screen name="ManageRewards" component={ManageRewardsScreen} />
             <MenuStack.Screen name="LoyaltyQR" component={LoyaltyQRScreen} />
             <MenuStack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
             <MenuStack.Screen name="HelpSupport" component={HelpSupportScreen} />

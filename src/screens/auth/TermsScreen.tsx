@@ -8,12 +8,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ScreenBackground } from '../../components/ui'; // Assuming ScreenBackground is exported from ui
+import { ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
 
 type AuthStackParamList = {
-    // ... potentially other routes
     Terms: undefined;
 };
 
@@ -43,36 +42,56 @@ export const TermsScreen = ({ navigation }: TermsScreenProps) => {
                 >
                     <Text style={styles.sectionTitle}>1. Acceptance of Terms</Text>
                     <Text style={styles.text}>
-                        By accessing and using Merakí, you verify that you have read, understood, and agree to be bound by these Terms of Service. If you do not agree to these terms, simply do not use the application.
+                        By accessing or using the Merakí platform, including our website and mobile application (collectively, the "Platform"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.
                     </Text>
 
-                    <Text style={styles.sectionTitle}>2. Use of Service</Text>
+                    <Text style={styles.sectionTitle}>2. Description of Service</Text>
                     <Text style={styles.text}>
-                        Merakí provides a platform for booking beauty and wellness services. Users must be at least 18 years old to create an account. You represent and warrant that all information you submit is truthful and accurate.
+                        Merakí provides a platform connecting clients with professional beauty and wellness specialists (each a "Master" or "Specialist"). The Platform allows users to book appointments, purchase products, and access educational content. Merakí acts as an intermediary platform and is not a provider of beauty or wellness services.
                     </Text>
 
                     <Text style={styles.sectionTitle}>3. User Accounts</Text>
                     <Text style={styles.text}>
-                        You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately of any unauthorized use of your account.
+                        To access most features of the Platform, you must register for an account. You agree to provide accurate, current, and complete information and to keep your credentials secure. You are responsible for all activities that occur under your account and must notify us immediately of any unauthorized access.
                     </Text>
 
-                    <Text style={styles.sectionTitle}>4. No-Show Policy</Text>
+                    <Text style={styles.sectionTitle}>4. Booking and Cancellations</Text>
                     <Text style={styles.text}>
-                        In the event of a no-show, a 100% fee will be charged according to the no-show policy.
+                        Appointments booked on the Platform are subject to the respective professional's cancellation policy. Cancellations made more than 24 hours before a scheduled appointment receive a full refund. Cancellations made within 24 hours of the appointment are subject to a 50% cancellation fee. No-shows will be charged 100% of the scheduled service amount to the payment method on file.
                     </Text>
 
-                    <Text style={styles.sectionTitle}>5. Privacy Policy</Text>
+                    <Text style={styles.sectionTitle}>5. Payments</Text>
                     <Text style={styles.text}>
-                        Your privacy is important to us. Please review our Privacy Policy to understand how we collect, use, and share your personal information.
+                        All payments, including service deposits and full bookings, are processed securely through our third-party payment partner (Stripe). Prices are displayed in Euros and include applicable taxes unless stated otherwise. By providing a payment method, you authorize charges in accordance with these terms.
                     </Text>
 
-                    <Text style={styles.sectionTitle}>6. Modifications</Text>
+                    <Text style={styles.sectionTitle}>6. Refunds</Text>
                     <Text style={styles.text}>
-                        We reserve the right to modify these terms at any time. Continued use of the service following any changes indicates your acceptance of the new terms.
+                        Refunds are processed automatically where applicable under the cancellation policy. Please allow 1 to 10 business days for the funds to appear in your account, depending on your bank and financial institution.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>7. Intellectual Property</Text>
+                    <Text style={styles.text}>
+                        All content, features, and functionality on the Platform, including but not limited to text, logos, designs, graphics, code, and interfaces, are the exclusive property of Merakí and are protected by international copyright, trademark, and other intellectual property laws.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>8. Limitation of Liability</Text>
+                    <Text style={styles.text}>
+                        To the maximum extent permitted by law, Merakí shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, arising out of your use of the Platform or the services rendered by independent professionals.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>9. Changes to Terms</Text>
+                    <Text style={styles.text}>
+                        We reserve the right to modify or replace these Terms of Service at any time. We will indicate the date of the latest update at the top. Your continued use of the Platform following the posting of any changes constitutes acceptance of the new terms.
+                    </Text>
+
+                    <Text style={styles.sectionTitle}>10. Contact Information</Text>
+                    <Text style={styles.text}>
+                        If you have any questions regarding these Terms, please contact our Legal team at legal@merakiapp.com.
                     </Text>
 
                     <Text style={styles.lastUpdated}>
-                        Last Updated: February 2026
+                        Last Updated: June 2026
                     </Text>
                 </ScrollView>
             </SafeAreaView>

@@ -248,7 +248,7 @@ export function OwnerDashboardScreen() {
                 }
             }
 
-            const todayEarnings = ((todayData as any[]) || []).filter(apt => apt.status === 'completed').reduce((sum, apt) => sum + (apt.price || 0), 0);
+            const todayEarnings = ((todayData as any[]) || []).filter(apt => ['completed', 'confirmed'].includes(apt.status)).reduce((sum, apt) => sum + (apt.price || 0), 0);
 
             // Fetch pending consultations count
             let consultationsQuery = supabase

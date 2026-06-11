@@ -35,6 +35,7 @@ type AuthStackParamList = {
     VerifyOtp: { email: string };
     ForgotPassword: undefined;
     Terms: undefined;
+    PrivacyPolicy: undefined;
 };
 
 type RegisterScreenProps = {
@@ -427,7 +428,7 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                                 {tosAccepted && <MaterialIcons name="check" size={14} color="#000" />}
                             </View>
                             <MerakiText style={styles.termsText}>
-                                I agree to <MerakiText style={styles.linkText} onPress={() => navigation.navigate('Terms')}>Terms of Service</MerakiText> & <MerakiText style={styles.linkText} onPress={() => navigation.navigate('Terms')}>Privacy Policy</MerakiText>
+                                I agree to <MerakiText style={styles.linkText} onPress={() => navigation.navigate('Terms')}>Terms of Service</MerakiText> & <MerakiText style={styles.linkText} onPress={() => navigation.navigate('PrivacyPolicy')}>Privacy Policy</MerakiText>
                             </MerakiText>
                         </TouchableOpacity>
 

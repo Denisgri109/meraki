@@ -26,6 +26,21 @@ export function QRScannerScreen() {
         }
     }, [permission]);
 
+    const parseMasterId = (text: string): string | null => {
+        if (!text) return null;
+        const clean = text.trim();
+        if (clean.includes('loyalty/stamp')) {
+            const match = clean.match(/[?&]master_id=([^&]+)/);
+            if (match && match[1]) return match[1];
+        }
+        if (clean.startsWith('stamp:')) {
+            return clean.replace('stamp:', '').trim();
+        }
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(clean)) return clean;
+        return null;
+    };
+
     const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
         if (scanned || processing) return;
 
@@ -33,10 +48,9 @@ export function QRScannerScreen() {
         setProcessing(true);
 
         try {
-            // Check if this is a stamp card QR code (format: stamp:{master_id})
-            if (data.startsWith('stamp:')) {
-                const masterId = data.replace('stamp:', '');
+            const masterId = parseMasterId(data);
 
+            if (masterId) {
                 // Call stamp-specific RPC
                 const { data: result, error } = await (supabase as any).rpc('process_stamp_scan', {
                     p_master_id: masterId,
@@ -79,40 +93,18 @@ export function QRScannerScreen() {
                     });
                 }
             } else {
-                // Legacy: Call general loyalty points RPC for other QR codes
-                const { data: result, error } = await (supabase as any).rpc('process_qr_scan', {
-                    p_code: data,
-                    p_client_id: user?.id
+                showModal({
+                    title: 'Scan Failed',
+                    message: 'Invalid QR Code. Please scan a valid Merakí loyalty stamp code.',
+                    confirmText: 'Try Again',
+                    hideCancel: true,
+                    type: 'error',
+                    onConfirm: () => {
+                        hideModal();
+                        setScanned(false);
+                        setProcessing(false);
+                    }
                 });
-
-                if (error) throw error;
-
-                if (result.success) {
-                    showModal({
-                        title: 'Success!',
-                        message: `You earned ${result.points} loyalty points!`,
-                        confirmText: 'Awesome',
-                        hideCancel: true,
-                        type: 'success',
-                        onConfirm: () => {
-                            hideModal();
-                            navigation.goBack();
-                        }
-                    });
-                } else {
-                    showModal({
-                        title: 'Scan Failed',
-                        message: result.message || 'Invalid QR Code',
-                        confirmText: 'Try Again',
-                        hideCancel: true,
-                        type: 'error',
-                        onConfirm: () => {
-                            hideModal();
-                            setScanned(false);
-                            setProcessing(false);
-                        }
-                    });
-                }
             }
         } catch (error: any) {
             console.error('Scan error:', error);
@@ -174,20 +166,20 @@ export function QRScannerScreen() {
                         <Text style={styles.title}>Scan QR Code</Text>
                         <View style={{ width: 44 }} />
                     </View>
-
+ 
                     <View style={styles.centerContainer}>
                         <View style={styles.scanFrame}>
                             <View style={[styles.corner, styles.topLeft]} />
                             <View style={[styles.corner, styles.topRight]} />
                             <View style={[styles.corner, styles.bottomLeft]} />
                             <View style={[styles.corner, styles.bottomRight]} />
-
+ 
                             {processing && (
                                 <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
                             )}
                         </View>
                         <Text style={styles.instructions}>
-                            Align the Master's QR code within the frame to earn points
+                            Align the Master's QR code within the frame to collect a stamp
                         </Text>
                     </View>
                 </SafeAreaView>

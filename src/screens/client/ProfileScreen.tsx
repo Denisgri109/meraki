@@ -69,7 +69,7 @@ type ProfileStackParamList = {
     HelpSupport: undefined;
     TermsOfService: undefined;
     PrivacyPolicy: undefined;
-    LoyaltyPoints: undefined;
+    StampCards: undefined;
     PaymentMethods: undefined;
     Notifications: undefined;
     Menu: undefined;
@@ -536,7 +536,7 @@ export function ProfileScreen() {
         { icon: 'credit-card-outline', label: 'Payment Methods', action: () => navigation.navigate('PaymentMethods') },
         // Only show Loyalty Points and Help for clients
         ...(profile?.role === 'client' ? [
-            { icon: 'star-outline', label: 'Loyalty Points', action: () => navigation.navigate('LoyaltyPoints') },
+            { icon: 'star-outline', label: 'Loyalty Cards', action: () => navigation.navigate('StampCards' as any) },
             { icon: 'help-circle-outline', label: 'Help & Support', action: () => navigation.navigate('HelpSupport') },
         ] : []),
         { icon: 'file-document-outline', label: 'Terms of Service', action: () => navigation.navigate('TermsOfService') },

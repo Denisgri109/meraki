@@ -138,19 +138,17 @@ export function OwnerMenuScreen() {
                         ))}
                     </View>
 
-                    {/* ── Marketing & Loyalty ── */}
                     <MerakiText style={styles.sectionLabel}>MARKETING & LOYALTY</MerakiText>
                     <View style={styles.listGroup}>
                         {[
                             { icon: 'card-giftcard', label: 'Loyalty Cards', route: 'LoyaltyCardBuilder' },
                             { icon: 'campaign', label: 'Aftercare Campaigns', route: 'AftercareCampaigns' },
                             { icon: 'chat', label: 'Booking Consultations', route: 'BookingConsultations' },
-                            { icon: 'emoji-events', label: 'Manage Rewards', route: 'ManageRewards' },
                             { icon: 'qr-code-scanner', label: 'Loyalty QR Scanner', route: 'LoyaltyQR' },
                         ].map((item, index) => (
                             <TouchableOpacity
                                 key={item.label}
-                                style={[styles.listItem, index === 4 && { borderBottomWidth: 0 }]}
+                                style={[styles.listItem, index === 3 && { borderBottomWidth: 0 }]}
                                 onPress={() => handleNavigate(item.route)}
                             >
                                 <View style={styles.listIconWrap}>

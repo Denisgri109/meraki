@@ -16,7 +16,6 @@ import {
     HelpSupportScreen,
     TermsOfServiceScreen,
     PrivacyPolicyScreen,
-    LoyaltyPointsScreen,
     StampCardsScreen,
     PaymentMethodsScreen,
     PaymentHistoryScreen,
@@ -31,8 +30,6 @@ import {
     BookAndChatScreen,
     DiscoverMastersScreen,
     NFCScannerScreen,
-    RewardsCatalogScreen,
-    PointsHistoryScreen,
 } from '../screens/client';
 
 import { ShopScreen, ProductDetailScreen, CartScreen, CheckoutScreen } from '../screens/shop';
@@ -56,15 +53,12 @@ export type HomeStackParamList = {
     HelpSupport: undefined;
     TermsOfService: undefined;
     PrivacyPolicy: undefined;
-    LoyaltyPoints: undefined;
     StampCards: undefined;
     PaymentMethods: undefined;
     PaymentHistory: undefined;
     Notifications: undefined;
     QRScanner: undefined;
     NFCScanner: undefined;
-    RewardsCatalog: undefined;
-    PointsHistory: undefined;
     MasterDetail: { masterId: string };
     ServiceDetail: { serviceId: string };
 
@@ -86,15 +80,12 @@ function HomeStackNavigator() {
             <HomeStack.Screen name="HelpSupport" component={HelpSupportScreen} />
             <HomeStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
             <HomeStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-            <HomeStack.Screen name="LoyaltyPoints" component={LoyaltyPointsScreen} />
             <HomeStack.Screen name="StampCards" component={StampCardsScreen} />
             <HomeStack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
             <HomeStack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
             <HomeStack.Screen name="Notifications" component={NotificationsScreen} />
             <HomeStack.Screen name="QRScanner" component={QRScannerScreen} />
             <HomeStack.Screen name="NFCScanner" component={NFCScannerScreen} />
-            <HomeStack.Screen name="RewardsCatalog" component={RewardsCatalogScreen} />
-            <HomeStack.Screen name="PointsHistory" component={PointsHistoryScreen} />
             <HomeStack.Screen name="MasterDetail" component={MasterDetailScreen} />
             <HomeStack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
 
@@ -195,13 +186,10 @@ export type MenuStackParamList = {
     HelpSupport: undefined;
     TermsOfService: undefined;
     PrivacyPolicy: undefined;
-    LoyaltyPoints: undefined;
     PaymentMethods: undefined;
     PaymentHistory: undefined;
     Notifications: undefined;
     StampCards: undefined;
-    RewardsCatalog: undefined;
-    PointsHistory: undefined;
     QRScanner: undefined;
     NFCScanner: undefined;
 };
@@ -217,13 +205,10 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="HelpSupport" component={HelpSupportScreen} />
             <MenuStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
             <MenuStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-            <MenuStack.Screen name="LoyaltyPoints" component={LoyaltyPointsScreen} />
             <MenuStack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
             <MenuStack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
             <MenuStack.Screen name="Notifications" component={NotificationsScreen} />
             <MenuStack.Screen name="StampCards" component={StampCardsScreen} />
-            <MenuStack.Screen name="RewardsCatalog" component={RewardsCatalogScreen} />
-            <MenuStack.Screen name="PointsHistory" component={PointsHistoryScreen} />
             <MenuStack.Screen name="QRScanner" component={QRScannerScreen} />
             <MenuStack.Screen name="NFCScanner" component={NFCScannerScreen} />
         </MenuStack.Navigator>

@@ -9,7 +9,6 @@ export { MasterDetailScreen } from './MasterDetailScreen';
 export { HelpSupportScreen } from './HelpSupportScreen';
 export { TermsOfServiceScreen } from './TermsOfServiceScreen';
 export { PrivacyPolicyScreen } from './PrivacyPolicyScreen';
-export { LoyaltyPointsScreen } from './LoyaltyPointsScreen';
 export { StampCardsScreen } from './StampCardsScreen';
 export { PaymentMethodsScreen } from './PaymentMethodsScreen';
 export { PaymentHistoryScreen } from './PaymentHistoryScreen';
@@ -22,8 +21,6 @@ export { SearchMastersScreen } from './SearchMastersScreen';
 export * from './AppointmentListScreen';
 export * from './BookAndChatScreen';
 export { NFCScannerScreen } from './NFCScannerScreen';
-export { RewardsCatalogScreen } from './RewardsCatalogScreen';
-export { PointsHistoryScreen } from './PointsHistoryScreen';
 export { ConsultationWaitingScreen } from './ConsultationWaitingScreen';
 
 

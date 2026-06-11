@@ -24,7 +24,6 @@ import {
     AddSupplyScreen,
     ServiceSuppliesScreen,
     BookingConsultationReviewScreen,
-    ManageRewardsScreen,
     MasterMenuScreen,
 } from '../screens/master';
 import PhotoConsultationReviewScreen from '../screens/master/PhotoConsultationReviewScreen';
@@ -59,7 +58,6 @@ export type DashboardStackParamList = {
     PhotoConsultations: undefined;
     BookingConsultations: undefined;
     ServiceSupplies: { serviceId?: string } | undefined;
-    ManageRewards: undefined;
     Notifications: undefined;
 };
 
@@ -84,7 +82,6 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="PhotoConsultations" component={PhotoConsultationReviewScreen} />
             <DashboardStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
             <DashboardStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
-            <DashboardStack.Screen name="ManageRewards" component={ManageRewardsScreen} />
             <DashboardStack.Screen name="Notifications" component={NotificationsScreen} />
         </DashboardStack.Navigator>
     );
@@ -124,7 +121,6 @@ export type MenuStackParamList = {
     Settings: undefined;
     LoyaltyCardBuilder: undefined;
     AftercareCampaigns: undefined;
-    ManageRewards: undefined;
     BlockedSlots: undefined;
     PhotoConsultations: undefined;
     BookingConsultations: undefined;
@@ -153,7 +149,6 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="Settings" component={MasterSettingsScreen} />
             <MenuStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
             <MenuStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />
-            <MenuStack.Screen name="ManageRewards" component={ManageRewardsScreen} />
             <MenuStack.Screen name="BlockedSlots" component={BlockedSlotsScreen} />
             <MenuStack.Screen name="PhotoConsultations" component={PhotoConsultationReviewScreen} />
             <MenuStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />

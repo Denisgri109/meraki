@@ -210,12 +210,6 @@ export function MyServicesScreen() {
                             </TouchableOpacity>
                         )}
                         <TouchableOpacity
-                            onPress={() => (navigation as any).navigate('CreateService', { service: item })}
-                            style={styles.editButton}
-                        >
-                            <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.primary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
                             onPress={() => handleDelete(item)}
                             style={styles.deleteButton}
                         >

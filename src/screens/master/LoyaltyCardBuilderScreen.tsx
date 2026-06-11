@@ -47,7 +47,6 @@ export function LoyaltyCardBuilderScreen() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [cards, setCards] = useState<LoyaltyCard[]>([]);
-    const [rewards, setRewards] = useState<Reward[]>([]);
     const [showEditor, setShowEditor] = useState(false);
     const [editingCard, setEditingCard] = useState<LoyaltyCard | null>(null);
 
@@ -55,19 +54,13 @@ export function LoyaltyCardBuilderScreen() {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [stampsRequired, setStampsRequired] = useState(6);
-    const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
+    const [rewardType, setRewardType] = useState<'free_service' | 'discount_percent' | 'discount_amount'>('free_service');
+    const [rewardValue, setRewardValue] = useState('');
 
     // Initial Load
     useEffect(() => {
         loadCards();
     }, []);
-
-    // Reload rewards when screen comes into focus
-    useFocusEffect(
-        useCallback(() => {
-            loadRewards();
-        }, [])
-    );
 
     const loadCards = async () => {
         if (!user) return;
@@ -87,28 +80,12 @@ export function LoyaltyCardBuilderScreen() {
         }
     };
 
-    const loadRewards = async () => {
-        if (!user) return;
-        try {
-            const { data, error } = await supabase
-                .from('loyalty_rewards')
-                .select('*')
-                .eq('master_id', user.id)
-                .eq('is_active', true)
-                .order('name', { ascending: true });
-
-            if (error) throw error;
-            setRewards((data as any) || []);
-        } catch (error) {
-            console.error('Error loading rewards:', error);
-        }
-    };
-
     const resetForm = () => {
         setName('');
         setDescription('');
         setStampsRequired(6);
-        setSelectedReward(null);
+        setRewardType('free_service');
+        setRewardValue('');
         setEditingCard(null);
     };
 
@@ -118,14 +95,8 @@ export function LoyaltyCardBuilderScreen() {
             setName(card.name);
             setDescription(card.description || '');
             setStampsRequired(card.stamps_required);
-
-            // Try to match existing card reward to a reward in the library (best effort)
-            // Or just allow them to pick a new one.
-            // For now, we won't pre-select because we didn't store the reward_id.
-            // But we can construct a "fake" reward object for display if we want, or just leave it empty to force selection?
-            // Let's try to match by type and value if possible, but names might differ.
-            // We'll leave it null and let them pick.
-            setSelectedReward(null);
+            setRewardType(card.reward_type);
+            setRewardValue(card.reward_value ? card.reward_value.toString() : '');
         } else {
             resetForm();
         }
@@ -138,8 +109,10 @@ export function LoyaltyCardBuilderScreen() {
             showAlert('Error', 'Please enter a card name', 'error');
             return;
         }
-        if (!selectedReward) {
-            showAlert('Error', 'Please select a reward', 'error');
+
+        const value = rewardType === 'free_service' ? null : parseFloat(rewardValue);
+        if (rewardType !== 'free_service' && (isNaN(value as any) || (value as any) <= 0)) {
+            showAlert('Error', 'Please enter a valid reward value', 'error');
             return;
         }
 
@@ -150,8 +123,8 @@ export function LoyaltyCardBuilderScreen() {
                 name: name.trim(),
                 description: description.trim() || null,
                 stamps_required: stampsRequired,
-                reward_type: selectedReward.credit_type === 'service' ? 'free_service' : selectedReward.credit_type,
-                reward_value: selectedReward.credit_type !== 'service' ? selectedReward.discount_amount : null,
+                reward_type: rewardType,
+                reward_value: value,
                 is_active: true,
             };
 
@@ -247,7 +220,7 @@ export function LoyaltyCardBuilderScreen() {
                                 </View>
                             </View>
                             <Text style={styles.previewReward}>
-                                🎁 Collect {stampsRequired} stamps → {selectedReward ? selectedReward.name : 'Select a Reward'}
+                                🎁 Collect {stampsRequired} stamps → {getRewardText(rewardType, parseFloat(rewardValue) || null)}
                             </Text>
                         </Card>
 
@@ -295,40 +268,69 @@ export function LoyaltyCardBuilderScreen() {
                             </View>
                         </View>
 
-                        {/* Reward Selection */}
+                        {/* Reward Configuration */}
                         <View style={styles.field}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
-                                <Text style={styles.label}>Select Reward *</Text>
-                                <TouchableOpacity onPress={() => { setShowEditor(false); navigation.navigate('ManageRewards'); }}>
-                                    <Text style={styles.linkText}>Manage Rewards</Text>
+                            <Text style={styles.label}>Reward Type *</Text>
+                            <View style={styles.rewardTypeSelector}>
+                                <TouchableOpacity
+                                    style={[styles.typeOption, rewardType === 'free_service' && styles.typeOptionSelected]}
+                                    onPress={() => { setRewardType('free_service'); setRewardValue(''); }}
+                                >
+                                    <MaterialCommunityIcons 
+                                        name="gift-outline" 
+                                        size={20} 
+                                        color={rewardType === 'free_service' ? '#fff' : colors.text} 
+                                    />
+                                    <Text style={[styles.typeOptionText, rewardType === 'free_service' && styles.typeOptionTextSelected]}>
+                                        Free Service
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.typeOption, rewardType === 'discount_percent' && styles.typeOptionSelected]}
+                                    onPress={() => setRewardType('discount_percent')}
+                                >
+                                    <MaterialCommunityIcons 
+                                        name="percent" 
+                                        size={20} 
+                                        color={rewardType === 'discount_percent' ? '#fff' : colors.text} 
+                                    />
+                                    <Text style={[styles.typeOptionText, rewardType === 'discount_percent' && styles.typeOptionTextSelected]}>
+                                        Discount %
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.typeOption, rewardType === 'discount_amount' && styles.typeOptionSelected]}
+                                    onPress={() => setRewardType('discount_amount')}
+                                >
+                                    <MaterialCommunityIcons 
+                                        name="cash" 
+                                        size={20} 
+                                        color={rewardType === 'discount_amount' ? '#fff' : colors.text} 
+                                    />
+                                    <Text style={[styles.typeOptionText, rewardType === 'discount_amount' && styles.typeOptionTextSelected]}>
+                                        Amount Off
+                                    </Text>
                                 </TouchableOpacity>
                             </View>
-
-                            {rewards.length === 0 ? (
-                                <TouchableOpacity
-                                    style={styles.noRewardsButton}
-                                    onPress={() => { setShowEditor(false); navigation.navigate('ManageRewards'); }}
-                                >
-                                    <Text style={styles.noRewardsText}>No rewards found. Tap to create one.</Text>
-                                </TouchableOpacity>
-                            ) : (
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rewardsScroll}>
-                                    {rewards.map((reward) => (
-                                        <TouchableOpacity
-                                            key={reward.id}
-                                            style={[
-                                                styles.rewardItem,
-                                                selectedReward?.id === reward.id && styles.rewardItemSelected
-                                            ]}
-                                            onPress={() => setSelectedReward(reward)}
-                                        >
-                                            <Text style={styles.rewardItemName}>{reward.name}</Text>
-                                            <Text style={styles.rewardItemDetail}>{getRewardText(reward.credit_type, reward.discount_amount)}</Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </ScrollView>
-                            )}
                         </View>
+
+                        {rewardType !== 'free_service' && (
+                            <View style={styles.field}>
+                                <Text style={styles.label}>
+                                    {rewardType === 'discount_percent' ? 'Discount Percentage (%) *' : 'Discount Amount ($) *'}
+                                </Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={rewardValue}
+                                    onChangeText={setRewardValue}
+                                    placeholder={rewardType === 'discount_percent' ? 'e.g., 20' : 'e.g., 15'}
+                                    placeholderTextColor={colors.textMuted}
+                                    keyboardType="numeric"
+                                />
+                            </View>
+                        )}
                     </ScrollView>
                 </SafeAreaView>
             </ScreenBackground>
@@ -353,15 +355,7 @@ export function LoyaltyCardBuilderScreen() {
                     </View>
                 </View>
 
-                {/* Manage Rewards Banner */}
-                <TouchableOpacity
-                    style={styles.manageRewardsBanner}
-                    onPress={() => navigation.navigate('ManageRewards')}
-                >
-                    <MaterialCommunityIcons name="gift-outline" size={20} color={colors.primary} />
-                    <Text style={styles.manageRewardsText}>Manage Rewards Library</Text>
-                    <MaterialCommunityIcons name="chevron-right" size={20} color={colors.primary} />
-                </TouchableOpacity>
+
 
                 <ScrollView contentContainerStyle={styles.content}>
                     {loading ? (
@@ -548,33 +542,35 @@ const styles = StyleSheet.create({
     stampOptionText: { fontSize: 16, fontWeight: '600', color: colors.text },
     stampOptionTextSelected: { color: '#fff' },
 
-    rewardsScroll: { flexDirection: 'row', marginBottom: spacing.sm },
-    rewardItem: {
-        backgroundColor: colors.surface,
-        padding: spacing.md,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.border,
-        marginRight: spacing.sm,
-        minWidth: 140,
+    rewardTypeSelector: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+        justifyContent: 'space-between',
     },
-    rewardItemSelected: {
-        borderColor: colors.primary,
-        backgroundColor: 'rgba(200, 160, 77, 0.1)',
-    },
-    rewardItemName: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 4 },
-    rewardItemDetail: { fontSize: 12, color: colors.textSecondary },
-
-    linkText: { fontSize: 14, color: colors.primary, fontWeight: '600' },
-    noRewardsButton: {
-        padding: spacing.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderStyle: 'dashed',
-        borderRadius: 12,
+    typeOption: {
+        flex: 1,
+        flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: spacing.md,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+        gap: 6,
     },
-    noRewardsText: { color: colors.textMuted },
+    typeOptionSelected: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    typeOptionText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: colors.text,
+    },
+    typeOptionTextSelected: {
+        color: '#fff',
+    },
 });
 
 export default LoyaltyCardBuilderScreen;

@@ -206,7 +206,7 @@ export function MasterDashboardScreen() {
                     };
                 });
             }
-            const todayEarnings = ((todayData as any[]) || []).filter(apt => apt.status === 'completed').reduce((sum, apt) => sum + (apt.price || 0), 0);
+            const todayEarnings = ((todayData as any[]) || []).filter(apt => ['completed', 'confirmed'].includes(apt.status)).reduce((sum, apt) => sum + (apt.price || 0), 0);
             setAppointments((allAppointmentsData as unknown as Appointment[]) || []);
             setRecentMessages(recentMsgs);
             setStats({ todayAppointments: ((todayData as any[]) || []).filter(apt => apt.status !== 'completed').length, todayEarnings, pendingRequests: pendingCount || 0, unreadMessages: unreadCount, activeServices: activeServicesCount || 0, totalClients: totalClientsCount });

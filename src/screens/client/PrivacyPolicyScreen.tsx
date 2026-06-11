@@ -25,69 +25,78 @@ export function PrivacyPolicyScreen() {
                             <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                         <Text style={styles.title}>Privacy Policy</Text>
-                        <Text style={styles.lastUpdated}>Last updated: January 2026</Text>
+                        <Text style={styles.lastUpdated}>Last updated: June 2026</Text>
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>1. Information We Collect</Text>
+                        <Text style={styles.sectionTitle}>1. Introduction</Text>
                         <Text style={styles.paragraph}>
-                            We collect information you provide directly, including your name, email address, phone number, and payment information. We also collect usage data to improve our services.
+                            Welcome to Merakí. We respect your privacy and are committed to protecting your personal data. This privacy policy will inform you as to how we collect and process your personal data when you visit our website or use our mobile application (collectively, the "Platform"), regardless of where you access it from, and tell you about your privacy rights and how the law protects you.
                         </Text>
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>2. How We Use Your Information</Text>
+                        <Text style={styles.sectionTitle}>2. Information We Collect</Text>
                         <Text style={styles.paragraph}>
-                            Your information is used to provide our services, process appointments and payments, send notifications, and improve the user experience. We never sell your personal data.
+                            We may collect, use, store and transfer different kinds of personal data about you which we have grouped together as follows:{"\n\n"}
+                            • Identity Data includes first name, last name, username, or similar identifier.{"\n"}
+                            • Contact Data includes email address, billing address, telephone number, country, and city.{"\n"}
+                            • Financial Data includes payment card details (securely handled by Stripe).{"\n"}
+                            • Transaction Data includes details about payments to and from you, and details of services and products you have booked or purchased on the Platform.{"\n"}
+                            • Usage and Technical Data includes internet protocol (IP) address, login data, browser type/version, time zone setting, operating system, and platform usage analytics.
                         </Text>
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>3. Data Security</Text>
+                        <Text style={styles.sectionTitle}>3. How We Use Your Information</Text>
                         <Text style={styles.paragraph}>
-                            We implement industry-standard security measures to protect your data. Payment information is processed through PCI-compliant payment processors and is never stored on our servers.
+                            We will only use your personal data when the law allows us to. Most commonly, we will use your personal data in the following circumstances:{"\n\n"}
+                            • To provide our services, manage bookings and appointments, facilitate payments, and maintain your account profile.{"\n"}
+                            • To send transaction notifications, push notifications, and email confirmations.{"\n"}
+                            • Where it is necessary for our legitimate interests (e.g., improving Platform performance and user experience).{"\n"}
+                            • To comply with a legal or regulatory obligation.
                         </Text>
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>4. Data Sharing</Text>
+                        <Text style={styles.sectionTitle}>4. Data Security</Text>
                         <Text style={styles.paragraph}>
-                            We share your information only with service providers necessary to deliver our services, including payment processors and notification services. We require all third parties to respect the security of your data.
+                            We implement industry-standard technical and organizational security measures to prevent your personal data from being accidentally lost, used, or accessed in an unauthorized way. In addition, payment details are securely processed and stored by our PCI-compliant payment provider (Stripe) and are never stored directly on our servers.
                         </Text>
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>5. Your Rights</Text>
+                        <Text style={styles.sectionTitle}>5. Data Sharing</Text>
                         <Text style={styles.paragraph}>
-                            Under GDPR, you have the right to access, correct, or delete your personal data. You may also request data portability or withdraw consent at any time by contacting us.
+                            We share your personal data only with trusted third-party service providers necessary to deliver our services (including payment processing via Stripe, database hosting, and notification delivery services). We require all third parties to respect the security of your data and treat it in accordance with the law. We never sell your personal data.
                         </Text>
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>6. Cookies & Tracking</Text>
+                        <Text style={styles.sectionTitle}>6. Your Rights</Text>
                         <Text style={styles.paragraph}>
-                            Our mobile app uses analytics to understand usage patterns. You can disable analytics in your device settings or within the app preferences.
+                            Under GDPR and applicable privacy laws, you have rights in relation to your personal data. These include the right to request access, correction, erasure, restriction of processing, data portability, and the right to object to processing. You may exercise these rights or manage your settings within the Platform or by contacting us.
                         </Text>
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>7. Data Retention</Text>
+                        <Text style={styles.sectionTitle}>7. Cookies & Tracking</Text>
                         <Text style={styles.paragraph}>
-                            We retain your data for as long as necessary to provide our services. Account data is deleted upon request, subject to legal retention requirements.
+                            Our Platform uses cookies and mobile analytics identifiers to distinguish you from other users and to analyze usage patterns. You can configure your browser to refuse all or some browser cookies, or opt out of analytics tracking in your device settings.
                         </Text>
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>8. Children's Privacy</Text>
+                        <Text style={styles.sectionTitle}>8. Data Retention</Text>
                         <Text style={styles.paragraph}>
-                            Our services are not intended for children under 16. We do not knowingly collect personal information from children.
+                            We retain your personal data only for as long as necessary to fulfill the purposes we collected it for, including for the purposes of satisfying any legal, accounting, or reporting requirements. Account data is deleted or anonymized upon request, subject to legal retention obligations.
                         </Text>
                     </View>
 
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>9. Contact Us</Text>
                         <Text style={styles.paragraph}>
-                            For privacy-related inquiries, contact our Data Protection Officer at privacy@meraki.com
+                            If you have any questions about this privacy policy, our privacy practices, or wish to exercise your legal rights, please contact our Data Protection team at privacy@merakiapp.com.
                         </Text>
                     </View>
                 </ScrollView>

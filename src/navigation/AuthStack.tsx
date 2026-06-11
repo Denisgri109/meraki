@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LoginScreen, RegisterScreen, ForgotPasswordScreen, VerifyOtpScreen, TermsScreen } from '../screens/auth';
+import { PrivacyPolicyScreen } from '../screens/client';
 import { colors } from '../theme';
 
 export type AuthStackParamList = {
@@ -9,6 +10,7 @@ export type AuthStackParamList = {
     VerifyOtp: { email: string };
     ForgotPassword: undefined;
     Terms: undefined;
+    PrivacyPolicy: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -29,6 +31,14 @@ export function AuthStack() {
             <Stack.Screen
                 name="Terms"
                 component={TermsScreen}
+                options={{
+                    headerShown: false,
+                    presentation: 'modal',
+                }}
+            />
+            <Stack.Screen
+                name="PrivacyPolicy"
+                component={PrivacyPolicyScreen}
                 options={{
                     headerShown: false,
                     presentation: 'modal',

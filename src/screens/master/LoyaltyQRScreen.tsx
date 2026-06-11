@@ -27,26 +27,6 @@ export function LoyaltyQRScreen() {
         if (user) {
             setupQR();
         }
-
-        // Subscribe to changes to my QR code (for auto-rotation)
-        const subscription = supabase
-            .channel('my_qr_code')
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'loyalty_qr_codes',
-                filter: `user_id=eq.${user?.id}`
-            }, (payload) => {
-                if (payload.new && payload.new.code) {
-                    setQrCode(payload.new.code);
-                    setScansCount(payload.new.scans_count);
-                }
-            })
-            .subscribe();
-
-        return () => {
-            subscription.unsubscribe();
-        };
     }, [user]);
 
     const setupQR = async () => {

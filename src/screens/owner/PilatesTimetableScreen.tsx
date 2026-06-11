@@ -61,7 +61,7 @@ export function PilatesTimetableScreen() {
     const route = useRoute<RouteProp<RouteParams, 'PilatesTimetable'>>();
     const service = route.params.service;
     const { user } = useAuth();
-    const { showAlert } = useModal();
+    const { showAlert, showConfirm } = useModal();
 
     const [activeTab, setActiveTab] = useState<TabId>('schedule');
     const [loading, setLoading] = useState(true);
@@ -95,6 +95,23 @@ export function PilatesTimetableScreen() {
     });
     const [editingSession, setEditingSession] = useState<PilatesSession | null>(null);
     const [sessionForm, setSessionForm] = useState({ host_id: '', capacity: '6', level: 'All levels', status: 'scheduled', notes: '' });
+
+    const [editingTemplate, setEditingTemplate] = useState<PilatesTemplate | null>(null);
+    const [editTemplateForm, setEditTemplateForm] = useState({
+        day_of_week: 1,
+        start_time: '18:00',
+        host_id: '',
+        capacity: '6',
+        duration_minutes: '50',
+        level: 'All levels',
+        starts_on: todayDate(),
+        notes: '',
+    });
+    const [editingHost, setEditingHost] = useState<PilatesHost | null>(null);
+    const [editHostForm, setEditHostForm] = useState({
+        display_name: '',
+        is_active: true,
+    });
 
     const groupedSessions = useMemo(() => {
         return sessions.reduce<Record<string, PilatesSession[]>>((acc, session) => {
@@ -317,6 +334,128 @@ export function PilatesTimetableScreen() {
             loadData();
         } catch (error: any) {
             showAlert('Error', error.message || 'Failed to update session', 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const deleteTemplate = async (templateId: string) => {
+        showConfirm(
+            'Delete Weekly Slot',
+            'Are you sure you want to delete this weekly timetable slot? This will stop future sessions from being generated, but won\'t automatically delete already generated sessions.',
+            async () => {
+                setSaving(true);
+                try {
+                    const { error } = await supabase
+                        .from('pilates_schedule_templates')
+                        .delete()
+                        .eq('id', templateId);
+                    if (error) throw error;
+                    loadData();
+                } catch (error: any) {
+                    showAlert('Error', error.message || 'Failed to delete weekly class slot', 'error');
+                } finally {
+                    setSaving(false);
+                }
+            }
+        );
+    };
+
+    const openEditTemplate = (template: PilatesTemplate) => {
+        setEditingTemplate(template);
+        setEditTemplateForm({
+            day_of_week: template.day_of_week,
+            start_time: template.start_time.slice(0, 5),
+            host_id: template.host_id || '',
+            capacity: String(template.capacity),
+            duration_minutes: String(template.duration_minutes),
+            level: template.level,
+            starts_on: template.starts_on,
+            notes: template.notes || '',
+        });
+    };
+
+    const saveTemplate = async () => {
+        if (!editingTemplate) return;
+        if (!editTemplateForm.host_id) {
+            showAlert('Missing Host', 'Choose a host for this slot.', 'error');
+            return;
+        }
+        setSaving(true);
+        try {
+            const { error } = await supabase
+                .from('pilates_schedule_templates')
+                .update({
+                    day_of_week: Number(editTemplateForm.day_of_week),
+                    start_time: editTemplateForm.start_time,
+                    host_id: editTemplateForm.host_id,
+                    capacity: Number(editTemplateForm.capacity),
+                    duration_minutes: Number(editTemplateForm.duration_minutes),
+                    level: editTemplateForm.level,
+                    starts_on: editTemplateForm.starts_on,
+                    notes: editTemplateForm.notes.trim() || null,
+                })
+                .eq('id', editingTemplate.id);
+            if (error) throw error;
+            setEditingTemplate(null);
+            loadData();
+        } catch (error: any) {
+            showAlert('Error', error.message || 'Failed to update weekly class slot', 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const deleteHost = async (hostId: string) => {
+        showConfirm(
+            'Delete Instructor',
+            'Are you sure you want to delete this instructor? This will set them to null on all associated classes and sessions.',
+            async () => {
+                setSaving(true);
+                try {
+                    const { error } = await supabase
+                        .from('pilates_hosts')
+                        .delete()
+                        .eq('id', hostId);
+                    if (error) throw error;
+                    loadData();
+                } catch (error: any) {
+                    showAlert('Error', error.message || 'Failed to delete instructor', 'error');
+                } finally {
+                    setSaving(false);
+                }
+            }
+        );
+    };
+
+    const openEditHost = (host: PilatesHost) => {
+        setEditingHost(host);
+        setEditHostForm({
+            display_name: host.display_name,
+            is_active: host.is_active,
+        });
+    };
+
+    const saveHost = async () => {
+        if (!editingHost) return;
+        if (!editHostForm.display_name.trim()) {
+            showAlert('Missing Name', 'Enter a display name.', 'error');
+            return;
+        }
+        setSaving(true);
+        try {
+            const { error } = await supabase
+                .from('pilates_hosts')
+                .update({
+                    display_name: editHostForm.display_name.trim(),
+                    is_active: editHostForm.is_active,
+                })
+                .eq('id', editingHost.id);
+            if (error) throw error;
+            setEditingHost(null);
+            loadData();
+        } catch (error: any) {
+            showAlert('Error', error.message || 'Failed to update instructor', 'error');
         } finally {
             setSaving(false);
         }
@@ -552,11 +691,19 @@ export function PilatesTimetableScreen() {
                                                     <Text style={styles.templateHost}>{host?.display_name || 'No host'}</Text>
                                                     <Text style={styles.templateMeta}>{template.level} · {template.capacity} spots · {template.duration_minutes} min</Text>
                                                 </View>
-                                                <Switch
-                                                    value={template.is_active}
-                                                    onValueChange={() => toggleTemplate(template)}
-                                                    trackColor={{ false: '#E5E7EB', true: '#10B981' }}
-                                                />
+                                                <View style={styles.templateActions}>
+                                                    <TouchableOpacity onPress={() => openEditTemplate(template)} style={styles.iconButton} accessibilityLabel="Edit template">
+                                                        <MaterialCommunityIcons name="pencil" size={18} color={colors.textSecondary} />
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity onPress={() => deleteTemplate(template.id)} style={styles.iconButton} accessibilityLabel="Delete template">
+                                                        <MaterialCommunityIcons name="trash-can-outline" size={18} color="#EF4444" />
+                                                    </TouchableOpacity>
+                                                    <Switch
+                                                        value={template.is_active}
+                                                        onValueChange={() => toggleTemplate(template)}
+                                                        trackColor={{ false: '#E5E7EB', true: '#10B981' }}
+                                                    />
+                                                </View>
                                             </View>
                                         );
                                     })
@@ -707,8 +854,19 @@ export function PilatesTimetableScreen() {
                                                 <Text style={styles.avatarText}>{(host.display_name || '?').slice(0, 1).toUpperCase()}</Text>
                                             </View>
                                             <View style={{ flex: 1 }}>
-                                                <Text style={styles.hostRowName}>{host.display_name}</Text>
+                                                <Text style={styles.hostRowName}>
+                                                    {host.display_name}
+                                                    {!host.is_active && <Text style={{ color: '#EF4444', fontSize: 10, fontWeight: '400' }}> (Inactive)</Text>}
+                                                </Text>
                                                 <Text style={styles.hostRowMeta}>{host.profile_id ? 'Team member' : 'External instructor'}</Text>
+                                            </View>
+                                            <View style={styles.hostActions}>
+                                                <TouchableOpacity onPress={() => openEditHost(host)} style={styles.iconButton} accessibilityLabel="Edit instructor">
+                                                    <MaterialCommunityIcons name="pencil" size={18} color={colors.textSecondary} />
+                                                </TouchableOpacity>
+                                                <TouchableOpacity onPress={() => deleteHost(host.id)} style={styles.iconButton} accessibilityLabel="Delete instructor">
+                                                    <MaterialCommunityIcons name="trash-can-outline" size={18} color="#EF4444" />
+                                                </TouchableOpacity>
                                             </View>
                                         </View>
                                     ))
@@ -923,6 +1081,159 @@ export function PilatesTimetableScreen() {
                         </View>
                     </View>
                 )}
+
+                {editingTemplate && (
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalCard}>
+                            <View style={styles.modalHeader}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.modalKicker}>EDIT WEEKLY CLASS</Text>
+                                    <Text style={styles.modalTitle}>Class Slot Details</Text>
+                                </View>
+                                <TouchableOpacity onPress={() => setEditingTemplate(null)} style={styles.modalClose}>
+                                    <MaterialIcons name="close" size={22} color={colors.text} />
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={styles.modalHint}>Update the settings for this recurring weekly class slot.</Text>
+
+                            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: '80%' }} contentContainerStyle={{ paddingBottom: 24 }}>
+                                <Text style={styles.fieldLabel}>Day of week</Text>
+                                <View style={styles.chipRow}>
+                                    {DAYS.map(day => (
+                                        <TouchableOpacity
+                                            key={day.value}
+                                            style={[styles.chip, editTemplateForm.day_of_week === day.value && styles.chipActive]}
+                                            onPress={() => setEditTemplateForm({ ...editTemplateForm, day_of_week: day.value })}
+                                        >
+                                            <Text style={[styles.chipText, editTemplateForm.day_of_week === day.value && styles.chipTextActive]}>{day.label}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                <View style={styles.row}>
+                                    <View style={styles.half}>
+                                        <Text style={styles.fieldLabel}>Start time</Text>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={editTemplateForm.start_time}
+                                            onChangeText={(v) => setEditTemplateForm({ ...editTemplateForm, start_time: v })}
+                                            placeholder="e.g. 18:00"
+                                            placeholderTextColor={colors.textSecondary}
+                                        />
+                                    </View>
+                                    <View style={styles.half}>
+                                        <Text style={styles.fieldLabel}>Duration (min)</Text>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={editTemplateForm.duration_minutes}
+                                            onChangeText={(v) => setEditTemplateForm({ ...editTemplateForm, duration_minutes: v })}
+                                            keyboardType="number-pad"
+                                        />
+                                    </View>
+                                </View>
+
+                                <Text style={styles.fieldLabel}>Instructor</Text>
+                                <View style={styles.chipRow}>
+                                    {hosts.map(host => (
+                                        <TouchableOpacity
+                                            key={host.id}
+                                            style={[styles.chip, editTemplateForm.host_id === host.id && styles.chipActive]}
+                                            onPress={() => setEditTemplateForm({ ...editTemplateForm, host_id: host.id })}
+                                        >
+                                            <Text style={[styles.chipText, editTemplateForm.host_id === host.id && styles.chipTextActive]}>{host.display_name}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                <View style={styles.row}>
+                                    <View style={styles.half}>
+                                        <Text style={styles.fieldLabel}>Capacity</Text>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={editTemplateForm.capacity}
+                                            onChangeText={(v) => setEditTemplateForm({ ...editTemplateForm, capacity: v })}
+                                            keyboardType="number-pad"
+                                        />
+                                    </View>
+                                    <View style={styles.half}>
+                                        <Text style={styles.fieldLabel}>Starts on</Text>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={editTemplateForm.starts_on}
+                                            onChangeText={(v) => setEditTemplateForm({ ...editTemplateForm, starts_on: v })}
+                                            placeholder="YYYY-MM-DD"
+                                            placeholderTextColor={colors.textSecondary}
+                                        />
+                                    </View>
+                                </View>
+
+                                <Text style={styles.fieldLabel}>Level</Text>
+                                <View style={styles.chipRow}>
+                                    {LEVELS.map(level => (
+                                        <TouchableOpacity
+                                            key={level}
+                                            style={[styles.chip, editTemplateForm.level === level && styles.chipActive]}
+                                            onPress={() => setEditTemplateForm({ ...editTemplateForm, level })}
+                                        >
+                                            <Text style={[styles.chipText, editTemplateForm.level === level && styles.chipTextActive]}>{level}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                <Text style={styles.fieldLabel}>Notes (optional)</Text>
+                                <TextInput
+                                    style={[styles.input, styles.textArea]}
+                                    value={editTemplateForm.notes}
+                                    onChangeText={(v) => setEditTemplateForm({ ...editTemplateForm, notes: v })}
+                                    placeholder="Focus on core strength..."
+                                    placeholderTextColor={colors.textSecondary}
+                                    multiline
+                                />
+
+                                <Button title={saving ? 'Saving...' : 'Save changes'} onPress={saveTemplate} disabled={saving} />
+                            </ScrollView>
+                        </View>
+                    </View>
+                )}
+
+                {editingHost && (
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalCard}>
+                            <View style={styles.modalHeader}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.modalKicker}>EDIT INSTRUCTOR</Text>
+                                    <Text style={styles.modalTitle}>Instructor Profile</Text>
+                                </View>
+                                <TouchableOpacity onPress={() => setEditingHost(null)} style={styles.modalClose}>
+                                    <MaterialIcons name="close" size={22} color={colors.text} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <Text style={styles.fieldLabel}>Display Name</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={editHostForm.display_name}
+                                onChangeText={(v) => setEditHostForm({ ...editHostForm, display_name: v })}
+                                placeholder="e.g. Sarah Thompson"
+                                placeholderTextColor={colors.textSecondary}
+                            />
+
+                            <View style={styles.switchRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.switchTitle}>Active instructor</Text>
+                                    <Text style={styles.switchHint}>Unchecking hides them from new class options</Text>
+                                </View>
+                                <Switch
+                                    value={editHostForm.is_active}
+                                    onValueChange={(v) => setEditHostForm({ ...editHostForm, is_active: v })}
+                                    trackColor={{ false: '#E5E7EB', true: '#10B981' }}
+                                />
+                            </View>
+
+                            <Button title={saving ? 'Saving...' : 'Save changes'} onPress={saveHost} disabled={saving} />
+                        </View>
+                    </View>
+                )}
             </SafeAreaView>
         </ScreenBackground>
     );
@@ -980,6 +1291,9 @@ const styles = StyleSheet.create({
     templateDay: { fontSize: 10, fontWeight: '800', color: '#047857', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 },
     templateHost: { fontWeight: '800', color: colors.text, fontSize: 14, marginBottom: 2 },
     templateMeta: { color: colors.textSecondary, fontSize: 11 },
+    templateActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    hostActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    iconButton: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.04)' },
 
     emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl, gap: 8 },
     emptyIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
