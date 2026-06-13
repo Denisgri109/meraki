@@ -1,11 +1,11 @@
 /**
- * LessonQAChat — Real-time, lesson-specific Q&A chat component.
+ * LessonQAChat — Lesson-specific Q&A component.
  *
  * Embedded within the LessonScreen so students can ask questions and
- * share photos while learning, and the instructor (owner) can respond instantly.
+ * share photos, and the instructor (owner) can respond when available.
  *
  * Features:
- *   - Real-time messaging via Supabase channel subscription
+ *   - Messaging via Supabase channel subscription
  *   - Photo upload support (camera + gallery)
  *   - Threaded replies (reply to a specific message)
  *   - Pin important answers (owner only)
@@ -61,6 +61,7 @@ type Props = {
     courseId: string;
     instructorId: string | null;
     isInstructor: boolean;
+    onScrollStateChange?: (enabled: boolean) => void;
 };
 
 
@@ -457,7 +458,7 @@ function QAMessageItem({
     );
 }
 
-export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }: Props) {
+export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor, onScrollStateChange }: Props) {
     const {
         messages,
         messageText,
@@ -492,12 +493,8 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
         <Card variant="glass" style={styles.container} noPadding>
             {/* Header */}
             <View style={styles.qaHeader}>
-                <MaterialCommunityIcons name="chat-question" size={18} color={colors.accent} />
-                <MerakiText variant="bodyBold" style={{ marginLeft: 8 }}>Live Q&A</MerakiText>
-                <View style={styles.liveIndicator}>
-                    <View style={styles.liveDot} />
-                    <MerakiText variant="caption" color={colors.success}>Live</MerakiText>
-                </View>
+                <MaterialCommunityIcons name="frequently-asked-questions" size={18} color={colors.accent} />
+                <MerakiText variant="bodyBold" style={{ marginLeft: 8 }}>Q&A</MerakiText>
                 <MerakiText variant="caption" color={colors.textMuted} style={{ marginLeft: 'auto' }}>
                     {messages.length} {messages.length === 1 ? 'message' : 'messages'}
                 </MerakiText>
@@ -524,15 +521,27 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
                 contentContainerStyle={styles.messagesList}
                 showsVerticalScrollIndicator={false}
                 nestedScrollEnabled={true}
+                onTouchStart={() => onScrollStateChange?.(false)}
+                onTouchEnd={() => onScrollStateChange?.(true)}
+                onTouchCancel={() => onScrollStateChange?.(true)}
+                onScrollBeginDrag={() => onScrollStateChange?.(false)}
+                onScrollEndDrag={() => onScrollStateChange?.(true)}
+                onMomentumScrollBegin={() => onScrollStateChange?.(false)}
+                onMomentumScrollEnd={() => onScrollStateChange?.(true)}
                 onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             >
                 {messages.length === 0 ? (
                     <View style={styles.emptyChat}>
-                        <MaterialCommunityIcons name="chat-question-outline" size={40} color={colors.textMuted} style={{ opacity: 0.3 }} />
-                        <MerakiText variant="body" color={colors.textMuted} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
+                        <MaterialCommunityIcons name="frequently-asked-questions" size={40} color={colors.textMuted} style={{ opacity: 0.3 }} />
+                        <MerakiText variant="bodyBold" color={colors.textSecondary} style={{ marginTop: spacing.md, textAlign: 'center' }}>
                             {isInstructor
-                                ? 'Students can ask questions here during the lesson.'
-                                : 'Ask a question or share your work for instant feedback!'}
+                                ? 'Student questions will appear here.'
+                                : 'Have a question?'}
+                        </MerakiText>
+                        <MerakiText variant="body" color={colors.textMuted} style={{ marginTop: spacing.xs, textAlign: 'center', lineHeight: 20 }}>
+                            {isInstructor
+                                ? 'You\'ll be notified when a student submits a question.'
+                                : 'Ask anything about this lesson — attach images if needed. We\'ll get back to you as soon as possible!'}
                         </MerakiText>
                     </View>
                 ) : (
@@ -633,7 +642,7 @@ export function LessonQAChat({ lessonId, courseId, instructorId, isInstructor }:
 
                     <TextInput
                         style={styles.textInput}
-                        placeholder={isInstructor ? "Reply to students..." : "Ask a question..."}
+                        placeholder={isInstructor ? "Write your answer..." : "Type your question here..."}
                         placeholderTextColor={colors.textMuted}
                         value={messageText}
                         onChangeText={setMessageText}
@@ -722,18 +731,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(0, 0, 0, 0.05)',
     },
-    liveIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginLeft: spacing.sm,
-        gap: 4,
-    },
-    liveDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: colors.success,
-    },
+
 
     // Pinned
     pinnedSection: {

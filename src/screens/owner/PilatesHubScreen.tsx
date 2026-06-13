@@ -6,6 +6,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Alert,
 } from 'react-native';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -89,6 +90,33 @@ export function PilatesHubScreen() {
         } finally {
             setCreating(false);
         }
+    };
+
+    const deleteStudio = (id: string, name: string) => {
+        Alert.alert(
+            "Delete Studio",
+            `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+            [
+                { text: "Cancel", style: "cancel" },
+                { 
+                    text: "Delete", 
+                    style: "destructive",
+                    onPress: async () => {
+                        setLoading(true);
+                        try {
+                            const { error } = await supabase.from('services').delete().eq('id', id);
+                            if (error) throw error;
+                            setStudios(prev => prev.filter(s => s.id !== id));
+                            showAlert('Success', 'Studio deleted successfully', 'success');
+                        } catch (error: any) {
+                            showAlert('Error', error.message || 'Failed to delete studio', 'error');
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     if (!isOwner) {
@@ -198,7 +226,12 @@ export function PilatesHubScreen() {
                                             {studio.duration_minutes} min · €{Number(studio.base_price).toFixed(2)} · Manage timetable
                                         </Text>
                                     </View>
-                                    <MaterialIcons name="chevron-right" size={22} color={colors.textSecondary} />
+                                    <TouchableOpacity
+                                        onPress={() => deleteStudio(studio.id, studio.name)}
+                                        style={styles.deleteButton}
+                                    >
+                                        <MaterialIcons name="delete-outline" size={22} color="#EF4444" />
+                                    </TouchableOpacity>
                                 </TouchableOpacity>
                             ))}
 
@@ -358,6 +391,10 @@ const styles = StyleSheet.create({
     },
     dashedButtonText: { color: '#047857', fontWeight: '700', fontSize: 14 },
     centerMessage: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+    deleteButton: {
+        padding: 8,
+        marginLeft: spacing.sm,
+    },
 });
 
 export default PilatesHubScreen;

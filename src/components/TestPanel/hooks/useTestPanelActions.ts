@@ -241,16 +241,6 @@ export function useTestPanelActions(
 
         return { id: "00000000-0000-0000-0000-000000000000", isFallback: true };
       }
-      if (type === "aftercare") {
-        const { data } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("is_master", true)
-          .limit(1)
-          .maybeSingle();
-        if (data?.id) return { id: data.id, isFallback: false };
-        return { id: "aab4ab46-76d5-4a98-8487-2a6f1b8a2a1b", isFallback: true }; // daxyburn
-      }
       if (type === "consultation_response") {
         let { data } = await supabase
           .from("booking_consultations")
@@ -282,66 +272,46 @@ export function useTestPanelActions(
       | "appointment_reminder"
       | "confirmation_request"
       | "message"
-      | "promotion"
-      | "aftercare"
       | "consultation_response",
   ) => {
     let title = "";
     let body = "";
     let dataPayload: NotificationData = { type };
 
-    if (type === "promotion") {
-      title = "🎉 Special Promotion!";
-      body = "Enjoy 20% off all hair styling products today. Tap to shop!";
-    } else {
-      const targetInfo = await fetchNotificationTargetId(type);
-      const id = targetInfo.id;
-      const isFallback = targetInfo.isFallback;
+    const targetInfo = await fetchNotificationTargetId(type);
+    const id = targetInfo.id;
+    const isFallback = targetInfo.isFallback;
 
-      if (type === "appointment_reminder") {
-        title = "📅 Appointment Reminder";
-        body = `Upcoming booking with Master Daxy tomorrow at 2:00 PM. ${isFallback ? "[Fallback ID]" : ""}`;
-        dataPayload.appointmentId = id;
-      } else if (type === "confirmation_request") {
-        title = "⚠️ Confirmation Required";
-        body = `Please confirm your upcoming appointment to secure your slot. ${isFallback ? "[Fallback ID]" : ""}`;
-        dataPayload.appointmentId = id;
-      } else if (type === "message") {
-        title = "💬 New Message from Daxy";
-        body = `Hey! Just wanted to confirm if we're still on for tomorrow. ${isFallback ? "[Fallback ID]" : ""}`;
-        dataPayload.conversationId = id;
-      } else if (type === "aftercare") {
-        title = "💝 Style Aftercare Tips";
-        body = `Check out customized aftercare tips for your recent treatment. ${isFallback ? "[Fallback ID]" : ""}`;
-        dataPayload.masterId = id;
-      } else if (type === "consultation_response") {
-        title = "✨ Consultation Approved";
-        body = `Your style consultation has been reviewed and approved. Tap to view notes. ${isFallback ? "[Fallback ID]" : ""}`;
-        dataPayload.consultationId = id;
-      }
-
-      if (isFallback) {
-        pushResult({
-          ok: true,
-          label: `Simulated ${type.replace("_", " ")}`,
-          message:
-            "Scheduled (1.5s delay). Note: Fallback ID used. Please run seeders first for working deep links.",
-        });
-      } else {
-        pushResult({
-          ok: true,
-          label: `Simulated ${type.replace("_", " ")}`,
-          message: `Scheduled successfully (1.5s delay) with ID: ${id.substring(0, 8)}...`,
-        });
-      }
+    if (type === "appointment_reminder") {
+      title = "📅 Appointment Reminder";
+      body = `Upcoming booking with Master Daxy tomorrow at 2:00 PM. ${isFallback ? "[Fallback ID]" : ""}`;
+      dataPayload.appointmentId = id;
+    } else if (type === "confirmation_request") {
+      title = "⚠️ Confirmation Required";
+      body = `Please confirm your upcoming appointment to secure your slot. ${isFallback ? "[Fallback ID]" : ""}`;
+      dataPayload.appointmentId = id;
+    } else if (type === "message") {
+      title = "💬 New Message from Daxy";
+      body = `Hey! Just wanted to confirm if we're still on for tomorrow. ${isFallback ? "[Fallback ID]" : ""}`;
+      dataPayload.conversationId = id;
+    } else if (type === "consultation_response") {
+      title = "✨ Consultation Approved";
+      body = `Your style consultation has been reviewed and approved. Tap to view notes. ${isFallback ? "[Fallback ID]" : ""}`;
+      dataPayload.consultationId = id;
     }
 
-    if (type === "promotion") {
+    if (isFallback) {
       pushResult({
         ok: true,
-        label: "Simulated promotion",
+        label: `Simulated ${type.replace("_", " ")}`,
         message:
-          "Scheduled successfully (1.5s delay). Will redirect to Shop tab.",
+          "Scheduled (1.5s delay). Note: Fallback ID used. Please run seeders first for working deep links.",
+      });
+    } else {
+      pushResult({
+        ok: true,
+        label: `Simulated ${type.replace("_", " ")}`,
+        message: `Scheduled successfully (1.5s delay) with ID: ${id.substring(0, 8)}...`,
       });
     }
 

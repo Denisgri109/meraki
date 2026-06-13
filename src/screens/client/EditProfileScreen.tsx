@@ -62,6 +62,7 @@ import {
     normalizePhone,
     parsePhoneNumber,
     SUPPORTED_COUNTRIES,
+    validateFullName,
 } from '../../utils/validation';
 
 type ProfileStackParamList = {
@@ -76,7 +77,7 @@ type ProfileStackParamList = {
     MenuMain: undefined;
 };
 
-export function ProfileScreen() {
+export function EditProfileScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
     const { profile, signOut, refreshProfile } = useAuth();
     const { showAlert } = useModal();
@@ -411,6 +412,13 @@ export function ProfileScreen() {
     };
 
     const handleSaveProfile = async () => {
+        // Validate name
+        const nameVal = validateFullName(editName);
+        if (!nameVal.valid) {
+            showAlert('Invalid Name', nameVal.error || 'Please enter a valid full name.', 'error');
+            return;
+        }
+
         // Validate phone
         if (editPhone.trim()) {
             const phoneValidation = validatePhone(editPhone, phoneCountryCode);
@@ -444,7 +452,7 @@ export function ProfileScreen() {
             if (error) throw error;
 
             await refreshProfile?.();
-            setEditModalVisible(false);
+            
             showAlert('Success', 'Profile updated successfully', 'success');
         } catch (error: any) {
             showAlert('Error', error.message || 'Failed to save profile', 'error');
@@ -964,154 +972,46 @@ export function ProfileScreen() {
         </Modal>
     );
 
-    return (
+        return (
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-                <ScrollView
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                >
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity
-                            onPress={() => {
-                                if (navigation.canGoBack()) {
-                                    navigation.goBack();
-                                } else {
-                                    // Fallback if we somehow end up here without history
-                                    // For Client, it might be HomeMain or MenuMain depending on where we are
-                                    // Safest is to just go to MenuMain if we are in Menu stack, or HomeMain if in Home stack?
-                                    // Or just let the user use the bottom tabs.
-                                    // But to be safe vs "not handled" crash:
-                                    if (profile?.role === 'client') {
-                                        navigation.navigate('Menu');
-                                    } else {
-                                        navigation.navigate('MenuMain');
-                                    }
-                                }
-                            }}
-                            style={styles.backButton}
-                        >
-                            <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
-                        </TouchableOpacity>
-                        <MerakiText variant="h1" style={styles.title}>Profile</MerakiText>
-                        <View style={{ width: 40 }} />
-                    </View>
-
-                    {/* Avatar */}
-                    <View style={styles.avatarSection}>
-                        <TouchableOpacity onPress={handleChangePhoto} disabled={uploadingPhoto} activeOpacity={0.8}>
-                            <View style={styles.avatarGlow}>
-                                <View style={styles.avatarOuterBorder}>
-                                    {profile?.avatar_url ? (
-                                        <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
-                                    ) : (
-                                        <View style={styles.avatarPlaceholder}>
-                                            <MerakiText variant="h1" style={styles.avatarText}>
-                                                {profile?.full_name?.[0]?.toUpperCase() || 'U'}
-                                            </MerakiText>
-                                        </View>
-                                    )}
-                                </View>
-                                <View style={styles.cameraIcon}>
-                                    <MaterialIcons
-                                        name={uploadingPhoto ? "hourglass-empty" : "camera-alt"}
-                                        size={16}
-                                        color={colors.text}
-                                    />
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                        <MerakiText variant="h2" style={styles.name}>{profile?.full_name || 'User'}</MerakiText>
-                        <MerakiText style={styles.email}>{profile?.email}</MerakiText>
-                        {profile?.phone && (
-                            <View style={styles.infoRow}>
-                                <MaterialIcons name="phone" size={14} color={colors.textSecondary} />
-                                <MerakiText style={styles.phone}>{profile.phone}</MerakiText>
-                            </View>
-                        )}
-                        {(profile?.city || profile?.country) && (
-                            <View style={styles.infoRow}>
-                                <MaterialIcons name="location-on" size={14} color={colors.primary} />
-                                <MerakiText style={styles.location}>
-                                    {[profile?.city, profile?.country].filter(Boolean).join(', ')}
-                                </MerakiText>
-                            </View>
-                        )}
-                    </View>
-
-                    {/* Menu Items */}
-                    <View style={styles.menu}>
-                        {menuItems.map((item, index) => (
-                            <TouchableOpacity key={index} onPress={item.action} activeOpacity={0.7}>
-                                <Card style={styles.menuItem} variant="glass">
-                                    <View style={styles.menuIconContainer}>
-                                        <MaterialIcons name={item.icon as any} size={22} color={colors.primary} />
-                                    </View>
-                                    <MerakiText variant="h4" style={styles.menuText}>{item.label}</MerakiText>
-                                    <MaterialIcons name="chevron-right" size={24} color={colors.textMuted} />
-                                </Card>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    {/* Sign Out */}
-                    <TouchableOpacity style={styles.signOutButton} onPress={signOut} activeOpacity={0.7}>
-                        <MerakiText style={styles.signOutText}>Sign Out</MerakiText>
+                <View style={styles.modalHeader}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.modalCloseBtn}>
+                        <MaterialIcons name="arrow-back" size={24} color={colors.text} />
                     </TouchableOpacity>
+                    <MerakiText variant="h2" style={styles.modalTitle}>Edit Profile</MerakiText>
+                    <View style={{ width: 44 }} />
+                </View>
+
+                {renderSectionTabs()}
+
+                <ScrollView style={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
+                    {activeSection === 'personal' && renderPersonalSection()}
+                    {activeSection === 'location' && renderLocationSection()}
+                    {activeSection === 'professional' && renderProfessionalSection()}
+                    {activeSection === 'preferences' && renderPreferencesSection()}
 
                     {/* Danger Zone — Delete Account */}
-                    <TouchableOpacity
-                        style={emailStyles.dangerButton}
-                        onPress={handleOpenDeleteModal}
-                        activeOpacity={0.8}
-                    >
-                        <MaterialIcons name="warning" size={16} color={colors.error} />
-                        <MerakiText style={emailStyles.dangerButtonText}>Delete Account</MerakiText>
-                    </TouchableOpacity>
-
-                    {/* App Version */}
-                    <MerakiText style={styles.version}>Merakí v0.1.0-Luxe</MerakiText>
-                </ScrollView>
-
-                {/* Edit Profile Modal */}
-                <Modal
-                    visible={editModalVisible}
-                    animationType="slide"
-                    onRequestClose={() => setEditModalVisible(false)}
-                >
-                    <View style={styles.modalContainer}>
-                        <ScreenBackground>
-                            <View style={styles.modalHeader}>
-                                <TouchableOpacity onPress={() => setEditModalVisible(false)} style={styles.modalCloseBtn}>
-                                    <MaterialIcons name="close" size={24} color={colors.text} />
-                                </TouchableOpacity>
-                                <MerakiText variant="h2" style={styles.modalTitle}>Edit Profile</MerakiText>
-                                <View style={{ width: 44 }} />
-                            </View>
-
-                            {renderSectionTabs()}
-
-                            <ScrollView style={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
-                                {activeSection === 'personal' && renderPersonalSection()}
-                                {activeSection === 'location' && renderLocationSection()}
-                                {activeSection === 'professional' && renderProfessionalSection()}
-                                {activeSection === 'preferences' && renderPreferencesSection()}
-
-                                <View style={styles.saveButtonContainer}>
-                                    <Button
-                                        title={saving ? 'Saving...' : 'Save Changes'}
-                                        onPress={handleSaveProfile}
-                                        loading={saving}
-                                        fullWidth
-                                    />
-                                </View>
-                            </ScrollView>
-                        </ScreenBackground>
+                    <View style={{ marginTop: spacing.xl }}>
+                        <TouchableOpacity
+                            style={emailStyles.dangerButton}
+                            onPress={handleOpenDeleteModal}
+                            activeOpacity={0.8}
+                        >
+                            <MaterialIcons name="warning" size={16} color={colors.error} />
+                            <MerakiText style={emailStyles.dangerButtonText}>Delete Account</MerakiText>
+                        </TouchableOpacity>
                     </View>
-                </Modal>
 
+                    <View style={styles.saveButtonContainer}>
+                        <Button
+                            title={saving ? 'Saving...' : 'Save Changes'}
+                            onPress={handleSaveProfile}
+                            loading={saving}
+                            fullWidth
+                        />
+                    </View>
+                </ScrollView>
                 {/* Dropdown Modals */}
                 <SearchablePicker
                     visible={countryModalVisible}
@@ -1565,6 +1465,7 @@ export function ProfileScreen() {
                         </View>
                     </View>
                 </Modal>
+            
             </SafeAreaView>
         </ScreenBackground>
     );
@@ -2110,4 +2011,4 @@ const emailStyles = StyleSheet.create({
     },
 });
 
-export default ProfileScreen;
+export default EditProfileScreen;

@@ -75,7 +75,7 @@ interface SeedAction {
 }
 
 interface NotificationScenario {
-    id: 'appointment_reminder' | 'confirmation_request' | 'message' | 'promotion' | 'aftercare' | 'consultation_response';
+    id: 'appointment_reminder' | 'confirmation_request' | 'message' | 'consultation_response';
     label: string;
     description: string;
     icon: keyof typeof MaterialIcons.glyphMap;
@@ -101,22 +101,10 @@ const NOTIFICATION_SCENARIOS: NotificationScenario[] = [
         icon: 'chat',
     },
     {
-        id: 'aftercare',
-        label: 'Aftercare Campaign',
-        description: 'Simulates an aftercare alert. Deep links to Master details page.',
-        icon: 'favorite',
-    },
-    {
         id: 'consultation_response',
         label: 'Consultation Response',
         description: 'Simulates a style consultation update. Deep links to Bookings tab.',
         icon: 'rate-review',
-    },
-    {
-        id: 'promotion',
-        label: 'Promotional Offer',
-        description: 'Simulates a marketing/promotion notification. Deep links to Shop.',
-        icon: 'local-offer',
     },
 ];
 
@@ -400,17 +388,6 @@ export function TestPanel() {
 
                 return { id: '00000000-0000-0000-0000-000000000000', isFallback: true };
             }
-            if (type === 'aftercare') {
-                // Check any master profile
-                const { data } = await supabase
-                    .from('profiles')
-                    .select('id')
-                    .eq('is_master', true)
-                    .limit(1)
-                    .maybeSingle();
-                if (data?.id) return { id: data.id, isFallback: false };
-                return { id: 'aab4ab46-76d5-4a98-8487-2a6f1b8a2a1b', isFallback: true }; // daxyburn
-            }
             if (type === 'consultation_response') {
                 // Check user's booking consultations
                 let { data } = await supabase
@@ -439,18 +416,14 @@ export function TestPanel() {
         return { id: '00000000-0000-0000-0000-000000000000', isFallback: true };
     };
 
-    const simulateNotification = async (type: 'appointment_reminder' | 'confirmation_request' | 'message' | 'promotion' | 'aftercare' | 'consultation_response') => {
+    const simulateNotification = async (type: 'appointment_reminder' | 'confirmation_request' | 'message' | 'consultation_response') => {
         let title = '';
         let body = '';
         let dataPayload: NotificationData = { type };
 
-        if (type === 'promotion') {
-            title = '🎉 Special Promotion!';
-            body = 'Enjoy 20% off all hair styling products today. Tap to shop!';
-        } else {
-            const targetInfo = await fetchNotificationTargetId(type);
-            const id = targetInfo.id;
-            const isFallback = targetInfo.isFallback;
+        const targetInfo = await fetchNotificationTargetId(type);
+        const id = targetInfo.id;
+        const isFallback = targetInfo.isFallback;
 
             if (type === 'appointment_reminder') {
                 title = '📅 Appointment Reminder';
@@ -464,10 +437,6 @@ export function TestPanel() {
                 title = '💬 New Message from Daxy';
                 body = `Hey! Just wanted to confirm if we're still on for tomorrow. ${isFallback ? '[Fallback ID]' : ''}`;
                 dataPayload.conversationId = id;
-            } else if (type === 'aftercare') {
-                title = '💝 Style Aftercare Tips';
-                body = `Check out customized aftercare tips for your recent treatment. ${isFallback ? '[Fallback ID]' : ''}`;
-                dataPayload.masterId = id;
             } else if (type === 'consultation_response') {
                 title = '✨ Consultation Approved';
                 body = `Your style consultation has been reviewed and approved. Tap to view notes. ${isFallback ? '[Fallback ID]' : ''}`;
@@ -487,16 +456,6 @@ export function TestPanel() {
                     message: `Scheduled successfully (1.5s delay) with ID: ${id.substring(0, 8)}...`,
                 });
             }
-        }
-
-        if (type === 'promotion') {
-            pushResult({
-                ok: true,
-                label: 'Simulated promotion',
-                message: 'Scheduled successfully (1.5s delay). Will redirect to Shop tab.',
-            });
-        }
-
         try {
             await scheduleLocalNotification(title, body, dataPayload, 1.5);
         } catch (err: any) {

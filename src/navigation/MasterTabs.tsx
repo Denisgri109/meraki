@@ -16,10 +16,8 @@ import {
     MyServicesScreen,
     BlockedSlotsScreen,
     CreateServiceScreen,
-    MasterSettingsScreen,
     BusinessSettingsScreen,
     LoyaltyCardBuilderScreen,
-    AftercareCampaignScreen,
     SuppliesScreen,
     AddSupplyScreen,
     ServiceSuppliesScreen,
@@ -28,11 +26,10 @@ import {
 } from '../screens/master';
 import PhotoConsultationReviewScreen from '../screens/master/PhotoConsultationReviewScreen';
 import {
-    ProfileScreen,
+    EditProfileScreen,
     HelpSupportScreen,
     TermsOfServiceScreen,
     PrivacyPolicyScreen,
-    LoyaltyPointsScreen,
     PaymentMethodsScreen,
     NotificationsScreen,
 } from '../screens/client';
@@ -51,14 +48,14 @@ export type DashboardStackParamList = {
     BlockedSlots: undefined;
     CreateService: { service?: any } | undefined;
     Availability: undefined;
-    Settings: undefined;
+
     BusinessSettings: undefined;
     LoyaltyCardBuilder: undefined;
-    AftercareCampaigns: undefined;
     PhotoConsultations: undefined;
     BookingConsultations: undefined;
     ServiceSupplies: { serviceId?: string } | undefined;
     Notifications: undefined;
+    Earnings: undefined;
 };
 
 const DashboardStack = createNativeStackNavigator<DashboardStackParamList>();
@@ -75,14 +72,14 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="BlockedSlots" component={BlockedSlotsScreen} />
             <DashboardStack.Screen name="CreateService" component={CreateServiceScreen} />
             <DashboardStack.Screen name="Availability" component={MasterAvailabilityScreen} />
-            <DashboardStack.Screen name="Settings" component={MasterSettingsScreen} />
+
             <DashboardStack.Screen name="BusinessSettings" component={BusinessSettingsScreen} />
             <DashboardStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
-            <DashboardStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />
             <DashboardStack.Screen name="PhotoConsultations" component={PhotoConsultationReviewScreen} />
             <DashboardStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
             <DashboardStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
             <DashboardStack.Screen name="Notifications" component={NotificationsScreen} />
+            <DashboardStack.Screen name="Earnings" component={MasterEarningsScreen} />
         </DashboardStack.Navigator>
     );
 }
@@ -118,9 +115,8 @@ export type MenuStackParamList = {
     Earnings: undefined;
     Notifications: undefined;
     BusinessSettings: undefined;
-    Settings: undefined;
+
     LoyaltyCardBuilder: undefined;
-    AftercareCampaigns: undefined;
     BlockedSlots: undefined;
     PhotoConsultations: undefined;
     BookingConsultations: undefined;
@@ -139,16 +135,15 @@ function MenuStackNavigator() {
     return (
         <MenuStack.Navigator screenOptions={{ headerShown: false }}>
             <MenuStack.Screen name="MenuMain" component={MasterMenuScreen} />
-            <MenuStack.Screen name="Profile" component={ProfileScreen} />
+            <MenuStack.Screen name="Profile" component={EditProfileScreen} />
             <MenuStack.Screen name="Portfolio" component={PortfolioScreen} />
             <MenuStack.Screen name="MyServices" component={MyServicesScreen} />
             <MenuStack.Screen name="Availability" component={MasterAvailabilityScreen} />
             <MenuStack.Screen name="Earnings" component={MasterEarningsScreen} />
             <MenuStack.Screen name="Notifications" component={NotificationsScreen} />
             <MenuStack.Screen name="BusinessSettings" component={BusinessSettingsScreen} />
-            <MenuStack.Screen name="Settings" component={MasterSettingsScreen} />
+
             <MenuStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
-            <MenuStack.Screen name="AftercareCampaigns" component={AftercareCampaignScreen} />
             <MenuStack.Screen name="BlockedSlots" component={BlockedSlotsScreen} />
             <MenuStack.Screen name="PhotoConsultations" component={PhotoConsultationReviewScreen} />
             <MenuStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />

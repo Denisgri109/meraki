@@ -20,7 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import { Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing, layout, gradients } from '../../theme';
-import { getDeviceTimezone } from '../../utils/timezone';
+import { getDeviceTimezone, formatCurrency } from '../../utils/timezone';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
@@ -178,11 +178,12 @@ export function OwnerDashboardScreen() {
             const todayEnd = endOfDay(new Date()).toISOString();
 
             // Create promises for parallel execution
-            const servicesCountPromise = supabase.from('services').select('*', { count: 'exact', head: true }).eq('created_by', user.id);
-            const activeServicesCountPromise = supabase.from('services').select('*', { count: 'exact', head: true }).eq('created_by', user.id).eq('is_active', true);
-            const todayPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).gte('start_time', todayStart).lt('start_time', todayEnd).in('status', ['confirmed', 'pending', 'completed']).order('start_time');
-            const allAppointmentsPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).eq('status', 'confirmed').gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(5);
-            const pendingCountPromise = supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('master_id', user.id).eq('status', 'pending');
+            const servicesCountPromise = supabase.from('services').select('*', { count: 'exact', head: true });
+            const activeServicesCountPromise = supabase.from('services').select('*', { count: 'exact', head: true }).eq('is_active', true);
+            const todayPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).gte('start_time', todayStart).lt('start_time', todayEnd).in('status', ['confirmed', 'pending', 'completed']).order('start_time');
+            const allAppointmentsPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('status', 'confirmed').gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(5);
+            const pendingCountPromise = supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+            const todayPaymentsPromise = supabase.from('payments').select('amount').gte('created_at', todayStart).lt('created_at', todayEnd).eq('status', 'succeeded');
             const conversationsPromise = safeSupabaseFetch(supabase.from('conversations').select('id').or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`) as any);
             const lastViewedPromise = AsyncStorage.getItem('last_consultations_view');
 
@@ -194,7 +195,8 @@ export function OwnerDashboardScreen() {
                 { data: allAppointmentsData },
                 { count: pendingCount },
                 { data: conversations },
-                lastViewed
+                lastViewed,
+                { data: todayPaymentsData }
             ] = await Promise.all([
                 servicesCountPromise,
                 activeServicesCountPromise,
@@ -202,7 +204,8 @@ export function OwnerDashboardScreen() {
                 safeSupabaseFetch(allAppointmentsPromise as any),
                 pendingCountPromise,
                 conversationsPromise,
-                lastViewedPromise
+                lastViewedPromise,
+                safeSupabaseFetch(todayPaymentsPromise as any)
             ]);
 
             // Today's unique clients
@@ -248,13 +251,12 @@ export function OwnerDashboardScreen() {
                 }
             }
 
-            const todayEarnings = ((todayData as any[]) || []).filter(apt => ['completed', 'confirmed'].includes(apt.status)).reduce((sum, apt) => sum + (apt.price || 0), 0);
+            const todayEarnings = ((todayPaymentsData as any[]) || []).reduce((sum, p) => sum + ((p.amount || 0) / 100), 0);
 
             // Fetch pending consultations count
             let consultationsQuery = supabase
                 .from('booking_consultations')
                 .select('*', { count: 'exact', head: true })
-                .eq('master_id', user.id)
                 .eq('status', 'pending');
 
             if (lastViewed) {
@@ -375,7 +377,7 @@ export function OwnerDashboardScreen() {
                                     <MaterialCommunityIcons name="cash-multiple" size={18} color={colors.accent} />
                                 </View>
                             </View>
-                            <MerakiText style={styles.heroValue}>€{stats.todayEarnings}</MerakiText>
+                            <MerakiText style={styles.heroValue}>{formatCurrency(stats.todayEarnings, profile?.currency || undefined)}</MerakiText>
                             <MerakiText style={styles.heroLabel}>Revenue Today</MerakiText>
                         </LinearGradient>
                         <View style={styles.heroSecondaryCol}>
@@ -489,6 +491,7 @@ export function OwnerDashboardScreen() {
                             <DashboardButton icon="account-group" label="Masters" onPress={() => navigation.navigate('MasterManagement')} color="#EE2B5B" />
                             <DashboardButton icon="chat-question" label="Consultations" onPress={() => navigation.navigate('BookingConsultations')} color="#8B5CF6" badgeCount={stats.pendingConsultations} />
                             <DashboardButton icon="card-account-details-star" label="Portfolio" onPress={() => navigation.navigate('Portfolio')} color="#34D399" />
+                            <DashboardButton icon="yoga" label="Pilates" onPress={() => navigation.navigate('PilatesHub')} color="#38BDF8" />
                             <DashboardButton icon="room-service" label="Services" onPress={() => navigation.navigate('MyServices')} color="#60A5FA" />
                             <DashboardButton icon="clock-check" label="Availability" onPress={() => navigation.navigate('Availability')} color="#F472B6" />
                             <DashboardButton icon="ticket-confirmation" label="Loyalty" onPress={() => navigation.navigate('LoyaltyCardBuilder')} color="#FBBF24" />
@@ -509,7 +512,6 @@ export function OwnerDashboardScreen() {
                     <View style={styles.section}>
                         <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>MARKETING & LOYALTY</MerakiText>
                         <View style={styles.buttonGrid}>
-                            <DashboardButton icon="bullhorn" label="Campaigns" onPress={() => navigation.navigate('AftercareCampaigns')} color="#F472B6" />
                             <DashboardButton icon="card-bulleted" label="Loyalty" onPress={() => navigation.navigate('LoyaltyCardBuilder')} color="#FBBF24" />
                         </View>
                     </View>

@@ -197,7 +197,14 @@ Deno.serve(async (req: Request) => {
                     refundParams.amount = refundAmountCents.toString();
                 }
 
-                const refundResult = await stripeRequest("/refunds", "POST", refundParams);
+                let refundResult = await stripeRequest("/refunds", "POST", refundParams);
+
+                // If it fails because there is no transfer (e.g. direct charge), retry without reverse_transfer
+                if (refundResult.error && refundResult.error.message?.includes("does not have an associated transfer")) {
+                    console.log("Retrying refund without reverse_transfer...");
+                    delete refundParams.reverse_transfer;
+                    refundResult = await stripeRequest("/refunds", "POST", refundParams);
+                }
 
                 if (refundResult.error) {
                     return new Response(

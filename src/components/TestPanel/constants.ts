@@ -68,25 +68,11 @@ export const NOTIFICATION_SCENARIOS: NotificationScenario[] = [
     icon: "chat",
   },
   {
-    id: "aftercare",
-    label: "Aftercare Campaign",
-    description:
-      "Simulates an aftercare alert. Deep links to Master details page.",
-    icon: "favorite",
-  },
-  {
     id: "consultation_response",
     label: "Consultation Response",
     description:
       "Simulates a style consultation update. Deep links to Bookings tab.",
     icon: "rate-review",
-  },
-  {
-    id: "promotion",
-    label: "Promotional Offer",
-    description:
-      "Simulates a marketing/promotion notification. Deep links to Shop.",
-    icon: "local-offer",
   },
 ];
 

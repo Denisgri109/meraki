@@ -54,9 +54,7 @@ export function NotificationsScreen() {
         pushEnabled: true,
         bookingReminders: true,
         bookingUpdates: true,
-        aftercare: true,
         messages: true,
-        promotions: true,
         consultations: true,
         academy: true,
         stockAlerts: true,
@@ -72,9 +70,7 @@ export function NotificationsScreen() {
                 pushEnabled: prefs.push_enabled ?? true,
                 bookingReminders: prefs.booking_reminders ?? true,
                 bookingUpdates: prefs.booking_updates ?? true,
-                aftercare: prefs.aftercare ?? true,
                 messages: prefs.messages ?? true,
-                promotions: prefs.promotions ?? true,
                 consultations: prefs.consultations ?? true,
                 academy: prefs.academy ?? true,
                 stockAlerts: prefs.stock_alerts ?? true,
@@ -285,8 +281,8 @@ export function NotificationsScreen() {
             try {
                 const dbPrefs = {
                     push_enabled: newSettings.pushEnabled, booking_reminders: newSettings.bookingReminders,
-                    booking_updates: newSettings.bookingUpdates, aftercare: newSettings.aftercare,
-                    messages: newSettings.messages, promotions: newSettings.promotions,
+                    booking_updates: newSettings.bookingUpdates,
+                    messages: newSettings.messages,
                     consultations: newSettings.consultations, academy: newSettings.academy,
                     stock_alerts: newSettings.stockAlerts,
                 };
@@ -367,9 +363,7 @@ export function NotificationsScreen() {
                                 <SettingRow label="Push Notifications" desc="Receive push notifications" value={settings.pushEnabled} onToggle={() => toggleSetting('pushEnabled')} />
                                 <SettingRow label="Booking Reminders" desc="Reminders before appointments" value={settings.bookingReminders} onToggle={() => toggleSetting('bookingReminders')} />
                                 <SettingRow label="Booking Updates" desc="New bookings & cancellations" value={settings.bookingUpdates} onToggle={() => toggleSetting('bookingUpdates')} />
-                                <SettingRow label="Aftercare" desc="Post-appointment care tips" value={settings.aftercare} onToggle={() => toggleSetting('aftercare')} />
                                 <SettingRow label="Messages" desc="New message notifications" value={settings.messages} onToggle={() => toggleSetting('messages')} />
-                                <SettingRow label="Promotions" desc="Special offers and discounts" value={settings.promotions} onToggle={() => toggleSetting('promotions')} />
                                 <SettingRow label="Consultations" desc="Photo consultation updates" value={settings.consultations} onToggle={() => toggleSetting('consultations')} />
                                 <SettingRow label="Academy" desc="Submission & feedback alerts" value={settings.academy} onToggle={() => toggleSetting('academy')} />
                                 {profile?.role === 'owner' && (

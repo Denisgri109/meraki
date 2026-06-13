@@ -15,12 +15,13 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
+import { formatCurrency } from '../../utils/timezone';
 
 type Period = 'week' | 'month' | 'all';
 
 export function MasterEarningsScreen() {
     const navigation = useNavigation<any>();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [earnings, setEarnings] = useState({
         total: 0,
         completed: 0,
@@ -170,7 +171,7 @@ export function MasterEarningsScreen() {
                             Total Earnings
                         </MerakiText>
                         <MerakiText variant="h1" color={colors.accent} style={styles.heroAmount}>
-                            €{earnings.total.toFixed(2)}
+                            {formatCurrency(earnings.total, profile?.currency || undefined)}
                         </MerakiText>
                         <MerakiText variant="caption" color={colors.textMuted}>
                             From {earnings.completed} completed appointments
@@ -205,7 +206,7 @@ export function MasterEarningsScreen() {
                                 </MerakiText>
                             </View>
                             <MerakiText variant="h2" color={colors.accent}>
-                                €{earnings.completed > 0 ? (earnings.total / earnings.completed).toFixed(2) : '0.00'}
+                                {formatCurrency(earnings.completed > 0 ? (earnings.total / earnings.completed) : 0, profile?.currency || undefined)}
                             </MerakiText>
                         </View>
                     </Card>

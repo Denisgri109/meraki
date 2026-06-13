@@ -470,7 +470,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 type: 'success',
                 onConfirm: () => {
                     setModalConfig(prev => ({ ...prev, visible: false }));
-                    (navigation as any).navigate('Home');
+                    (navigation as any).navigate('Appointments', { screen: 'AppointmentList' });
                 },
             });
 

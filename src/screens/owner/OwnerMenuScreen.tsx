@@ -73,13 +73,6 @@ export function OwnerMenuScreen() {
                             >
                                 <MaterialIcons name="notifications-none" size={22} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.headerIconBtn}
-                                onPress={() => handleNavigate('Profile')}
-                                activeOpacity={0.7}
-                            >
-                                <MaterialIcons name="settings" size={22} color="rgba(0, 0, 0, 0.55)" />
-                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -115,8 +108,9 @@ export function OwnerMenuScreen() {
                         {[
                             { icon: 'business-center', label: 'Business Settings', route: 'BusinessSettings' },
                             { icon: 'support-agent', label: 'Support Settings', route: 'SupportSettings' },
-                            { icon: 'tune', label: 'General Settings', route: 'Settings' },
+
                             { icon: 'list-alt', label: 'Service List', route: 'Services' },
+                            { icon: 'self-improvement', label: 'Pilates Hub', route: 'PilatesHub' },
                             { icon: 'photo-library', label: 'Portfolio', route: 'Portfolio' },
                             { icon: 'room-service', label: 'My Services', route: 'MyServices' },
                             { icon: 'block', label: 'Blocked Slots', route: 'BlockedSlots' },
@@ -142,13 +136,12 @@ export function OwnerMenuScreen() {
                     <View style={styles.listGroup}>
                         {[
                             { icon: 'card-giftcard', label: 'Loyalty Cards', route: 'LoyaltyCardBuilder' },
-                            { icon: 'campaign', label: 'Aftercare Campaigns', route: 'AftercareCampaigns' },
                             { icon: 'chat', label: 'Booking Consultations', route: 'BookingConsultations' },
                             { icon: 'qr-code-scanner', label: 'Loyalty QR Scanner', route: 'LoyaltyQR' },
                         ].map((item, index) => (
                             <TouchableOpacity
                                 key={item.label}
-                                style={[styles.listItem, index === 3 && { borderBottomWidth: 0 }]}
+                                style={[styles.listItem, index === 2 && { borderBottomWidth: 0 }]}
                                 onPress={() => handleNavigate(item.route)}
                             >
                                 <View style={styles.listIconWrap}>
@@ -163,16 +156,22 @@ export function OwnerMenuScreen() {
                     {/* ── Account ── */}
                     <MerakiText style={styles.sectionLabel}>ACCOUNT</MerakiText>
                     <View style={styles.listGroup}>
-                        <TouchableOpacity
-                            style={[styles.listItem, { borderBottomWidth: 0 }]}
-                            onPress={() => handleNavigate('PaymentMethods')}
-                        >
-                            <View style={styles.listIconWrap}>
-                                <MaterialIcons name="credit-card" size={20} color="rgba(0, 0, 0, 0.40)" />
-                            </View>
-                            <MerakiText style={styles.listLabel}>Payment Methods</MerakiText>
-                            <MaterialIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.12)" />
-                        </TouchableOpacity>
+                        {[
+                            { icon: 'person', label: 'Edit Profile', route: 'Profile' },
+                            { icon: 'credit-card', label: 'Payment Methods', route: 'PaymentMethods' },
+                        ].map((item, index) => (
+                            <TouchableOpacity
+                                key={item.label}
+                                style={[styles.listItem, index === 1 && { borderBottomWidth: 0 }]}
+                                onPress={() => handleNavigate(item.route)}
+                            >
+                                <View style={styles.listIconWrap}>
+                                    <MaterialIcons name={item.icon as any} size={20} color="rgba(0, 0, 0, 0.40)" />
+                                </View>
+                                <MerakiText style={styles.listLabel}>{item.label}</MerakiText>
+                                <MaterialIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.12)" />
+                            </TouchableOpacity>
+                        ))}
                     </View>
 
                     {/* ── Support ── */}

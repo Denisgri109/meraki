@@ -16,8 +16,6 @@ export interface NotificationScenario {
     | "appointment_reminder"
     | "confirmation_request"
     | "message"
-    | "promotion"
-    | "aftercare"
     | "consultation_response";
   label: string;
   description: string;

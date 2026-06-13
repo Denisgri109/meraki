@@ -27,6 +27,7 @@ import {
     formatCardBrand,
     PaymentMethod,
 } from '../../services/stripeService';
+import { validateFullName, validatePhone, validatePostalCode, parsePhoneNumber } from '../../utils/validation';
 import {
     EUROPEAN_COUNTRIES_SORTED,
     getShippingCost,
@@ -103,14 +104,19 @@ export function CheckoutScreen() {
     };
 
     const validateShippingAddress = (): boolean => {
-        if (!shippingName.trim()) {
-            showAlert('Missing Info', 'Please enter the recipient\'s full name.', 'error');
+        const nameVal = validateFullName(shippingName);
+        if (!nameVal.valid) {
+            showAlert('Invalid Name', nameVal.error || 'Please enter a valid full name.', 'error');
             return false;
         }
-        if (!shippingPhone.trim()) {
-            showAlert('Missing Info', 'Please enter a phone number for delivery updates.', 'error');
+        
+        const parsedPhone = parsePhoneNumber(shippingPhone);
+        const phoneVal = validatePhone(shippingPhone, parsedPhone.countryCode || 'IE'); 
+        if (!phoneVal.valid) {
+            showAlert('Invalid Phone', phoneVal.error || 'Please enter a valid phone number (e.g. +353 ...).', 'error');
             return false;
         }
+
         if (!shippingAddress.trim()) {
             showAlert('Missing Info', 'Please enter the street address.', 'error');
             return false;
@@ -119,10 +125,13 @@ export function CheckoutScreen() {
             showAlert('Missing Info', 'Please enter the city.', 'error');
             return false;
         }
-        if (!shippingPostalCode.trim()) {
-            showAlert('Missing Info', 'Please enter the postal code.', 'error');
+
+        const postalVal = validatePostalCode(shippingPostalCode);
+        if (!postalVal.valid) {
+            showAlert('Invalid Postal Code', postalVal.error || 'Please enter a valid postal code.', 'error');
             return false;
         }
+        
         return true;
     };
 
@@ -266,9 +275,13 @@ export function CheckoutScreen() {
             showAlert(
                 '🎉 Order Placed!',
                 `Your order #${orderId.slice(0, 8).toUpperCase()} has been confirmed.\n\nSubtotal: €${subtotal.toFixed(2)}\nShipping: €${shippingCost.toFixed(2)}\nTotal: €${finalTotal.toFixed(2)}\n\nShipping to: ${shippingCity}, ${getCountryName(shippingCountry)}`,
-                'success'
+                'success',
+                {
+                    onConfirm: () => {
+                        navigation.navigate('Menu', { screen: 'Orders' });
+                    }
+                }
             );
-            navigation.navigate('Home');
 
         } catch (error: any) {
             showAlert('Order Failed', error.message, 'error');

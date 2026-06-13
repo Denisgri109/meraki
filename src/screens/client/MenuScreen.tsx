@@ -81,13 +81,6 @@ export function MenuScreen() {
                             >
                                 <MaterialIcons name="notifications-none" size={22} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.headerIconBtn}
-                                onPress={() => handleNavigate('Profile')}
-                                activeOpacity={0.7}
-                            >
-                                <MaterialIcons name="settings" size={22} color="rgba(0, 0, 0, 0.55)" />
-                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -116,6 +109,26 @@ export function MenuScreen() {
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
+
+                    {/* ── Account ── */}
+                    <MerakiText style={styles.sectionLabel}>ACCOUNT</MerakiText>
+                    <View style={styles.listGroup}>
+                        {([
+                            { icon: 'person', label: 'Edit Profile', route: 'Profile' },
+                        ] as const).map((item, index) => (
+                            <TouchableOpacity
+                                key={item.label}
+                                style={[styles.listItem, index === 0 && { borderBottomWidth: 0 }]}
+                                onPress={() => handleNavigate(item.route as keyof MenuStackParamList)}
+                            >
+                                <View style={styles.listIconWrap}>
+                                    <MaterialIcons name={item.icon as any} size={20} color="rgba(0, 0, 0, 0.40)" />
+                                </View>
+                                <MerakiText style={styles.listLabel}>{item.label}</MerakiText>
+                                <MaterialIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.12)" />
+                            </TouchableOpacity>
+                        ))}
+                    </View>
 
                     {/* ── Support ── */}
                     <MerakiText style={styles.sectionLabel}>SUPPORT</MerakiText>

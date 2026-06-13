@@ -33,14 +33,18 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const showAlert = useCallback((title: string, message?: string, type: MerakiModalProps['type'] = 'info', options: Partial<ModalOptions> = {}) => {
+        const { onConfirm: customOnConfirm, ...restOptions } = options;
         setModalProps({
             title,
             message,
             type,
             hideCancel: true,
             confirmText: 'OK',
-            onConfirm: hideModal,
-            ...options
+            onConfirm: () => {
+                if (customOnConfirm) customOnConfirm();
+                hideModal();
+            },
+            ...restOptions
         });
         setVisible(true);
     }, [hideModal]);
@@ -51,16 +55,18 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         onConfirm: () => void,
         options: Partial<ModalOptions> = {}
     ) => {
+        const { onConfirm: customOnConfirm, ...restOptions } = options;
         setModalProps({
             title,
             message,
             confirmText: 'Confirm',
             cancelText: 'Cancel',
             onConfirm: () => {
-                onConfirm();
+                if (customOnConfirm) customOnConfirm();
+                else onConfirm();
                 hideModal();
             },
-            ...options,
+            ...restOptions,
         });
         setVisible(true);
     }, [hideModal]);

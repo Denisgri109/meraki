@@ -16,7 +16,7 @@ Notifications.setNotificationHandler({
 });
 
 export interface NotificationData {
-    type: 'appointment_reminder' | 'confirmation_request' | 'message' | 'promotion' | 'aftercare' | 'consultation_response';
+    type: 'appointment_reminder' | 'confirmation_request' | 'message' | 'consultation_response';
     appointmentId?: string;
     appointment_id?: string;
     conversationId?: string;
@@ -105,11 +105,6 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
             sound: 'default',
         });
 
-        await Notifications.setNotificationChannelAsync('promotions', {
-            name: 'Promotions',
-            description: 'Special offers and promotions',
-            importance: Notifications.AndroidImportance.DEFAULT,
-        });
     }
 
     return token;

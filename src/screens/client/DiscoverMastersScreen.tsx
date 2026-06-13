@@ -18,7 +18,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { colors, spacing, gradients } from '../../theme';
-import { isMasterWithinRange } from '../../utils/distance';
+import { isMasterWithinRange, haversineDistanceKm } from '../../utils/distance';
 
 type Master = {
     id: string;
@@ -33,6 +33,7 @@ type Master = {
     rating: number | null;
     is_visible_globally: boolean;
     accepts_new_clients: boolean;
+    distance?: number;
 };
 
 export function DiscoverMastersScreen() {
@@ -66,36 +67,8 @@ export function DiscoverMastersScreen() {
     const searchRadiusKm: number = (profile as any)?.search_radius_km ?? 100;
 
     useEffect(() => {
-        const init = async () => {
-            await detectUserLocation();
-        };
-        init();
+        loadMasters();
     }, []);
-
-    const detectUserLocation = async () => {
-        try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status === 'granted') {
-                const location = await Location.getCurrentPositionAsync({
-                    accuracy: Location.Accuracy.Balanced,
-                });
-                const [address] = await Location.reverseGeocodeAsync({
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
-                });
-                if (address?.city) {
-                    setUserCity(address.city);
-                }
-                if (address?.country) {
-                    setUserCountry(address.country);
-                }
-            }
-        } catch (error) {
-            console.log('Location detection failed:', error);
-        } finally {
-            loadMasters();
-        }
-    };
 
     const loadMasters = async () => {
         try {
@@ -163,7 +136,7 @@ export function DiscoverMastersScreen() {
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        detectUserLocation();
+        loadMasters();
     }, []);
 
     const userLoc = {
@@ -174,10 +147,25 @@ export function DiscoverMastersScreen() {
         longitude: userLng,
     };
 
-    const filteredMasters = masters.filter((master) => {
-        // 1. Country + State/Region + Distance Filter
+    const mastersWithDistance = masters.map((master) => {
+        let distance = Infinity;
+        if (userLat != null && userLng != null && master.latitude != null && master.longitude != null) {
+            distance = haversineDistanceKm(userLat, userLng, master.latitude, master.longitude);
+        }
+        return { ...master, distance };
+    });
+
+    const filteredMasters = mastersWithDistance.filter((master) => {
+        // 1. Country + Distance Filter (ignore state shortcut)
         if (!userCountry) return false;
-        if (!isMasterWithinRange(userLoc, master as any, searchRadiusKm)) return false;
+        if (master.country?.toLowerCase() !== userCountry.toLowerCase()) return false;
+        
+        if (searchRadiusKm > 0 && master.distance !== Infinity) {
+            if (master.distance > searchRadiusKm) return false;
+        } else if (searchRadiusKm > 0 && master.distance === Infinity) {
+            // Fallback to old range check if coordinates are missing
+            if (!isMasterWithinRange(userLoc, master as any, searchRadiusKm)) return false;
+        }
 
         // 2. Search Query Filter
         let passesSearch = true;
@@ -205,14 +193,13 @@ export function DiscoverMastersScreen() {
         return passesSearch && passesTag;
     });
 
-    // Sort: masters in user's city first
+    // Sort: nearest masters first
     const sortedMasters = [...filteredMasters].sort((a, b) => {
-        if (userCity) {
-            const aInCity = a.city?.toLowerCase() === userCity.toLowerCase();
-            const bInCity = b.city?.toLowerCase() === userCity.toLowerCase();
-            if (aInCity && !bInCity) return -1;
-            if (!aInCity && bInCity) return 1;
+        if (a.distance !== Infinity && b.distance !== Infinity) {
+            return a.distance - b.distance;
         }
+        if (a.distance !== Infinity) return -1;
+        if (b.distance !== Infinity) return 1;
         return (a.full_name || '').localeCompare(b.full_name || '');
     });
 
@@ -244,10 +231,12 @@ export function DiscoverMastersScreen() {
                         <MerakiText style={styles.headerTitle}>Discover Masters</MerakiText>
                         <View style={{ width: 40 }} />
                     </View>
-                    {userCity && (
+                    {userCountry && (
                         <View style={styles.locationBadge}>
-                            <MaterialIcons name="location-on" size={14} color={colors.primary} />
-                            <MerakiText style={styles.subtitle}>Showing results for {userCity}</MerakiText>
+                            <MaterialIcons name="my-location" size={14} color={colors.primary} />
+                            <MerakiText style={styles.subtitle}>
+                                Showing masters within {searchRadiusKm === 0 ? 'your country' : `${searchRadiusKm}km`}
+                            </MerakiText>
                         </View>
                     )}
                 </View>
@@ -351,15 +340,17 @@ export function DiscoverMastersScreen() {
                                                     ]}>
                                                         {master.city}{master.country ? `, ${master.country}` : ''}
                                                     </MerakiText>
-                                                    {(master as any).state ? (
+                                                    {master.distance !== undefined && master.distance !== Infinity ? (
+                                                        <View style={styles.distanceBadge}>
+                                                            <MerakiText style={styles.distanceBadgeText}>
+                                                                {master.distance < 1 ? '< 1 km' : `${master.distance.toFixed(1)} km`}
+                                                            </MerakiText>
+                                                        </View>
+                                                    ) : (master as any).state ? (
                                                         <View style={styles.distanceBadge}>
                                                             <MerakiText style={styles.distanceBadgeText}>
                                                                 {(master as any).state}
                                                             </MerakiText>
-                                                        </View>
-                                                    ) : userCity?.toLowerCase() === master.city?.toLowerCase() ? (
-                                                        <View style={styles.nearbyBadge}>
-                                                            <MerakiText style={styles.nearbyBadgeText}>Nearby</MerakiText>
                                                         </View>
                                                     ) : null}
                                                 </View>

@@ -20,6 +20,7 @@ import { supabase } from '../../lib/supabase';
 import { Button, ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { useModal } from '../../contexts/ModalContext';
+import { validateServiceName, validatePrice } from '../../utils/validation';
 import { Service } from '../../types/database';
 
 type RouteParams = {
@@ -92,14 +93,18 @@ export function ServiceFormScreen() {
     };
 
     const handleSave = async () => {
-        if (!formData.name.trim()) {
-            showAlert('Error', 'Please enter a service name', 'error');
+        const nameVal = validateServiceName(formData.name);
+        if (!nameVal.valid) {
+            showAlert('Invalid Name', nameVal.error || 'Please enter a valid service name.', 'error');
             return;
         }
-        if (!formData.base_price || isNaN(Number(formData.base_price))) {
-            showAlert('Error', 'Please enter a valid price', 'error');
+
+        const priceVal = validatePrice(formData.base_price);
+        if (!priceVal.valid) {
+            showAlert('Invalid Price', priceVal.error || 'Please enter a valid price.', 'error');
             return;
         }
+
         if (!formData.duration_minutes || isNaN(Number(formData.duration_minutes))) {
             showAlert('Error', 'Please enter a valid duration', 'error');
             return;

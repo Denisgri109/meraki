@@ -21,6 +21,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ScreenBackground, Card, Button, MerakiText } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
+import { validateServiceName, validatePrice } from '../../utils/validation';
 import { colors, spacing } from '../../theme';
 
 const CATEGORIES = ['Nails', 'Lashes', 'Brows', 'Hair', 'Makeup', 'Skincare', 'Other'];
@@ -88,14 +89,18 @@ export function CreateServiceScreen() {
     };
 
     const handleSave = async () => {
-        if (!name.trim()) {
-            showAlert('Error', 'Please enter a service name', 'error');
+        const nameVal = validateServiceName(name);
+        if (!nameVal.valid) {
+            showAlert('Invalid Name', nameVal.error || 'Please enter a valid service name.', 'error');
             return;
         }
-        if (!basePrice || isNaN(Number(basePrice)) || Number(basePrice) <= 0) {
-            showAlert('Error', 'Please enter a valid price', 'error');
+
+        const priceVal = validatePrice(basePrice);
+        if (!priceVal.valid || Number(basePrice) <= 0) {
+            showAlert('Invalid Price', priceVal.error || 'Please enter a valid price.', 'error');
             return;
         }
+
         if (!durationMinutes || isNaN(Number(durationMinutes)) || Number(durationMinutes) <= 0) {
             showAlert('Error', 'Please enter a valid duration', 'error');
             return;

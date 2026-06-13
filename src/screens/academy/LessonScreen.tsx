@@ -110,6 +110,7 @@ export function LessonScreen() {
     const [progress, setProgress] = useState(0);
     const [videoDuration, setVideoDuration] = useState<number>(0);
     const [chatLoading, setChatLoading] = useState(false);
+    const [mainScrollEnabled, setMainScrollEnabled] = useState(true);
 
     useEffect(() => {
         loadProgress();
@@ -258,7 +259,11 @@ export function LessonScreen() {
                     </TouchableOpacity>
                 </View>
 
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <ScrollView 
+                    contentContainerStyle={styles.scrollContent} 
+                    showsVerticalScrollIndicator={false}
+                    scrollEnabled={mainScrollEnabled}
+                >
                     <View style={styles.videoContainer}>
                         {renderVideoPlayer()}
                     </View>
@@ -320,18 +325,15 @@ export function LessonScreen() {
                             )}
                         </View>
 
-                        {/* Live Q&A Section */}
+                        {/* Q&A Section */}
                         <View style={styles.qaSection}>
                             <TouchableOpacity
                                 style={styles.qaToggle}
                                 onPress={() => setShowQA(!showQA)}
                             >
                                 <View style={styles.qaToggleLeft}>
-                                    <MerakiText style={{ fontSize: 18 }}>💬</MerakiText>
-                                    <MerakiText variant="bodyBold">Live Q&A</MerakiText>
-                                    <View style={styles.liveIndicatorSmall}>
-                                        <View style={styles.liveDotSmall} />
-                                    </View>
+                                    <MerakiText style={{ fontSize: 18 }}>❓</MerakiText>
+                                    <MerakiText variant="bodyBold">Q&A</MerakiText>
                                 </View>
                                 <MerakiText variant="caption" color={colors.accent}>
                                     {showQA ? 'Hide' : 'Open'}
@@ -344,6 +346,7 @@ export function LessonScreen() {
                                     courseId={courseId}
                                     instructorId={instructorId || null}
                                     isInstructor={isInstructor}
+                                    onScrollStateChange={setMainScrollEnabled}
                                 />
                             )}
                         </View>
@@ -438,16 +441,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: spacing.sm,
     },
-    liveIndicatorSmall: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    liveDotSmall: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: colors.success,
-    },
+
 });
 
 export default LessonScreen;

@@ -1,6 +1,6 @@
 export { ClientHomeScreen } from './HomeScreen';
 export { BookingScreen } from './BookingScreen';
-export { ProfileScreen } from './ProfileScreen';
+export { EditProfileScreen } from './EditProfileScreen';
 export { ServiceDetailScreen } from './ServiceDetailScreen';
 export { SelectDateTimeScreen } from './SelectDateTimeScreen';
 export { BookingConfirmScreen } from './BookingConfirmScreen';

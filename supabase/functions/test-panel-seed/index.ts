@@ -501,7 +501,6 @@ Deno.serve(async (req: Request) => {
                 await wipeTable("chapters");
                 await wipeTable("courses");
 
-                await wipeTable("campaign_notifications_sent");
                 await wipeTable("notification_logs");
                 await wipeTable("notification_log");
                 await wipeTable("scheduled_notifications");
@@ -546,7 +545,6 @@ Deno.serve(async (req: Request) => {
                 await wipeTable("blocked_slots");
                 await wipeTable("master_availability");
                 await wipeTable("master_settings");
-                await wipeTable("aftercare_campaigns");
 
                 await wipeTable("master_services");
                 await wipeTable("services");

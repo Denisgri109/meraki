@@ -19,28 +19,10 @@ export const SUPPORTED_COUNTRIES: CountryConfig[] = [
             let cleaned = local.replace(/\D/g, '');
             if (cleaned.startsWith('0')) cleaned = cleaned.substring(1);
             
-            const isMobile = ['83', '85', '86', '87', '88', '89'].some(p => cleaned.startsWith(p));
-            if (isMobile) {
-                if (cleaned.length !== 9) return { valid: false, error: 'Irish mobile numbers must have 9 digits after the prefix' };
-                return { valid: true };
+            if (cleaned.length < 7 || cleaned.length > 10) {
+                return { valid: false, error: 'Irish phone numbers must be 7-10 digits' };
             }
-            
-            const isLandline = [
-                '1', '21', '22', '23', '24', '25', '26', '27', '28', '29',
-                '402', '404', '41', '42', '43', '44', '45', '46', '47', '49',
-                '51', '52', '53', '56', '57', '58', '59', '61', '62', '63',
-                '64', '65', '66', '67', '68', '69', '71', '74', '76', '90',
-                '91', '93', '94', '95', '96', '97', '98', '99'
-            ].some(p => cleaned.startsWith(p));
-            
-            if (isLandline) {
-                if (cleaned.length < 7 || cleaned.length > 10) {
-                    return { valid: false, error: 'Invalid landline number length' };
-                }
-                return { valid: true };
-            }
-            
-            return { valid: false, error: 'Please enter a valid Irish phone number starting with +353' };
+            return { valid: true };
         },
         format: (local) => {
             let cleaned = local.replace(/\D/g, '');
@@ -63,17 +45,10 @@ export const SUPPORTED_COUNTRIES: CountryConfig[] = [
             let cleaned = local.replace(/\D/g, '');
             if (cleaned.startsWith('0')) cleaned = cleaned.substring(1);
             
-            if (cleaned.startsWith('7')) {
-                if (cleaned.length !== 10) return { valid: false, error: 'UK mobile numbers must be 10 digits' };
-                return { valid: true };
+            if (cleaned.length < 9 || cleaned.length > 11) {
+                return { valid: false, error: 'UK phone numbers must be 9-11 digits' };
             }
-            if (['1', '2', '3'].some(p => cleaned.startsWith(p))) {
-                if (cleaned.length < 9 || cleaned.length > 10) {
-                    return { valid: false, error: 'Invalid UK landline length (9-10 digits)' };
-                }
-                return { valid: true };
-            }
-            return { valid: false, error: 'UK numbers must start with 7 (mobile) or 1, 2, 3 (landline)' };
+            return { valid: true };
         },
         format: (local) => {
             let cleaned = local.replace(/\D/g, '');
@@ -95,8 +70,6 @@ export const SUPPORTED_COUNTRIES: CountryConfig[] = [
             if (cleaned.length === 11 && cleaned.startsWith('1')) cleaned = cleaned.substring(1);
             
             if (cleaned.length !== 10) return { valid: false, error: 'US/Canada phone numbers must be 10 digits' };
-            if (cleaned[0] === '0' || cleaned[0] === '1') return { valid: false, error: 'Area code cannot start with 0 or 1' };
-            if (cleaned[3] === '0' || cleaned[3] === '1') return { valid: false, error: 'Exchange code cannot start with 0 or 1' };
             return { valid: true };
         },
         format: (local) => {
@@ -231,7 +204,20 @@ export function validatePhone(phone: string, countryCode: string): { valid: bool
     }
     const config = SUPPORTED_COUNTRIES.find(c => c.code === countryCode);
     if (!config) return { valid: false, error: 'Unsupported country code' };
-    return config.validate(phone);
+
+    // Strip the international calling code if present so we pass only the local number
+    let localNumber = phone.trim();
+    if (localNumber.startsWith(config.callingCode)) {
+        localNumber = localNumber.substring(config.callingCode.length);
+    } else {
+        const rawCode = config.callingCode.replace('+', '');
+        const digitsOnly = localNumber.replace(/\D/g, '');
+        if (digitsOnly.startsWith(rawCode)) {
+            localNumber = digitsOnly.substring(rawCode.length);
+        }
+    }
+
+    return config.validate(localNumber);
 }
 
 export function formatPhone(phone: string, countryCode: string): string {
@@ -329,6 +315,58 @@ export function validateFullName(name: string): { valid: boolean; error?: string
 
     if (name.trim().length < 2) {
         return { valid: false, error: 'Name must be at least 2 characters' };
+    }
+
+    return { valid: true };
+}
+
+/**
+ * Postal code validation
+ */
+export function validatePostalCode(postalCode: string): { valid: boolean; error?: string } {
+    if (!postalCode || postalCode.trim() === '') {
+        return { valid: false, error: 'Postal code is required' };
+    }
+
+    const stripped = postalCode.replace(/[\s-]/g, '');
+    const re = /^[a-zA-Z0-9]{3,10}$/;
+    if (!re.test(stripped)) {
+        return { valid: false, error: 'Please enter a valid postal code' };
+    }
+
+    return { valid: true };
+}
+
+/**
+ * Service Name validation
+ */
+export function validateServiceName(name: string): { valid: boolean; error?: string } {
+    if (!name || name.trim() === '') {
+        return { valid: false, error: 'Service name is required' };
+    }
+
+    if (name.trim().length < 3) {
+        return { valid: false, error: 'Service name must be at least 3 characters' };
+    }
+
+    return { valid: true };
+}
+
+/**
+ * Price validation
+ */
+export function validatePrice(price: string | number): { valid: boolean; error?: string } {
+    if (price === undefined || price === null || price === '') {
+        return { valid: false, error: 'Price is required' };
+    }
+
+    const numPrice = Number(price);
+    if (isNaN(numPrice)) {
+        return { valid: false, error: 'Price must be a valid number' };
+    }
+
+    if (numPrice < 0) {
+        return { valid: false, error: 'Price cannot be negative' };
     }
 
     return { valid: true };

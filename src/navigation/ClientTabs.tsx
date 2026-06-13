@@ -11,7 +11,7 @@ import { colors, spacing, layout } from '../theme';
 import { TabBarProvider, useTabBar } from '../contexts/TabBarContext';
 import {
     ClientHomeScreen as HomeScreen,
-    ProfileScreen,
+    EditProfileScreen,
     OrdersScreen,
     HelpSupportScreen,
     TermsOfServiceScreen,
@@ -75,7 +75,7 @@ function HomeStackNavigator() {
             <HomeStack.Screen name="HomeMain" component={HomeScreen} />
             <HomeStack.Screen name="ChatList" component={ChatListScreen} />
 
-            <HomeStack.Screen name="Profile" component={ProfileScreen} />
+            <HomeStack.Screen name="Profile" component={EditProfileScreen} />
             <HomeStack.Screen name="Orders" component={OrdersScreen} />
             <HomeStack.Screen name="HelpSupport" component={HelpSupportScreen} />
             <HomeStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
@@ -123,7 +123,6 @@ export type ProfileStackParamList = {
     HelpSupport: undefined;
     TermsOfService: undefined;
     PrivacyPolicy: undefined;
-    LoyaltyPoints: undefined;
     PaymentMethods: undefined;
     Notifications: undefined;
 };
@@ -133,11 +132,10 @@ const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 function ProfileStackNavigator() {
     return (
         <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
-            <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
+            <ProfileStack.Screen name="ProfileMain" component={EditProfileScreen} />
             <ProfileStack.Screen name="HelpSupport" component={HelpSupportScreen} />
             <ProfileStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
             <ProfileStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-            <ProfileStack.Screen name="LoyaltyPoints" component={LoyaltyPointsScreen} />
             <ProfileStack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
             <ProfileStack.Screen name="Notifications" component={NotificationsScreen} />
         </ProfileStack.Navigator>
@@ -200,7 +198,7 @@ function MenuStackNavigator() {
     return (
         <MenuStack.Navigator screenOptions={{ headerShown: false }}>
             <MenuStack.Screen name="MenuMain" component={MenuScreen} />
-            <MenuStack.Screen name="Profile" component={ProfileScreen} />
+            <MenuStack.Screen name="Profile" component={EditProfileScreen} />
             <MenuStack.Screen name="Orders" component={OrdersScreen} />
             <MenuStack.Screen name="HelpSupport" component={HelpSupportScreen} />
             <MenuStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />

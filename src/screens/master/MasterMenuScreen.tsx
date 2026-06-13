@@ -72,13 +72,6 @@ export function MasterMenuScreen() {
                             >
                                 <MaterialIcons name="notifications-none" size={22} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.headerIconBtn}
-                                onPress={() => handleNavigate('Profile')}
-                                activeOpacity={0.7}
-                            >
-                                <MaterialIcons name="settings" size={22} color="rgba(0, 0, 0, 0.55)" />
-                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -112,16 +105,15 @@ export function MasterMenuScreen() {
                     <View style={styles.listGroup}>
                         {[
                             { icon: 'business-center', label: 'Business Settings', route: 'BusinessSettings' },
-                            { icon: 'tune', label: 'General Settings', route: 'Settings' },
+
                             { icon: 'card-giftcard', label: 'Loyalty Cards', route: 'LoyaltyCardBuilder' },
-                            { icon: 'campaign', label: 'Aftercare Campaigns', route: 'AftercareCampaigns' },
                             { icon: 'block', label: 'Blocked Slots', route: 'BlockedSlots' },
                             { icon: 'photo-camera', label: 'Photo Consultations', route: 'PhotoConsultations' },
                             { icon: 'chat', label: 'Booking Consultations', route: 'BookingConsultations' },
                         ].map((item, index) => (
                             <TouchableOpacity
                                 key={item.label}
-                                style={[styles.listItem, index === 6 && { borderBottomWidth: 0 }]}
+                                style={[styles.listItem, index === 5 && { borderBottomWidth: 0 }]}
                                 onPress={() => handleNavigate(item.route)}
                             >
                                 <View style={styles.listIconWrap}>
@@ -137,12 +129,13 @@ export function MasterMenuScreen() {
                     <MerakiText style={styles.sectionLabel}>ACCOUNT</MerakiText>
                     <View style={styles.listGroup}>
                         {[
+                            { icon: 'person', label: 'Edit Profile', route: 'Profile' },
                             { icon: 'credit-card', label: 'Payment Methods', route: 'PaymentMethods' },
                             { icon: 'qr-code-scanner', label: 'Loyalty QR Scanner', route: 'LoyaltyQR' },
                         ].map((item, index) => (
                             <TouchableOpacity
                                 key={item.label}
-                                style={[styles.listItem, index === 1 && { borderBottomWidth: 0 }]}
+                                style={[styles.listItem, index === 2 && { borderBottomWidth: 0 }]}
                                 onPress={() => handleNavigate(item.route)}
                             >
                                 <View style={styles.listIconWrap}>

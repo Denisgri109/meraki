@@ -20,7 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Card, ScreenBackground, MerakiText } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing, layout, gradients } from '../../theme';
-import { getDeviceTimezone, COMMON_TIMEZONES, COMMON_COUNTRIES } from '../../utils/timezone';
+import { getDeviceTimezone, COMMON_TIMEZONES, COMMON_COUNTRIES, formatCurrency } from '../../utils/timezone';
 
 const { width } = Dimensions.get('window');
 
@@ -140,7 +140,7 @@ export function MasterDashboardScreen() {
                     await supabase.from('profiles').update({ timezone: newTimezone, city: newCity, country: newCountry, currency: newCurrency }).eq('id', user.id);
                     await refreshProfile();
                 }
-            } catch (error) { console.error('Auto-detect error:', error); }
+            } catch (error) { console.log('Auto-detect location skipped:', error); }
         };
         checkLocationSettings();
     }, [profile?.id]);
@@ -152,7 +152,7 @@ export function MasterDashboardScreen() {
             const todayEnd = endOfDay(new Date()).toISOString();
             const todayPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).gte('start_time', todayStart).lt('start_time', todayEnd).in('status', ['confirmed', 'pending', 'completed']).order('start_time');
             const { data: todayData } = await safeSupabaseFetch(todayPromise as any);
-            const allAppointmentsPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).eq('status', 'confirmed').gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(5);
+            const allAppointmentsPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).in('status', ['confirmed', 'pending']).gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(5);
             const { data: allAppointmentsData } = await safeSupabaseFetch(allAppointmentsPromise as any);
             const pendingPromise = supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('master_id', user.id).eq('status', 'pending');
             const { count: pendingCount } = await safeSupabaseFetch(pendingPromise as any) as any;
@@ -300,7 +300,7 @@ export function MasterDashboardScreen() {
                                     <MaterialCommunityIcons name="cash-multiple" size={18} color={colors.accent} />
                                 </View>
                             </View>
-                            <MerakiText style={styles.heroValue}>€{stats.todayEarnings}</MerakiText>
+                            <MerakiText style={styles.heroValue}>{formatCurrency(stats.todayEarnings, profile?.currency || undefined)}</MerakiText>
                             <MerakiText style={styles.heroLabel}>Revenue Today</MerakiText>
                         </LinearGradient>
                         <View style={styles.heroSecondaryCol}>
@@ -409,14 +409,16 @@ export function MasterDashboardScreen() {
                         )}
                     </View>
 
-                    {/* Quick Actions */}
+                    {/* Business Control */}
                     <View style={styles.section}>
                         <MerakiText variant="label" color={colors.textMuted} style={styles.sectionLabel}>BUSINESS CONTROL</MerakiText>
                         <View style={styles.buttonGrid}>
+                            <DashboardButton icon="chat-question" label="Consultations" onPress={() => navigation.navigate('BookingConsultations')} color="#8B5CF6" badgeCount={stats.pendingRequests} />
                             <DashboardButton icon="card-account-details-star" label="Portfolio" onPress={() => navigation.navigate('Portfolio')} color="#34D399" />
                             <DashboardButton icon="room-service" label="Services" onPress={() => navigation.navigate('MyServices')} color="#60A5FA" />
                             <DashboardButton icon="clock-check" label="Availability" onPress={() => navigation.navigate('Availability')} color="#F472B6" />
                             <DashboardButton icon="ticket-confirmation" label="Loyalty" onPress={() => navigation.navigate('LoyaltyCardBuilder')} color="#FBBF24" />
+                            <DashboardButton icon="account-balance-wallet" label="Earnings" onPress={() => navigation.navigate('Earnings')} color="#F59E0B" />
                             <DashboardButton icon="cog" label="Settings" onPress={() => navigation.navigate('BusinessSettings')} color="#94A3B8" />
                         </View>
                     </View>
@@ -431,11 +433,16 @@ const GRID_GAP = 10;
 const GRID_PADDING = spacing.lg * 2;
 const BUTTON_WIDTH = (width - GRID_PADDING - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
 
-const DashboardButton = ({ icon, label, onPress, color }: any) => (
+const DashboardButton = ({ icon, label, onPress, color, badgeCount }: any) => (
     <TouchableOpacity style={styles.dashBtnWrap} onPress={onPress} activeOpacity={0.7}>
         <View style={styles.dashBtn}>
             <View style={[styles.dashBtnIcon, { backgroundColor: `${color}12` }]}>
                 <MaterialCommunityIcons name={icon} size={24} color={color} />
+                {badgeCount > 0 && (
+                    <View style={styles.badgeContainer}>
+                        <MerakiText style={styles.badgeText}>{badgeCount > 99 ? '99+' : badgeCount}</MerakiText>
+                    </View>
+                )}
             </View>
             <MerakiText variant="body" numberOfLines={1} style={styles.dashBtnLabel}>{label}</MerakiText>
         </View>
@@ -514,6 +521,8 @@ const styles = StyleSheet.create({
         color: '#1A1A1A',
         textAlign: 'center',
     },
+    badgeContainer: { position: 'absolute', top: -4, right: -4, backgroundColor: '#FF453A', borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: 'rgba(20,20,25,0.9)' },
+    badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700', textAlign: 'center', includeFontPadding: false, textAlignVertical: 'center', lineHeight: 12 },
     messagesBanner: { borderRadius: layout.borderRadius.lg, overflow: 'hidden', marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(244, 114, 182, 0.15)' },
     bannerGradient: { padding: spacing.lg },
     bannerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

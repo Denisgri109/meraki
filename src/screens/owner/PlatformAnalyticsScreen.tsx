@@ -110,29 +110,36 @@ export function PlatformAnalyticsScreen() {
             const { data: currentAppointments } = await supabase
                 .from('appointments')
                 .select('id, price, status, client_id, start_time')
-                .eq('master_id', user.id)
                 .gte('start_time', rangeStart.toISOString())
                 .lte('start_time', now.toISOString());
 
             const appointments = currentAppointments || [];
 
-            // Previous period revenue (for trend comparison)
-            const { data: prevAppointments } = await supabase
-                .from('appointments')
-                .select('price, status')
-                .eq('master_id', user.id)
-                .eq('status', 'completed')
-                .gte('start_time', prevStart.toISOString())
-                .lt('start_time', rangeStart.toISOString());
+            // Current period payments
+            const { data: currentPaymentsData } = await supabase
+                .from('payments')
+                .select('amount, created_at')
+                .eq('status', 'succeeded')
+                .gte('created_at', rangeStart.toISOString())
+                .lte('created_at', now.toISOString());
+            const currentPayments = currentPaymentsData || [];
 
-            const previousRevenue = (prevAppointments || []).reduce(
-                (sum, a) => sum + (a.price || 0),
+            // Previous period revenue (for trend comparison)
+            const { data: prevPaymentsData } = await supabase
+                .from('payments')
+                .select('amount')
+                .eq('status', 'succeeded')
+                .gte('created_at', prevStart.toISOString())
+                .lt('created_at', rangeStart.toISOString());
+
+            const previousRevenue = (prevPaymentsData || []).reduce(
+                (sum, p) => sum + ((p.amount || 0) / 100),
                 0
             );
 
             // Calculate stats
             const completed = appointments.filter((a) => a.status === 'completed');
-            const totalRevenue = completed.reduce((sum, a) => sum + (a.price || 0), 0);
+            const totalRevenue = currentPayments.reduce((sum, p) => sum + ((p.amount || 0) / 100), 0);
             const totalBookings = appointments.length;
             const completedBookings = completed.length;
 
@@ -141,7 +148,8 @@ export function PlatformAnalyticsScreen() {
             const activeClients = clientIds.size;
 
             // Average booking value
-            const averageBookingValue = completedBookings > 0 ? totalRevenue / completedBookings : 0;
+            const totalBookingRevenue = completed.reduce((sum, a) => sum + (a.price || 0), 0);
+            const averageBookingValue = completedBookings > 0 ? totalBookingRevenue / completedBookings : 0;
 
             // Retention rate: clients with >1 booking / total clients
             const clientBookingCounts: Record<string, number> = {};
@@ -157,7 +165,7 @@ export function PlatformAnalyticsScreen() {
             const conversionRate = totalBookings > 0 ? (completedBookings / totalBookings) * 100 : 0;
 
             // Revenue trend breakdown
-            const revenueTrend = buildRevenueTrend(completed, timeRange, rangeStart, now);
+            const revenueTrend = buildRevenueTrend(currentPayments, timeRange, rangeStart, now);
 
             setStats({
                 totalRevenue,
@@ -520,7 +528,7 @@ export function PlatformAnalyticsScreen() {
 }
 
 function buildRevenueTrend(
-    completed: { price: number; start_time: string }[],
+    payments: { amount: number; created_at: string }[],
     range: TimeRange,
     rangeStart: Date,
     now: Date
@@ -529,25 +537,25 @@ function buildRevenueTrend(
         const days = eachDayOfInterval({ start: rangeStart, end: now });
         return days.map((day) => ({
             label: format(day, 'EEE').charAt(0),
-            value: completed
-                .filter((a) => isSameDay(new Date(a.start_time), day))
-                .reduce((s, a) => s + (a.price || 0), 0),
+            value: payments
+                .filter((p) => isSameDay(new Date(p.created_at), day))
+                .reduce((s, p) => s + ((p.amount || 0) / 100), 0),
         }));
     } else if (range === 'month') {
         const weeks = eachWeekOfInterval({ start: rangeStart, end: now }, { weekStartsOn: 1 });
         return weeks.map((weekStart, i) => ({
             label: `W${i + 1}`,
-            value: completed
-                .filter((a) => isSameWeek(new Date(a.start_time), weekStart, { weekStartsOn: 1 }))
-                .reduce((s, a) => s + (a.price || 0), 0),
+            value: payments
+                .filter((p) => isSameWeek(new Date(p.created_at), weekStart, { weekStartsOn: 1 }))
+                .reduce((s, p) => s + ((p.amount || 0) / 100), 0),
         }));
     } else {
         const months = eachMonthOfInterval({ start: rangeStart, end: now });
         return months.map((monthStart) => ({
             label: format(monthStart, 'MMM').substring(0, 3),
-            value: completed
-                .filter((a) => isSameMonth(new Date(a.start_time), monthStart))
-                .reduce((s, a) => s + (a.price || 0), 0),
+            value: payments
+                .filter((p) => isSameMonth(new Date(p.created_at), monthStart))
+                .reduce((s, p) => s + ((p.amount || 0) / 100), 0),
         }));
     }
 }

@@ -106,21 +106,19 @@ describe('validateIrishPhone', () => {
         expect(result.valid).toBe(false);
     });
 
-    it('rejects a number with invalid prefix', () => {
+    it('accepts a number with 080 prefix (relaxed validation)', () => {
         const result = validateIrishPhone('080 123 4567');
-        expect(result.valid).toBe(false);
+        expect(result.valid).toBe(true);
     });
 
     it('rejects an Irish landline number that is too short', () => {
         const result = validateIrishPhone('01 2345');
         expect(result.valid).toBe(false);
-        expect(result.error).toBe('Invalid landline number length');
     });
 
     it('rejects an Irish landline number that is too long', () => {
         const result = validateIrishPhone('01 2345 6789 012');
         expect(result.valid).toBe(false);
-        expect(result.error).toBe('Invalid landline number length');
     });
 });
 
@@ -294,16 +292,21 @@ describe('International Phone Validation & Formatting Helpers', () => {
     });
 
     describe('validatePhone', () => {
-        it('validates UK mobile numbers correctly', () => {
+        it('validates UK numbers correctly', () => {
             expect(validatePhone('7700900000', 'GB')).toEqual({ valid: true });
             expect(validatePhone('07700900000', 'GB')).toEqual({ valid: true });
-            expect(validatePhone('770090000', 'GB')).toEqual({ valid: false, error: 'UK mobile numbers must be 10 digits' });
+            expect(validatePhone('77009000', 'GB')).toEqual({ valid: false, error: 'UK phone numbers must be 9-11 digits' });
         });
 
         it('validates US numbers correctly', () => {
             expect(validatePhone('2015550123', 'US')).toEqual({ valid: true });
             expect(validatePhone('12015550123', 'US')).toEqual({ valid: true });
-            expect(validatePhone('0015550123', 'US')).toEqual({ valid: false, error: 'Area code cannot start with 0 or 1' });
+            expect(validatePhone('12345', 'US')).toEqual({ valid: false, error: 'US/Canada phone numbers must be 10 digits' });
+        });
+
+        it('validates numbers with international prefix', () => {
+            expect(validatePhone('+353899589076', 'IE')).toEqual({ valid: true });
+            expect(validatePhone('+447700900000', 'GB')).toEqual({ valid: true });
         });
     });
 

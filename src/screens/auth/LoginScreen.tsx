@@ -27,6 +27,8 @@ type LoginScreenProps = {
 
 
 
+import { validateEmail } from '../../utils/validation';
+
 export function LoginScreen({ navigation }: LoginScreenProps) {
     const { signIn } = useAuth();
     const { showAlert } = useModal();
@@ -38,6 +40,12 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
     const handleLogin = async () => {
         if (!email || !password) {
             showAlert('Error', 'Please fill in all fields', 'error');
+            return;
+        }
+
+        const emailVal = validateEmail(email);
+        if (!emailVal.valid) {
+            showAlert('Invalid Email', emailVal.error || 'Please enter a valid email address.', 'error');
             return;
         }
 

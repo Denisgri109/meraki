@@ -21,6 +21,7 @@ import { colors, spacing, layout } from '../../../theme';
 import { inviteMaster } from '../../../services/masterManagementService';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../contexts/ModalContext';
+import { validateFullName, validateEmail, validatePhone, parsePhoneNumber } from '../../../utils/validation';
 
 export function MasterInviteScreen() {
     const navigation = useNavigation<any>();
@@ -34,16 +35,27 @@ export function MasterInviteScreen() {
     const [submitting, setSubmitting] = useState(false);
 
     const handleInvite = async () => {
-        if (!fullName.trim() || !email.trim()) {
-            showAlert('Required Fields', 'Please enter at least a name and email address.', 'info');
-            return;
-        }
         if (!user) return;
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email.trim())) {
-            showAlert('Invalid Email', 'Please enter a valid email address.', 'error');
+        const nameVal = validateFullName(fullName);
+        if (!nameVal.valid) {
+            showAlert('Invalid Name', nameVal.error || 'Please enter a valid full name.', 'error');
             return;
+        }
+
+        const emailVal = validateEmail(email.trim());
+        if (!emailVal.valid) {
+            showAlert('Invalid Email', emailVal.error || 'Please enter a valid email address.', 'error');
+            return;
+        }
+
+        if (phone.trim()) {
+            const parsedPhone = parsePhoneNumber(phone.trim());
+            const phoneVal = validatePhone(phone.trim(), parsedPhone.countryCode || 'IE');
+            if (!phoneVal.valid) {
+                showAlert('Invalid Phone', phoneVal.error || 'Please enter a valid phone number.', 'error');
+                return;
+            }
         }
 
         setSubmitting(true);

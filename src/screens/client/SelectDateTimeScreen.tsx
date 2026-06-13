@@ -103,7 +103,7 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
         let currentHour = startHour;
         let currentMin = startMin || 0;
 
-        while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
+        while (currentHour < endHour || (currentHour === endHour && currentMin <= endMin)) {
             slots.push(setMinutes(setHours(new Date(), currentHour), currentMin));
             // Increment by 30 minutes
             currentMin += 30;
