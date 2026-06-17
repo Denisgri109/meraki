@@ -1,4 +1,4 @@
-import { getCountryByCode, getAllCountries, getCitiesOfCountry, getStatesOfCountry, getCitiesOfState } from '../locationApi';
+import { getCountryByCode, getAllCountries, getCitiesOfCountry, getStatesOfCountry, getCitiesOfState, filterCountries, Country } from '../locationApi';
 
 describe('locationApi', () => {
     const originalFetch = global.fetch;
@@ -335,6 +335,57 @@ describe('locationApi', () => {
                 'Error fetching states:',
                 networkError
             );
+        });
+    });
+
+    describe('filterCountries', () => {
+        const mockCountries: Country[] = [
+            { id: 1, name: 'United States', iso2: 'US', iso3: 'USA', phonecode: '1', capital: 'Washington', currency: 'USD', currency_symbol: '$', timezones: [] },
+            { id: 2, name: 'United Kingdom', iso2: 'GB', iso3: 'GBR', phonecode: '44', capital: 'London', currency: 'GBP', currency_symbol: '£', timezones: [] },
+            { id: 3, name: 'Canada', iso2: 'CA', iso3: 'CAN', phonecode: '1', capital: 'Ottawa', currency: 'CAD', currency_symbol: '$', timezones: [] },
+            { id: 4, name: 'Australia', iso2: 'AU', iso3: 'AUS', phonecode: '61', capital: 'Canberra', currency: 'AUD', currency_symbol: '$', timezones: [] },
+            { id: 5, name: 'Germany', iso2: 'DE', iso3: 'DEU', phonecode: '49', capital: 'Berlin', currency: 'EUR', currency_symbol: '€', timezones: [] },
+        ];
+
+        it('returns all countries when the query is empty', () => {
+            expect(filterCountries(mockCountries, '')).toEqual(mockCountries);
+        });
+
+        it('returns all countries when the query is whitespace only', () => {
+            expect(filterCountries(mockCountries, '   ')).toEqual(mockCountries);
+        });
+
+        it('filters correctly by partial, case-insensitive name match', () => {
+            const result = filterCountries(mockCountries, 'united');
+            expect(result.length).toBe(2);
+            expect(result.map(c => c.name)).toEqual(['United States', 'United Kingdom']);
+
+            const result2 = filterCountries(mockCountries, 'CAN');
+            expect(result2.length).toBe(1);
+            expect(result2[0].name).toBe('Canada');
+        });
+
+        it('filters correctly by exact, case-insensitive iso2 match', () => {
+            // 'us' also matches 'United States' and 'Australia' because of 'us' in 'Australia'
+            // To test *exact* iso2 match prioritizing or isolating, we can try something else or acknowledge both match
+            const result = filterCountries(mockCountries, 'us');
+            expect(result.length).toBe(2);
+            expect(result.map(c => c.name)).toEqual(['United States', 'Australia']);
+
+            const result2 = filterCountries(mockCountries, 'DE');
+            expect(result2.length).toBe(1);
+            expect(result2[0].name).toBe('Germany');
+        });
+
+        it('handles trailing and leading whitespace in the query properly', () => {
+            const result = filterCountries(mockCountries, ' canada  ');
+            expect(result.length).toBe(1);
+            expect(result[0].name).toBe('Canada');
+        });
+
+        it('returns an empty array when there are no matches', () => {
+            const result = filterCountries(mockCountries, 'nonexistent');
+            expect(result.length).toBe(0);
         });
     });
 });
