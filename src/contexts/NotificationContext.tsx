@@ -70,7 +70,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     useEffect(() => {
         // Listener for notifications received while app is foregrounded
         notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-            console.log('Notification received in foreground:', notification);
             setNotification(notification);
         });
 
