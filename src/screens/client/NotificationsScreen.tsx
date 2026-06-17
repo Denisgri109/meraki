@@ -156,7 +156,7 @@ export function NotificationsScreen() {
                         }
                     }
                 }
-            } catch (e) { console.log('Message notifications error:', e); }
+            } catch (e) { /* Ignore */ }
 
             // 2. Fetch appointment notifications
             try {
@@ -191,7 +191,7 @@ export function NotificationsScreen() {
                         }
                     }
                 }
-            } catch (e) { console.log('Appointment notifications error:', e); }
+            } catch (e) { /* Ignore */ }
 
             // 3. Fetch low stock notifications for owners
             if (profile?.role === 'owner' && settings.stockAlerts) {
@@ -212,7 +212,7 @@ export function NotificationsScreen() {
                             }
                         }
                     }
-                } catch (e) { console.log('Low stock notifications error:', e); }
+                } catch (e) { /* Ignore */ }
             }
 
             allNotifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -233,7 +233,7 @@ export function NotificationsScreen() {
             const updateMessage = async () => {
                 try {
                     await (supabase as any).from('messages').update({ read_at: new Date().toISOString() }).eq('id', msgId);
-                } catch (e) { console.log('Mark read error:', e); }
+                } catch (e) { /* Ignore */ }
             };
             updateMessage();
             setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
@@ -264,7 +264,7 @@ export function NotificationsScreen() {
             const updateProfiles = async () => {
                 try {
                     await supabase.from('profiles').update({ notification_preferences: updatedPrefs }).eq('id', user.id);
-                } catch (e) { console.log('Error saving cleared_at:', e); }
+                } catch (e) { /* Ignore */ }
             };
             updateProfiles();
         }
@@ -287,7 +287,7 @@ export function NotificationsScreen() {
                     stock_alerts: newSettings.stockAlerts,
                 };
                 await supabase.from('profiles').update({ notification_preferences: dbPrefs }).eq('id', user.id);
-            } catch (e) { console.log('Error saving notification preferences:', e); setSettings(settings); }
+            } catch (e) { setSettings(settings); }
             finally { setSavingSettings(false); }
         }
     };
