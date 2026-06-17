@@ -1,4 +1,4 @@
-import { getCountryByCode, getAllCountries, getCitiesOfCountry, getStatesOfCountry, getCitiesOfState } from '../locationApi';
+import { getCountryByCode, getAllCountries, getCitiesOfCountry, getStatesOfCountry, getCitiesOfState, filterCities } from '../locationApi';
 
 describe('locationApi', () => {
     const originalFetch = global.fetch;
@@ -276,6 +276,91 @@ describe('locationApi', () => {
                 'Error fetching cities:',
                 networkError
             );
+        });
+    });
+
+    describe('filterCities', () => {
+        const createMockCities = (count: number): any[] => {
+            return Array.from({ length: count }, (_, i) => ({
+                id: i + 1,
+                name: `City ${i + 1}`,
+                state_id: 1,
+                state_code: 'S1',
+                state_name: 'State 1',
+                country_id: 1,
+                country_code: 'C1',
+                country_name: 'Country 1',
+                latitude: '0',
+                longitude: '0'
+            }));
+        };
+
+        it('returns up to 50 cities when query is empty', () => {
+            const cities = createMockCities(100);
+            const result = filterCities(cities, '');
+            expect(result).toHaveLength(50);
+            expect(result).toEqual(cities.slice(0, 50));
+        });
+
+        it('returns up to 50 cities when query is only whitespace', () => {
+            const cities = createMockCities(100);
+            const result = filterCities(cities, '   ');
+            expect(result).toHaveLength(50);
+            expect(result).toEqual(cities.slice(0, 50));
+        });
+
+        it('returns matched cities based on query', () => {
+            const cities = [
+                ...createMockCities(3),
+                { id: 4, name: 'UniqueCity', state_id: 1, state_code: 'S1', state_name: 'S', country_id: 1, country_code: 'C', country_name: 'C', latitude: '0', longitude: '0' }
+            ];
+            const result = filterCities(cities, 'Unique');
+            expect(result).toHaveLength(1);
+            expect(result[0].name).toBe('UniqueCity');
+        });
+
+        it('performs case-insensitive search', () => {
+            const cities = [
+                ...createMockCities(3),
+                { id: 4, name: 'UniqueCity', state_id: 1, state_code: 'S1', state_name: 'S', country_id: 1, country_code: 'C', country_name: 'C', latitude: '0', longitude: '0' }
+            ];
+            const result = filterCities(cities, 'uniquecity');
+            expect(result).toHaveLength(1);
+            expect(result[0].name).toBe('UniqueCity');
+        });
+
+        it('trims leading and trailing spaces from query', () => {
+            const cities = [
+                ...createMockCities(3),
+                { id: 4, name: 'UniqueCity', state_id: 1, state_code: 'S1', state_name: 'S', country_id: 1, country_code: 'C', country_name: 'C', latitude: '0', longitude: '0' }
+            ];
+            const result = filterCities(cities, '  UniqueCity  ');
+            expect(result).toHaveLength(1);
+            expect(result[0].name).toBe('UniqueCity');
+        });
+
+        it('returns empty array if no cities match', () => {
+            const cities = createMockCities(3);
+            const result = filterCities(cities, 'NonExistentCity');
+            expect(result).toHaveLength(0);
+        });
+
+        it('limits filtered results to 50 elements', () => {
+            const cities = Array.from({ length: 100 }, (_, i) => ({
+                id: i + 1,
+                name: `MatchCity ${i + 1}`,
+                state_id: 1,
+                state_code: 'S1',
+                state_name: 'State 1',
+                country_id: 1,
+                country_code: 'C1',
+                country_name: 'Country 1',
+                latitude: '0',
+                longitude: '0'
+            }));
+            const result = filterCities(cities, 'MatchCity');
+            expect(result).toHaveLength(50);
+            expect(result).toEqual(cities.slice(0, 50));
         });
     });
 
