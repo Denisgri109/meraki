@@ -91,8 +91,6 @@ export function NFCScannerScreen() {
             return;
         }
 
-        console.log('NFC Payload:', payload);
-
         const masterId = parseMasterId(payload);
 
         try {
