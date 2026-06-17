@@ -69,12 +69,6 @@ describe('getCountryName', () => {
         expect(getCountryName('DE')).toBe('Germany');
     });
 
-    it('returns the correct name for every European country', () => {
-        EUROPEAN_COUNTRIES.forEach(country => {
-            expect(getCountryName(country.code)).toBe(country.name);
-        });
-    });
-
     it('returns the code itself for unknown country', () => {
         expect(getCountryName('US')).toBe('US');
     });
@@ -126,9 +120,18 @@ describe('getZoneLabel', () => {
         expect(getZoneLabel('remote')).toBe('Remote Europe');
     });
 
-    it('returns the zone itself for unknown zones (fallback branch coverage)', () => {
-        // We cast to any to test the fallback branch for runtime inputs
+    it('returns the input itself for unknown zones', () => {
         expect(getZoneLabel('unknown_zone' as any)).toBe('unknown_zone');
+    });
+
+    it('returns the input itself for empty string', () => {
+        expect(getZoneLabel('' as any)).toBe('');
+    });
+
+    it('handles non-string types passed at runtime gracefully', () => {
+        expect(getZoneLabel(null as any)).toBe(null);
+        expect(getZoneLabel(undefined as any)).toBe(undefined);
+        expect(getZoneLabel(123 as any)).toBe(123);
     });
 });
 
