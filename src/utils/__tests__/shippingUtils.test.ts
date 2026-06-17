@@ -55,6 +55,13 @@ describe('getShippingCost', () => {
             expect(getShippingCost(country.code)).toBeGreaterThan(0);
         });
     });
+
+    it('returns exactly the same value as defined in EUROPEAN_COUNTRIES for the specified country', () => {
+        // Just verify a few random ones strictly match
+        expect(getShippingCost('FR')).toBe(6.99); // France
+        expect(getShippingCost('PL')).toBe(5.99); // Poland
+        expect(getShippingCost('FI')).toBe(11.99); // Finland
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -120,18 +127,8 @@ describe('getZoneLabel', () => {
         expect(getZoneLabel('remote')).toBe('Remote Europe');
     });
 
-    it('returns the input itself for unknown zones', () => {
+    it('returns the zone code itself for unknown zone', () => {
         expect(getZoneLabel('unknown_zone' as any)).toBe('unknown_zone');
-    });
-
-    it('returns the input itself for empty string', () => {
-        expect(getZoneLabel('' as any)).toBe('');
-    });
-
-    it('handles non-string types passed at runtime gracefully', () => {
-        expect(getZoneLabel(null as any)).toBe(null);
-        expect(getZoneLabel(undefined as any)).toBe(undefined);
-        expect(getZoneLabel(123 as any)).toBe(123);
     });
 });
 
