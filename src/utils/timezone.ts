@@ -142,7 +142,8 @@ export function formatAppointmentTime(
  */
 export function getDeviceTimezone(): string {
     try {
-        return Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        return timeZone || 'UTC';
     } catch {
         return 'UTC';
     }

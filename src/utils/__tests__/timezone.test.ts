@@ -137,29 +137,50 @@ describe('formatAppointmentTime', () => {
 // getDeviceTimezone
 // ═══════════════════════════════════════════════════════════════════════════
 describe('getDeviceTimezone', () => {
+    const originalDateTimeFormat = Intl.DateTimeFormat;
+
+    afterEach(() => {
+        // Restore original Intl.DateTimeFormat
+        global.Intl.DateTimeFormat = originalDateTimeFormat;
+    });
+
     it('returns a string', () => {
         const tz = getDeviceTimezone();
         expect(typeof tz).toBe('string');
         expect(tz.length).toBeGreaterThan(0);
     });
 
+    it('returns the detected timezone correctly', () => {
+        // Mock Intl.DateTimeFormat to return a specific timezone
+        const mockDateTimeFormat = jest.fn().mockImplementation(() => ({
+            resolvedOptions: () => ({ timeZone: 'America/New_York' }),
+        }));
+        global.Intl.DateTimeFormat = mockDateTimeFormat as any;
+
+        const tz = getDeviceTimezone();
+        expect(tz).toBe('America/New_York');
+    });
+
+    it('falls back to UTC if Intl.DateTimeFormat.resolvedOptions().timeZone is undefined', () => {
+        // Mock Intl.DateTimeFormat to return undefined timeZone
+        const mockDateTimeFormat = jest.fn().mockImplementation(() => ({
+            resolvedOptions: () => ({ timeZone: undefined }),
+        }));
+        global.Intl.DateTimeFormat = mockDateTimeFormat as any;
+
+        const tz = getDeviceTimezone();
+        expect(tz).toBe('UTC');
+    });
+
     it('falls back to UTC if Intl.DateTimeFormat throws an error', () => {
-        // Save the original Intl.DateTimeFormat
-        const originalDateTimeFormat = Intl.DateTimeFormat;
+        // Mock Intl.DateTimeFormat to throw an error
+        const mockDateTimeFormat = jest.fn().mockImplementation(() => {
+            throw new Error('Test error');
+        });
+        global.Intl.DateTimeFormat = mockDateTimeFormat as any;
 
-        try {
-            // Mock Intl.DateTimeFormat to throw an error
-            const mockDateTimeFormat = jest.fn().mockImplementation(() => {
-                throw new Error('Test error');
-            });
-            global.Intl.DateTimeFormat = mockDateTimeFormat as any;
-
-            const tz = getDeviceTimezone();
-            expect(tz).toBe('UTC');
-        } finally {
-            // Restore the original Intl.DateTimeFormat
-            global.Intl.DateTimeFormat = originalDateTimeFormat;
-        }
+        const tz = getDeviceTimezone();
+        expect(tz).toBe('UTC');
     });
 });
 
