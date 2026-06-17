@@ -64,6 +64,31 @@ describe('eurosToCents', () => {
     it('handles tricky floating point: 0.1 + 0.2 → 30', () => {
         expect(eurosToCents(0.1 + 0.2)).toBe(30);
     });
+
+    it('converts negative whole numbers correctly', () => {
+        expect(eurosToCents(-10)).toBe(-1000);
+    });
+
+    it('converts negative fractional numbers correctly', () => {
+        expect(eurosToCents(-1.50)).toBe(-150);
+    });
+
+    it('rounds down when third decimal is < 5 (0.004 → 0)', () => {
+        expect(eurosToCents(0.004)).toBe(0);
+    });
+
+    it('rounds up when third decimal is >= 5 (0.005 → 1)', () => {
+        expect(eurosToCents(0.005)).toBe(1);
+    });
+
+    it('handles NaN correctly', () => {
+        expect(eurosToCents(NaN)).toBe(NaN);
+    });
+
+    it('handles Infinity correctly', () => {
+        expect(eurosToCents(Infinity)).toBe(Infinity);
+        expect(eurosToCents(-Infinity)).toBe(-Infinity);
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
