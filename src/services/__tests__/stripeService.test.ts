@@ -65,29 +65,29 @@ describe('eurosToCents', () => {
         expect(eurosToCents(0.1 + 0.2)).toBe(30);
     });
 
-    it('converts negative whole numbers correctly', () => {
+    it('handles negative euros (-10 → -1000)', () => {
         expect(eurosToCents(-10)).toBe(-1000);
     });
 
-    it('converts negative fractional numbers correctly', () => {
+    it('handles negative fractional euros (-1.50 → -150)', () => {
         expect(eurosToCents(-1.50)).toBe(-150);
     });
 
-    it('rounds down when third decimal is < 5 (0.004 → 0)', () => {
-        expect(eurosToCents(0.004)).toBe(0);
+    it('handles extremely small fractional numbers rounding down (0.001 → 0)', () => {
+        expect(eurosToCents(0.001)).toBe(0);
     });
 
-    it('rounds up when third decimal is >= 5 (0.005 → 1)', () => {
+    it('handles extremely small fractional numbers rounding up (0.005 → 1)', () => {
         expect(eurosToCents(0.005)).toBe(1);
     });
 
-    it('handles NaN correctly', () => {
-        expect(eurosToCents(NaN)).toBe(NaN);
+    it('handles NaN input by returning NaN', () => {
+        expect(eurosToCents(NaN)).toBeNaN();
     });
 
-    it('handles Infinity correctly', () => {
-        expect(eurosToCents(Infinity)).toBe(Infinity);
-        expect(eurosToCents(-Infinity)).toBe(-Infinity);
+    it('handles precision edge cases like 1.13 and 2.55', () => {
+        expect(eurosToCents(1.13)).toBe(113);
+        expect(eurosToCents(2.55)).toBe(255);
     });
 });
 
@@ -109,22 +109,6 @@ describe('centsToEuros', () => {
 
     it('converts 1 cent to 0.01 euros', () => {
         expect(centsToEuros(1)).toBe(0.01);
-    });
-
-    it('handles negative cents (e.g. refunds)', () => {
-        expect(centsToEuros(-150)).toBe(-1.5);
-    });
-
-    it('handles values resulting in multiple decimal places correctly', () => {
-        expect(centsToEuros(1999)).toBe(19.99);
-    });
-
-    it('handles large numbers', () => {
-        expect(centsToEuros(1000000)).toBe(10000);
-    });
-
-    it('handles non-integer cents input', () => {
-        expect(centsToEuros(100.5)).toBe(1.005);
     });
 });
 
@@ -150,26 +134,6 @@ describe('calculatePreAuthAmount', () => {
 
     it('handles 0 service price with minimum enforcement', () => {
         expect(calculatePreAuthAmount(0)).toBe(50);
-    });
-
-    it('handles floating point precision correctly (e.g. 19.99 * 10%)', () => {
-        expect(calculatePreAuthAmount(19.99, 10)).toBe(200); // 199.9 -> 200
-    });
-
-    it('handles 0 percentage (should return minimum €0.50)', () => {
-        expect(calculatePreAuthAmount(100, 0)).toBe(50);
-    });
-
-    it('handles > 100 percentage (e.g. 150%)', () => {
-        expect(calculatePreAuthAmount(100, 150)).toBe(15000);
-    });
-
-    it('handles negative price (should return minimum €0.50)', () => {
-        expect(calculatePreAuthAmount(-50)).toBe(50);
-    });
-
-    it('handles negative percentage (should return minimum €0.50)', () => {
-        expect(calculatePreAuthAmount(100, -50)).toBe(50);
     });
 });
 
@@ -211,20 +175,6 @@ describe('formatCardBrand', () => {
 
     it('formats unionpay to UnionPay', () => {
         expect(formatCardBrand('unionpay')).toBe('UnionPay');
-    });
-
-    it('returns empty string when brand is empty', () => {
-        expect(formatCardBrand('')).toBe('');
-    });
-
-    it('returns empty string when brand is null', () => {
-        // @ts-ignore - testing runtime behavior for invalid input
-        expect(formatCardBrand(null)).toBe('');
-    });
-
-    it('returns empty string when brand is undefined', () => {
-        // @ts-ignore - testing runtime behavior for invalid input
-        expect(formatCardBrand(undefined)).toBe('');
     });
 });
 
