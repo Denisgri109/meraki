@@ -119,6 +119,10 @@ describe('getZoneLabel', () => {
     it('returns Remote Europe for remote zone', () => {
         expect(getZoneLabel('remote')).toBe('Remote Europe');
     });
+
+    it('returns the zone code itself for unknown zone', () => {
+        expect(getZoneLabel('unknown_zone' as any)).toBe('unknown_zone');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -147,6 +151,20 @@ describe('isValidEuropeanCountry', () => {
 
     it('returns false for empty string', () => {
         expect(isValidEuropeanCountry('')).toBe(false);
+    });
+
+    it('returns false for lowercase country codes (ie)', () => {
+        expect(isValidEuropeanCountry('ie')).toBe(false);
+    });
+
+    it('returns false for mixed case country codes (De)', () => {
+        expect(isValidEuropeanCountry('De')).toBe(false);
+    });
+
+    it('handles non-string types passed at runtime gracefully', () => {
+        expect(isValidEuropeanCountry(null as any)).toBe(false);
+        expect(isValidEuropeanCountry(undefined as any)).toBe(false);
+        expect(isValidEuropeanCountry(123 as any)).toBe(false);
     });
 });
 
