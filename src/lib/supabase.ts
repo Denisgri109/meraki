@@ -15,9 +15,4 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     },
 });
 
-// Test connection
-fetch(supabaseUrl)
-  .then(() => console.log('✅ Supabase is reachable'))
-  .catch(err => console.error('❌ Cannot reach Supabase:', err.message));
-
 export default supabase;
