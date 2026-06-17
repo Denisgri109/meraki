@@ -358,37 +358,44 @@ export function ClientHomeScreen() {
 
     const fetchAllSearchData = async () => {
         try {
-            // 1. Fetch Masters
+            // 1. Fetch Masters (Optimized single query using joins)
             const { data: mastersData } = await supabase
                 .from('profiles')
-                .select('id, full_name, avatar_url, city, country, bio')
+                .select(`
+                    id,
+                    full_name,
+                    avatar_url,
+                    city,
+                    country,
+                    bio,
+                    master_settings (
+                        is_visible_globally,
+                        accepts_new_clients
+                    ),
+                    master_services (count)
+                `)
                 .in('role', ['master', 'owner'])
                 .not('full_name', 'is', null);
 
-            const { data: settingsData } = await (supabase as any)
-                .from('master_settings')
-                .select('master_id, is_visible_globally, accepts_new_clients');
-
-            const { data: servicesCountData } = await supabase
-                .from('master_services')
-                .select('master_id');
-
-            const settingsMap = new Map();
-            (settingsData || []).forEach((s: any) => settingsMap.set(s.master_id, s));
-
-            const serviceCounts = new Map<string, number>();
-            (servicesCountData || []).forEach((s: any) => serviceCounts.set(s.master_id, (serviceCounts.get(s.master_id) || 0) + 1));
-
             const processedMasters: Master[] = (mastersData || [])
                 .filter((m: any) => {
-                    const settings = settingsMap.get(m.id);
+                    const settings = Array.isArray(m.master_settings) ? m.master_settings[0] : m.master_settings;
                     return !settings || settings.is_visible_globally !== false;
                 })
                 .map((m: any) => {
-                    const settings = settingsMap.get(m.id);
+                    const settings = Array.isArray(m.master_settings) ? m.master_settings[0] : m.master_settings;
+                    const servicesCount = Array.isArray(m.master_services) && m.master_services.length > 0
+                        ? m.master_services[0].count
+                        : (m.master_services?.count || 0);
+
                     return {
-                        ...m,
-                        services_count: serviceCounts.get(m.id) || 0,
+                        id: m.id,
+                        full_name: m.full_name,
+                        avatar_url: m.avatar_url,
+                        city: m.city,
+                        country: m.country,
+                        bio: m.bio,
+                        services_count: Number(servicesCount) || 0,
                         is_visible_globally: settings?.is_visible_globally ?? true,
                         accepts_new_clients: settings?.accepts_new_clients ?? true,
                     };
