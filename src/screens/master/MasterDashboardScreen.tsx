@@ -150,24 +150,41 @@ export function MasterDashboardScreen() {
         try {
             const todayStart = startOfDay(new Date()).toISOString();
             const todayEnd = endOfDay(new Date()).toISOString();
-            const todayPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).gte('start_time', todayStart).lt('start_time', todayEnd).in('status', ['confirmed', 'pending', 'completed']).order('start_time');
-            const { data: todayData } = await safeSupabaseFetch(todayPromise as any);
-            const allAppointmentsPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).in('status', ['confirmed', 'pending']).gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(5);
-            const { data: allAppointmentsData } = await safeSupabaseFetch(allAppointmentsPromise as any);
-            const pendingPromise = supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('master_id', user.id).eq('status', 'pending');
-            const { count: pendingCount } = await safeSupabaseFetch(pendingPromise as any) as any;
 
-            // Active services
-            const { count: activeServicesCount } = await supabase.from('services').select('*', { count: 'exact', head: true }).eq('created_by', user.id).eq('is_active', true);
+            const todayPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).gte('start_time', todayStart).lt('start_time', todayEnd).in('status', ['confirmed', 'pending', 'completed']).order('start_time');
+            const allAppointmentsPromise = supabase.from('appointments').select(`id, start_time, status, price, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).in('status', ['confirmed', 'pending']).gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(5);
+            const pendingPromise = supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('master_id', user.id).eq('status', 'pending');
+            const activeServicesPromise = supabase.from('services').select('*', { count: 'exact', head: true }).eq('created_by', user.id).eq('is_active', true);
+            const clientsPromise = supabase.from('appointments').select('client_id').eq('master_id', user.id).not('client_id', 'is', null);
+            const convsPromise = (supabase as any).from('conversations').select('id').eq('master_id', user.id);
+            const pendingConsultsPromise = supabase.from('booking_consultations').select(`id, status, created_at, service:services(name), client:profiles!booking_consultations_client_id_fkey(full_name)`).eq('master_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }).limit(5);
+            const rescheduleDataPromise = supabase.from('appointments').select(`id, start_time, proposed_start_time, reschedule_initiated_by, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`).eq('master_id', user.id).not('proposed_start_time', 'is', null).in('status', ['confirmed', 'pending', 'reschedule_pending']);
+
+            const [
+                { data: todayData },
+                { data: allAppointmentsData },
+                { count: pendingCount },
+                { count: activeServicesCount },
+                { data: clientsData },
+                { data: conversations },
+                { data: pendingConsults },
+                { data: rescheduleData }
+            ] = await Promise.all([
+                safeSupabaseFetch(todayPromise as any),
+                safeSupabaseFetch(allAppointmentsPromise as any),
+                safeSupabaseFetch(pendingPromise as any) as any,
+                activeServicesPromise,
+                clientsPromise,
+                safeSupabaseFetch(convsPromise as any),
+                pendingConsultsPromise,
+                rescheduleDataPromise
+            ]);
 
             // Total unique clients
-            const { data: clientsData } = await supabase.from('appointments').select('client_id').eq('master_id', user.id).not('client_id', 'is', null);
             const uniqueClients = new Set((clientsData || []).map((a: any) => a.client_id));
             const totalClientsCount = uniqueClients.size;
 
             // Messages
-            const convsPromise = (supabase as any).from('conversations').select('id').eq('master_id', user.id);
-            const { data: conversations } = await safeSupabaseFetch(convsPromise);
             let unreadCount = 0;
             let recentMsgs: RecentMessage[] = [];
             if (conversations && (conversations as any[]).length > 0) {
@@ -214,15 +231,6 @@ export function MasterDashboardScreen() {
             // --- Activity Feed: Pending consultations + client reschedules ---
             const feedItems: ActivityFeedItem[] = [];
 
-            // Pending consultations
-            const { data: pendingConsults } = await supabase
-                .from('booking_consultations')
-                .select(`id, status, created_at, service:services(name), client:profiles!booking_consultations_client_id_fkey(full_name)`)
-                .eq('master_id', user.id)
-                .eq('status', 'pending')
-                .order('created_at', { ascending: false })
-                .limit(5);
-
             (pendingConsults || []).forEach((c: any) => {
                 feedItems.push({
                     id: `consult-${c.id}`,
@@ -236,13 +244,6 @@ export function MasterDashboardScreen() {
             });
 
             // Recent client-initiated reschedules (informational for master)
-            const { data: rescheduleData } = await supabase
-                .from('appointments')
-                .select(`id, start_time, proposed_start_time, reschedule_initiated_by, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`)
-                .eq('master_id', user.id)
-                .not('proposed_start_time', 'is', null)
-                .in('status', ['confirmed', 'pending', 'reschedule_pending']);
-
             (rescheduleData || []).forEach((apt: any) => {
                 feedItems.push({
                     id: `reschedule-${apt.id}`,
