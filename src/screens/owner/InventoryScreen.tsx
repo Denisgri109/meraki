@@ -121,7 +121,6 @@ export function InventoryScreen() {
                 try {
                     await supabase.functions.invoke('low-stock-alert');
                 } catch (e) {
-                    console.log('Low stock alert trigger:', e);
                 }
             }
 
@@ -263,7 +262,6 @@ export function InventoryScreen() {
                 try {
                     await supabase.functions.invoke('low-stock-alert');
                 } catch (e) {
-                    console.log('Low stock alert:', e);
                 }
             }
         } catch (error: any) {
