@@ -97,7 +97,7 @@ describe('validateIrishPhone', () => {
     });
 
     it('rejects an Irish mobile number that is too short', () => {
-        const result = validateIrishPhone('087 12345');
+        const result = validateIrishPhone('087 12');
         expect(result.valid).toBe(false);
     });
 
@@ -178,6 +178,18 @@ describe('normalizeIrishPhone', () => {
 
     it('returns empty string for empty input', () => {
         expect(normalizeIrishPhone('')).toBe('');
+    });
+
+    it('returns empty string for a non-IE international number', () => {
+        expect(normalizeIrishPhone('+44 7700 900000')).toBe('');
+    });
+
+    it('normalizes local landline numbers correctly', () => {
+        expect(normalizeIrishPhone('01 234 5678')).toBe('+35312345678');
+    });
+
+    it('normalizes numbers with formatting characters correctly', () => {
+        expect(normalizeIrishPhone('(087)-123-4567')).toBe('+353871234567');
     });
 });
 
