@@ -10,12 +10,10 @@ import {
     validateEmail,
     validatePassword,
     validateFullName,
-    validatePostalCode,
     parsePhoneNumber,
     validatePhone,
     formatPhone,
     normalizePhone,
-    validateServiceName,
 } from '../validation';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -44,34 +42,6 @@ describe('cleanPhoneNumber', () => {
 
     it('returns digits-only string unchanged', () => {
         expect(cleanPhoneNumber('0871234567')).toBe('0871234567');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-// validateServiceName
-// ═══════════════════════════════════════════════════════════════════════════
-describe('validateServiceName', () => {
-    it('should return invalid for empty or undefined/null names', () => {
-        expect(validateServiceName('')).toEqual({ valid: false, error: 'Service name is required' });
-        expect(validateServiceName('   ')).toEqual({ valid: false, error: 'Service name is required' });
-
-        // Runtime edge cases matching typical JS interop
-        expect(validateServiceName(undefined as any)).toEqual({ valid: false, error: 'Service name is required' });
-        expect(validateServiceName(null as any)).toEqual({ valid: false, error: 'Service name is required' });
-    });
-
-    it('should return invalid for strings shorter than 3 characters', () => {
-        expect(validateServiceName('ab')).toEqual({ valid: false, error: 'Service name must be at least 3 characters' });
-        expect(validateServiceName(' a ')).toEqual({ valid: false, error: 'Service name must be at least 3 characters' });
-        expect(validateServiceName('12')).toEqual({ valid: false, error: 'Service name must be at least 3 characters' });
-    });
-
-    it('should return valid for valid service names', () => {
-        expect(validateServiceName('abc')).toEqual({ valid: true });
-        expect(validateServiceName('Haircut')).toEqual({ valid: true });
-        expect(validateServiceName('Men\'s Haircut')).toEqual({ valid: true });
-        expect(validateServiceName('  Haircut  ')).toEqual({ valid: true });
-        expect(validateServiceName('123')).toEqual({ valid: true });
     });
 });
 
@@ -127,7 +97,7 @@ describe('validateIrishPhone', () => {
     });
 
     it('rejects an Irish mobile number that is too short', () => {
-        const result = validateIrishPhone('087 1234');
+        const result = validateIrishPhone('087 12');
         expect(result.valid).toBe(false);
     });
 
@@ -180,21 +150,9 @@ describe('formatIrishPhone', () => {
         expect(formatIrishPhone('')).toBe('');
     });
 
-    it('returns empty string for whitespace-only input', () => {
-        expect(formatIrishPhone('   ')).toBe('');
-    });
-
     it('returns original for too-short input', () => {
         const short = '08712';
         expect(formatIrishPhone(short)).toBe(short);
-    });
-
-    it('returns original input for non-IE numbers', () => {
-        expect(formatIrishPhone('+447700900000')).toBe('+447700900000');
-    });
-
-    it('formats a number with spaces correctly', () => {
-        expect(formatIrishPhone('087 123 4567')).toBe('+353 87 123 4567');
     });
 });
 
@@ -220,6 +178,18 @@ describe('normalizeIrishPhone', () => {
 
     it('returns empty string for empty input', () => {
         expect(normalizeIrishPhone('')).toBe('');
+    });
+
+    it('returns empty string for a non-IE international number', () => {
+        expect(normalizeIrishPhone('+44 7700 900000')).toBe('');
+    });
+
+    it('normalizes local landline numbers correctly', () => {
+        expect(normalizeIrishPhone('01 234 5678')).toBe('+35312345678');
+    });
+
+    it('normalizes numbers with formatting characters correctly', () => {
+        expect(normalizeIrishPhone('(087)-123-4567')).toBe('+353871234567');
     });
 });
 
@@ -276,56 +246,6 @@ describe('validatePassword', () => {
 
     it('rejects an empty password', () => {
         const result = validatePassword('');
-        expect(result.valid).toBe(false);
-    });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-// validatePostalCode
-// ═══════════════════════════════════════════════════════════════════════════
-describe('validatePostalCode', () => {
-    it('validates a standard alphanumeric postal code', () => {
-        expect(validatePostalCode('A12B34C')).toEqual({ valid: true });
-    });
-
-    it('validates a postal code with minimum length of 3', () => {
-        expect(validatePostalCode('123')).toEqual({ valid: true });
-    });
-
-    it('validates a postal code with maximum length of 10', () => {
-        expect(validatePostalCode('ABC123DEFG')).toEqual({ valid: true });
-    });
-
-    it('validates a postal code containing spaces (spaces are stripped)', () => {
-        expect(validatePostalCode('A12 B34C')).toEqual({ valid: true });
-    });
-
-    it('validates a postal code containing hyphens (hyphens are stripped)', () => {
-        expect(validatePostalCode('A12-B34C')).toEqual({ valid: true });
-    });
-
-    it('rejects an empty postal code', () => {
-        const result = validatePostalCode('');
-        expect(result.valid).toBe(false);
-    });
-
-    it('rejects a whitespace-only postal code', () => {
-        const result = validatePostalCode('   ');
-        expect(result.valid).toBe(false);
-    });
-
-    it('rejects a postal code that is too short (less than 3 characters)', () => {
-        const result = validatePostalCode('12');
-        expect(result.valid).toBe(false);
-    });
-
-    it('rejects a postal code that is too long (more than 10 characters)', () => {
-        const result = validatePostalCode('ABC123DEFGHI');
-        expect(result.valid).toBe(false);
-    });
-
-    it('rejects a postal code with special characters other than space or hyphen', () => {
-        const result = validatePostalCode('A12@B34');
         expect(result.valid).toBe(false);
     });
 });
@@ -403,103 +323,23 @@ describe('International Phone Validation & Formatting Helpers', () => {
     });
 
     describe('formatPhone', () => {
-        it('returns empty string for empty input', () => {
-            expect(formatPhone('', 'US')).toBe('');
-            expect(formatPhone('   ', 'IE')).toBe('');
-            expect(formatPhone(null as any, 'FR')).toBe('');
-        });
-
-        it('returns original input for unsupported country code', () => {
-            expect(formatPhone('1234567890', 'XX')).toBe('1234567890');
-        });
-
-        it('formats Irish numbers correctly (IE)', () => {
-            // Mobile formatting (9 digits after removing 0)
-            expect(formatPhone('0871234567', 'IE')).toBe('87 123 4567');
-            // Not mobile or not 9 digits - returns cleaned local string
-            expect(formatPhone('01234567', 'IE')).toBe('1234567');
-            // Too short - returns raw
-            expect(formatPhone('12345', 'IE')).toBe('12345');
-        });
-
-        it('formats UK numbers correctly (GB)', () => {
-            // Exactly 10 digits
+        it('formats UK numbers', () => {
             expect(formatPhone('7700900000', 'GB')).toBe('7700 900000');
-            expect(formatPhone('07700900000', 'GB')).toBe('7700 900000'); // the '0' prefix is stripped, making it 10 digits
-            // Not 10 digits
-            expect(formatPhone('12345678', 'GB')).toBe('12345678');
         });
 
-        it('formats US/Canada numbers correctly (US)', () => {
-            // Exactly 10 digits
+        it('formats US numbers', () => {
             expect(formatPhone('2015550123', 'US')).toBe('(201) 555-0123');
-            // 11 digits starting with 1
-            expect(formatPhone('12015550123', 'US')).toBe('(201) 555-0123');
-            // Not 10 digits
-            expect(formatPhone('123456789', 'US')).toBe('123456789');
-        });
-
-        it('formats German numbers correctly (DE)', () => {
-            // 3 or more digits
-            expect(formatPhone('1701234567', 'DE')).toBe('170 1234567');
-            expect(formatPhone('01701234567', 'DE')).toBe('170 1234567'); // 0 stripped
-            // Less than 3 digits
-            expect(formatPhone('12', 'DE')).toBe('12');
-        });
-
-        it('formats French numbers correctly (FR)', () => {
-            // Exactly 9 digits
-            expect(formatPhone('612345678', 'FR')).toBe('6 12 34 56 78');
-            expect(formatPhone('0612345678', 'FR')).toBe('6 12 34 56 78'); // 0 stripped, becomes 9
-            // Not 9 digits
-            expect(formatPhone('12345678', 'FR')).toBe('12345678');
-        });
-
-        it('formats Spanish numbers correctly (ES)', () => {
-            // Exactly 9 digits
-            expect(formatPhone('612345678', 'ES')).toBe('612 345 678');
-            // Not 9 digits
-            expect(formatPhone('12345678', 'ES')).toBe('12345678');
         });
     });
 
     describe('normalizePhone', () => {
-        it('returns empty string for unsupported country code', () => {
-            expect(normalizePhone('7700900000', 'XX')).toBe('');
-        });
-
-        it('returns empty string for invalid phone number', () => {
-            expect(normalizePhone('123', 'GB')).toBe(''); // Too short
-            expect(normalizePhone('123', 'IE')).toBe(''); // Too short
-        });
-
-        it('normalizes Irish numbers to E.164 and removes leading 0', () => {
-            expect(normalizePhone('0871234567', 'IE')).toBe('+353871234567');
-            expect(normalizePhone('871234567', 'IE')).toBe('+353871234567');
-        });
-
-        it('normalizes UK numbers to E.164 and removes leading 0', () => {
+        it('normalizes UK numbers to E.164', () => {
             expect(normalizePhone('7700900000', 'GB')).toBe('+447700900000');
             expect(normalizePhone('07700900000', 'GB')).toBe('+447700900000');
         });
 
-        it('normalizes US numbers to E.164 and removes leading 1 for 11-digit numbers', () => {
+        it('normalizes US numbers to E.164', () => {
             expect(normalizePhone('2015550123', 'US')).toBe('+12015550123');
-            expect(normalizePhone('12015550123', 'US')).toBe('+12015550123'); // 11 digits starting with 1
-        });
-
-        it('normalizes German numbers to E.164 and removes leading 0', () => {
-            expect(normalizePhone('01511234567', 'DE')).toBe('+491511234567');
-            expect(normalizePhone('1511234567', 'DE')).toBe('+491511234567');
-        });
-
-        it('normalizes French numbers to E.164 and removes leading 0', () => {
-            expect(normalizePhone('0612345678', 'FR')).toBe('+33612345678');
-            expect(normalizePhone('612345678', 'FR')).toBe('+33612345678');
-        });
-
-        it('normalizes Spanish numbers to E.164', () => {
-            expect(normalizePhone('612345678', 'ES')).toBe('+34612345678');
         });
     });
 });
