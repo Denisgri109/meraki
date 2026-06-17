@@ -202,6 +202,7 @@ export function LessonEditorScreen() {
             await (supabase as any).from('lessons').delete().eq('id', lessonId);
             navigation.goBack();
         } catch (error: any) {
+            console.error('Error deleting lesson:', error);
             showAlert('Error', error.message, 'error');
         }
     };
