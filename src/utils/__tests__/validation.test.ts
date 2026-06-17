@@ -14,6 +14,7 @@ import {
     validatePhone,
     formatPhone,
     normalizePhone,
+    validateServiceName,
 } from '../validation';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -42,6 +43,34 @@ describe('cleanPhoneNumber', () => {
 
     it('returns digits-only string unchanged', () => {
         expect(cleanPhoneNumber('0871234567')).toBe('0871234567');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// validateServiceName
+// ═══════════════════════════════════════════════════════════════════════════
+describe('validateServiceName', () => {
+    it('should return invalid for empty or undefined/null names', () => {
+        expect(validateServiceName('')).toEqual({ valid: false, error: 'Service name is required' });
+        expect(validateServiceName('   ')).toEqual({ valid: false, error: 'Service name is required' });
+
+        // Runtime edge cases matching typical JS interop
+        expect(validateServiceName(undefined as any)).toEqual({ valid: false, error: 'Service name is required' });
+        expect(validateServiceName(null as any)).toEqual({ valid: false, error: 'Service name is required' });
+    });
+
+    it('should return invalid for strings shorter than 3 characters', () => {
+        expect(validateServiceName('ab')).toEqual({ valid: false, error: 'Service name must be at least 3 characters' });
+        expect(validateServiceName(' a ')).toEqual({ valid: false, error: 'Service name must be at least 3 characters' });
+        expect(validateServiceName('12')).toEqual({ valid: false, error: 'Service name must be at least 3 characters' });
+    });
+
+    it('should return valid for valid service names', () => {
+        expect(validateServiceName('abc')).toEqual({ valid: true });
+        expect(validateServiceName('Haircut')).toEqual({ valid: true });
+        expect(validateServiceName('Men\'s Haircut')).toEqual({ valid: true });
+        expect(validateServiceName('  Haircut  ')).toEqual({ valid: true });
+        expect(validateServiceName('123')).toEqual({ valid: true });
     });
 });
 
