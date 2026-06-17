@@ -113,13 +113,13 @@ export function useLessonQA({ lessonId, courseId, instructorId, isInstructor }: 
                         .eq('id', payload.new.id)
                         .single();
 
-                    if (data) {
-                        setMessages(prev => {
-                            if (prev.find(m => m.id === (data as any).id)) return prev;
-                            return [...prev, data as unknown as QAMessage];
-                        });
-                        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-                    }
+                    if (!data) return;
+
+                    setMessages(prev => {
+                        if (prev.find(m => m.id === (data as any).id)) return prev;
+                        return [...prev, data as unknown as QAMessage];
+                    });
+                    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
                 }
             )
             .on(
@@ -137,11 +137,11 @@ export function useLessonQA({ lessonId, courseId, instructorId, isInstructor }: 
                         .eq('id', payload.new.id)
                         .single();
 
-                    if (data) {
-                        setMessages(prev => prev.map(m =>
-                            m.id === (data as any).id ? (data as unknown as QAMessage) : m
-                        ));
-                    }
+                    if (!data) return;
+
+                    setMessages(prev => prev.map(m =>
+                        m.id === (data as any).id ? (data as unknown as QAMessage) : m
+                    ));
                 }
             )
             .subscribe();
