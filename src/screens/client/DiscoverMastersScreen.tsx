@@ -72,58 +72,19 @@ export function DiscoverMastersScreen() {
 
     const loadMasters = async () => {
         try {
-            const { data: mastersData, error } = await supabase
-                .from('profiles')
-                .select(`
-                    id,
-                    full_name,
-                    avatar_url,
-                    city,
-                    country,
-                    state,
-                    state_code,
-                    latitude,
-                    longitude,
-                    bio
-                `)
-                .in('role', ['master', 'owner'])
-                .not('full_name', 'is', null);
+            const { data: mastersData, error } = await supabase.rpc('get_masters_with_services');
 
             if (error) throw error;
 
-            const { data: settingsData } = await (supabase as any)
-                .from('master_settings')
-                .select('master_id, is_visible_globally, accepts_new_clients');
-
-            const { data: servicesData } = await supabase
-                .from('master_services')
-                .select('master_id');
-
-            const settingsMap = new Map();
-            (settingsData || []).forEach((s: any) => {
-                settingsMap.set(s.master_id, s);
-            });
-
-            const serviceCounts = new Map<string, number>();
-            (servicesData || []).forEach((s: any) => {
-                serviceCounts.set(s.master_id, (serviceCounts.get(s.master_id) || 0) + 1);
-            });
-
             const visibleMasters: Master[] = (mastersData || [])
-                .filter((m: any) => {
-                    const settings = settingsMap.get(m.id);
-                    return !settings || settings.is_visible_globally !== false;
-                })
-                .map((m: any) => {
-                    const settings = settingsMap.get(m.id);
-                    return {
-                        ...m,
-                        services_count: serviceCounts.get(m.id) || 0,
-                        rating: null,
-                        is_visible_globally: settings?.is_visible_globally ?? true,
-                        accepts_new_clients: settings?.accepts_new_clients ?? true,
-                    };
-                });
+                .filter((m: any) => m.is_visible_globally !== false)
+                .map((m: any) => ({
+                    ...m,
+                    services_count: Number(m.services_count) || 0,
+                    rating: null,
+                    is_visible_globally: m.is_visible_globally ?? true,
+                    accepts_new_clients: m.accepts_new_clients ?? true,
+                }));
 
             setMasters(visibleMasters);
         } catch (error) {
