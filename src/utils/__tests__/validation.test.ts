@@ -97,7 +97,7 @@ describe('validateIrishPhone', () => {
     });
 
     it('rejects an Irish mobile number that is too short', () => {
-        const result = validateIrishPhone('087 12345');
+        const result = validateIrishPhone('087 1234');
         expect(result.valid).toBe(false);
     });
 
@@ -271,6 +271,28 @@ describe('validateFullName', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 describe('International Phone Validation & Formatting Helpers', () => {
     describe('parsePhoneNumber', () => {
+        it('handles empty inputs, returning default IE', () => {
+            expect(parsePhoneNumber('')).toEqual({ countryCode: 'IE', localNumber: '' });
+            // @ts-ignore - Testing invalid inputs explicitly
+            expect(parsePhoneNumber(null)).toEqual({ countryCode: 'IE', localNumber: '' });
+            // @ts-ignore
+            expect(parsePhoneNumber(undefined)).toEqual({ countryCode: 'IE', localNumber: '' });
+        });
+
+        it('strips spaces from inputs before parsing', () => {
+            expect(parsePhoneNumber('+353 87 123 4567')).toEqual({ countryCode: 'IE', localNumber: '871234567' });
+            expect(parsePhoneNumber(' +44 7700 900 000 ')).toEqual({ countryCode: 'GB', localNumber: '7700900000' });
+        });
+
+        it('falls back to IE for unknown prefixes', () => {
+            // unknown international prefix (+99)
+            expect(parsePhoneNumber('+99123456')).toEqual({ countryCode: 'IE', localNumber: '+99123456' });
+            // ordinary number starting with 0 but not matching any known country pattern falls back to IE, stripping the 0
+            expect(parsePhoneNumber('0987654321')).toEqual({ countryCode: 'IE', localNumber: '987654321' });
+            // ordinary number not starting with 0 or any country code falls back to IE
+            expect(parsePhoneNumber('987654321')).toEqual({ countryCode: 'IE', localNumber: '987654321' });
+        });
+
         it('parses Irish numbers correctly', () => {
             expect(parsePhoneNumber('+353871234567')).toEqual({ countryCode: 'IE', localNumber: '871234567' });
             expect(parsePhoneNumber('00353871234567')).toEqual({ countryCode: 'IE', localNumber: '871234567' });
@@ -288,6 +310,24 @@ describe('International Phone Validation & Formatting Helpers', () => {
             expect(parsePhoneNumber('+12015550123')).toEqual({ countryCode: 'US', localNumber: '2015550123' });
             expect(parsePhoneNumber('0012015550123')).toEqual({ countryCode: 'US', localNumber: '2015550123' });
             expect(parsePhoneNumber('12015550123')).toEqual({ countryCode: 'US', localNumber: '2015550123' });
+        });
+
+        it('parses German numbers correctly', () => {
+            expect(parsePhoneNumber('+491701234567')).toEqual({ countryCode: 'DE', localNumber: '1701234567' });
+            expect(parsePhoneNumber('00491701234567')).toEqual({ countryCode: 'DE', localNumber: '1701234567' });
+            expect(parsePhoneNumber('491701234567')).toEqual({ countryCode: 'DE', localNumber: '1701234567' });
+        });
+
+        it('parses French numbers correctly', () => {
+            expect(parsePhoneNumber('+33612345678')).toEqual({ countryCode: 'FR', localNumber: '612345678' });
+            expect(parsePhoneNumber('0033612345678')).toEqual({ countryCode: 'FR', localNumber: '612345678' });
+            expect(parsePhoneNumber('33612345678')).toEqual({ countryCode: 'FR', localNumber: '612345678' });
+        });
+
+        it('parses Spanish numbers correctly', () => {
+            expect(parsePhoneNumber('+34612345678')).toEqual({ countryCode: 'ES', localNumber: '612345678' });
+            expect(parsePhoneNumber('0034612345678')).toEqual({ countryCode: 'ES', localNumber: '612345678' });
+            expect(parsePhoneNumber('34612345678')).toEqual({ countryCode: 'ES', localNumber: '612345678' });
         });
     });
 
