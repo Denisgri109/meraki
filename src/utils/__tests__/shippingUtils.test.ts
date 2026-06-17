@@ -69,6 +69,12 @@ describe('getCountryName', () => {
         expect(getCountryName('DE')).toBe('Germany');
     });
 
+    it('returns the correct name for every European country', () => {
+        EUROPEAN_COUNTRIES.forEach(country => {
+            expect(getCountryName(country.code)).toBe(country.name);
+        });
+    });
+
     it('returns the code itself for unknown country', () => {
         expect(getCountryName('US')).toBe('US');
     });
@@ -118,6 +124,11 @@ describe('getZoneLabel', () => {
 
     it('returns Remote Europe for remote zone', () => {
         expect(getZoneLabel('remote')).toBe('Remote Europe');
+    });
+
+    it('returns the zone itself for unknown zones (fallback branch coverage)', () => {
+        // We cast to any to test the fallback branch for runtime inputs
+        expect(getZoneLabel('unknown_zone' as any)).toBe('unknown_zone');
     });
 });
 
