@@ -288,6 +288,7 @@ export function calculatePreAuthAmount(servicePrice: number, percentage: number 
  * Format card brand for display
  */
 export function formatCardBrand(brand: string): string {
+    if (!brand) return '';
     const brands: Record<string, string> = {
         visa: 'Visa',
         mastercard: 'Mastercard',

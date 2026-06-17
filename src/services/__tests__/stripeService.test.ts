@@ -176,6 +176,20 @@ describe('formatCardBrand', () => {
     it('formats unionpay to UnionPay', () => {
         expect(formatCardBrand('unionpay')).toBe('UnionPay');
     });
+
+    it('returns empty string when brand is empty', () => {
+        expect(formatCardBrand('')).toBe('');
+    });
+
+    it('returns empty string when brand is null', () => {
+        // @ts-ignore - testing runtime behavior for invalid input
+        expect(formatCardBrand(null)).toBe('');
+    });
+
+    it('returns empty string when brand is undefined', () => {
+        // @ts-ignore - testing runtime behavior for invalid input
+        expect(formatCardBrand(undefined)).toBe('');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
