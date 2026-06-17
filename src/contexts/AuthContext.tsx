@@ -107,34 +107,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
                     setProfile(null);
                     setLoading(false);
                     setSessionError(null);
-                } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                    return;
+                }
+
+                if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     setLoading(true);
                     setSessionError(null);
 
-                    if (session?.user) {
-                        // Fetch profile first so we don't flash default routes
-                        if (!profile || profile.id !== session.user.id) {
-                            await fetchProfile(session.user.id);
-                        }
+                    if (!session?.user) {
+                        setSession(session);
+                        setUser(null);
+                        setLoading(false);
+                        return;
+                    }
 
-                        setSession(session);
-                        setUser(session.user);
-                    } else {
-                        setSession(session);
-                        setUser(null);
-                        setLoading(false);
-                    }
-                } else if (event === 'USER_UPDATED') {
-                    setLoading(true);
-                    if (session?.user) {
+                    // Fetch profile first so we don't flash default routes
+                    if (!profile || profile.id !== session.user.id) {
                         await fetchProfile(session.user.id);
-                        setSession(session);
-                        setUser(session.user);
-                    } else {
+                    }
+
+                    setSession(session);
+                    setUser(session.user);
+                    return;
+                }
+
+                if (event === 'USER_UPDATED') {
+                    setLoading(true);
+
+                    if (!session?.user) {
                         setSession(session);
                         setUser(null);
                         setLoading(false);
+                        return;
                     }
+
+                    await fetchProfile(session.user.id);
+                    setSession(session);
+                    setUser(session.user);
                 }
             }
         );
