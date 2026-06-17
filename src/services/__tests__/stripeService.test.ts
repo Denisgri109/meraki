@@ -110,6 +110,26 @@ describe('calculatePreAuthAmount', () => {
     it('handles 0 service price with minimum enforcement', () => {
         expect(calculatePreAuthAmount(0)).toBe(50);
     });
+
+    it('handles floating point precision correctly (e.g. 19.99 * 10%)', () => {
+        expect(calculatePreAuthAmount(19.99, 10)).toBe(200); // 199.9 -> 200
+    });
+
+    it('handles 0 percentage (should return minimum €0.50)', () => {
+        expect(calculatePreAuthAmount(100, 0)).toBe(50);
+    });
+
+    it('handles > 100 percentage (e.g. 150%)', () => {
+        expect(calculatePreAuthAmount(100, 150)).toBe(15000);
+    });
+
+    it('handles negative price (should return minimum €0.50)', () => {
+        expect(calculatePreAuthAmount(-50)).toBe(50);
+    });
+
+    it('handles negative percentage (should return minimum €0.50)', () => {
+        expect(calculatePreAuthAmount(100, -50)).toBe(50);
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
