@@ -133,7 +133,6 @@ export function LessonEditorScreen() {
 
                 showAlert('Success', 'Video uploaded successfully!', 'success');
             } catch (err: any) {
-                console.error('Error uploading video:', err);
                 showAlert('Error', 'Failed to upload video: ' + (err.message || 'Unknown error'), 'error');
             } finally {
                 setUploading(false);
