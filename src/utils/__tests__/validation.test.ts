@@ -391,12 +391,63 @@ describe('International Phone Validation & Formatting Helpers', () => {
     });
 
     describe('formatPhone', () => {
-        it('formats UK numbers', () => {
-            expect(formatPhone('7700900000', 'GB')).toBe('7700 900000');
+        it('returns empty string for empty input', () => {
+            expect(formatPhone('', 'US')).toBe('');
+            expect(formatPhone('   ', 'IE')).toBe('');
+            expect(formatPhone(null as any, 'FR')).toBe('');
         });
 
-        it('formats US numbers', () => {
+        it('returns original input for unsupported country code', () => {
+            expect(formatPhone('1234567890', 'XX')).toBe('1234567890');
+        });
+
+        it('formats Irish numbers correctly (IE)', () => {
+            // Mobile formatting (9 digits after removing 0)
+            expect(formatPhone('0871234567', 'IE')).toBe('87 123 4567');
+            // Not mobile or not 9 digits - returns cleaned local string
+            expect(formatPhone('01234567', 'IE')).toBe('1234567');
+            // Too short - returns raw
+            expect(formatPhone('12345', 'IE')).toBe('12345');
+        });
+
+        it('formats UK numbers correctly (GB)', () => {
+            // Exactly 10 digits
+            expect(formatPhone('7700900000', 'GB')).toBe('7700 900000');
+            expect(formatPhone('07700900000', 'GB')).toBe('7700 900000'); // the '0' prefix is stripped, making it 10 digits
+            // Not 10 digits
+            expect(formatPhone('12345678', 'GB')).toBe('12345678');
+        });
+
+        it('formats US/Canada numbers correctly (US)', () => {
+            // Exactly 10 digits
             expect(formatPhone('2015550123', 'US')).toBe('(201) 555-0123');
+            // 11 digits starting with 1
+            expect(formatPhone('12015550123', 'US')).toBe('(201) 555-0123');
+            // Not 10 digits
+            expect(formatPhone('123456789', 'US')).toBe('123456789');
+        });
+
+        it('formats German numbers correctly (DE)', () => {
+            // 3 or more digits
+            expect(formatPhone('1701234567', 'DE')).toBe('170 1234567');
+            expect(formatPhone('01701234567', 'DE')).toBe('170 1234567'); // 0 stripped
+            // Less than 3 digits
+            expect(formatPhone('12', 'DE')).toBe('12');
+        });
+
+        it('formats French numbers correctly (FR)', () => {
+            // Exactly 9 digits
+            expect(formatPhone('612345678', 'FR')).toBe('6 12 34 56 78');
+            expect(formatPhone('0612345678', 'FR')).toBe('6 12 34 56 78'); // 0 stripped, becomes 9
+            // Not 9 digits
+            expect(formatPhone('12345678', 'FR')).toBe('12345678');
+        });
+
+        it('formats Spanish numbers correctly (ES)', () => {
+            // Exactly 9 digits
+            expect(formatPhone('612345678', 'ES')).toBe('612 345 678');
+            // Not 9 digits
+            expect(formatPhone('12345678', 'ES')).toBe('12345678');
         });
     });
 
