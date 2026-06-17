@@ -10,6 +10,45 @@ import { useAuth } from '../contexts/AuthContext';
 import { getDeviceTimezone } from '../utils/timezone';
 import { getAllCountries, type Country } from '../utils/locationApi';
 
+async function detectLocationData() {
+    try {
+        const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Low,
+        });
+        const [reverseGeocode] = await Location.reverseGeocodeAsync({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+        });
+
+        let detectedCountry = reverseGeocode?.country || undefined;
+        let detectedIso2: string | undefined = undefined;
+
+        if (detectedCountry) {
+            try {
+                const allCountries = await getAllCountries();
+                const found = allCountries.find(
+                    c => c.name.toLowerCase() === detectedCountry?.toLowerCase()
+                );
+                if (found) {
+                    detectedIso2 = found.iso2;
+                }
+            } catch (e) {
+                console.error('Could not resolve country code:', e);
+            }
+        }
+
+        return {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            country: detectedCountry,
+            iso2: detectedIso2,
+        };
+    } catch (locErr) {
+        console.error('Location detection error:', locErr);
+        return null;
+    }
+}
+
 export function useAutoLocation() {
     const { profile, refreshProfile } = useAuth();
     const [isCityMissing, setIsCityMissing] = useState(false);
@@ -39,39 +78,20 @@ export function useAutoLocation() {
                 if (!profile.country) {
                     const { status } = await Location.requestForegroundPermissionsAsync();
                     if (status === 'granted') {
-                        try {
-                            const location = await Location.getCurrentPositionAsync({
-                                accuracy: Location.Accuracy.Low,
-                            });
-                            const [reverseGeocode] = await Location.reverseGeocodeAsync({
-                                latitude: location.coords.latitude,
-                                longitude: location.coords.longitude,
-                            });
+                        const locationData = await detectLocationData();
+                        if (locationData) {
+                            updates.latitude = locationData.latitude;
+                            updates.longitude = locationData.longitude;
 
-                            // Store GPS coordinates in profile for distance-based filtering
-                            updates.latitude = location.coords.latitude;
-                            updates.longitude = location.coords.longitude;
+                            if (locationData.country) {
+                                setDetectedCountry(locationData.country);
+                                updates.country = locationData.country;
 
-                            if (reverseGeocode?.country) {
-                                setDetectedCountry(reverseGeocode.country);
-                                updates.country = reverseGeocode.country;
-
-                                // Try to find ISO2 code from countries API
-                                try {
-                                    const allCountries = await getAllCountries();
-                                    const found = allCountries.find(
-                                        c => c.name.toLowerCase() === reverseGeocode.country?.toLowerCase()
-                                    );
-                                    if (found) {
-                                        setDetectedCountryCode(found.iso2);
-                                        updates.country_code = found.iso2;
-                                    }
-                                } catch (e) {
-                                    console.error('Could not resolve country code:', e);
+                                if (locationData.iso2) {
+                                    setDetectedCountryCode(locationData.iso2);
+                                    updates.country_code = locationData.iso2;
                                 }
                             }
-                        } catch (locErr) {
-                            console.error('Location detection error:', locErr);
                         }
                     }
                 } else {
@@ -100,19 +120,21 @@ export function useAutoLocation() {
                 }
 
                 // 4. Gate the modal until the user has finished location setup
-                //    (country must be set AND they've been through the modal once,
-                //    so state/region is captured for radius filtering).
-                const setupDone = (profile as any).location_setup_completed === true;
-                if (!profile.country || !setupDone) {
-                    setIsCityMissing(true);
-                }
+                checkLocationSetupStatus();
             } catch (err) {
                 console.error('Auto-location detection error:', err);
                 // Still gate even if detection fails
-                const setupDone = (profile as any).location_setup_completed === true;
-                if (!profile.country || !setupDone) {
-                    setIsCityMissing(true);
-                }
+                checkLocationSetupStatus();
+            }
+        };
+
+        const checkLocationSetupStatus = () => {
+            // Gate the modal until the user has finished location setup
+            // (country must be set AND they've been through the modal once,
+            // so state/region is captured for radius filtering).
+            const setupDone = (profile as any).location_setup_completed === true;
+            if (!profile.country || !setupDone) {
+                setIsCityMissing(true);
             }
         };
 
