@@ -85,6 +85,22 @@ describe('centsToEuros', () => {
     it('converts 1 cent to 0.01 euros', () => {
         expect(centsToEuros(1)).toBe(0.01);
     });
+
+    it('handles negative cents (e.g. refunds)', () => {
+        expect(centsToEuros(-150)).toBe(-1.5);
+    });
+
+    it('handles values resulting in multiple decimal places correctly', () => {
+        expect(centsToEuros(1999)).toBe(19.99);
+    });
+
+    it('handles large numbers', () => {
+        expect(centsToEuros(1000000)).toBe(10000);
+    });
+
+    it('handles non-integer cents input', () => {
+        expect(centsToEuros(100.5)).toBe(1.005);
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
