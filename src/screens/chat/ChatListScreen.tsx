@@ -76,7 +76,6 @@ export function ChatListScreen() {
         try {
             const servicesEnabled = await Location.hasServicesEnabledAsync();
             if (!servicesEnabled) {
-                console.log('Location services are disabled on this device.');
                 return;
             }
 
