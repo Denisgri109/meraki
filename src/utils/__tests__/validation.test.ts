@@ -10,6 +10,7 @@ import {
     validateEmail,
     validatePassword,
     validateFullName,
+    validatePostalCode,
     parsePhoneNumber,
     validatePhone,
     formatPhone,
@@ -263,6 +264,56 @@ describe('validatePassword', () => {
 
     it('rejects an empty password', () => {
         const result = validatePassword('');
+        expect(result.valid).toBe(false);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// validatePostalCode
+// ═══════════════════════════════════════════════════════════════════════════
+describe('validatePostalCode', () => {
+    it('validates a standard alphanumeric postal code', () => {
+        expect(validatePostalCode('A12B34C')).toEqual({ valid: true });
+    });
+
+    it('validates a postal code with minimum length of 3', () => {
+        expect(validatePostalCode('123')).toEqual({ valid: true });
+    });
+
+    it('validates a postal code with maximum length of 10', () => {
+        expect(validatePostalCode('ABC123DEFG')).toEqual({ valid: true });
+    });
+
+    it('validates a postal code containing spaces (spaces are stripped)', () => {
+        expect(validatePostalCode('A12 B34C')).toEqual({ valid: true });
+    });
+
+    it('validates a postal code containing hyphens (hyphens are stripped)', () => {
+        expect(validatePostalCode('A12-B34C')).toEqual({ valid: true });
+    });
+
+    it('rejects an empty postal code', () => {
+        const result = validatePostalCode('');
+        expect(result.valid).toBe(false);
+    });
+
+    it('rejects a whitespace-only postal code', () => {
+        const result = validatePostalCode('   ');
+        expect(result.valid).toBe(false);
+    });
+
+    it('rejects a postal code that is too short (less than 3 characters)', () => {
+        const result = validatePostalCode('12');
+        expect(result.valid).toBe(false);
+    });
+
+    it('rejects a postal code that is too long (more than 10 characters)', () => {
+        const result = validatePostalCode('ABC123DEFGHI');
+        expect(result.valid).toBe(false);
+    });
+
+    it('rejects a postal code with special characters other than space or hyphen', () => {
+        const result = validatePostalCode('A12@B34');
         expect(result.valid).toBe(false);
     });
 });
