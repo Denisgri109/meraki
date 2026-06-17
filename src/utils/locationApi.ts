@@ -143,10 +143,13 @@ export function getTimezoneFromCountry(country: Country): string | null {
 export function filterCountries(countries: Country[], query: string): Country[] {
     const lowerQuery = query.toLowerCase().trim();
     if (!lowerQuery) return countries;
-    return countries.filter(c =>
-        c.name.toLowerCase().includes(lowerQuery) ||
-        c.iso2.toLowerCase() === lowerQuery
-    );
+    return countries.filter(c => {
+        const matchesName = c.name.toLowerCase().includes(lowerQuery);
+        const exactMatchesIso2 = c.iso2.toLowerCase() === lowerQuery;
+
+        // Exact iso2 takes precedence or matching name
+        return exactMatchesIso2 || matchesName;
+    });
 }
 
 /**

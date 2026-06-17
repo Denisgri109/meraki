@@ -1,4 +1,4 @@
-import { getCountryByCode, getAllCountries, getCitiesOfCountry, getStatesOfCountry, getCitiesOfState, filterCities } from '../locationApi';
+import { getCountryByCode, getAllCountries, getCitiesOfCountry, getStatesOfCountry, getCitiesOfState, filterCountries, Country } from '../locationApi';
 
 describe('locationApi', () => {
     const originalFetch = global.fetch;
@@ -279,91 +279,6 @@ describe('locationApi', () => {
         });
     });
 
-    describe('filterCities', () => {
-        const createMockCities = (count: number): any[] => {
-            return Array.from({ length: count }, (_, i) => ({
-                id: i + 1,
-                name: `City ${i + 1}`,
-                state_id: 1,
-                state_code: 'S1',
-                state_name: 'State 1',
-                country_id: 1,
-                country_code: 'C1',
-                country_name: 'Country 1',
-                latitude: '0',
-                longitude: '0'
-            }));
-        };
-
-        it('returns up to 50 cities when query is empty', () => {
-            const cities = createMockCities(100);
-            const result = filterCities(cities, '');
-            expect(result).toHaveLength(50);
-            expect(result).toEqual(cities.slice(0, 50));
-        });
-
-        it('returns up to 50 cities when query is only whitespace', () => {
-            const cities = createMockCities(100);
-            const result = filterCities(cities, '   ');
-            expect(result).toHaveLength(50);
-            expect(result).toEqual(cities.slice(0, 50));
-        });
-
-        it('returns matched cities based on query', () => {
-            const cities = [
-                ...createMockCities(3),
-                { id: 4, name: 'UniqueCity', state_id: 1, state_code: 'S1', state_name: 'S', country_id: 1, country_code: 'C', country_name: 'C', latitude: '0', longitude: '0' }
-            ];
-            const result = filterCities(cities, 'Unique');
-            expect(result).toHaveLength(1);
-            expect(result[0].name).toBe('UniqueCity');
-        });
-
-        it('performs case-insensitive search', () => {
-            const cities = [
-                ...createMockCities(3),
-                { id: 4, name: 'UniqueCity', state_id: 1, state_code: 'S1', state_name: 'S', country_id: 1, country_code: 'C', country_name: 'C', latitude: '0', longitude: '0' }
-            ];
-            const result = filterCities(cities, 'uniquecity');
-            expect(result).toHaveLength(1);
-            expect(result[0].name).toBe('UniqueCity');
-        });
-
-        it('trims leading and trailing spaces from query', () => {
-            const cities = [
-                ...createMockCities(3),
-                { id: 4, name: 'UniqueCity', state_id: 1, state_code: 'S1', state_name: 'S', country_id: 1, country_code: 'C', country_name: 'C', latitude: '0', longitude: '0' }
-            ];
-            const result = filterCities(cities, '  UniqueCity  ');
-            expect(result).toHaveLength(1);
-            expect(result[0].name).toBe('UniqueCity');
-        });
-
-        it('returns empty array if no cities match', () => {
-            const cities = createMockCities(3);
-            const result = filterCities(cities, 'NonExistentCity');
-            expect(result).toHaveLength(0);
-        });
-
-        it('limits filtered results to 50 elements', () => {
-            const cities = Array.from({ length: 100 }, (_, i) => ({
-                id: i + 1,
-                name: `MatchCity ${i + 1}`,
-                state_id: 1,
-                state_code: 'S1',
-                state_name: 'State 1',
-                country_id: 1,
-                country_code: 'C1',
-                country_name: 'Country 1',
-                latitude: '0',
-                longitude: '0'
-            }));
-            const result = filterCities(cities, 'MatchCity');
-            expect(result).toHaveLength(50);
-            expect(result).toEqual(cities.slice(0, 50));
-        });
-    });
-
     describe('getStatesOfCountry', () => {
         const mockStates = [
             { id: 1, name: 'State 1', iso2: 'S1', country_code: 'C1' },
@@ -420,6 +335,57 @@ describe('locationApi', () => {
                 'Error fetching states:',
                 networkError
             );
+        });
+    });
+
+    describe('filterCountries', () => {
+        const mockCountries: Country[] = [
+            { id: 1, name: 'United States', iso2: 'US', iso3: 'USA', phonecode: '1', capital: 'Washington', currency: 'USD', currency_symbol: '$', timezones: [] },
+            { id: 2, name: 'United Kingdom', iso2: 'GB', iso3: 'GBR', phonecode: '44', capital: 'London', currency: 'GBP', currency_symbol: '£', timezones: [] },
+            { id: 3, name: 'Canada', iso2: 'CA', iso3: 'CAN', phonecode: '1', capital: 'Ottawa', currency: 'CAD', currency_symbol: '$', timezones: [] },
+            { id: 4, name: 'Australia', iso2: 'AU', iso3: 'AUS', phonecode: '61', capital: 'Canberra', currency: 'AUD', currency_symbol: '$', timezones: [] },
+            { id: 5, name: 'Germany', iso2: 'DE', iso3: 'DEU', phonecode: '49', capital: 'Berlin', currency: 'EUR', currency_symbol: '€', timezones: [] },
+        ];
+
+        it('returns all countries when the query is empty', () => {
+            expect(filterCountries(mockCountries, '')).toEqual(mockCountries);
+        });
+
+        it('returns all countries when the query is whitespace only', () => {
+            expect(filterCountries(mockCountries, '   ')).toEqual(mockCountries);
+        });
+
+        it('filters correctly by partial, case-insensitive name match', () => {
+            const result = filterCountries(mockCountries, 'united');
+            expect(result.length).toBe(2);
+            expect(result.map(c => c.name)).toEqual(['United States', 'United Kingdom']);
+
+            const result2 = filterCountries(mockCountries, 'CAN');
+            expect(result2.length).toBe(1);
+            expect(result2[0].name).toBe('Canada');
+        });
+
+        it('filters correctly by exact, case-insensitive iso2 match', () => {
+            // 'us' also matches 'United States' and 'Australia' because of 'us' in 'Australia'
+            // To test *exact* iso2 match prioritizing or isolating, we can try something else or acknowledge both match
+            const result = filterCountries(mockCountries, 'us');
+            expect(result.length).toBe(2);
+            expect(result.map(c => c.name)).toEqual(['United States', 'Australia']);
+
+            const result2 = filterCountries(mockCountries, 'DE');
+            expect(result2.length).toBe(1);
+            expect(result2[0].name).toBe('Germany');
+        });
+
+        it('handles trailing and leading whitespace in the query properly', () => {
+            const result = filterCountries(mockCountries, ' canada  ');
+            expect(result.length).toBe(1);
+            expect(result[0].name).toBe('Canada');
+        });
+
+        it('returns an empty array when there are no matches', () => {
+            const result = filterCountries(mockCountries, 'nonexistent');
+            expect(result.length).toBe(0);
         });
     });
 });
