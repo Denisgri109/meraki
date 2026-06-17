@@ -97,7 +97,7 @@ describe('validateIrishPhone', () => {
     });
 
     it('rejects an Irish mobile number that is too short', () => {
-        const result = validateIrishPhone('087 12345');
+        const result = validateIrishPhone('087 1234');
         expect(result.valid).toBe(false);
     });
 
@@ -150,9 +150,21 @@ describe('formatIrishPhone', () => {
         expect(formatIrishPhone('')).toBe('');
     });
 
+    it('returns empty string for whitespace-only input', () => {
+        expect(formatIrishPhone('   ')).toBe('');
+    });
+
     it('returns original for too-short input', () => {
         const short = '08712';
         expect(formatIrishPhone(short)).toBe(short);
+    });
+
+    it('returns original input for non-IE numbers', () => {
+        expect(formatIrishPhone('+447700900000')).toBe('+447700900000');
+    });
+
+    it('formats a number with spaces correctly', () => {
+        expect(formatIrishPhone('087 123 4567')).toBe('+353 87 123 4567');
     });
 });
 
