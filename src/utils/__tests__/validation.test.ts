@@ -97,7 +97,7 @@ describe('validateIrishPhone', () => {
     });
 
     it('rejects an Irish mobile number that is too short', () => {
-        const result = validateIrishPhone('087 12345');
+        const result = validateIrishPhone('087 1234');
         expect(result.valid).toBe(false);
     });
 
@@ -321,13 +321,42 @@ describe('International Phone Validation & Formatting Helpers', () => {
     });
 
     describe('normalizePhone', () => {
-        it('normalizes UK numbers to E.164', () => {
+        it('returns empty string for unsupported country code', () => {
+            expect(normalizePhone('7700900000', 'XX')).toBe('');
+        });
+
+        it('returns empty string for invalid phone number', () => {
+            expect(normalizePhone('123', 'GB')).toBe(''); // Too short
+            expect(normalizePhone('123', 'IE')).toBe(''); // Too short
+        });
+
+        it('normalizes Irish numbers to E.164 and removes leading 0', () => {
+            expect(normalizePhone('0871234567', 'IE')).toBe('+353871234567');
+            expect(normalizePhone('871234567', 'IE')).toBe('+353871234567');
+        });
+
+        it('normalizes UK numbers to E.164 and removes leading 0', () => {
             expect(normalizePhone('7700900000', 'GB')).toBe('+447700900000');
             expect(normalizePhone('07700900000', 'GB')).toBe('+447700900000');
         });
 
-        it('normalizes US numbers to E.164', () => {
+        it('normalizes US numbers to E.164 and removes leading 1 for 11-digit numbers', () => {
             expect(normalizePhone('2015550123', 'US')).toBe('+12015550123');
+            expect(normalizePhone('12015550123', 'US')).toBe('+12015550123'); // 11 digits starting with 1
+        });
+
+        it('normalizes German numbers to E.164 and removes leading 0', () => {
+            expect(normalizePhone('01511234567', 'DE')).toBe('+491511234567');
+            expect(normalizePhone('1511234567', 'DE')).toBe('+491511234567');
+        });
+
+        it('normalizes French numbers to E.164 and removes leading 0', () => {
+            expect(normalizePhone('0612345678', 'FR')).toBe('+33612345678');
+            expect(normalizePhone('612345678', 'FR')).toBe('+33612345678');
+        });
+
+        it('normalizes Spanish numbers to E.164', () => {
+            expect(normalizePhone('612345678', 'ES')).toBe('+34612345678');
         });
     });
 });
