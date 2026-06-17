@@ -185,6 +185,14 @@ function MessagesStackNavigator() {
 }
 
 export function MasterTabs() {
+    const getTabStyle = (route: any, expectedRouteName: string) => {
+        const routeName = getFocusedRouteNameFromRoute(route) ?? expectedRouteName;
+        if (routeName !== expectedRouteName) {
+            return { display: 'none' };
+        }
+        return styles.tabBar;
+    };
+
     return (
         <>
             <StripeConnectGate />
@@ -205,13 +213,7 @@ export function MasterTabs() {
                         tabBarIcon: ({ color }: { color: string }) => (
                             <MaterialIcons name="grid-view" size={22} color={color} />
                         ),
-                        tabBarStyle: ((route) => {
-                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'DashboardMain';
-                            if (routeName !== 'DashboardMain') {
-                                return { display: 'none' };
-                            }
-                            return styles.tabBar;
-                        })(route),
+                        tabBarStyle: getTabStyle(route, 'DashboardMain'),
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
@@ -253,13 +255,7 @@ export function MasterTabs() {
                         tabBarIcon: ({ color }: { color: string }) => (
                             <MaterialIcons name="forum" size={22} color={color} />
                         ),
-                        tabBarStyle: ((route) => {
-                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'ChatList';
-                            if (routeName !== 'ChatList') {
-                                return { display: 'none' };
-                            }
-                            return styles.tabBar;
-                        })(route),
+                        tabBarStyle: getTabStyle(route, 'ChatList'),
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
@@ -280,13 +276,7 @@ export function MasterTabs() {
                         tabBarIcon: ({ color }: { color: string }) => (
                             <MaterialIcons name="storefront" size={22} color={color} />
                         ),
-                        tabBarStyle: ((route) => {
-                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'ShopMain';
-                            if (routeName !== 'ShopMain') {
-                                return { display: 'none' };
-                            }
-                            return styles.tabBar;
-                        })(route),
+                        tabBarStyle: getTabStyle(route, 'ShopMain'),
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
@@ -307,13 +297,7 @@ export function MasterTabs() {
                         tabBarIcon: ({ color }: { color: string }) => (
                             <MaterialIcons name="settings" size={22} color={color} />
                         ),
-                        tabBarStyle: ((route) => {
-                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'MenuMain';
-                            if (routeName !== 'MenuMain') {
-                                return { display: 'none' };
-                            }
-                            return styles.tabBar;
-                        })(route),
+                        tabBarStyle: getTabStyle(route, 'MenuMain'),
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {

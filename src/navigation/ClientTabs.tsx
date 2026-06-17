@@ -233,6 +233,34 @@ function BookAndChatNavigator() {
 function ClientTabsInner() {
     const { isTabBarVisible } = useTabBar();
 
+    const getTabStyle = (route: any, expectedRouteName: string) => {
+        const routeName = getFocusedRouteNameFromRoute(route) ?? expectedRouteName;
+        if (routeName !== expectedRouteName) {
+            return { display: 'none' };
+        }
+        return styles.tabBar;
+    };
+
+    const getBookTabStyle = (route: any) => {
+        // Always respect context — booking flow screens set isTabBarVisible=false
+        if (!isTabBarVisible) {
+            return { display: 'none' };
+        }
+        // Also check leaf route name as fallback
+        const leafRouteName = getLeafRouteName(route);
+        const hiddenScreens = [
+            'ServiceDetail',
+            'SelectDateTime',
+            'BookingConfirm',
+            'MasterDetail',
+            'ConsultationWaiting',
+        ];
+        if (hiddenScreens.includes(leafRouteName)) {
+            return { display: 'none' };
+        }
+        return styles.tabBar;
+    };
+
     return (
         <>
             <Tab.Navigator
@@ -252,21 +280,7 @@ function ClientTabsInner() {
                         tabBarIcon: ({ color, size }: { color: string; size: number }) => (
                             <MaterialIcons name="home" size={22} color={color} />
                         ),
-                        tabBarStyle: ((route) => {
-                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'HomeMain';
-                            // Only show tab bar on HomeMain and ChatList (maybe? user said "important screen... confirming... settings... should be hidden")
-                            // User said: "It should only pair when the page isn't really as important, or the pages displaying a lot of stuff"
-                            // "Every screen, right, that has to do with confirming something or doing something, or whatever, or when going into settings... should be hidden"
-                            // ChatList is a top level feature. But User said "Book & Chat" has one screen.
-                            // Let's stick to showing it ONLY on HomeMain for now as requested "non-root screens". 
-                            // Actually, ChatList is in HomeStack but is it a "root" level thing? 
-                            // The user said "Select Date and Time" was the issue. 
-                            // Let's strictly follow: Visible ONLY on root.
-                            if (routeName !== 'HomeMain') {
-                                return { display: 'none' };
-                            }
-                            return styles.tabBar;
-                        })(route),
+                        tabBarStyle: getTabStyle(route, 'HomeMain'),
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
@@ -288,25 +302,7 @@ function ClientTabsInner() {
                             <MaterialIcons name="explore" size={22} color={color} />
                         ),
                         tabBarLabel: 'Book & Chat',
-                        tabBarStyle: (() => {
-                            // Always respect context — booking flow screens set isTabBarVisible=false
-                            if (!isTabBarVisible) {
-                                return { display: 'none' as const };
-                            }
-                            // Also check leaf route name as fallback
-                            const leafRouteName = getLeafRouteName(route);
-                            const hiddenScreens = [
-                                'ServiceDetail',
-                                'SelectDateTime',
-                                'BookingConfirm',
-                                'MasterDetail',
-                                'ConsultationWaiting',
-                            ];
-                            if (hiddenScreens.includes(leafRouteName)) {
-                                return { display: 'none' as const };
-                            }
-                            return styles.tabBar;
-                        })(),
+                        tabBarStyle: getBookTabStyle(route),
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
@@ -328,13 +324,7 @@ function ClientTabsInner() {
                         tabBarIcon: ({ color, size }: { color: string; size: number }) => (
                             <MaterialIcons name="school" size={22} color={color} />
                         ),
-                        tabBarStyle: ((route) => {
-                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'AcademyHome';
-                            if (routeName !== 'AcademyHome') {
-                                return { display: 'none' };
-                            }
-                            return styles.tabBar;
-                        })(route),
+                        tabBarStyle: getTabStyle(route, 'AcademyHome'),
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
@@ -355,13 +345,7 @@ function ClientTabsInner() {
                         tabBarIcon: ({ color, size }: { color: string; size: number }) => (
                             <MaterialIcons name="storefront" size={22} color={color} />
                         ),
-                        tabBarStyle: ((route) => {
-                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'ShopMain';
-                            if (routeName !== 'ShopMain') {
-                                return { display: 'none' };
-                            }
-                            return styles.tabBar;
-                        })(route),
+                        tabBarStyle: getTabStyle(route, 'ShopMain'),
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
@@ -382,13 +366,7 @@ function ClientTabsInner() {
                         tabBarIcon: ({ color, size }: { color: string; size: number }) => (
                             <MaterialIcons name="settings" size={22} color={color} />
                         ),
-                        tabBarStyle: ((route) => {
-                            const routeName = getFocusedRouteNameFromRoute(route) ?? 'MenuMain';
-                            if (routeName !== 'MenuMain') {
-                                return { display: 'none' };
-                            }
-                            return styles.tabBar;
-                        })(route),
+                        tabBarStyle: getTabStyle(route, 'MenuMain'),
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
