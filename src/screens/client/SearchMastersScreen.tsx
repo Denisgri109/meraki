@@ -63,7 +63,7 @@ export function SearchMastersScreen() {
                 }
             }
         } catch (error) {
-            console.log('Location detection failed:', error);
+            // Location detection failed silently
         }
     };
 

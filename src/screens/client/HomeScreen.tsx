@@ -350,7 +350,7 @@ export function ClientHomeScreen() {
                 };
             }
         } catch (error) {
-            console.log('Location detection failed:', error);
+            // Location detection failed silently
         }
         setLocationReady(true);
         return null;
