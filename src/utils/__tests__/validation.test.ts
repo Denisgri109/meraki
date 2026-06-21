@@ -32,8 +32,8 @@ describe('cleanPhoneNumber', () => {
         expect(cleanPhoneNumber('(087) 1234567')).toBe('0871234567');
     });
 
-    it('removes plus sign from phone number', () => {
-        expect(cleanPhoneNumber('+353871234567')).toBe('353871234567');
+    it('retains plus sign in phone number', () => {
+        expect(cleanPhoneNumber('+353871234567')).toBe('+353871234567');
     });
 
     it('returns empty string for empty input', () => {
@@ -42,6 +42,14 @@ describe('cleanPhoneNumber', () => {
 
     it('returns digits-only string unchanged', () => {
         expect(cleanPhoneNumber('0871234567')).toBe('0871234567');
+    });
+
+    it('retains letters in phone number', () => {
+        expect(cleanPhoneNumber('087abc1234567')).toBe('087abc1234567');
+    });
+
+    it('removes spaces, dashes, and parentheses mixed together', () => {
+        expect(cleanPhoneNumber('(087) - 123 - 4567')).toBe('0871234567');
     });
 });
 

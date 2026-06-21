@@ -155,7 +155,7 @@ export const SUPPORTED_COUNTRIES: CountryConfig[] = [
 ];
 
 export function cleanPhoneNumber(phone: string): string {
-    return phone.replace(/\D/g, '');
+    return phone.replace(/[\s\-\(\)]/g, '');
 }
 
 export function parsePhoneNumber(phone: string): { countryCode: string; localNumber: string } {
