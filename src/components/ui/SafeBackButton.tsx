@@ -30,7 +30,14 @@ export function SafeBackButton({
     };
 
     return (
-        <TouchableOpacity onPress={handlePress} style={[styles.button, style]}>
+        <TouchableOpacity
+            onPress={handlePress}
+            style={[styles.button, style]}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            accessibilityHint="Navigates to the previous screen"
+        >
             <Text style={styles.icon}>{icon}</Text>
         </TouchableOpacity>
     );
