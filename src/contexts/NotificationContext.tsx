@@ -192,6 +192,18 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
                 }
                 break;
 
+            case 'promotion':
+                navigation.navigate('Shop');
+                break;
+
+            case 'aftercare':
+                if (masterId) {
+                    navigation.navigate('MasterDetail', { masterId });
+                } else {
+                    navigation.navigate('MasterDetail');
+                }
+                break;
+
             case 'consultation_response':
                 navigation.navigate('Book');
                 break;

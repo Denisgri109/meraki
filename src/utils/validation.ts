@@ -19,8 +19,8 @@ export const SUPPORTED_COUNTRIES: CountryConfig[] = [
             let cleaned = local.replace(/\D/g, '');
             if (cleaned.startsWith('0')) cleaned = cleaned.substring(1);
             
-            if (cleaned.length < 7 || cleaned.length > 10) {
-                return { valid: false, error: 'Irish phone numbers must be 7-10 digits' };
+            if (cleaned.length < 8 || cleaned.length > 10) {
+                return { valid: false, error: 'Irish phone numbers must be 8-10 digits' };
             }
             return { valid: true };
         },

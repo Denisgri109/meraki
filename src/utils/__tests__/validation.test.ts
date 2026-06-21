@@ -14,6 +14,7 @@ import {
     validatePhone,
     formatPhone,
     normalizePhone,
+    validatePrice,
 } from '../validation';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -328,6 +329,37 @@ describe('International Phone Validation & Formatting Helpers', () => {
 
         it('normalizes US numbers to E.164', () => {
             expect(normalizePhone('2015550123', 'US')).toBe('+12015550123');
+        });
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // validatePrice
+    // ═══════════════════════════════════════════════════════════════════════════
+    describe('validatePrice', () => {
+        it('returns error for empty, undefined, or null values', () => {
+            expect(validatePrice('')).toEqual({ valid: false, error: 'Price is required' });
+            expect(validatePrice(undefined as any)).toEqual({ valid: false, error: 'Price is required' });
+            expect(validatePrice(null as any)).toEqual({ valid: false, error: 'Price is required' });
+        });
+
+        it('returns error for invalid string or NaN values', () => {
+            expect(validatePrice('abc')).toEqual({ valid: false, error: 'Price must be a valid number' });
+            expect(validatePrice(NaN)).toEqual({ valid: false, error: 'Price must be a valid number' });
+            expect(validatePrice('12.34abc')).toEqual({ valid: false, error: 'Price must be a valid number' });
+        });
+
+        it('returns error for negative values', () => {
+            expect(validatePrice(-1)).toEqual({ valid: false, error: 'Price cannot be negative' });
+            expect(validatePrice('-10.50')).toEqual({ valid: false, error: 'Price cannot be negative' });
+        });
+
+        it('returns valid for valid numbers and strings', () => {
+            expect(validatePrice(10)).toEqual({ valid: true });
+            expect(validatePrice(10.50)).toEqual({ valid: true });
+            expect(validatePrice('10')).toEqual({ valid: true });
+            expect(validatePrice('10.50')).toEqual({ valid: true });
+            expect(validatePrice('0')).toEqual({ valid: true });
+            expect(validatePrice(0)).toEqual({ valid: true });
         });
     });
 });
