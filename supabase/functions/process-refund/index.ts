@@ -5,6 +5,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY")!;
 
+const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
+};
+
 interface RequestBody {
     payment_intent_id: string;
     amount?: number; // Optional: partial refund amount in cents. If not provided, full refund.
@@ -14,13 +20,7 @@ interface RequestBody {
 Deno.serve(async (req: Request) => {
     // Handle CORS
     if (req.method === "OPTIONS") {
-        return new Response("ok", {
-            headers: {
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "POST",
-                "Access-Control-Allow-Headers": "authorization, content-type",
-            },
-        });
+        return new Response("ok", { headers: corsHeaders });
     }
 
     try {
@@ -30,7 +30,7 @@ Deno.serve(async (req: Request) => {
         if (!payment_intent_id) {
             return new Response(
                 JSON.stringify({ error: "Missing payment_intent_id" }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
@@ -66,7 +66,7 @@ Deno.serve(async (req: Request) => {
         if (result.error) {
             return new Response(
                 JSON.stringify({ error: result.error.message }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
@@ -79,8 +79,8 @@ Deno.serve(async (req: Request) => {
             }),
             {
                 headers: {
+                    ...corsHeaders,
                     "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
                 },
             }
         );
@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
         console.error("Error processing refund:", error);
         return new Response(
             JSON.stringify({ error: "Failed to process refund" }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
     }
 });

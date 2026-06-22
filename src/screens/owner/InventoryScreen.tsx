@@ -197,19 +197,20 @@ export function InventoryScreen() {
     };
 
     const handleAddProduct = async () => {
-        if (!newProduct.name || !newProduct.retail_price || !newProduct.wholesale_price) {
-            showAlert('Error', 'Please fill in all required fields (Name, Retail Price, Wholesale Price)', 'error');
+        if (!newProduct.name || !newProduct.retail_price) {
+            showAlert('Error', 'Please fill in all required fields (Name, Retail Price)', 'error');
             return;
         }
 
         setSaving(true);
         try {
+            const retailPriceParsed = parseFloat(newProduct.retail_price);
             const { error } = await supabase.from('products').insert({
                 name: newProduct.name,
                 description: newProduct.description || null,
                 image_url: newProduct.image_url || null,
-                retail_price: parseFloat(newProduct.retail_price),
-                wholesale_price: parseFloat(newProduct.wholesale_price),
+                retail_price: retailPriceParsed,
+                wholesale_price: retailPriceParsed,
                 stock_count: parseInt(newProduct.stock_count) || 0,
                 low_stock_threshold: parseInt(newProduct.low_stock_threshold) || 5,
                 category: newProduct.category,
@@ -598,29 +599,16 @@ export function InventoryScreen() {
                                     </View>
                                 </View>
 
-                                <View style={styles.formRow}>
-                                    <View style={[styles.formGroup, { flex: 1 }]}>
-                                        <MerakiText variant="caption" style={styles.formLabel}>Retail Price *</MerakiText>
-                                        <TextInput
-                                            style={styles.formInput}
-                                            value={newProduct.retail_price}
-                                            onChangeText={(text) => setNewProduct({ ...newProduct, retail_price: text })}
-                                            placeholder="0.00"
-                                            placeholderTextColor={colors.textMuted}
-                                            keyboardType="decimal-pad"
-                                        />
-                                    </View>
-                                    <View style={[styles.formGroup, { flex: 1, marginLeft: spacing.md }]}>
-                                        <MerakiText variant="caption" style={styles.formLabel}>Wholesale *</MerakiText>
-                                        <TextInput
-                                            style={styles.formInput}
-                                            value={newProduct.wholesale_price}
-                                            onChangeText={(text) => setNewProduct({ ...newProduct, wholesale_price: text })}
-                                            placeholder="0.00"
-                                            placeholderTextColor={colors.textMuted}
-                                            keyboardType="decimal-pad"
-                                        />
-                                    </View>
+                                <View style={styles.formGroup}>
+                                    <MerakiText variant="caption" style={styles.formLabel}>Retail Price *</MerakiText>
+                                    <TextInput
+                                        style={styles.formInput}
+                                        value={newProduct.retail_price}
+                                        onChangeText={(text) => setNewProduct({ ...newProduct, retail_price: text })}
+                                        placeholder="0.00"
+                                        placeholderTextColor={colors.textMuted}
+                                        keyboardType="decimal-pad"
+                                    />
                                 </View>
 
                                 <View style={styles.formRow}>

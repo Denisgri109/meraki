@@ -158,7 +158,7 @@ export function ProductDetailScreen() {
     };
 
     const handleSaveProduct = async () => {
-        if (!editProduct.name || !editProduct.retail_price || !editProduct.wholesale_price) {
+        if (!editProduct.name || !editProduct.retail_price) {
             showAlert('Error', 'Please fill in all required fields', 'error');
             return;
         }
@@ -167,6 +167,7 @@ export function ProductDetailScreen() {
         try {
             const newStockCount = parseInt(editProduct.stock_count) || 0;
             const newThreshold = parseInt(editProduct.low_stock_threshold) || 5;
+            const retailPriceParsed = parseFloat(editProduct.retail_price);
 
             const { error } = await (supabase as any)
                 .from('products')
@@ -174,8 +175,8 @@ export function ProductDetailScreen() {
                     name: editProduct.name,
                     description: editProduct.description || null,
                     image_url: editProduct.image_url || null,
-                    retail_price: parseFloat(editProduct.retail_price),
-                    wholesale_price: parseFloat(editProduct.wholesale_price),
+                    retail_price: retailPriceParsed,
+                    wholesale_price: retailPriceParsed,
                     stock_count: newStockCount,
                     low_stock_threshold: newThreshold,
                     category: editProduct.category,
@@ -318,25 +319,14 @@ export function ProductDetailScreen() {
                                     />
                                 </View>
 
-                                <View style={styles.inputRow}>
-                                    <View style={styles.inputHalf}>
-                                        <MerakiText variant="caption" style={styles.inputLabel}>Retail €</MerakiText>
-                                        <TextInput
-                                            style={styles.input}
-                                            value={editProduct.retail_price}
-                                            onChangeText={(text) => setEditProduct({ ...editProduct, retail_price: text })}
-                                            keyboardType="decimal-pad"
-                                        />
-                                    </View>
-                                    <View style={styles.inputHalf}>
-                                        <MerakiText variant="caption" style={styles.inputLabel}>Wholesale €</MerakiText>
-                                        <TextInput
-                                            style={styles.input}
-                                            value={editProduct.wholesale_price}
-                                            onChangeText={(text) => setEditProduct({ ...editProduct, wholesale_price: text })}
-                                            keyboardType="decimal-pad"
-                                        />
-                                    </View>
+                                <View style={styles.inputGroup}>
+                                    <MerakiText variant="caption" style={styles.inputLabel}>Retail €</MerakiText>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={editProduct.retail_price}
+                                        onChangeText={(text) => setEditProduct({ ...editProduct, retail_price: text })}
+                                        keyboardType="decimal-pad"
+                                    />
                                 </View>
 
                                 <View style={styles.inputRow}>

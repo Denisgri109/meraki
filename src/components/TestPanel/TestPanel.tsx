@@ -1,12 +1,9 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Modal, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, Modal, ScrollView, ActivityIndicator, Alert } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTestPanelState } from "./hooks/useTestPanelState";
 import { useTestPanelActions } from "./hooks/useTestPanelActions";
 import { AccountSwitcher } from "./components/AccountSwitcher";
-import { SeedSettingsPanel } from "./components/SeedSettingsPanel";
-import { SeedersPanel } from "./components/SeedersPanel";
-import { NotificationsPanel } from "./components/NotificationsPanel";
 import { ResultsPanel } from "./components/ResultsPanel";
 import { PasswordPrompt } from "./components/PasswordPrompt";
 import { styles } from "./components/TestPanelStyles";
@@ -17,6 +14,33 @@ export function TestPanel() {
   const actions = useTestPanelActions(state);
 
   if (!state.isTestAccount) return null;
+
+  const isWiping = state.runningAction === "nuclear_wipe";
+
+  const handleNuclearWipe = () => {
+    Alert.alert(
+      "☢️ NUCLEAR WIPE / CLEAN SLATE",
+      "This will permanently delete ALL rows from EVERY content table in the database:\n• All appointments, services, products\n• All orders, payments, refunds\n• All chats, consultations\n• All loyalty cards, stamps, rewards\n• All supplies, inventory\n• All schedules, availability, Pilates data\n\nUser accounts will NOT be deleted.\n\nAre you absolutely sure? This is irreversible.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Wipe Database",
+          style: "destructive",
+          onPress: () => {
+            actions.runSeedAction({
+              id: "nuclear_wipe",
+              label: "Nuclear Wipe / Clean Slate",
+              description: "Wipe database clean",
+              icon: "delete-forever",
+              category: "Cleanup",
+              action: "nuclear_wipe",
+              destructive: true,
+            });
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <>
@@ -50,7 +74,7 @@ export function TestPanel() {
             <View style={styles.panelHeader}>
               <View style={styles.headerLeft}>
                 <MaterialIcons name="science" size={20} color="#6366F1" />
-                <Text style={styles.headerTitle}>QA Test Panel</Text>
+                <Text style={styles.headerTitle}>QA Testing Tools</Text>
               </View>
               <TouchableOpacity
                 onPress={() => state.setOpen(false)}
@@ -90,27 +114,24 @@ export function TestPanel() {
                 handleAccountSwitch={actions.handleAccountSwitch}
               />
 
-              <SeedSettingsPanel
-                settings={state.settings}
-                settingsOpen={state.settingsOpen}
-                setSettingsOpen={state.setSettingsOpen}
-                updateSetting={state.updateSetting}
-                resetSettings={state.resetSettings}
-              />
-
-              <SeedersPanel
-                settings={state.settings}
-                expandedCategory={state.expandedCategory}
-                setExpandedCategory={state.setExpandedCategory}
-                runningAction={state.runningAction}
-                runSeedAction={actions.runSeedAction}
-              />
-
-              <NotificationsPanel
-                notificationsExpanded={state.notificationsExpanded}
-                setNotificationsExpanded={state.setNotificationsExpanded}
-                simulateNotification={actions.simulateNotification}
-              />
+              {/* Nuclear Wipe / Clean Slate Button */}
+              <TouchableOpacity
+                onPress={handleNuclearWipe}
+                disabled={state.runningAction !== null}
+                style={[
+                  styles.destructiveButton,
+                  state.runningAction !== null && { opacity: 0.6 }
+                ]}
+              >
+                {isWiping ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <MaterialIcons name="delete-forever" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.destructiveButtonText}>Nuclear Wipe / Clean Slate</Text>
+                  </>
+                )}
+              </TouchableOpacity>
 
               <ResultsPanel results={state.results} />
             </ScrollView>
