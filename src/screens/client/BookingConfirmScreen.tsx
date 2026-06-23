@@ -34,6 +34,7 @@ import { useHideTabBar } from '../../hooks/useHideTabBar';
 type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
+    MasterDetail: { masterId: string };
     SelectDateTime: { serviceId: string; masterId: string };
     BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
 };
@@ -524,13 +525,24 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                         </View>
 
                         {/* Master */}
-                        <View style={styles.detailRow}>
+                        <TouchableOpacity 
+                            style={styles.detailRow}
+                            onPress={() => {
+                                if (bookingHostId) {
+                                    navigation.navigate('MasterDetail', { masterId: bookingHostId });
+                                }
+                            }}
+                            activeOpacity={0.7}
+                        >
                             <Text style={styles.detailIcon}>👤</Text>
                             <View style={styles.detailInfo}>
                                 <Text style={styles.detailLabel}>{service?.category === 'Pilates' ? 'Host' : 'Specialist'}</Text>
-                                <Text style={styles.detailValue}>{displayHostName}</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Text style={[styles.detailValue, { color: colors.primary, marginRight: 4 }]}>{displayHostName}</Text>
+                                    <MaterialIcons name="chevron-right" size={16} color={colors.primary} />
+                                </View>
                             </View>
-                        </View>
+                        </TouchableOpacity>
 
                         {/* Date */}
                         <View style={styles.detailRow}>

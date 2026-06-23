@@ -165,7 +165,10 @@ export function PlatformAnalyticsScreen() {
             const conversionRate = totalBookings > 0 ? (completedBookings / totalBookings) * 100 : 0;
 
             // Revenue trend breakdown
-            const revenueTrend = buildRevenueTrend(currentPayments, timeRange, rangeStart, now);
+            const validPayments = currentPayments
+                .filter((p) => p.created_at !== null)
+                .map((p) => ({ ...p, created_at: p.created_at! }));
+            const revenueTrend = buildRevenueTrend(validPayments, timeRange, rangeStart, now);
 
             setStats({
                 totalRevenue,

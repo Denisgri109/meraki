@@ -72,7 +72,7 @@ export function DiscoverMastersScreen() {
 
     const loadMasters = async () => {
         try {
-            const { data: mastersData, error } = await supabase.rpc('get_masters_with_services');
+            const { data: mastersData, error } = await (supabase as any).rpc('get_masters_with_services');
 
             if (error) throw error;
 

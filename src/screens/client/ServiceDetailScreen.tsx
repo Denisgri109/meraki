@@ -25,6 +25,7 @@ import { useHideTabBar } from '../../hooks/useHideTabBar';
 type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
+    MasterDetail: { masterId: string };
     SelectDateTime: { serviceId: string; masterId: string };
     BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
     ConsultationWaiting: { consultationId: string; serviceId: string; masterId: string };
@@ -363,32 +364,40 @@ export function ServiceDetailScreen({ navigation, route }: ServiceDetailScreenPr
                     {master && (
                         <View style={styles.masterSection}>
                             <Text style={styles.sectionTitle}>Your Specialist</Text>
-                            <Card variant="glass" style={styles.masterCard}>
-                                {master.avatar_url ? (
-                                    <Image source={{ uri: master.avatar_url }} style={styles.masterAvatarImage} />
-                                ) : (
-                                    <View style={styles.masterAvatar}>
-                                        <Text style={styles.masterAvatarText}>
-                                            {master.full_name?.[0] || 'M'}
-                                        </Text>
+                            <TouchableOpacity
+                                onPress={() => navigation.navigate('MasterDetail', { masterId: master.id })}
+                                activeOpacity={0.85}
+                            >
+                                <Card variant="glass" style={styles.masterCard}>
+                                    {master.avatar_url ? (
+                                        <Image source={{ uri: master.avatar_url }} style={styles.masterAvatarImage} />
+                                    ) : (
+                                        <View style={styles.masterAvatar}>
+                                            <Text style={styles.masterAvatarText}>
+                                                {master.full_name?.[0] || 'M'}
+                                            </Text>
+                                        </View>
+                                    )}
+                                    <View style={styles.masterInfo}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 4 }}>
+                                            <Text style={styles.masterName}>
+                                                {master.full_name || 'Beauty Master'}
+                                            </Text>
+                                            <MaterialIcons name="chevron-right" size={20} color="rgba(0, 0, 0, 0.35)" />
+                                        </View>
+                                        {((master as any).city || (master as any).country) && (
+                                            <Text style={styles.masterLocation}>
+                                                <MaterialIcons name="location-on" size={12} color={colors.primary} /> {[(master as any).city, (master as any).country].filter(Boolean).join(', ')}
+                                            </Text>
+                                        )}
+                                        {master.bio && (
+                                            <Text style={styles.masterBio} numberOfLines={2}>
+                                                {master.bio}
+                                            </Text>
+                                        )}
                                     </View>
-                                )}
-                                <View style={styles.masterInfo}>
-                                    <Text style={styles.masterName}>
-                                        {master.full_name || 'Beauty Master'}
-                                    </Text>
-                                    {((master as any).city || (master as any).country) && (
-                                        <Text style={styles.masterLocation}>
-                                            <MaterialIcons name="location-on" size={12} color={colors.primary} /> {[(master as any).city, (master as any).country].filter(Boolean).join(', ')}
-                                        </Text>
-                                    )}
-                                    {master.bio && (
-                                        <Text style={styles.masterBio} numberOfLines={2}>
-                                            {master.bio}
-                                        </Text>
-                                    )}
-                                </View>
-                            </Card>
+                                </Card>
+                            </TouchableOpacity>
                         </View>
                     )}
 

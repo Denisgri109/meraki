@@ -17,12 +17,14 @@ import { ServiceDetailScreen } from './ServiceDetailScreen';
 import { SelectDateTimeScreen } from './SelectDateTimeScreen';
 import { BookingConfirmScreen } from './BookingConfirmScreen';
 import { ConsultationWaitingScreen } from './ConsultationWaitingScreen';
+import { MasterDetailScreen } from './MasterDetailScreen';
 
 // --- STACKS ---
 
 export type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
+    MasterDetail: { masterId: string };
     SelectDateTime: { serviceId: string; masterId: string };
     BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
     ConsultationWaiting: { consultationId: string; serviceId: string; masterId: string };
@@ -35,6 +37,7 @@ function BookingStackNavigator() {
         <BookingStack.Navigator screenOptions={{ headerShown: false }}>
             <BookingStack.Screen name="BookingMain" component={BookingScreen} />
             <BookingStack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
+            <BookingStack.Screen name="MasterDetail" component={MasterDetailScreen} />
             <BookingStack.Screen name="SelectDateTime" component={SelectDateTimeScreen} />
             <BookingStack.Screen name="BookingConfirm" component={BookingConfirmScreen} />
             <BookingStack.Screen name="ConsultationWaiting" component={ConsultationWaitingScreen} />

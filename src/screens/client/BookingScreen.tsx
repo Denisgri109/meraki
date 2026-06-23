@@ -89,6 +89,7 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
     const searchRadiusKm: number = (profile as any)?.search_radius_km ?? 100;
 
     const [services, setServices] = useState<Service[]>([]);
+    const [serviceProviders, setServiceProviders] = useState<Record<string, Array<{ id: string; full_name: string; role: string; email: string }>>>({});
     const [serviceDistances, setServiceDistances] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -103,7 +104,7 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
             // Fetch services with master country + state info for filtering
             const { data } = await supabase
                 .from('services')
-                .select('*, master_services!inner(is_available, profiles:master_id(country, state, state_code, latitude, longitude))')
+                .select('*, master_services!inner(is_available, profiles:master_id(id, full_name, role, email, country, state, state_code, latitude, longitude))')
                 .eq('is_active', true)
                 .eq('master_services.is_available', true)
                 .order('name');
@@ -131,6 +132,23 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
                 // Must have a known user country to view local booking options
                 filtered = [];
             }
+
+            // Build provider map
+            const providerMap: Record<string, Array<{ id: string; full_name: string; role: string; email: string }>> = {};
+            filtered.forEach((service: any) => {
+                const masterServices = service.master_services || [];
+                const providers = masterServices
+                    .map((ms: any) => ms.profiles)
+                    .filter((p: any) => p && p.full_name)
+                    .map((p: any) => ({
+                        id: p.id,
+                        full_name: p.full_name,
+                        role: p.role,
+                        email: p.email,
+                    }));
+                providerMap[service.id] = providers;
+            });
+            setServiceProviders(providerMap);
 
             // Strip the master_services join data before setting state
             setServices(filtered.map(({ master_services, ...rest }: any) => rest) as Service[]);
@@ -254,6 +272,35 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
                                                             {service.description}
                                                         </MerakiText>
                                                     )}
+
+                                                    {(() => {
+                                                        const providers = serviceProviders[service.id] || [];
+                                                        if (providers.length === 0) return null;
+                                                        
+                                                        const getDisplayName = (m: any) => {
+                                                            const name = m.full_name?.trim();
+                                                            if (name && name.toLowerCase() !== 'owner' && name.toLowerCase() !== 'master') {
+                                                                return name;
+                                                            }
+                                                            if (m.email) {
+                                                                return m.email.split('@')[0];
+                                                            }
+                                                            return name || 'Professional';
+                                                        };
+                                                        
+                                                        const primaryName = getDisplayName(providers[0]);
+                                                        const label = providers.length === 1
+                                                            ? `By ${primaryName}`
+                                                            : `By ${primaryName} & ${providers.length - 1} other${providers.length > 2 ? 's' : ''}`;
+                                                        return (
+                                                            <View style={styles.providerContainer}>
+                                                                <MaterialIcons name="person" size={12} color="rgba(26, 26, 26, 0.45)" style={{ marginRight: 4 }} />
+                                                                <MerakiText style={styles.providerText} numberOfLines={1}>
+                                                                    {label}
+                                                                </MerakiText>
+                                                            </View>
+                                                        );
+                                                    })()}
                                                     <View style={styles.serviceMeta}>
                                                         <MerakiText style={styles.servicePrice}>
                                                             €{service.base_price}
@@ -399,7 +446,17 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: 'rgba(26, 26, 26, 0.45)',
         fontWeight: '400',
+        marginBottom: 4,
+    },
+    providerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginBottom: 8,
+    },
+    providerText: {
+        fontSize: 11,
+        color: 'rgba(26, 26, 26, 0.45)',
+        fontWeight: '500',
     },
     serviceMeta: {
         flexDirection: 'row',

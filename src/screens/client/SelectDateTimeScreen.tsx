@@ -24,6 +24,7 @@ import { useHideTabBar } from '../../hooks/useHideTabBar';
 type BookingStackParamList = {
     BookingMain: undefined;
     ServiceDetail: { serviceId: string };
+    MasterDetail: { masterId: string };
     SelectDateTime: { serviceId: string; masterId: string };
     BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
 };
@@ -491,10 +492,24 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                                 <Text style={styles.summaryLabel}>Service</Text>
                                 <Text style={styles.summaryValue}>{service.name}</Text>
                             </View>
-                            <View style={styles.summaryRow}>
+                            <TouchableOpacity 
+                                style={styles.summaryRow}
+                                onPress={() => {
+                                    const hostProfileId = selectedPilatesSession?.host?.profile_id || selectedPilatesSession?.owner_id || masterId;
+                                    if (hostProfileId) {
+                                        navigation.navigate('MasterDetail', { masterId: hostProfileId });
+                                    }
+                                }}
+                                activeOpacity={0.7}
+                            >
                                 <Text style={styles.summaryLabel}>Specialist</Text>
-                                <Text style={styles.summaryValue}>{selectedPilatesSession?.host?.display_name || master.full_name}</Text>
-                            </View>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Text style={[styles.summaryValue, { color: colors.primary, marginRight: 4 }]}>
+                                        {selectedPilatesSession?.host?.display_name || master.full_name}
+                                    </Text>
+                                    <MaterialIcons name="chevron-right" size={16} color={colors.primary} />
+                                </View>
+                            </TouchableOpacity>
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Date</Text>
                                 <Text style={styles.summaryValue}>{selectedPilatesSession ? format(new Date(selectedPilatesSession.starts_at), 'EEEE, MMMM d') : format(selectedDate, 'EEEE, MMMM d')}</Text>

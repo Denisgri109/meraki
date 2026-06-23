@@ -566,6 +566,63 @@ Deno.serve(async (req: Request) => {
                     summary["profiles_loyalty_reset"] = count || 0;
                 }
 
+                // Seed default availability for test owner and test master
+                const defaultDays = [0, 1, 2, 3, 4, 5, 6];
+                const defaultAvailability = [];
+                for (const masterId of [TEST_OWNER_ID, TEST_MASTER_ID]) {
+                    for (const day of defaultDays) {
+                        defaultAvailability.push({
+                            master_id: masterId,
+                            day_of_week: day,
+                            start_time: "09:00:00",
+                            end_time: "17:00:00",
+                            is_available: true,
+                        });
+                    }
+                }
+                const { error: seedError } = await admin
+                    .from("master_availability")
+                    .insert(defaultAvailability);
+                if (seedError) {
+                    console.warn("nuclear_wipe: failed to seed default availability:", seedError.message);
+                } else {
+                    summary["master_availability_seeded"] = defaultAvailability.length;
+                }
+
+                // Seed default settings for test owner and test master
+                const defaultSettings = [
+                    {
+                        master_id: TEST_OWNER_ID,
+                        is_visible_globally: true,
+                        accepts_new_clients: true,
+                        confirmation_timing_hours: 24,
+                        cancellation_charge_percent: 50,
+                        late_cancellation_window_hours: 24,
+                        no_show_charge_percent: 100,
+                        late_arrival_minutes: 15,
+                        require_tc_acceptance: true,
+                    },
+                    {
+                        master_id: TEST_MASTER_ID,
+                        is_visible_globally: true,
+                        accepts_new_clients: true,
+                        confirmation_timing_hours: 24,
+                        cancellation_charge_percent: 50,
+                        late_cancellation_window_hours: 24,
+                        no_show_charge_percent: 100,
+                        late_arrival_minutes: 15,
+                        require_tc_acceptance: true,
+                    }
+                ];
+                const { error: settingsSeedError } = await admin
+                    .from("master_settings")
+                    .insert(defaultSettings);
+                if (settingsSeedError) {
+                    console.warn("nuclear_wipe: failed to seed default master settings:", settingsSeedError.message);
+                } else {
+                    summary["master_settings_seeded"] = defaultSettings.length;
+                }
+
                 const totalDeleted = Object.values(summary).filter(v => v > 0).reduce((a, b) => a + b, 0);
                 return jsonResponse({ ok: true, action, summary, total_deleted: totalDeleted });
             }

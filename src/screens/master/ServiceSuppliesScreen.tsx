@@ -179,6 +179,11 @@ export function ServiceSuppliesScreen() {
             return;
         }
 
+        if (qty > selectedSupply.quantity) {
+            showAlert('Error', `Cannot exceed available stock of ${selectedSupply.quantity} ${selectedSupply.unit}`, 'error');
+            return;
+        }
+
         setSaving(true);
         try {
             const tableName = isOwner ? 'owner_service_supplies' : 'service_supplies';

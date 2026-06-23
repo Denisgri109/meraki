@@ -543,16 +543,14 @@ export function MasterAppointmentsScreen() {
                     )}
                 </View>
 
-                {/* Legacy pending appointments — show info-only badge, no accept/decline needed */}
+                {/* Quick Action Row (No longer used for Confirm/Decline as bookings are pre-confirmed) */}
+                {/* Kept wrapper for layout consistency if needed, or remove entirely if empty */}
                 {isPending && (
                     <View style={styles.stitchActionRow}>
                         <View style={styles.stitchActionIcons} />
                         <View style={styles.stitchActionButtons}>
                             <TouchableOpacity style={styles.stitchSmallBtn} onPress={() => handleCancelAppointment(apt.id)}>
                                 <MerakiText variant="caption" color={colors.textSecondary} style={styles.stitchSmallBtnText}>Cancel</MerakiText>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.stitchSmallBtnPrimary} onPress={() => handleConfirm(apt.id)}>
-                                <MerakiText variant="caption" color={colors.primary} style={styles.stitchSmallBtnText}>Confirm</MerakiText>
                             </TouchableOpacity>
                         </View>
                     </View>
