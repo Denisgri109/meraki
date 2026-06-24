@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TouchableOpacity } from 'react-native';
 import { colors } from '../theme';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface MockCardFieldProps {
     style?: ViewStyle;
@@ -53,7 +54,7 @@ export const createMockHook = (hookName: string) => () => {
             return {
                 paymentIntent: {
                     status: 'Succeeded',
-                    id: 'pi_mock_' + Math.random().toString(36).substr(2, 9)
+                    id: 'pi_mock_' + uuidv4()
                 },
                 error: null
             };
@@ -63,7 +64,7 @@ export const createMockHook = (hookName: string) => () => {
             return {
                 setupIntent: {
                     status: 'Succeeded',
-                    id: 'seti_mock_' + Math.random().toString(36).substr(2, 9)
+                    id: 'seti_mock_' + uuidv4()
                 },
                 error: null
             };
