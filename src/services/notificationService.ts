@@ -135,12 +135,12 @@ export async function registerForPushNotificationsAsync(userId: string) {
                     .eq('id', userId);
 
                 if (error) {
-                    console.error('Error saving push token:', error);
+                    console.error('Error saving push token:', error?.message || 'Unknown error');
                 }
             }
 
         } catch (e: any) {
-            console.error('Push notifications error:', e);
+            console.error('Push notifications error:', e?.message || 'Unknown error');
             return null;
         }
     } else {
