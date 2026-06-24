@@ -140,9 +140,7 @@ export async function savePushToken(userId: string, token: string): Promise<bool
             return false;
         }
 
-        if (__DEV__) {
-            console.debug('Push token saved successfully');
-        }
+
         return true;
     } catch (error) {
         if (__DEV__) {
