@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     View,
     Text,
@@ -76,6 +76,13 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
     const [blockedSlots, setBlockedSlots] = useState<any[]>([]);
     const [pilatesSessions, setPilatesSessions] = useState<PilatesSession[]>([]);
     const [selectedPilatesSession, setSelectedPilatesSession] = useState<PilatesSession | null>(null);
+
+    const parsedBlockedSlots = useMemo(() => {
+        return blockedSlots.map((blocked) => ({
+            start: new Date(blocked.start_time).getTime(),
+            end: new Date(blocked.end_time).getTime(),
+        }));
+    }, [blockedSlots]);
 
     const dates = generateDates();
 
@@ -240,10 +247,9 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
         if (isBefore(slotDateTime, now)) return false;
 
         // Check blocked slots
-        for (const blocked of blockedSlots) {
-            const blockStart = new Date(blocked.start_time);
-            const blockEnd = new Date(blocked.end_time);
-            if (slotDateTime >= blockStart && slotDateTime < blockEnd) {
+        const slotTimeMs = slotDateTime.getTime();
+        for (const blocked of parsedBlockedSlots) {
+            if (slotTimeMs >= blocked.start && slotTimeMs < blocked.end) {
                 return false;
             }
         }
