@@ -139,15 +139,13 @@ export function CourseDetailScreen() {
             );
         }
 
-        for (const update of updates) {
+        if (updates.length > 0) {
             try {
-                await (supabase as any)
-                    .from('lessons')
-                    .update({ duration_minutes: update.duration_minutes })
-                    .eq('id', update.id);
-                console.log(`Fixed duration for "${update.title}": ${update.duration_minutes}s`);
+                const { error } = await supabase.rpc('update_lesson_durations', { payload: updates });
+                if (error) throw error;
+                console.log(`Successfully batch updated durations for ${updates.length} lessons`);
             } catch (err) {
-                console.error('Failed to update DB for duration correction', err);
+                console.error('Failed to batch update DB for duration correction', err);
             }
         }
 
