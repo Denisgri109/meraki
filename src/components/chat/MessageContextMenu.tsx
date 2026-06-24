@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing } from '../../theme';
 import { MerakiText } from '../ui';
 import * as Haptics from 'expo-haptics';
