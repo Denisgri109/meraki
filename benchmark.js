@@ -1,55 +1,47 @@
-const TEST_ACCOUNTS = [
-    { email: 'test@gmail.com' },
-    { email: 'testclient@gmail.com' },
-    { email: 'daxyburn@gmail.com' },
-];
+const { performance } = require('perf_hooks');
 
-const mockDelay = 50; // ms
-
-const AsyncStorage = {
-    getItem: async (key) => {
-        return new Promise(resolve => setTimeout(() => resolve('password'), mockDelay));
-    }
-};
-
-const passwordKey = (email) => `key:${email}`;
-
-async function runSerial() {
-    const start = Date.now();
-    const next = {};
-    for (const a of TEST_ACCOUNTS) {
-        const pw = await AsyncStorage.getItem(passwordKey(a.email));
-        if (pw) next[a.email.toLowerCase()] = pw;
-    }
-    const end = Date.now();
-    return end - start;
+async function mockSafeSupabaseFetch(promise, options) {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return promise;
 }
 
-async function runParallel() {
-    const start = Date.now();
-    const next = {};
+const mockMessages = Array(10).fill(0).map((_, i) => ({ sender_id: `user-${i % 3}`, id: i }));
 
-    const results = await Promise.all(
-        TEST_ACCOUNTS.map(async (a) => {
-            const pw = await AsyncStorage.getItem(passwordKey(a.email));
-            return { email: a.email.toLowerCase(), pw };
-        })
-    );
+async function beforeOptimization() {
+    const senderIds = Array.from(new Set(mockMessages.map(m => m.sender_id)));
+    // Simulate Supabase fetch
+    const promise = { data: senderIds.map(id => ({ id, full_name: `Name ${id}` })) };
+    const { data: sendersData } = await mockSafeSupabaseFetch(promise, { timeout: 3000 });
+    const sendersMap = new Map((sendersData || []).map(sender => [sender.id, sender]));
+    return sendersMap.size;
+}
 
-    for (const res of results) {
-        if (res.pw) next[res.email] = res.pw;
+const senderProfileCache = new Map();
+async function afterOptimization() {
+    const senderIds = Array.from(new Set(mockMessages.map(m => m.sender_id)));
+    const uncachedSenderIds = senderIds.filter(id => !senderProfileCache.has(id));
+
+    if (uncachedSenderIds.length > 0) {
+        // Simulate Supabase fetch
+        const promise = { data: uncachedSenderIds.map(id => ({ id, full_name: `Name ${id}` })) };
+        const { data: sendersData } = await mockSafeSupabaseFetch(promise, { timeout: 3000 });
+        (sendersData || []).forEach(sender => senderProfileCache.set(sender.id, sender));
     }
-
-    const end = Date.now();
-    return end - start;
+    return senderProfileCache.size;
 }
 
-async function main() {
-    const serialTime = await runSerial();
-    const parallelTime = await runParallel();
-    console.log(`Serial: ${serialTime}ms`);
-    console.log(`Parallel: ${parallelTime}ms`);
-    console.log(`Improvement: ${serialTime - parallelTime}ms (${((serialTime - parallelTime) / serialTime * 100).toFixed(2)}%)`);
+async function runBenchmark() {
+    console.log('--- Baseline: Unoptimized ---');
+    let start = performance.now();
+    for (let i = 0; i < 5; i++) await beforeOptimization();
+    console.log(`Unoptimized Time: ${(performance.now() - start).toFixed(2)}ms`);
+
+    console.log('\n--- Optimized: Client Cache ---');
+    senderProfileCache.clear();
+    start = performance.now();
+    for (let i = 0; i < 5; i++) await afterOptimization();
+    console.log(`Optimized Time: ${(performance.now() - start).toFixed(2)}ms`);
 }
 
-main();
+runBenchmark();
