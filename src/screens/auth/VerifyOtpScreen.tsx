@@ -110,7 +110,6 @@ export function VerifyOtpScreen({ navigation, route }: VerifyOtpScreenProps) {
                 'success'
             );
         } catch (error: any) {
-            console.error('OTP verification error:', error);
             showAlert('Verification Failed', error.message || 'Invalid or expired code. Please try again.', 'error');
             // Clear OTP inputs
             setOtp(Array(OTP_LENGTH).fill(''));
@@ -135,7 +134,6 @@ export function VerifyOtpScreen({ navigation, route }: VerifyOtpScreenProps) {
             showAlert('Code Sent', 'A new verification code has been sent to your email.', 'success');
             setCountdown(60); // 60 second cooldown
         } catch (error: any) {
-            console.error('Resend error:', error);
             showAlert('Error', error.message || 'Failed to resend code. Please try again.', 'error');
         } finally {
             setResending(false);
