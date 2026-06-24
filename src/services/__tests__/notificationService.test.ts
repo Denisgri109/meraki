@@ -145,7 +145,7 @@ describe('notificationService', () => {
             const token = await registerForPushNotificationsAsync('user_123');
 
             expect(token).toBeNull();
-            expect(consoleSpy).toHaveBeenCalledWith('Push notifications error:', new Error('No projectId found'));
+            expect(consoleSpy).toHaveBeenCalledWith('Push notifications error:', 'No projectId found');
             consoleSpy.mockRestore();
         });
 
@@ -179,7 +179,7 @@ describe('notificationService', () => {
 
             await registerForPushNotificationsAsync('user_123');
 
-            expect(consoleSpy).toHaveBeenCalledWith('Error saving push token:', mockError);
+            expect(consoleSpy).toHaveBeenCalledWith('Error saving push token:', mockError.message);
             consoleSpy.mockRestore();
         });
 
@@ -194,7 +194,7 @@ describe('notificationService', () => {
             const token = await registerForPushNotificationsAsync('user_123');
 
             expect(token).toBeNull();
-            expect(consoleSpy).toHaveBeenCalledWith('Push notifications error:', mockError);
+            expect(consoleSpy).toHaveBeenCalledWith('Push notifications error:', mockError.message);
             consoleSpy.mockRestore();
         });
     });
