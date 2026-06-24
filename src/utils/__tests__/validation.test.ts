@@ -10,6 +10,7 @@ import {
     validateEmail,
     validatePassword,
     validateFullName,
+    validateServiceName,
     parsePhoneNumber,
     validatePhone,
     formatPhone,
@@ -244,6 +245,55 @@ describe('validatePassword', () => {
     it('rejects an empty password', () => {
         const result = validatePassword('');
         expect(result.valid).toBe(false);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// validateServiceName
+// ═══════════════════════════════════════════════════════════════════════════
+describe('validateServiceName', () => {
+    it('validates a standard service name', () => {
+        expect(validateServiceName('Haircut')).toEqual({ valid: true });
+    });
+
+    it('validates a service name with leading and trailing spaces', () => {
+        expect(validateServiceName('  Spa ')).toEqual({ valid: true });
+    });
+
+    it('rejects a service name with less than 3 characters', () => {
+        const result = validateServiceName('Ha');
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('Service name must be at least 3 characters');
+    });
+
+    it('rejects a service name with less than 3 characters after trimming', () => {
+        const result = validateServiceName('  H  ');
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('Service name must be at least 3 characters');
+    });
+
+    it('rejects an empty service name', () => {
+        const result = validateServiceName('');
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('Service name is required');
+    });
+
+    it('rejects whitespace-only service name', () => {
+        const result = validateServiceName('   ');
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('Service name is required');
+    });
+
+    it('rejects undefined/null inputs', () => {
+        // @ts-ignore
+        let result = validateServiceName(undefined);
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('Service name is required');
+
+        // @ts-ignore
+        result = validateServiceName(null);
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('Service name is required');
     });
 });
 
