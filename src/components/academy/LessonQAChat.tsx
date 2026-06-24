@@ -27,7 +27,6 @@ import {
 } from 'react-native';
 import { useModal } from '../../contexts/ModalContext';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../../lib/supabase';
