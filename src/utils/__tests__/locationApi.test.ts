@@ -1,4 +1,4 @@
-import { getCountryByCode, getAllCountries, getCitiesOfCountry, getStatesOfCountry, getCitiesOfState, filterCountries, Country } from '../locationApi';
+import { getCountryByCode, getAllCountries, getCitiesOfCountry, getStatesOfCountry, getCitiesOfState, filterCountries, filterCities, Country, City } from '../locationApi';
 
 describe('locationApi', () => {
     const originalFetch = global.fetch;
@@ -386,6 +386,76 @@ describe('locationApi', () => {
         it('returns an empty array when there are no matches', () => {
             const result = filterCountries(mockCountries, 'nonexistent');
             expect(result.length).toBe(0);
+        });
+    });
+
+    describe('filterCities', () => {
+        const createMockCities = (count: number): City[] => {
+            return Array.from({ length: count }, (_, i) => ({
+                id: i + 1,
+                name: `City ${i + 1}`,
+                state_id: 1,
+                state_code: 'S1',
+                state_name: 'State 1',
+                country_id: 1,
+                country_code: 'C1',
+                country_name: 'Country 1',
+                latitude: '0',
+                longitude: '0',
+            }));
+        };
+
+        const mockCities: City[] = [
+            { id: 1, name: 'New York', state_id: 1, state_code: 'NY', state_name: 'New York', country_id: 1, country_code: 'US', country_name: 'United States', latitude: '0', longitude: '0' },
+            { id: 2, name: 'Los Angeles', state_id: 2, state_code: 'CA', state_name: 'California', country_id: 1, country_code: 'US', country_name: 'United States', latitude: '0', longitude: '0' },
+            { id: 3, name: 'Chicago', state_id: 3, state_code: 'IL', state_name: 'Illinois', country_id: 1, country_code: 'US', country_name: 'United States', latitude: '0', longitude: '0' },
+            { id: 4, name: 'Houston', state_id: 4, state_code: 'TX', state_name: 'Texas', country_id: 1, country_code: 'US', country_name: 'United States', latitude: '0', longitude: '0' },
+            { id: 5, name: 'Phoenix', state_id: 5, state_code: 'AZ', state_name: 'Arizona', country_id: 1, country_code: 'US', country_name: 'United States', latitude: '0', longitude: '0' },
+        ];
+
+        it('returns up to 50 cities when the query is empty', () => {
+            const manyCities = createMockCities(100);
+            const result = filterCities(manyCities, '');
+            expect(result.length).toBe(50);
+            expect(result[0].name).toBe('City 1');
+            expect(result[49].name).toBe('City 50');
+        });
+
+        it('returns up to 50 cities when the query is whitespace only', () => {
+            const manyCities = createMockCities(100);
+            const result = filterCities(manyCities, '   ');
+            expect(result.length).toBe(50);
+        });
+
+        it('filters correctly by partial, case-insensitive name match', () => {
+            const result = filterCities(mockCities, 'new');
+            expect(result.length).toBe(1);
+            expect(result[0].name).toBe('New York');
+
+            const result2 = filterCities(mockCities, 'ou');
+            expect(result2.length).toBe(1);
+            expect(result2[0].name).toBe('Houston');
+        });
+
+        it('handles trailing and leading whitespace in the query properly', () => {
+            const result = filterCities(mockCities, '  chicago  ');
+            expect(result.length).toBe(1);
+            expect(result[0].name).toBe('Chicago');
+        });
+
+        it('returns an empty array when there are no matches', () => {
+            const result = filterCities(mockCities, 'nonexistent');
+            expect(result.length).toBe(0);
+        });
+
+        it('limits results to 50 items even if there are more than 50 matches', () => {
+            const manyMatchingCities = Array.from({ length: 60 }, (_, i) => ({
+                ...mockCities[0],
+                id: i + 1,
+                name: `Match City ${i + 1}`,
+            }));
+            const result = filterCities(manyMatchingCities, 'match city');
+            expect(result.length).toBe(50);
         });
     });
 });
