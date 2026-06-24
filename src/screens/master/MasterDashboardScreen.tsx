@@ -192,10 +192,18 @@ export function MasterDashboardScreen() {
                 // Changed `is('read_at', null)` to `eq('is_read', false)` since the db has an is_read property now.
                 const msgsPromise = (supabase as any).from('messages').select('*').in('conversation_id', convIds).neq('sender_id', user.id).eq('is_read', false).order('created_at', { ascending: false });
                 const { data: messages } = await safeSupabaseFetch(msgsPromise);
-                const latestBySender = new Map<string, any>();
-                for (const msg of ((messages as any[]) || [])) { if (!latestBySender.has(msg.sender_id)) latestBySender.set(msg.sender_id, msg); }
-                unreadCount = latestBySender.size;
-                const uniqueMessages = Array.from(latestBySender.values()).slice(0, 3);
+
+                const seenSenders = new Set<string>();
+                const uniqueMessages: any[] = [];
+                for (const msg of ((messages as any[]) || [])) {
+                    if (!seenSenders.has(msg.sender_id)) {
+                        seenSenders.add(msg.sender_id);
+                        if (uniqueMessages.length < 3) {
+                            uniqueMessages.push(msg);
+                        }
+                    }
+                }
+                unreadCount = seenSenders.size;
 
                 const senderIds = uniqueMessages.map((msg: any) => msg.sender_id);
                 const senderMap = new Map<string, string>();
