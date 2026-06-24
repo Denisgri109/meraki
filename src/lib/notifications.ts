@@ -128,7 +128,6 @@ export async function savePushToken(userId: string, token: string): Promise<bool
             return false;
         }
 
-        console.debug('Push token saved successfully');
         return true;
     } catch (error) {
         console.error('Error saving push token:', error);
