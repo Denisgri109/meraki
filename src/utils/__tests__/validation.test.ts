@@ -14,6 +14,7 @@ import {
     validatePhone,
     formatPhone,
     normalizePhone,
+    validatePrice,
 } from '../validation';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -368,6 +369,37 @@ describe('International Phone Validation & Formatting Helpers', () => {
 
         it('normalizes US numbers to E.164', () => {
             expect(normalizePhone('2015550123', 'US')).toBe('+12015550123');
+        });
+    });
+
+    describe('validatePrice', () => {
+        it('validates a valid numeric price', () => {
+            expect(validatePrice(10)).toEqual({ valid: true });
+            expect(validatePrice(0)).toEqual({ valid: true });
+            expect(validatePrice(99.99)).toEqual({ valid: true });
+        });
+
+        it('validates a valid string price', () => {
+            expect(validatePrice('10')).toEqual({ valid: true });
+            expect(validatePrice('0')).toEqual({ valid: true });
+            expect(validatePrice('99.99')).toEqual({ valid: true });
+        });
+
+        it('rejects missing or empty price', () => {
+            expect(validatePrice('')).toEqual({ valid: false, error: 'Price is required' });
+            expect(validatePrice(undefined as any)).toEqual({ valid: false, error: 'Price is required' });
+            expect(validatePrice(null as any)).toEqual({ valid: false, error: 'Price is required' });
+        });
+
+        it('rejects invalid price format', () => {
+            expect(validatePrice('abc')).toEqual({ valid: false, error: 'Price must be a valid number' });
+            expect(validatePrice(NaN)).toEqual({ valid: false, error: 'Price must be a valid number' });
+        });
+
+        it('rejects negative price', () => {
+            expect(validatePrice(-5)).toEqual({ valid: false, error: 'Price cannot be negative' });
+            expect(validatePrice('-5')).toEqual({ valid: false, error: 'Price cannot be negative' });
+            expect(validatePrice(-0.01)).toEqual({ valid: false, error: 'Price cannot be negative' });
         });
     });
 });
