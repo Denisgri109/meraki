@@ -127,17 +127,45 @@ export function HelpSupportScreen() {
 
     const faqs = [
         {
-            question: 'How do I modify my booking?',
-            answer: 'Go to "My Orders", select the appointment you wish to change, and tap "Reschedule". You can choose a new date and time from the available slots.'
+            question: 'How do I book an appointment?',
+            answer: 'Navigate to the Book tab, select "Book New", choose your desired service, select a Master, pick your date and time, and confirm your booking.'
         },
         {
-            question: 'What is the cancellation policy?',
-            answer: 'You can cancel free of charge up to 24 hours before your appointment. Cancellations made within 24 hours may be subject to a fee.'
+            question: 'Can I cancel or reschedule my appointment?',
+            answer: 'Yes. Navigate to the Book tab, select the "Appointments" sub-tab, tap the appointment you wish to change, and select Cancel or Reschedule. Please note that cancellations or reschedules within 24 hours of your appointment may incur a 50% penalty fee.'
+        },
+        {
+            question: 'How do deposits work?',
+            answer: 'Some services require a deposit at the time of booking. The deposit is applied toward your total service cost. The remaining balance is due at the salon on the day of your appointment.'
+        },
+        {
+            question: 'What payment methods are accepted?',
+            answer: 'We accept all major credit and debit cards through our secure Stripe payment system. You can save and manage your cards under Menu > Payment.'
         },
         {
             question: 'How do I earn loyalty points?',
-            answer: 'You earn points for every service booked and product purchased. Points can be redeemed for discounts on future visits.'
+            answer: 'Earn points by scanning the Master\'s QR code at the salon using the in-app scanner after your service. You can view your stamp cards and track your rewards under Menu > Loyalty.'
         },
+        {
+            question: 'How do I update my profile or security settings?',
+            answer: 'Go to Menu > Edit Profile to update your name, photo, and bio. Security settings (like password changes) can be managed under Settings.'
+        },
+        {
+            question: 'How do refunds work?',
+            answer: 'Refunds are processed by the salon owner. If eligible, refunds are returned to your original payment method and typically appear within 5-10 business days.'
+        },
+        {
+            question: 'How do I access courses in the Academy?',
+            answer: 'Navigate to the Academy tab. You can browse and purchase courses, watch video lessons, track your progress, and submit your homework assignments directly from the app.'
+        },
+        {
+            question: 'How does the Shop and shipping work?',
+            answer: 'Tap the Shop tab to browse products. Fill in your European shipping address and check out securely. You can view and track your purchases under Menu > Orders.'
+        },
+        {
+            question: 'What are photo consultations?',
+            answer: 'If a Master requires a pre-service assessment, you can submit a photo consultation request. Navigate to the Book tab, upload your photos, and once approved, you will be able to book.'
+        }
     ];
 
     const isOwner = profile?.role === 'owner';
@@ -203,6 +231,14 @@ export function HelpSupportScreen() {
                 </View>
 
                 <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                    {/* Fallback Warning Banner */}
+                    <View style={styles.fallbackContainer}>
+                        <Text style={styles.fallbackIcon}>💡</Text>
+                        <Text style={styles.fallbackText}>
+                            If a feature is not working as expected, please try the website.
+                        </Text>
+                    </View>
+
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Contact Us</Text>
                         {contactOptions.map((option, index) => (
@@ -247,6 +283,28 @@ export function HelpSupportScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    fallbackContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: spacing.md,
+        borderRadius: 12,
+        marginBottom: spacing.lg,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+        backgroundColor: colors.surfaceLight,
+        borderLeftWidth: 4,
+        borderLeftColor: colors.warning,
+        gap: spacing.sm,
+    },
+    fallbackText: {
+        flex: 1,
+        fontSize: 14,
+        color: colors.textSecondary,
+        lineHeight: 20,
+    },
+    fallbackIcon: {
+        fontSize: 18,
     },
     header: {
         flexDirection: 'row',

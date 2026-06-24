@@ -56,7 +56,6 @@ export function PhotoConsultationReviewScreen() {
         isDoable: true,
         professionalNotes: '',
         recommendations: '',
-        estimatedPrice: '',
         estimatedDuration: '',
     });
 
@@ -174,7 +173,6 @@ export function PhotoConsultationReviewScreen() {
                 isDoable: consultation.is_doable ?? true,
                 professionalNotes: consultation.professional_notes || '',
                 recommendations: consultation.recommendations || '',
-                estimatedPrice: consultation.estimated_price_range || '',
                 estimatedDuration: consultation.estimated_duration || '',
             });
         } else {
@@ -182,7 +180,6 @@ export function PhotoConsultationReviewScreen() {
                 isDoable: true,
                 professionalNotes: '',
                 recommendations: '',
-                estimatedPrice: '',
                 estimatedDuration: '',
             });
         }
@@ -209,7 +206,7 @@ export function PhotoConsultationReviewScreen() {
                     is_doable: responseData.isDoable,
                     professional_notes: responseData.professionalNotes.trim(),
                     recommendations: responseData.recommendations.trim() || null,
-                    estimated_price_range: responseData.estimatedPrice.trim() || null,
+                    estimated_price_range: null,
                     estimated_duration: responseData.estimatedDuration.trim() || null,
                     replied_at: new Date().toISOString(),
                     responded_by: user?.id,
@@ -580,32 +577,16 @@ export function PhotoConsultationReviewScreen() {
                             numberOfLines={4}
                         />
 
-                        <View style={styles.rowInputs}>
-                            <View style={styles.rowInput}>
-                                <MerakiText variant="caption" color={colors.textSecondary} style={styles.inputLabel}>
-                                    Est. Price Range
-                                </MerakiText>
-                                <TextInput
-                                    style={styles.input}
-                                    value={responseData.estimatedPrice}
-                                    onChangeText={(text) => setResponseData({ ...responseData, estimatedPrice: text })}
-                                    placeholder="e.g., €50-80"
-                                    placeholderTextColor={colors.textMuted}
-                                />
-                            </View>
-                            <View style={styles.rowInput}>
-                                <MerakiText variant="caption" color={colors.textSecondary} style={styles.inputLabel}>
-                                    Est. Duration
-                                </MerakiText>
-                                <TextInput
-                                    style={styles.input}
-                                    value={responseData.estimatedDuration}
-                                    onChangeText={(text) => setResponseData({ ...responseData, estimatedDuration: text })}
-                                    placeholder="e.g., 2 hours"
-                                    placeholderTextColor={colors.textMuted}
-                                />
-                            </View>
-                        </View>
+                        <MerakiText variant="caption" color={colors.textSecondary} style={styles.inputLabel}>
+                            Est. Duration
+                        </MerakiText>
+                        <TextInput
+                            style={styles.input}
+                            value={responseData.estimatedDuration}
+                            onChangeText={(text) => setResponseData({ ...responseData, estimatedDuration: text })}
+                            placeholder="e.g., 2 hours"
+                            placeholderTextColor={colors.textMuted}
+                        />
 
                         <TouchableOpacity
                             activeOpacity={0.7}
@@ -686,24 +667,14 @@ export function PhotoConsultationReviewScreen() {
                                 </>
                             )}
 
-                            {(selectedConsultation.estimated_price_range || selectedConsultation.estimated_duration) && (
+                            {selectedConsultation.estimated_duration && (
                                 <View style={styles.estimateRow}>
-                                    {selectedConsultation.estimated_price_range && (
-                                        <View style={styles.estimateItem}>
-                                            <MaterialCommunityIcons name="cash" size={16} color={colors.primary} />
-                                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '500' }}>
-                                                {selectedConsultation.estimated_price_range}
-                                            </MerakiText>
-                                        </View>
-                                    )}
-                                    {selectedConsultation.estimated_duration && (
-                                        <View style={styles.estimateItem}>
-                                            <MaterialCommunityIcons name="clock-outline" size={16} color={colors.primary} />
-                                            <MerakiText variant="body" color={colors.text} style={{ fontWeight: '500' }}>
-                                                {selectedConsultation.estimated_duration}
-                                            </MerakiText>
-                                        </View>
-                                    )}
+                                    <View style={styles.estimateItem}>
+                                        <MaterialCommunityIcons name="clock-outline" size={16} color={colors.primary} />
+                                        <MerakiText variant="body" color={colors.text} style={{ fontWeight: '500' }}>
+                                            {selectedConsultation.estimated_duration}
+                                        </MerakiText>
+                                    </View>
                                 </View>
                             )}
 
