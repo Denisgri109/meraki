@@ -16,6 +16,7 @@ import {
     formatPhone,
     normalizePhone,
     validatePrice,
+    validatePostalCode,
 } from '../validation';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -322,6 +323,59 @@ describe('validateFullName', () => {
     it('rejects whitespace-only name', () => {
         const result = validateFullName('   ');
         expect(result.valid).toBe(false);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// validatePostalCode
+// ═══════════════════════════════════════════════════════════════════════════
+describe('validatePostalCode', () => {
+    it('validates a standard 5-digit US zip code', () => {
+        expect(validatePostalCode('12345')).toEqual({ valid: true });
+    });
+
+    it('validates a UK postcode with spaces', () => {
+        expect(validatePostalCode('SW1A 1AA')).toEqual({ valid: true });
+    });
+
+    it('validates a US zip+4 code with a dash', () => {
+        expect(validatePostalCode('12345-6789')).toEqual({ valid: true });
+    });
+
+    it('validates an alphanumeric postal code without spaces', () => {
+        expect(validatePostalCode('A1B2C3')).toEqual({ valid: true });
+    });
+
+    it('validates the minimum length postal code (3 chars)', () => {
+        expect(validatePostalCode('123')).toEqual({ valid: true });
+    });
+
+    it('validates the maximum length postal code (10 chars)', () => {
+        expect(validatePostalCode('1234567890')).toEqual({ valid: true });
+    });
+
+    it('validates maximum length with dashes and spaces ignored', () => {
+        expect(validatePostalCode('12-34 56-78 90')).toEqual({ valid: true });
+    });
+
+    it('rejects an empty postal code', () => {
+        expect(validatePostalCode('')).toEqual({ valid: false, error: 'Postal code is required' });
+    });
+
+    it('rejects a postal code with only whitespaces', () => {
+        expect(validatePostalCode('   ')).toEqual({ valid: false, error: 'Postal code is required' });
+    });
+
+    it('rejects a postal code that is too short (< 3 chars)', () => {
+        expect(validatePostalCode('12')).toEqual({ valid: false, error: 'Please enter a valid postal code' });
+    });
+
+    it('rejects a postal code that is too long (> 10 chars)', () => {
+        expect(validatePostalCode('12345678901')).toEqual({ valid: false, error: 'Please enter a valid postal code' });
+    });
+
+    it('rejects a postal code with invalid characters', () => {
+        expect(validatePostalCode('123!@#')).toEqual({ valid: false, error: 'Please enter a valid postal code' });
     });
 });
 
