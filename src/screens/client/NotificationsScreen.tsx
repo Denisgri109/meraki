@@ -42,6 +42,8 @@ const NOTIFICATION_ICONS: Record<string, { name: string; color: string }> = {
     low_stock: { name: 'inventory', color: '#EF4444' },
 };
 
+const senderProfileCache = new Map<string, { id: string; full_name: string }>();
+
 export function NotificationsScreen() {
     const navigation = useNavigation<any>();
     const handleBack = useMenuBackHandler();
@@ -137,13 +139,21 @@ export function NotificationsScreen() {
 
                     if (messages && (messages as any[]).length > 0) {
                         const senderIds = Array.from(new Set((messages as any[]).map(m => m.sender_id)));
-                        const sendersPromise = supabase.from('profiles').select('id, full_name').in('id', senderIds);
-                        const { data: sendersData } = await safeSupabaseFetch(sendersPromise as any, { timeout: 3000 });
+                        const uncachedSenderIds = senderIds.filter(id => !senderProfileCache.has(id));
 
-                        const sendersMap = new Map(((sendersData as any[]) || []).map(sender => [sender.id, sender]));
+                        if (uncachedSenderIds.length > 0) {
+                            const sendersPromise = supabase.from('profiles').select('id, full_name').in('id', uncachedSenderIds);
+                            const { data: sendersData } = await safeSupabaseFetch(sendersPromise as any, { timeout: 3000 });
+
+                            if (sendersData) {
+                                (sendersData as any[]).forEach(sender => {
+                                    senderProfileCache.set(sender.id, sender);
+                                });
+                            }
+                        }
 
                         for (const msg of (messages as any[])) {
-                            const sender = sendersMap.get(msg.sender_id);
+                            const sender = senderProfileCache.get(msg.sender_id);
                             allNotifications.push({
                                 id: `msg-${msg.id}`,
                                 title: `Message from ${(sender as any)?.full_name || 'User'}`,
