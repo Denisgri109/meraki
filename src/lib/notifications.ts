@@ -35,7 +35,9 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 
     // Check if physical device (push notifications don't work on simulators)
     if (!Device.isDevice) {
-        console.debug('Push notifications require a physical device');
+        if (__DEV__) {
+            console.debug('Push notifications require a physical device');
+        }
         return null;
     }
 
@@ -57,7 +59,9 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     }
 
     if (finalStatus !== 'granted') {
-        console.warn('Failed to get push token - permission not granted');
+        if (__DEV__) {
+            console.warn('Failed to get push token - permission not granted');
+        }
         return null;
     }
 
@@ -66,7 +70,9 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
         const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
         if (!projectId) {
-            console.warn('No project ID found for push notifications');
+            if (__DEV__) {
+                console.warn('No project ID found for push notifications');
+            }
             return null;
         }
 
@@ -75,9 +81,13 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
         });
 
         token = pushToken.data;
-        console.debug('Push token obtained successfully');
+        if (__DEV__) {
+            console.debug('Push token obtained successfully');
+        }
     } catch (error) {
-        console.error('Error getting push token:', error);
+        if (__DEV__) {
+            console.error('Error getting push token:', error);
+        }
         return null;
     }
 
@@ -124,14 +134,20 @@ export async function savePushToken(userId: string, token: string): Promise<bool
             .eq('id', userId);
 
         if (error) {
-            console.error('Error saving push token:', error);
+            if (__DEV__) {
+                console.error('Error saving push token:', error);
+            }
             return false;
         }
 
-        console.debug('Push token saved successfully');
+        if (__DEV__) {
+            console.debug('Push token saved successfully');
+        }
         return true;
     } catch (error) {
-        console.error('Error saving push token:', error);
+        if (__DEV__) {
+            console.error('Error saving push token:', error);
+        }
         return false;
     }
 }
@@ -149,7 +165,9 @@ export async function removePushToken(userId: string): Promise<void> {
             } as any)
             .eq('id', userId);
     } catch (error) {
-        console.error('Error removing push token:', error);
+        if (__DEV__) {
+            console.error('Error removing push token:', error);
+        }
     }
 }
 
