@@ -528,7 +528,8 @@ export function EditProfileScreen() {
                 showAlert('Success', 'Profile photo updated', 'success');
             }
         } catch (error: any) {
-            showAlert('Error', 'Failed to update photo: ' + error.message, 'error');
+            console.error('Failed to update photo', { error: error?.message });
+            showAlert('Error', 'Failed to update photo. Please try again.', 'error');
         } finally {
             setUploadingPhoto(false);
         }
