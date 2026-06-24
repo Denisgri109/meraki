@@ -158,6 +158,15 @@ export function cleanPhoneNumber(phone: string): string {
     return phone.replace(/[\s\-\(\)]/g, '');
 }
 
+// Pre-calculate and sort country prefixes to avoid recreating arrays and regexes on every function call
+const SORTED_COUNTRY_PREFIXES = [...SUPPORTED_COUNTRIES]
+    .sort((a, b) => b.callingCode.length - a.callingCode.length)
+    .map(country => ({
+        code: country.code,
+        callingCode: country.callingCode,
+        rawCode: country.callingCode.replace('+', '')
+    }));
+
 export function parsePhoneNumber(phone: string): { countryCode: string; localNumber: string } {
     if (!phone) return { countryCode: 'IE', localNumber: '' };
     
@@ -167,21 +176,26 @@ export function parsePhoneNumber(phone: string): { countryCode: string; localNum
         cleaned = '+' + cleaned.substring(2);
     }
     
-    const sortedCountries = [...SUPPORTED_COUNTRIES].sort((a, b) => b.callingCode.length - a.callingCode.length);
-    
-    for (const country of sortedCountries) {
-        if (cleaned.startsWith(country.callingCode)) {
-            return {
-                countryCode: country.code,
-                localNumber: cleaned.substring(country.callingCode.length)
-            };
+    // Check first character to avoid checking both conditions in loop
+    if (cleaned.charCodeAt(0) === 43) { // '+'
+        for (let i = 0; i < SORTED_COUNTRY_PREFIXES.length; i++) {
+            const country = SORTED_COUNTRY_PREFIXES[i];
+            if (cleaned.startsWith(country.callingCode)) {
+                return {
+                    countryCode: country.code,
+                    localNumber: cleaned.substring(country.callingCode.length)
+                };
+            }
         }
-        const rawCode = country.callingCode.replace('+', '');
-        if (cleaned.startsWith(rawCode) && !cleaned.startsWith('+')) {
-            return {
-                countryCode: country.code,
-                localNumber: cleaned.substring(rawCode.length)
-            };
+    } else {
+        for (let i = 0; i < SORTED_COUNTRY_PREFIXES.length; i++) {
+            const country = SORTED_COUNTRY_PREFIXES[i];
+            if (cleaned.startsWith(country.rawCode)) {
+                return {
+                    countryCode: country.code,
+                    localNumber: cleaned.substring(country.rawCode.length)
+                };
+            }
         }
     }
     
