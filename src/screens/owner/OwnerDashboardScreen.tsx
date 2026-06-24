@@ -288,14 +288,29 @@ export function OwnerDashboardScreen() {
         try {
             const feedItems: ActivityFeedItem[] = [];
 
-            // Pending consultations
-            const { data: pendingConsultsData } = await supabase
+            // Execute feed queries concurrently
+            const pendingConsultsPromise = supabase
                 .from('booking_consultations')
                 .select(`id, created_at, service:services(name), client:profiles!booking_consultations_client_id_fkey(full_name)`)
                 .eq('master_id', user.id)
                 .eq('status', 'pending')
                 .order('created_at', { ascending: false })
                 .limit(5);
+
+            const reschedulesPromise = supabase
+                .from('appointments')
+                .select(`id, proposed_start_time, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`)
+                .eq('master_id', user.id)
+                .not('proposed_start_time', 'is', null)
+                .in('status', ['confirmed', 'pending', 'reschedule_pending']);
+
+            const [
+                { data: pendingConsultsData },
+                { data: rescheduleData }
+            ] = await Promise.all([
+                pendingConsultsPromise,
+                reschedulesPromise
+            ]);
 
             (pendingConsultsData || []).forEach((c: any) => {
                 feedItems.push({
@@ -308,14 +323,6 @@ export function OwnerDashboardScreen() {
                     route: 'BookingConsultations',
                 });
             });
-
-            // Recent reschedules
-            const { data: rescheduleData } = await supabase
-                .from('appointments')
-                .select(`id, proposed_start_time, service_name, service:services(name), client:profiles!appointments_client_id_fkey(full_name)`)
-                .eq('master_id', user.id)
-                .not('proposed_start_time', 'is', null)
-                .in('status', ['confirmed', 'pending', 'reschedule_pending']);
 
             (rescheduleData || []).forEach((apt: any) => {
                 feedItems.push({
