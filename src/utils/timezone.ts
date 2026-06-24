@@ -192,12 +192,17 @@ export function formatCurrency(amount: number, currencyCode: string = 'EUR'): st
     return `${symbol}${amount.toFixed(2)}`;
 }
 
+// Pre-compute map for faster lookup (O(1) instead of O(n))
+const COUNTRY_NAME_MAP: Record<string, string> = Object.create(null);
+COMMON_COUNTRIES.forEach(c => {
+    COUNTRY_NAME_MAP[c.value] = c.label;
+});
+
 /**
  * Get country name from code
  */
 export function getCountryName(countryCode: string): string {
-    const country = COUNTRY_MAP[countryCode];
-    return country?.label || countryCode;
+    return COUNTRY_NAME_MAP[countryCode] || countryCode;
 }
 
 /**
