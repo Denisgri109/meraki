@@ -83,6 +83,22 @@ export const COMMON_COUNTRIES = [
     { value: 'ZA', label: 'South Africa' },
 ];
 
+// O(1) Lookup Maps for Performance Optimization
+export const TIMEZONE_MAP = COMMON_TIMEZONES.reduce((acc, tz) => {
+    acc[tz.value] = tz;
+    return acc;
+}, {} as Record<string, typeof COMMON_TIMEZONES[0]>);
+
+export const CURRENCY_MAP = SUPPORTED_CURRENCIES.reduce((acc, curr) => {
+    acc[curr.value] = curr;
+    return acc;
+}, {} as Record<string, typeof SUPPORTED_CURRENCIES[0]>);
+
+export const COUNTRY_MAP = COMMON_COUNTRIES.reduce((acc, country) => {
+    acc[country.value] = country;
+    return acc;
+}, {} as Record<string, typeof COMMON_COUNTRIES[0]>);
+
 /**
  * Convert a UTC date string to a zoned time in the specified timezone
  */
@@ -164,7 +180,7 @@ export function getTimezoneAbbreviation(timezone: string, date: Date = new Date(
  * Format currency amount with symbol
  */
 export function formatCurrency(amount: number, currencyCode: string = 'EUR'): string {
-    const currency = SUPPORTED_CURRENCIES.find(c => c.value === currencyCode);
+    const currency = CURRENCY_MAP[currencyCode];
     const symbol = currency?.symbol || currencyCode;
 
     // Format based on currency
@@ -180,7 +196,7 @@ export function formatCurrency(amount: number, currencyCode: string = 'EUR'): st
  * Get country name from code
  */
 export function getCountryName(countryCode: string): string {
-    const country = COMMON_COUNTRIES.find(c => c.value === countryCode);
+    const country = COUNTRY_MAP[countryCode];
     return country?.label || countryCode;
 }
 
@@ -188,6 +204,6 @@ export function getCountryName(countryCode: string): string {
  * Get timezone label from value
  */
 export function getTimezoneLabel(timezoneValue: string): string {
-    const tz = COMMON_TIMEZONES.find(t => t.value === timezoneValue);
+    const tz = TIMEZONE_MAP[timezoneValue];
     return tz?.label || timezoneValue;
 }
