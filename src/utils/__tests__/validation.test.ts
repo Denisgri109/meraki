@@ -434,7 +434,19 @@ describe('International Phone Validation & Formatting Helpers', () => {
     // validatePrice
     // ═══════════════════════════════════════════════════════════════════════════
     describe('validatePrice', () => {
-        it('returns error for empty, undefined, or null values', () => {
+        it('validates a valid numeric price', () => {
+            expect(validatePrice(10)).toEqual({ valid: true });
+            expect(validatePrice(0)).toEqual({ valid: true });
+            expect(validatePrice(99.99)).toEqual({ valid: true });
+        });
+
+        it('validates a valid string price', () => {
+            expect(validatePrice('10')).toEqual({ valid: true });
+            expect(validatePrice('0')).toEqual({ valid: true });
+            expect(validatePrice('99.99')).toEqual({ valid: true });
+        });
+
+        it('rejects missing or empty price', () => {
             expect(validatePrice('')).toEqual({ valid: false, error: 'Price is required' });
             expect(validatePrice(undefined as any)).toEqual({ valid: false, error: 'Price is required' });
             expect(validatePrice(null as any)).toEqual({ valid: false, error: 'Price is required' });
@@ -449,15 +461,7 @@ describe('International Phone Validation & Formatting Helpers', () => {
         it('returns error for negative values', () => {
             expect(validatePrice(-1)).toEqual({ valid: false, error: 'Price cannot be negative' });
             expect(validatePrice('-10.50')).toEqual({ valid: false, error: 'Price cannot be negative' });
-        });
-
-        it('returns valid for valid numbers and strings', () => {
-            expect(validatePrice(10)).toEqual({ valid: true });
-            expect(validatePrice(10.50)).toEqual({ valid: true });
-            expect(validatePrice('10')).toEqual({ valid: true });
-            expect(validatePrice('10.50')).toEqual({ valid: true });
-            expect(validatePrice('0')).toEqual({ valid: true });
-            expect(validatePrice(0)).toEqual({ valid: true });
+            expect(validatePrice(-0.01)).toEqual({ valid: false, error: 'Price cannot be negative' });
         });
     });
 });
