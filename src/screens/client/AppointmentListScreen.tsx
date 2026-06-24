@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     View,
     Text,
@@ -391,6 +391,13 @@ export function AppointmentListScreen() {
         return slots;
     };
 
+    const parsedRescheduleBlockedSlots = useMemo(() => {
+        return rescheduleBlockedSlots.map(blocked => ({
+            startMs: new Date(blocked.start_time).getTime(),
+            endMs: new Date(blocked.end_time).getTime()
+        }));
+    }, [rescheduleBlockedSlots]);
+
     // Check if a reschedule time slot is available (mirrors SelectDateTimeScreen)
     const isRescheduleSlotAvailable = (slot: Date): boolean => {
         if (!selectedDate) return false;
@@ -404,11 +411,11 @@ export function AppointmentListScreen() {
         slotDateTime.setHours(slot.getHours(), slot.getMinutes());
         if (isBefore(slotDateTime, new Date())) return false;
 
+        const slotTimeMs = slotDateTime.getTime();
+
         // Blocked
-        for (const blocked of rescheduleBlockedSlots) {
-            const blockStart = new Date(blocked.start_time);
-            const blockEnd = new Date(blocked.end_time);
-            if (slotDateTime >= blockStart && slotDateTime < blockEnd) return false;
+        for (const blocked of parsedRescheduleBlockedSlots) {
+            if (slotTimeMs >= blocked.startMs && slotTimeMs < blocked.endMs) return false;
         }
         return true;
     };
