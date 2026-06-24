@@ -180,7 +180,6 @@ describe('checkSessionHealth', () => {
     });
 
     it('returns false when there is an auth error', async () => {
-        const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
         (supabase.auth.getSession as jest.Mock).mockResolvedValue({
             data: { session: null },
             error: new Error('Auth error'),
@@ -188,15 +187,12 @@ describe('checkSessionHealth', () => {
 
         const result = await checkSessionHealth();
         expect(result).toBe(false);
-        consoleSpy.mockRestore();
     });
 
     it('returns false when getSession throws', async () => {
-        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         (supabase.auth.getSession as jest.Mock).mockRejectedValue(new Error('Network error'));
 
         const result = await checkSessionHealth();
         expect(result).toBe(false);
-        consoleSpy.mockRestore();
     });
 });
