@@ -57,11 +57,21 @@ export function DeepLinkHandler({ children }: DeepLinkHandlerProps) {
 
     const processDeepLink = async (url: string) => {
         try {
+            // Parse the URL to validate origin
+            const u = new URL(url);
+            const isMerakiProtocol = u.protocol === 'meraki:';
+            const isMerakiWeb = u.protocol === 'https:' && u.hostname === 'meraki.app';
+
+            if (!isMerakiProtocol && !isMerakiWeb) {
+                console.warn('Ignoring deep link from unknown origin:', url);
+                return;
+            }
+
             // ── Auth callback (email change confirm, etc.) ──────────────
             // Format: meraki://auth-callback?code=...
             //     or: meraki://auth-callback?token_hash=...&type=email_change
-            if (url.includes('auth-callback')) {
-                const u = new URL(url);
+            const isAuthCallback = (isMerakiProtocol && u.host === 'auth-callback') || (isMerakiWeb && u.pathname.includes('auth-callback'));
+            if (isAuthCallback) {
                 const code = u.searchParams.get('code');
                 const tokenHash = u.searchParams.get('token_hash');
                 const type = u.searchParams.get('type');
@@ -123,13 +133,13 @@ export function DeepLinkHandler({ children }: DeepLinkHandlerProps) {
 
             // ── Loyalty stamp scan ──────────────────────────────────────
             // Expected format: meraki://loyalty/stamp?master_id=<master_id>
-            if (!url.includes('loyalty/stamp')) {
+            const isLoyaltyStamp = (isMerakiProtocol && u.host === 'loyalty' && u.pathname.includes('stamp')) || (isMerakiWeb && u.pathname.includes('loyalty/stamp'));
+            if (!isLoyaltyStamp) {
                 return; // Not a stamp deep link
             }
 
             // Extract master_id from URL
-            const urlParams = new URL(url);
-            const masterId = urlParams.searchParams.get('master_id');
+            const masterId = u.searchParams.get('master_id');
 
             if (!masterId) {
                 console.error('No master_id in deep link');
