@@ -7,7 +7,20 @@ import {
     TouchableOpacity,
     Platform,
 } from 'react-native';
-import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
+let NfcManager: any = null;
+let NfcTech: any = {};
+let Ndef: any = {};
+let nfcAvailable = false;
+
+try {
+    const nfcModule = require('react-native-nfc-manager');
+    NfcManager = nfcModule.default;
+    NfcTech = nfcModule.NfcTech;
+    Ndef = nfcModule.Ndef;
+    nfcAvailable = true;
+} catch (error) {
+    console.warn('[NFC] Native module not available. Running without NFC support.');
+}
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '../../theme';

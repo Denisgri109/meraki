@@ -1,25 +1,40 @@
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
 
+let Notifications: any = null;
+let notificationsAvailable = false;
+
+try {
+    Notifications = require('expo-notifications');
+    notificationsAvailable = true;
+} catch (error) {
+    console.warn('[Notifications] Native module not available. Running in mock/limited mode.');
+}
+
 // Configure notification handler
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-        shouldShowBanner: true,
-        shouldShowList: true,
-    }),
-});
+if (notificationsAvailable && Notifications) {
+    try {
+        Notifications.setNotificationHandler({
+            handleNotification: async () => ({
+                shouldShowAlert: true,
+                shouldPlaySound: true,
+                shouldSetBadge: false,
+                shouldShowBanner: true,
+                shouldShowList: true,
+            }),
+        });
+    } catch (e) {
+        console.warn('Failed to set notification handler:', e);
+    }
+}
 
 // Check if running in Expo Go
-const isExpoGo = Constants.appOwnership === 'expo';
+const isExpoGo = Constants.appOwnership === 'expo' || !notificationsAvailable;
 
 // Notification response listener subscription
-let notificationResponseSubscription: Notifications.Subscription | null = null;
+let notificationResponseSubscription: any = null;
 
 export type NotificationData = {
     type?: 'appointment_reminder' | 'message' | 'marketing';
@@ -35,12 +50,15 @@ export type NotificationTapHandler = (data: NotificationData) => void;
  * Set up listener for when user taps on a notification
  */
 export function setupNotificationResponseListener(onTap: NotificationTapHandler): () => void {
+    if (!notificationsAvailable || !Notifications) {
+        return () => {};
+    }
     // Clean up existing subscription if any
     if (notificationResponseSubscription) {
         notificationResponseSubscription.remove();
     }
 
-    notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+    notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
         const data = response.notification.request.content.data as NotificationData;
         onTap(data);
     });
@@ -56,15 +74,18 @@ export function setupNotificationResponseListener(onTap: NotificationTapHandler)
  * Set up listener for foreground notifications
  */
 export function setupForegroundNotificationListener(
-    onReceived: (notification: Notifications.Notification) => void
+    onReceived: (notification: any) => void
 ): () => void {
+    if (!notificationsAvailable || !Notifications) {
+        return () => {};
+    }
     const subscription = Notifications.addNotificationReceivedListener(onReceived);
     return () => subscription.remove();
 }
 
 export async function registerForPushNotificationsAsync(userId: string) {
     // Push notifications don't work in Expo Go - silently skip
-    if (isExpoGo) {
+    if (isExpoGo || !notificationsAvailable || !Notifications) {
         console.warn('Push notifications are not available in Expo Go. Use a development build for full functionality.');
         return null;
     }

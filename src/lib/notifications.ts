@@ -1,19 +1,34 @@
-import * as Notifications from 'expo-notifications';
+let Notifications: any = null;
+let notificationsAvailable = false;
+
+try {
+    Notifications = require('expo-notifications');
+    notificationsAvailable = true;
+} catch (error) {
+    console.warn('[Notifications] Native module not available. Running in mock/limited mode.');
+}
+
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
 // Configure notification behavior
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-        shouldShowBanner: true,
-        shouldShowList: true,
-    }),
-});
+if (notificationsAvailable && Notifications) {
+    try {
+        Notifications.setNotificationHandler({
+            handleNotification: async () => ({
+                shouldShowAlert: true,
+                shouldPlaySound: true,
+                shouldSetBadge: true,
+                shouldShowBanner: true,
+                shouldShowList: true,
+            }),
+        });
+    } catch (e) {
+        console.warn('Failed to set notification handler:', e);
+    }
+}
 
 export interface NotificationData {
     type: 'appointment_reminder' | 'confirmation_request' | 'message' | 'consultation_response';
@@ -31,6 +46,9 @@ export interface NotificationData {
  * Register for push notifications and get the Expo Push Token
  */
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
+    if (!notificationsAvailable || !Notifications) {
+        return null;
+    }
     let token: string | null = null;
 
     // Check if physical device (push notifications don't work on simulators)
@@ -178,6 +196,9 @@ export async function scheduleLocalNotification(
     data?: NotificationData,
     triggerSeconds?: number
 ): Promise<string> {
+    if (!notificationsAvailable || !Notifications) {
+        return 'mock-notification-id';
+    }
     const trigger: Notifications.NotificationTriggerInput = triggerSeconds
         ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: triggerSeconds, repeats: false }
         : null;
@@ -199,6 +220,7 @@ export async function scheduleLocalNotification(
  * Cancel a scheduled notification
  */
 export async function cancelNotification(notificationId: string): Promise<void> {
+    if (!notificationsAvailable || !Notifications) return;
     await Notifications.cancelScheduledNotificationAsync(notificationId);
 }
 
@@ -206,6 +228,7 @@ export async function cancelNotification(notificationId: string): Promise<void> 
  * Cancel all scheduled notifications
  */
 export async function cancelAllNotifications(): Promise<void> {
+    if (!notificationsAvailable || !Notifications) return;
     await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
@@ -213,6 +236,7 @@ export async function cancelAllNotifications(): Promise<void> {
  * Get all scheduled notifications
  */
 export async function getScheduledNotifications() {
+    if (!notificationsAvailable || !Notifications) return [];
     return await Notifications.getAllScheduledNotificationsAsync();
 }
 
@@ -220,6 +244,7 @@ export async function getScheduledNotifications() {
  * Set badge count (iOS)
  */
 export async function setBadgeCount(count: number): Promise<void> {
+    if (!notificationsAvailable || !Notifications) return;
     await Notifications.setBadgeCountAsync(count);
 }
 
@@ -229,6 +254,9 @@ export async function setBadgeCount(count: number): Promise<void> {
 export function addNotificationResponseListener(
     callback: (response: Notifications.NotificationResponse) => void
 ): Notifications.Subscription {
+    if (!notificationsAvailable || !Notifications) {
+        return { remove: () => {} } as any;
+    }
     return Notifications.addNotificationResponseReceivedListener(callback);
 }
 
@@ -238,6 +266,9 @@ export function addNotificationResponseListener(
 export function addNotificationReceivedListener(
     callback: (notification: Notifications.Notification) => void
 ): Notifications.Subscription {
+    if (!notificationsAvailable || !Notifications) {
+        return { remove: () => {} } as any;
+    }
     return Notifications.addNotificationReceivedListener(callback);
 }
 

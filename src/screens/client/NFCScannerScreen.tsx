@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
-import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
+let NfcManager: any = null;
+let NfcTech: any = {};
+let Ndef: any = {};
+let nfcAvailable = false;
+
+try {
+    const nfcModule = require('react-native-nfc-manager');
+    NfcManager = nfcModule.default;
+    NfcTech = nfcModule.NfcTech;
+    Ndef = nfcModule.Ndef;
+    nfcAvailable = true;
+} catch (error) {
+    console.warn('[NFC] Native module not available in NFCScannerScreen. Running without NFC support.');
+}
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -19,20 +32,35 @@ export function NFCScannerScreen() {
 
     useEffect(() => {
         const checkNfc = async () => {
-            const supported = await NfcManager.isSupported();
-            setHasNfc(supported);
-            if (supported) {
-                await NfcManager.start();
+            if (!NfcManager || typeof NfcManager.isSupported !== 'function') {
+                setHasNfc(false);
+                return;
+            }
+            try {
+                const supported = await NfcManager.isSupported();
+                setHasNfc(supported);
+                if (supported) {
+                    await NfcManager.start();
+                }
+            } catch (e) {
+                console.warn('Error checking NFC support:', e);
+                setHasNfc(false);
             }
         };
         checkNfc();
 
         return () => {
-            NfcManager.cancelTechnologyRequest().catch(() => 0);
+            if (NfcManager && typeof NfcManager.cancelTechnologyRequest === 'function') {
+                NfcManager.cancelTechnologyRequest().catch(() => 0);
+            }
         };
     }, []);
 
     const readNdef = async () => {
+        if (!NfcManager || typeof NfcManager.requestTechnology !== 'function') {
+            showAlert('NFC Not Available', 'NFC features require a physical device and a development build.', 'error');
+            return;
+        }
         try {
             setScanning(true);
             // register for the NFC tag with NDEF in it
@@ -47,10 +75,14 @@ export function NFCScannerScreen() {
         } catch (ex) {
             console.warn('Oops!', ex);
             setScanning(false);
-            NfcManager.cancelTechnologyRequest().catch(() => 0);
+            if (NfcManager && typeof NfcManager.cancelTechnologyRequest === 'function') {
+                NfcManager.cancelTechnologyRequest().catch(() => 0);
+            }
         } finally {
             // stop the nfc scanning
-            NfcManager.cancelTechnologyRequest().catch(() => 0);
+            if (NfcManager && typeof NfcManager.cancelTechnologyRequest === 'function') {
+                NfcManager.cancelTechnologyRequest().catch(() => 0);
+            }
             setScanning(false);
         }
     };
