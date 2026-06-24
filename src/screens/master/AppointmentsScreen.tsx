@@ -543,9 +543,7 @@ export function MasterAppointmentsScreen() {
                     )}
                 </View>
 
-                {/* Quick Action Row (No longer used for Confirm/Decline as bookings are pre-confirmed) */}
-                {/* Kept wrapper for layout consistency if needed, or remove entirely if empty */}
-                {isPending && (
+                {isPending && new Date(apt.start_time) > now && (
                     <View style={styles.stitchActionRow}>
                         <View style={styles.stitchActionIcons} />
                         <View style={styles.stitchActionButtons}>

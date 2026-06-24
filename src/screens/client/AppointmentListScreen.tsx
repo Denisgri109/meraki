@@ -922,18 +922,22 @@ export function AppointmentListScreen() {
                                                 >
                                                     <MaterialIcons name="chat-bubble-outline" size={16} color={colors.text} />
                                                 </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={styles.rescheduleButton}
-                                                    onPress={() => handleReschedule(apt)}
-                                                >
-                                                    <Text style={styles.rescheduleButtonText}>Reschedule</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={styles.cancelButton}
-                                                    onPress={() => handleCancel(apt)}
-                                                >
-                                                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                                                </TouchableOpacity>
+                                                {new Date(apt.start_time) > new Date() && (
+                                                    <>
+                                                        <TouchableOpacity
+                                                            style={styles.rescheduleButton}
+                                                            onPress={() => handleReschedule(apt)}
+                                                        >
+                                                            <Text style={styles.rescheduleButtonText}>Reschedule</Text>
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity
+                                                            style={styles.cancelButton}
+                                                            onPress={() => handleCancel(apt)}
+                                                        >
+                                                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                                                        </TouchableOpacity>
+                                                    </>
+                                                )}
                                             </View>
                                         )}
                                     </View>
