@@ -88,13 +88,12 @@ export async function checkSessionHealth(): Promise<boolean> {
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error || !session) {
-            console.debug('Session check failed:', error?.message);
             return false;
         }
 
         return true;
     } catch (err) {
-        console.error('Session health check error:', err);
+        // Failed silently
         return false;
     }
 }
