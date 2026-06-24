@@ -1,4 +1,4 @@
-import { getCountryByCode, getAllCountries, getCitiesOfCountry, getStatesOfCountry, getCitiesOfState, filterCountries, Country } from '../locationApi';
+import { getCountryByCode, getAllCountries, getCitiesOfCountry, getStatesOfCountry, getCitiesOfState, filterCountries, getTimezoneFromCountry, Country } from '../locationApi';
 
 describe('locationApi', () => {
     const originalFetch = global.fetch;
@@ -386,6 +386,73 @@ describe('locationApi', () => {
         it('returns an empty array when there are no matches', () => {
             const result = filterCountries(mockCountries, 'nonexistent');
             expect(result.length).toBe(0);
+        });
+    });
+
+    describe('getTimezoneFromCountry', () => {
+        it('should return the first zoneName if timezones exist and is not empty', () => {
+            const mockCountryWithTimezone = {
+                id: 104,
+                name: "Ireland",
+                iso2: "IE",
+                iso3: "IRL",
+                phonecode: "353",
+                capital: "Dublin",
+                currency: "EUR",
+                currency_symbol: "€",
+                timezones: [
+                    {
+                        zoneName: "Europe/Dublin",
+                        gmtOffset: 0,
+                        gmtOffsetName: "UTC±00",
+                        abbreviation: "GMT",
+                        tzName: "Greenwich Mean Time"
+                    },
+                    {
+                        zoneName: "Europe/London",
+                        gmtOffset: 0,
+                        gmtOffsetName: "UTC±00",
+                        abbreviation: "GMT",
+                        tzName: "Greenwich Mean Time"
+                    }
+                ]
+            } as Country;
+
+            const result = getTimezoneFromCountry(mockCountryWithTimezone);
+            expect(result).toBe("Europe/Dublin");
+        });
+
+        it('should return null if timezones array is empty', () => {
+            const mockCountryEmptyTimezones = {
+                id: 1,
+                name: 'Test',
+                iso2: 'TS',
+                iso3: 'TST',
+                phonecode: '1',
+                capital: 'Test City',
+                currency: 'TST',
+                currency_symbol: '$',
+                timezones: []
+            } as Country;
+
+            const result = getTimezoneFromCountry(mockCountryEmptyTimezones);
+            expect(result).toBeNull();
+        });
+
+        it('should return null if timezones is undefined', () => {
+            const mockCountryUndefinedTimezones = {
+                id: 1,
+                name: 'Test',
+                iso2: 'TS',
+                iso3: 'TST',
+                phonecode: '1',
+                capital: 'Test City',
+                currency: 'TST',
+                currency_symbol: '$'
+            } as unknown as Country;
+
+            const result = getTimezoneFromCountry(mockCountryUndefinedTimezones);
+            expect(result).toBeNull();
         });
     });
 });
