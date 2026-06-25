@@ -118,9 +118,8 @@ meraki_app/
 ├── package.json                # Dependencies
 ├── app.json                    # Expo configuration
 ├── .env                        # Environment variables
-├── APP_DOCUMENTATION.md        # Detailed documentation
-├── TEST_CASES.md              # Testing guide
-├── supabase_migrations.sql    # Database schema
+├── MERAKI_APP_DOCUMENTATION.md # Detailed documentation
+├── TESTING_GUIDE.md            # Testing guide
 ├── src/
 │   ├── App.tsx                # Main app entry with providers
 │   ├── components/            # Reusable UI components
@@ -187,7 +186,7 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_key
 
 ## 🧪 Testing
 
-See [TEST_CASES.md](./TEST_CASES.md) for comprehensive testing guide.
+See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for comprehensive testing guide.
 
 ```bash
 # Run tests (when implemented)
@@ -196,9 +195,8 @@ npm test
 
 ## 📄 Documentation
 
-- **[APP_DOCUMENTATION.md](./APP_DOCUMENTATION.md)** - Comprehensive feature documentation, database schema, API reference
-- **[TEST_CASES.md](./TEST_CASES.md)** - Testing procedures and validation steps
-- **[supabase_migrations.sql](./supabase_migrations.sql)** - Database schema definition
+- **[MERAKI_APP_DOCUMENTATION.md](./MERAKI_APP_DOCUMENTATION.md)** - Comprehensive feature documentation, database schema, API reference
+- **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - Testing procedures and validation steps
 
 ## 🚀 Deployment
 
