@@ -32,6 +32,20 @@ Deno.serve(async (req: Request) => {
             );
         }
 
+        // Intercept simulated/mock payment intent IDs
+        if (payment_intent_id.startsWith('pi_mock_') || payment_intent_id.startsWith('pi_simulated_') || payment_intent_id.startsWith('mock_pi_')) {
+            console.log("Mock payment intent detected in cancel-payment:", payment_intent_id);
+            return new Response(
+                JSON.stringify({ success: true, status: "canceled" }),
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Access-Control-Allow-Origin": "*",
+                    },
+                }
+            );
+        }
+
         // Cancel the payment intent
         const cancelUrl = `https://api.stripe.com/v1/payment_intents/${payment_intent_id}/cancel`;
 

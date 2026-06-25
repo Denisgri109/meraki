@@ -499,3 +499,63 @@ describe('cancelAndRefund', () => {
         await expect(cancelAndRefund('apt_123', 'client')).rejects.toThrow('Appointment not found');
     });
 });
+
+describe('stripeService in SIMULATION_MODE', () => {
+    let simService: typeof import('../stripeService');
+
+    beforeAll(() => {
+        // Mock isStripeAvailable to return false
+        jest.doMock('../../utils/stripe', () => ({
+            isStripeAvailable: () => false,
+            CardField: 'CardField',
+            useConfirmPayment: () => jest.fn(),
+            useConfirmSetupIntent: () => jest.fn(),
+            useStripe: () => jest.fn(),
+        }));
+        
+        // Re-require stripeService so it picks up the mocked isStripeAvailable
+        jest.isolateModules(() => {
+            simService = require('../stripeService');
+        });
+    });
+
+    afterAll(() => {
+        jest.dontMock('../../utils/stripe');
+    });
+
+    it('createSetupIntent returns mock SetupIntent result in simulation mode', async () => {
+        const result = await simService.createSetupIntent('user-123', 'test@test.com', 'cus_123');
+        expect(result.clientSecret).toContain('seti_mock_secret_');
+        expect(result.setupIntentId).toContain('seti_mock_');
+        expect(result.customerId).toBe('cus_123');
+    });
+
+    it('createPaymentIntent returns mock PaymentIntent result in simulation mode', async () => {
+        const result = await simService.createPaymentIntent({ amount: 1000, customerId: 'cus_123' });
+        expect(result.clientSecret).toContain('pi_mock_secret_');
+        expect(result.paymentIntentId).toContain('pi_mock_');
+    });
+
+    it('capturePayment returns true in simulation mode', async () => {
+        const result = await simService.capturePayment('pi_mock_123');
+        expect(result).toBe(true);
+    });
+
+    it('cancelPaymentIntent returns true in simulation mode', async () => {
+        const result = await simService.cancelPaymentIntent('pi_mock_123');
+        expect(result).toBe(true);
+    });
+
+    it('handleNoShow returns successful mock result in simulation mode', async () => {
+        const result = await simService.handleNoShow('appt-123', 'pi_mock_123');
+        expect(result.success).toBe(true);
+        expect(result.amountCaptured).toBe(1500);
+    });
+
+    it('processRefund returns successful mock result in simulation mode', async () => {
+        const result = await simService.processRefund('pi_mock_123', 500);
+        expect(result.success).toBe(true);
+        expect(result.amount).toBe(500);
+        expect(result.refundId).toContain('re_mock_');
+    });
+});

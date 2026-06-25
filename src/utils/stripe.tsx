@@ -5,17 +5,25 @@
  * (e.g., when running in Expo Go instead of a development build)
  */
 import { MockCardField, createMockHook } from './stripeMocks';
+import Constants from 'expo-constants';
 
 // Check if we're in Expo Go by trying to access the native module
 let stripeAvailable = false;
 let StripeComponents: any = {};
 
-try {
-    // This will throw if native module isn't registered
-    StripeComponents = require('@stripe/stripe-react-native');
-    stripeAvailable = true;
-} catch (error) {
-    console.warn('[Stripe] Native module not available. Running in Expo Go mode.');
+// We cannot use @stripe/stripe-react-native native code inside Expo Go
+const isExpoGo = Constants.appOwnership === 'expo';
+
+if (!isExpoGo) {
+    try {
+        // This will throw if native module isn't registered
+        StripeComponents = require('@stripe/stripe-react-native');
+        stripeAvailable = true;
+    } catch (error) {
+        console.warn('[Stripe] Native module not available. Running in Expo Go mode.');
+    }
+} else {
+    console.warn('[Stripe] Running in Expo Go. Forcing simulation/mock mode.');
 }
 
 // Export either real Stripe components or mocks

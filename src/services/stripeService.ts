@@ -3,6 +3,7 @@
 
 import { supabase } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
+import { isStripeAvailable } from '../utils/stripe';
 
 // ============================================
 // TYPES
@@ -40,11 +41,23 @@ interface CreatePaymentIntentParams {
     captureMethod?: 'manual' | 'automatic';
 }
 
-const SIMULATION_MODE = false; // Disabled - use real Stripe integration
+const SIMULATION_MODE = !isStripeAvailable();
+
+// Helper to check if an ID is simulated/mock
+const isMockId = (id?: string): boolean => {
+    if (!id) return false;
+    return id.startsWith('pi_mock_') || 
+           id.startsWith('pi_simulated_') || 
+           id.startsWith('mock_pi_') || 
+           id.startsWith('seti_mock_') || 
+           id.startsWith('cus_mock_') || 
+           id.startsWith('re_mock_');
+};
 
 // Helper to simulate delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// ============================================
 // ... existing code ...
 
 // ============================================
@@ -92,7 +105,7 @@ export async function listPaymentMethods(customerId: string | null | undefined):
         return [];
     }
 
-    if (SIMULATION_MODE) {
+    if (SIMULATION_MODE || isMockId(customerId)) {
         // Return a mock card if in simulation mode
         await delay(500);
         return [{
@@ -119,7 +132,7 @@ export async function listPaymentMethods(customerId: string | null | undefined):
  * Delete a saved payment method
  */
 export async function deletePaymentMethod(paymentMethodId: string): Promise<boolean> {
-    if (SIMULATION_MODE) return true;
+    if (SIMULATION_MODE || isMockId(paymentMethodId)) return true;
 
     const { data, error } = await supabase.functions.invoke('delete-payment-method', {
         body: {
@@ -141,7 +154,7 @@ export async function deletePaymentMethod(paymentMethodId: string): Promise<bool
  * Use captureMethod: 'automatic' for immediate charge
  */
 export async function createPaymentIntent(params: CreatePaymentIntentParams): Promise<PaymentIntentResult> {
-    if (SIMULATION_MODE) {
+    if (SIMULATION_MODE || (params.customerId && isMockId(params.customerId))) {
         await delay(1000);
         return {
             clientSecret: 'pi_mock_secret_' + uuidv4(),
@@ -171,6 +184,11 @@ export async function createPaymentIntent(params: CreatePaymentIntentParams): Pr
  * Capture a previously held payment (after service completion)
  */
 export async function capturePayment(paymentIntentId: string, amount?: number): Promise<boolean> {
+    if (SIMULATION_MODE || isMockId(paymentIntentId)) {
+        await delay(500);
+        return true;
+    }
+
     const { data, error } = await supabase.functions.invoke('capture-payment', {
         body: {
             payment_intent_id: paymentIntentId,
@@ -186,6 +204,11 @@ export async function capturePayment(paymentIntentId: string, amount?: number): 
  * Cancel a payment hold (release funds back to customer)
  */
 export async function cancelPaymentIntent(paymentIntentId: string): Promise<boolean> {
+    if (SIMULATION_MODE || isMockId(paymentIntentId)) {
+        await delay(500);
+        return true;
+    }
+
     const { data, error } = await supabase.functions.invoke('cancel-payment', {
         body: {
             payment_intent_id: paymentIntentId,
@@ -211,6 +234,14 @@ export async function handleNoShow(
     paymentIntentId: string,
     feePercentage: number = 100
 ): Promise<{ success: boolean; amountCaptured: number }> {
+    if (SIMULATION_MODE || isMockId(paymentIntentId)) {
+        await delay(500);
+        return {
+            success: true,
+            amountCaptured: 1500, // mock captured amount
+        };
+    }
+
     const { data, error } = await supabase.functions.invoke('handle-no-show', {
         body: {
             appointment_id: appointmentId,
@@ -241,6 +272,15 @@ export async function processRefund(
     amount?: number,
     reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer'
 ): Promise<{ success: boolean; refundId: string; amount: number }> {
+    if (SIMULATION_MODE || isMockId(paymentIntentId)) {
+        await delay(500);
+        return {
+            success: true,
+            refundId: 're_mock_' + uuidv4(),
+            amount: amount || 1000,
+        };
+    }
+
     const { data, error } = await supabase.functions.invoke('process-refund', {
         body: {
             payment_intent_id: paymentIntentId,

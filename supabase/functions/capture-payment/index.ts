@@ -33,6 +33,20 @@ Deno.serve(async (req: Request) => {
             );
         }
 
+        // Intercept simulated/mock payment intent IDs
+        if (payment_intent_id.startsWith('pi_mock_') || payment_intent_id.startsWith('pi_simulated_') || payment_intent_id.startsWith('mock_pi_')) {
+            console.log("Mock payment intent detected in capture-payment:", payment_intent_id);
+            return new Response(
+                JSON.stringify({ success: true, status: "succeeded" }),
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Access-Control-Allow-Origin": "*",
+                    },
+                }
+            );
+        }
+
         // Capture the payment
         const captureUrl = `https://api.stripe.com/v1/payment_intents/${payment_intent_id}/capture`;
 

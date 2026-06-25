@@ -39,7 +39,8 @@ type Appointment = {
     master_id: string;
     stripe_payment_intent_id: string | null;
     service_name: string | null;
-    service: { name: string; duration_minutes: number } | null;
+    service_category: string | null;
+    service: { name: string; duration_minutes: number; category?: string } | null;
     master: { full_name: string; push_token?: string } | null;
 };
 
@@ -128,7 +129,8 @@ export function OrdersScreen() {
                     master_id,
                     stripe_payment_intent_id,
                     service_name,
-                    service:services(name, duration_minutes),
+                    service_category,
+                    service:services(name, duration_minutes, category),
                     master:profiles!appointments_master_id_fkey(full_name, push_token)
                 `)
                 // @ts-ignore - user check handled above
@@ -267,6 +269,15 @@ export function OrdersScreen() {
     };
 
     const handleReschedule = (appointment: Appointment) => {
+        if (appointment.service_category === 'Pilates' || appointment.service?.category === 'Pilates') {
+            showAlert(
+                'Reschedule Class',
+                'Please reschedule Pilates classes from the Appointments tab under the Book section.',
+                'info'
+            );
+            navigation.navigate('Book');
+            return;
+        }
         setSelectedAppointment(appointment);
         setSelectedDate(null);
         setSelectedTime(null);

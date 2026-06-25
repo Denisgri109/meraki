@@ -34,6 +34,25 @@ Deno.serve(async (req: Request) => {
             );
         }
 
+        // Intercept simulated/mock payment intent IDs
+        if (payment_intent_id.startsWith('pi_mock_') || payment_intent_id.startsWith('pi_simulated_') || payment_intent_id.startsWith('mock_pi_')) {
+            console.log("Mock payment intent detected in handle-no-show:", payment_intent_id);
+            return new Response(
+                JSON.stringify({
+                    success: true,
+                    status: "succeeded",
+                    amount_captured: 1500, // mock captured amount
+                    appointment_id: appointment_id,
+                }),
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Access-Control-Allow-Origin": "*",
+                    },
+                }
+            );
+        }
+
         // First, retrieve the payment intent to get the amount
         const getResponse = await fetch(
             `https://api.stripe.com/v1/payment_intents/${payment_intent_id}`,

@@ -41,6 +41,7 @@ type Appointment = {
     proposed_end_time: string | null;
     reschedule_initiated_by: string | null;
     service_name: string | null;
+    service_category: string | null;
     service: { name: string; duration_minutes: number; category?: string } | null;
     master: { full_name: string; push_token?: string } | null;
 };
@@ -134,6 +135,7 @@ export function AppointmentListScreen() {
                     proposed_end_time,
                     reschedule_initiated_by,
                     service_name,
+                    service_category,
                     service:services(name, duration_minutes, category),
                     master:profiles!appointments_master_id_fkey(full_name, push_token)
                 `)
@@ -528,11 +530,31 @@ export function AppointmentListScreen() {
     const handleApproveMasterReschedule = async (apt: Appointment) => {
         if (!apt.proposed_start_time || !apt.proposed_end_time) return;
 
+        const isPilates = apt.service_category === 'Pilates' || apt.service?.category === 'Pilates';
+
         showConfirm(
             'Approve Reschedule',
             `Accept new time: ${format(new Date(apt.proposed_start_time), 'EEEE, MMM d at HH:mm')}?`,
             async () => {
                 try {
+                    let newSessionId = null;
+                    if (isPilates) {
+                        const { data: sessionData, error: sessionError } = await supabase
+                            .from('pilates_class_sessions')
+                            .select('id')
+                            .eq('starts_at', apt.proposed_start_time)
+                            .eq('ends_at', apt.proposed_end_time)
+                            .eq('service_id', apt.service_id)
+                            .eq('status', 'scheduled')
+                            .maybeSingle();
+
+                        if (sessionError || !sessionData) {
+                            showAlert('Error', 'No matching scheduled Pilates session found for the proposed time.', 'error');
+                            return;
+                        }
+                        newSessionId = sessionData.id;
+                    }
+
                     const { error } = await supabase
                         .from('appointments')
                         .update({
@@ -546,6 +568,14 @@ export function AppointmentListScreen() {
                         .eq('id', apt.id);
 
                     if (error) throw error;
+
+                    if (isPilates && newSessionId) {
+                        const { error: bookingError } = await supabase
+                            .from('pilates_session_bookings')
+                            .update({ session_id: newSessionId })
+                            .eq('appointment_id', apt.id);
+                        if (bookingError) throw bookingError;
+                    }
 
                     // Notify master
                     const masterPushToken = apt.master?.push_token;

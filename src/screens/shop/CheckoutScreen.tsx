@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useConfirmPayment, CardField } from '../../utils/stripe';
+import { useConfirmPayment, CardField, isStripeAvailable } from '../../utils/stripe';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
@@ -206,7 +206,7 @@ export function CheckoutScreen() {
 
             // SIMULATION MODE: Bypass real Stripe payment for testing
             // Set to true to simulate payments without real charges
-            const USE_SIMULATION = false;
+            const USE_SIMULATION = !isStripeAvailable();
             let paymentIntentId = '';
 
             if (USE_SIMULATION) {

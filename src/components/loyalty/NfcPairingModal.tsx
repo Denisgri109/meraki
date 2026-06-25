@@ -37,9 +37,11 @@ type PairingState = 'ready' | 'scanning' | 'writing' | 'success' | 'error';
 export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalProps) {
     const [state, setState] = useState<PairingState>('ready');
     const [errorMessage, setErrorMessage] = useState<string>('');
+    const [isSimulated, setIsSimulated] = useState(false);
 
     const startNfcPairing = async () => {
         try {
+            setIsSimulated(false);
             setState('scanning');
 
             if (!NfcManager || typeof NfcManager.isSupported !== 'function') {
@@ -114,13 +116,25 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
         }
     };
 
+    const simulateNfcPairing = async () => {
+        setIsSimulated(true);
+        setState('scanning');
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        setState('writing');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        setState('success');
+    };
+
     const handleClose = () => {
         setState('ready');
         setErrorMessage('');
+        setIsSimulated(false);
         onClose();
     };
 
     const renderContent = () => {
+        const isNfcUnavailable = !nfcAvailable || !NfcManager;
+
         switch (state) {
             case 'ready':
                 return (
@@ -136,25 +150,48 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
                             </MerakiText>
                         </Card>
 
-                        <Card variant="glass" style={styles.requirementsCard}>
-                            <View style={styles.sectionHeader}>
-                                <MaterialCommunityIcons name="information-outline" size={18} color={colors.accent} />
-                                <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>Requirements</MerakiText>
-                            </View>
-                            <MerakiText variant="caption" color={colors.textSecondary} style={styles.requirementItem}>
-                                •  NTAG213, NTAG215, or NTAG216 tag
-                            </MerakiText>
-                            <MerakiText variant="caption" color={colors.textSecondary} style={styles.requirementItem}>
-                                •  Tag must be blank or rewritable
-                            </MerakiText>
-                        </Card>
+                        {isNfcUnavailable && (
+                            <Card variant="glass" style={[styles.requirementsCard, { borderColor: colors.warning }]}>
+                                <View style={styles.sectionHeader}>
+                                    <MaterialCommunityIcons name="alert-circle-outline" size={18} color={colors.warning} />
+                                    <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>Demo / Expo Go Mode</MerakiText>
+                                </View>
+                                <MerakiText variant="caption" color={colors.textSecondary} style={{ lineHeight: 18 }}>
+                                    Native NFC capabilities are unavailable in Expo Go. You can use the simulator below to test the UI flow.
+                                </MerakiText>
+                            </Card>
+                        )}
+
+                        {!isNfcUnavailable && (
+                            <Card variant="glass" style={styles.requirementsCard}>
+                                <View style={styles.sectionHeader}>
+                                    <MaterialCommunityIcons name="information-outline" size={18} color={colors.accent} />
+                                    <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>Requirements</MerakiText>
+                                </View>
+                                <MerakiText variant="caption" color={colors.textSecondary} style={styles.requirementItem}>
+                                    •  NTAG213, NTAG215, or NTAG216 tag
+                                </MerakiText>
+                                <MerakiText variant="caption" color={colors.textSecondary} style={styles.requirementItem}>
+                                    •  Tag must be blank or rewritable
+                                </MerakiText>
+                            </Card>
+                        )}
 
                         <View style={styles.buttonContainer}>
                             <Button
                                 title="Start Pairing"
                                 onPress={startNfcPairing}
                                 fullWidth
+                                style={{ marginBottom: spacing.sm }}
                             />
+                            {isNfcUnavailable && (
+                                <Button
+                                    title="Simulate Pairing (Testing)"
+                                    variant="outline"
+                                    onPress={simulateNfcPairing}
+                                    fullWidth
+                                />
+                            )}
                         </View>
                     </>
                 );
@@ -171,7 +208,7 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
                             {state === 'scanning' ? 'Ready to Scan' : 'Writing...'}
                         </MerakiText>
                         <MerakiText variant="body" color={colors.textSecondary} style={styles.cardDescription}>
-                            Hold your phone near the NFC sticker to pair
+                            {isSimulated ? 'Simulating NFC connection...' : 'Hold your phone near the NFC sticker to pair'}
                         </MerakiText>
                         <Button
                             title="Cancel"
@@ -190,9 +227,13 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
                             <View style={[styles.iconCircle, styles.successCircle]}>
                                 <MaterialCommunityIcons name="check-circle" size={48} color={colors.success} />
                             </View>
-                            <MerakiText variant="h2" color={colors.success} style={styles.cardTitle}>Tag Paired!</MerakiText>
+                            <MerakiText variant="h2" color={colors.success} style={styles.cardTitle}>
+                                {isSimulated ? 'Tag Paired (Simulated)!' : 'Tag Paired!'}
+                            </MerakiText>
                             <MerakiText variant="body" color={colors.textSecondary} style={styles.cardDescription}>
-                                Your NFC sticker is now ready. Clients can tap their phones on it to collect stamps automatically.
+                                {isSimulated
+                                    ? 'Your simulated NFC tag pairing completed successfully. In production, this writes a deep link to the tag.'
+                                    : 'Your NFC sticker is now ready. Clients can tap their phones on it to collect stamps automatically.'}
                             </MerakiText>
                         </Card>
 
@@ -236,6 +277,15 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
                                 fullWidth
                                 style={{ marginBottom: spacing.sm }}
                             />
+                            {isNfcUnavailable && (
+                                <Button
+                                    title="Simulate Pairing (Testing)"
+                                    variant="outline"
+                                    onPress={simulateNfcPairing}
+                                    fullWidth
+                                    style={{ marginBottom: spacing.sm }}
+                                />
+                            )}
                             <Button
                                 title="Cancel"
                                 variant="ghost"

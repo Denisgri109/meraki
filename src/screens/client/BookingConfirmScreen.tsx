@@ -27,6 +27,7 @@ import {
     eurosToCents,
     formatCardBrand,
     PaymentMethod,
+    createSetupIntent,
 } from '../../services/stripeService';
 import { getTimezoneAbbreviation } from '../../utils/timezone';
 import { useHideTabBar } from '../../hooks/useHideTabBar';
@@ -319,23 +320,16 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 throw new Error('Session expired. Please log in again.');
             }
 
-            const requestBody = {
-                user_id: user?.id,
-                user_email: profile?.email,
-                customer_id: profile?.stripe_customer_id,
-                payment_method_id: showNewCard ? undefined : selectedCardId,
-            };
-
-            const { data: setupIntentData, error: setupError } = await supabase.functions.invoke('setup-intent', {
-                body: requestBody,
-            });
-
-            if (setupError) throw setupError;
+            const setupIntentData = await createSetupIntent(
+                user?.id || '',
+                profile?.email || undefined,
+                profile?.stripe_customer_id || undefined
+            );
 
             // STEP 2: Confirm SetupIntent if using a new card
             let savedPaymentMethodId = selectedCardId;
-            if (showNewCard && setupIntentData.client_secret) {
-                const setupResult = await confirmSetupIntent(setupIntentData.client_secret, {
+            if (showNewCard && setupIntentData.clientSecret) {
+                const setupResult = await confirmSetupIntent(setupIntentData.clientSecret, {
                     paymentMethodType: 'Card',
                 });
 
@@ -343,7 +337,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                     throw new Error(setupResult.error.message);
                 }
 
-                savedPaymentMethodId = setupResult.setupIntent?.paymentMethodId || setupIntentData.payment_method_id;
+                savedPaymentMethodId = setupResult.setupIntent?.paymentMethodId;
             }
 
             // STEP 3: Create PaymentIntent for FULL service price
@@ -352,7 +346,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             if (amountInCents > 0) {
                 const { clientSecret, paymentIntentId: pId } = await createPaymentIntent({
                     amount: amountInCents,
-                    customerId: profile?.stripe_customer_id || setupIntentData.customer_id,
+                    customerId: profile?.stripe_customer_id || setupIntentData.customerId,
                     paymentMethodId: savedPaymentMethodId || undefined,
                     masterId: masterId,
                     description: `${service.name} with ${master?.full_name}`,
@@ -387,7 +381,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
             const { data: appointmentId, error: bookError } = service.category === 'Pilates' && pilatesSessionId
                 ? await supabase.rpc('book_pilates_session', {
                     p_session_id: pilatesSessionId,
-                    p_stripe_setup_intent_id: setupIntentData.setup_intent_id,
+                    p_stripe_setup_intent_id: setupIntentData.setupIntentId,
                     p_stripe_payment_intent_id: (paymentIntentId || null) as any,
                     p_notes: notes || undefined,
                     p_deposit_amount: amountToPay,
@@ -400,7 +394,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                         p_master_id: masterId,
                         p_service_id: serviceId,
                         p_start_time: startTime.toISOString(),
-                        p_stripe_setup_intent_id: setupIntentData.setup_intent_id,
+                        p_stripe_setup_intent_id: setupIntentData.setupIntentId,
                         p_stripe_payment_intent_id: (paymentIntentId || null) as any,
                         p_notes: notes || undefined,
                         p_deposit_amount: amountToPay,

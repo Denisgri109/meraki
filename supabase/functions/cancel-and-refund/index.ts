@@ -125,6 +125,20 @@ Deno.serve(async (req: Request) => {
                 fee_amount_cents: 0,
                 original_amount_cents: 0,
             };
+        } else if (paymentIntentId.startsWith('pi_mock_') || paymentIntentId.startsWith('pi_simulated_') || paymentIntentId.startsWith('mock_pi_')) {
+            // Intercept simulated/mock payment intent IDs
+            console.log("Mock payment intent detected in cancel-and-refund:", paymentIntentId);
+            const originalAmountCents = appointment.payment_hold_amount || appointment.price * 100;
+            const refundAmountCents = Math.round(originalAmountCents * (refundPercentage / 100));
+            const feeAmountCents = originalAmountCents - refundAmountCents;
+
+            stripeResult = {
+                action: refundPercentage === 100 ? "cancelled" : "partial_capture",
+                refund_amount_cents: refundAmountCents,
+                fee_amount_cents: feeAmountCents,
+                original_amount_cents: originalAmountCents,
+                refund_id: "re_mock_" + Math.random().toString(36).substr(2, 9),
+            };
         } else {
             // Fetch the PaymentIntent from Stripe to check its status
             const pi = await stripeRequest(`/payment_intents/${paymentIntentId}`);

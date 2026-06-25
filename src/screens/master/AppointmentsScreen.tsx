@@ -24,7 +24,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { Button, ScreenBackground, MerakiModal, MerakiModalProps, MerakiText } from '../../components/ui';
 import { colors, spacing } from '../../theme';
-import { cancelAndRefund } from '../../services/stripeService';
+import { cancelAndRefund, capturePayment } from '../../services/stripeService';
 
 type Appointment = {
     id: string;
@@ -220,10 +220,7 @@ export function MasterAppointmentsScreen() {
                 const apt = appointments.find(a => a.id === id);
                 if (apt?.stripe_payment_intent_id) {
                     try {
-                        const { error } = await supabase.functions.invoke('capture-payment', {
-                            body: { payment_intent_id: apt.stripe_payment_intent_id }
-                        });
-                        if (error) console.error('Payment capture error:', error);
+                        await capturePayment(apt.stripe_payment_intent_id);
                     } catch (e) {
                         console.error('Failed to capture payment:', e);
                     }
