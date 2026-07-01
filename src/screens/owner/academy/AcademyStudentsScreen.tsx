@@ -68,8 +68,8 @@ export function AcademyStudentsScreen() {
 
             // Group lessons by course_id
             const lessonsByCourse = (allLessons || []).reduce((acc: any, lesson: any) => {
-                if (!acc[lesson.course_id]) acc[lesson.course_id] = [];
-                acc[lesson.course_id].push(lesson.id);
+                if (!acc[lesson.course_id]) acc[lesson.course_id] = new Set();
+                acc[lesson.course_id].add(lesson.id);
                 return acc;
             }, {});
 
@@ -102,16 +102,29 @@ export function AcademyStudentsScreen() {
             }, {});
 
             const enrichedEnrollments = (enrollmentData || []).map((enrollment: any) => {
-                const courseLessonIds = lessonsByCourse[enrollment.course_id] || [];
-                const totalLessonsCount = courseLessonIds.length;
+                const courseLessonIds = lessonsByCourse[enrollment.course_id];
+                const totalLessonsCount = courseLessonIds ? courseLessonIds.size : 0;
 
                 const userProg = progressByUser[enrollment.student_id] || { completed: new Set(), latestUpdate: null };
 
                 // Count how many of THIS course's lessons the user has completed
                 let completedLessonsCount = 0;
-                for (const lid of courseLessonIds) {
-                    if (userProg.completed.has(lid)) {
-                        completedLessonsCount++;
+                if (courseLessonIds) {
+                    const setA = courseLessonIds;
+                    const setB = userProg.completed;
+
+                    if (setA.size < setB.size) {
+                        for (const lid of setA) {
+                            if (setB.has(lid)) {
+                                completedLessonsCount++;
+                            }
+                        }
+                    } else {
+                        for (const lid of setB) {
+                            if (setA.has(lid)) {
+                                completedLessonsCount++;
+                            }
+                        }
                     }
                 }
 
