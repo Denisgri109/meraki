@@ -161,7 +161,7 @@ export function LessonScreen() {
                         .from('lessons')
                         .update({ duration_minutes: realSeconds })
                         .eq('id', lesson.id)
-                        .then(() => console.log('Auto-corrected lesson duration to', realSeconds, 'seconds'));
+                        .then(() => { /* silent */ });
                 }
             }
             const watchedPercent = Math.round((status.positionMillis / status.durationMillis) * 100);
