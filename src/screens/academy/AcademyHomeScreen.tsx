@@ -162,6 +162,8 @@ export function AcademyHomeScreen() {
                 return acc;
             }, {} as Record<string, any[]>);
 
+            const lessonsToUpdate: { id: string; duration_minutes: number }[] = [];
+
             const enrichedCourses = await Promise.all(
                 coursesData.map(async (course: Course) => {
                     const courseLessons = lessonsByCourse[course.id] || [];
@@ -183,11 +185,7 @@ export function AcademyHomeScreen() {
                                     totalSeconds += realDuration;
                                     // Auto-correct stale DB values
                                     if (lesson.duration_minutes !== realDuration) {
-                                        (supabase as any)
-                                            .from('lessons')
-                                            .update({ duration_minutes: realDuration })
-                                            .eq('id', lesson.id)
-                                            .then(() => {});
+                                        lessonsToUpdate.push({ id: lesson.id, duration_minutes: realDuration });
                                     }
                                     return;
                                 }
@@ -210,6 +208,10 @@ export function AcademyHomeScreen() {
             );
 
             setCourses(enrichedCourses);
+
+            if (lessonsToUpdate.length > 0) {
+                (supabase as any).rpc('update_lesson_durations', { payload: lessonsToUpdate }).then(() => {}).catch((err: any) => console.error('Batch update failed:', err));
+            }
         } catch (error) {
             console.error('Error fetching courses:', error);
         } finally {
