@@ -24,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, Button, ScreenBackground, SearchablePicker, MerakiText } from '../../components/ui';
+import { TimezoneModal } from '../../components/TimezoneModal';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing, gradients } from '../../theme';
 import {
@@ -935,44 +936,6 @@ export function EditProfileScreen() {
         </Modal>
     );
 
-    // Timezone dropdown modal
-    const renderTimezoneModal = () => (
-        <Modal
-            visible={timezoneModalVisible}
-            transparent
-            animationType="slide"
-            onRequestClose={() => setTimezoneModalVisible(false)}
-        >
-            <View style={styles.dropdownOverlay}>
-                <View style={styles.dropdownContent}>
-                    <View style={styles.dropdownHeader}>
-                        <Text style={styles.dropdownTitle}>Select Timezone</Text>
-                        <TouchableOpacity onPress={() => setTimezoneModalVisible(false)}>
-                            <Text style={styles.dropdownClose}>✕</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <ScrollView style={styles.dropdownList}>
-                        {TIMEZONES.map((tz) => (
-                            <TouchableOpacity
-                                key={tz.value}
-                                style={[styles.dropdownItem, editTimezone === tz.value && styles.dropdownItemSelected]}
-                                onPress={() => {
-                                    setEditTimezone(tz.value);
-                                    setTimezoneModalVisible(false);
-                                }}
-                            >
-                                <Text style={[styles.dropdownItemText, editTimezone === tz.value && styles.dropdownItemTextSelected]}>
-                                    {tz.label}
-                                </Text>
-                                {editTimezone === tz.value && <Text style={styles.checkmark}>✓</Text>}
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
-            </View>
-        </Modal>
-    );
-
         return (
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -1027,7 +990,13 @@ export function EditProfileScreen() {
                 />
 
                 {renderCurrencyModal()}
-                {renderTimezoneModal()}
+                <TimezoneModal
+                    visible={timezoneModalVisible}
+                    timezones={TIMEZONES}
+                    selectedTimezone={editTimezone}
+                    onSelect={setEditTimezone}
+                    onClose={() => setTimezoneModalVisible(false)}
+                />
 
                 {/* Phone Country Code Picker */}
                 <SearchablePicker
