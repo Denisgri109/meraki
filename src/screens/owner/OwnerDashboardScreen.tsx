@@ -165,7 +165,7 @@ export function OwnerDashboardScreen() {
                     refreshProfile();
                 }
             } catch (err) {
-                console.log('Location auto-detect skipped:', err);
+                // Failed silently
             }
         };
         checkLocationSettings();
