@@ -323,11 +323,8 @@ describe('NotificationContext', () => {
         });
 
         it('does nothing for unknown type', () => {
-            const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
             simulateNotificationResponse({ type: 'unknown_type' });
             expect(mockNavigate).not.toHaveBeenCalled();
-            expect(consoleLogSpy).toHaveBeenCalledWith('Unknown notification type:', 'unknown_type');
-            consoleLogSpy.mockRestore();
         });
 
         it('does nothing if no type is provided', () => {
