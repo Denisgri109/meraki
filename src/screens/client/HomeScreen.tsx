@@ -532,7 +532,6 @@ export function ClientHomeScreen() {
             await AsyncStorage.setItem('client_activity_cleared_at', new Date().toISOString());
             setActivityFeed([]);
         } catch (e) {
-            console.log('Error clearing activity', e);
             showAlert('Error', 'Failed to clear activity. Please try again.', 'error');
         }
     };
