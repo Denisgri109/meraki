@@ -58,27 +58,36 @@ export function usePreBookingQuestionnaire({
 
             if (!result.canceled && result.assets) {
                 setUploadingPhotos(true);
-                const uploadPromises = result.assets.map(async (asset) => {
-                    if (!asset.base64) return null;
-                    const fileName = `booking-consultations/${Date.now()}_${uuidv4()}.jpg`;
+                const uploadedUrls: string[] = [];
+                const batchSize = 3;
 
-                    const { data, error } = await supabase.storage
-                        .from('consultation-photos')
-                        .upload(fileName, decode(asset.base64), {
-                            contentType: 'image/jpeg',
-                        });
+                for (let i = 0; i < result.assets.length; i += batchSize) {
+                    const batch = result.assets.slice(i, i + batchSize);
+                    const batchPromises = batch.map(async (asset) => {
+                        if (!asset.base64) return null;
+                        const fileName = `booking-consultations/${Date.now()}_${uuidv4()}.jpg`;
 
-                    if (error) throw error;
+                        // Yield to event loop to prevent UI freeze during base64 decoding
+                        await new Promise(resolve => setTimeout(resolve, 0));
 
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('consultation-photos')
-                        .getPublicUrl(data.path);
+                        const { data, error } = await supabase.storage
+                            .from('consultation-photos')
+                            .upload(fileName, decode(asset.base64), {
+                                contentType: 'image/jpeg',
+                            });
 
-                    return publicUrl;
-                });
+                        if (error) throw error;
 
-                const urls = await Promise.all(uploadPromises);
-                const uploadedUrls = urls.filter((url): url is string => url !== null);
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('consultation-photos')
+                            .getPublicUrl(data.path);
+
+                        return publicUrl;
+                    });
+
+                    const batchUrls = await Promise.all(batchPromises);
+                    uploadedUrls.push(...batchUrls.filter((url): url is string => url !== null));
+                }
 
                 setFormData(prev => ({
                     ...prev,
