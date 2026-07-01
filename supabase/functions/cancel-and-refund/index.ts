@@ -125,7 +125,7 @@ Deno.serve(async (req: Request) => {
                 fee_amount_cents: 0,
                 original_amount_cents: 0,
             };
-        } else if (paymentIntentId.startsWith('pi_mock_') || paymentIntentId.startsWith('pi_simulated_') || paymentIntentId.startsWith('mock_pi_')) {
+        } else if (Deno.env.get("ENVIRONMENT") === "development" && (paymentIntentId.startsWith('pi_mock_') || paymentIntentId.startsWith('pi_simulated_') || paymentIntentId.startsWith('mock_pi_'))) {
             // Intercept simulated/mock payment intent IDs
             console.log("Mock payment intent detected in cancel-and-refund:", paymentIntentId);
             const originalAmountCents = appointment.payment_hold_amount || appointment.price * 100;
