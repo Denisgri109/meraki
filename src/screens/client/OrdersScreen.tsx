@@ -115,6 +115,8 @@ export function OrdersScreen() {
     };
 
     const fetchAppointments = async () => {
+        if (!user?.id) return;
+
         try {
             const queryPromise = supabase
                 .from('appointments')
@@ -133,8 +135,7 @@ export function OrdersScreen() {
                     service:services(name, duration_minutes, category),
                     master:profiles!appointments_master_id_fkey(full_name, push_token)
                 `)
-                // @ts-ignore - user check handled above
-                .eq('client_id', user?.id)
+                .eq('client_id', user.id)
                 .order('start_time', { ascending: false });
 
             const { data, error } = await safeSupabaseFetch(queryPromise, { timeout: 8000 });
