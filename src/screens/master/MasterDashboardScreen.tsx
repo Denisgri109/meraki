@@ -140,7 +140,9 @@ export function MasterDashboardScreen() {
                     await supabase.from('profiles').update({ timezone: newTimezone, city: newCity, country: newCountry, currency: newCurrency }).eq('id', user.id);
                     await refreshProfile();
                 }
-            } catch (error) { console.log('Auto-detect location skipped:', error); }
+            } catch (error) {
+                // Failed silently
+            }
         };
         checkLocationSettings();
     }, [profile?.id]);
