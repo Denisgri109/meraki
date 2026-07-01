@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ScreenBackground, MerakiText, Card, Button } from '../../components/ui';
@@ -118,6 +119,23 @@ export function CourseDetailScreen() {
                 chunk.map(async (lesson: any) => {
                     const index = lessonsToProbe.indexOf(lesson);
                     if (!lesson.video_url || isStreamingUrl(lesson.video_url)) return;
+
+                    const cacheKey = `lesson_duration_${lesson.id}`;
+                    try {
+                        const cachedDurationStr = await AsyncStorage.getItem(cacheKey);
+                        if (cachedDurationStr) {
+                            const cachedDuration = parseInt(cachedDurationStr, 10);
+                            if (!isNaN(cachedDuration) && lesson.duration_minutes !== cachedDuration) {
+                                corrected[index] = { ...lesson, duration_minutes: cachedDuration };
+                                hasChanges = true;
+                                updates.push({ id: lesson.id, duration_minutes: cachedDuration, title: lesson.title });
+                            }
+                            return; // Skip network probe if we have valid cache
+                        }
+                    } catch (e) {
+                        // Ignore cache read errors
+                    }
+
                     try {
                         const { sound, status } = await Audio.Sound.createAsync(
                             { uri: lesson.video_url },
@@ -125,6 +143,13 @@ export function CourseDetailScreen() {
                         );
                         if (status.isLoaded && status.durationMillis) {
                             const realSeconds = Math.round(status.durationMillis / 1000);
+
+                            try {
+                                await AsyncStorage.setItem(cacheKey, realSeconds.toString());
+                            } catch (e) {
+                                // Ignore cache write errors
+                            }
+
                             if (lesson.duration_minutes !== realSeconds) {
                                 corrected[index] = { ...lesson, duration_minutes: realSeconds };
                                 hasChanges = true;
