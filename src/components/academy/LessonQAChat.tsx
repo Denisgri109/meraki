@@ -355,6 +355,48 @@ type QAMessageItemProps = {
     hideModal: any;
 };
 
+
+function MessageSenderRow({ isInstructorMsg, senderName }: { isInstructorMsg: boolean, senderName: string }) {
+    return (
+        <View style={styles.senderRow}>
+            <MerakiText variant="caption" color={isInstructorMsg ? colors.accent : '#F472B6'} style={{ fontWeight: '700' }}>
+                {senderName}
+            </MerakiText>
+            {isInstructorMsg && (
+                <View style={styles.instructorBadge}>
+                    <MerakiText style={styles.instructorBadgeText}>Instructor</MerakiText>
+                </View>
+            )}
+        </View>
+    );
+}
+
+function MessageReplyContext({ parentMsg }: { parentMsg: QAMessage }) {
+    return (
+        <View style={styles.replyContext}>
+            <View style={styles.replyBar} />
+            <MerakiText variant="caption" color={colors.textMuted} numberOfLines={2}>
+                {parentMsg.sender?.full_name}: {parentMsg.content || '📷 Photo'}
+            </MerakiText>
+        </View>
+    );
+}
+
+function MessageContent({ item, isOwn }: { item: QAMessage, isOwn: boolean }) {
+    return (
+        <>
+            {item.media_url && (
+                <Image source={{ uri: item.media_url }} style={styles.messageImage} resizeMode="cover" />
+            )}
+            {item.content && (
+                <MerakiText variant="body" color={isOwn ? '#FFF' : colors.text}>
+                    {item.content}
+                </MerakiText>
+            )}
+        </>
+    );
+}
+
 function QAMessageItem({
     item,
     isOwn,
@@ -412,43 +454,17 @@ function QAMessageItem({
                 }}
                 activeOpacity={0.8}
             >
-                {/* Sender name */}
                 {!isOwn && (
-                    <View style={styles.senderRow}>
-                        <MerakiText variant="caption" color={isInstructorMsg ? colors.accent : '#F472B6'} style={{ fontWeight: '700' }}>
-                            {item.sender?.full_name || 'Anonymous'}
-                        </MerakiText>
-                        {isInstructorMsg && (
-                            <View style={styles.instructorBadge}>
-                                <MerakiText style={styles.instructorBadgeText}>Instructor</MerakiText>
-                            </View>
-                        )}
-                    </View>
+                    <MessageSenderRow
+                        isInstructorMsg={isInstructorMsg}
+                        senderName={item.sender?.full_name || 'Anonymous'}
+                    />
                 )}
 
-                {/* Reply context */}
-                {parentMsg && (
-                    <View style={styles.replyContext}>
-                        <View style={styles.replyBar} />
-                        <MerakiText variant="caption" color={colors.textMuted} numberOfLines={2}>
-                            {parentMsg.sender?.full_name}: {parentMsg.content || '📷 Photo'}
-                        </MerakiText>
-                    </View>
-                )}
+                {parentMsg && <MessageReplyContext parentMsg={parentMsg} />}
 
-                {/* Media */}
-                {item.media_url && (
-                    <Image source={{ uri: item.media_url }} style={styles.messageImage} resizeMode="cover" />
-                )}
+                <MessageContent item={item} isOwn={isOwn} />
 
-                {/* Content */}
-                {item.content && (
-                    <MerakiText variant="body" color={isOwn ? '#FFF' : colors.text}>
-                        {item.content}
-                    </MerakiText>
-                )}
-
-                {/* Timestamp */}
                 <MerakiText variant="caption" color={isOwn ? 'rgba(0, 0, 0, 0.40)' : colors.textMuted} style={styles.timestamp}>
                     {formatTime(item.created_at)}
                 </MerakiText>
