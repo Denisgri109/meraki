@@ -30,6 +30,7 @@ import {
     BookAndChatScreen,
     DiscoverMastersScreen,
     NFCScannerScreen,
+    ScanToPayScreen,
 } from '../screens/client';
 
 import { ShopScreen, ProductDetailScreen, CartScreen, CheckoutScreen } from '../screens/shop';
@@ -59,6 +60,7 @@ export type HomeStackParamList = {
     Notifications: undefined;
     QRScanner: undefined;
     NFCScanner: undefined;
+    ScanToPay: undefined;
     MasterDetail: { masterId: string };
     ServiceDetail: { serviceId: string };
 
@@ -86,6 +88,7 @@ function HomeStackNavigator() {
             <HomeStack.Screen name="Notifications" component={NotificationsScreen} />
             <HomeStack.Screen name="QRScanner" component={QRScannerScreen} />
             <HomeStack.Screen name="NFCScanner" component={NFCScannerScreen} />
+            <HomeStack.Screen name="ScanToPay" component={ScanToPayScreen} />
             <HomeStack.Screen name="MasterDetail" component={MasterDetailScreen} />
             <HomeStack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
 

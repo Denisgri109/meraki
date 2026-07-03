@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { LoginScreen, RegisterScreen, ForgotPasswordScreen, VerifyOtpScreen, TermsScreen } from '../screens/auth';
+import { LoginScreen, RegisterScreen, ForgotPasswordScreen, VerifyOtpScreen, TermsScreen, VoucherSignupScreen } from '../screens/auth';
 import { PrivacyPolicyScreen } from '../screens/client';
 import { colors } from '../theme';
 
@@ -11,6 +11,7 @@ export type AuthStackParamList = {
     ForgotPassword: undefined;
     Terms: undefined;
     PrivacyPolicy: undefined;
+    VoucherSignup: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -26,6 +27,7 @@ export function AuthStack() {
         >
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen name="VoucherSignup" component={VoucherSignupScreen} />
             <Stack.Screen name="VerifyOtp" component={VerifyOtpScreen} />
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
             <Stack.Screen
@@ -49,4 +51,5 @@ export function AuthStack() {
 }
 
 export default AuthStack;
+
 
