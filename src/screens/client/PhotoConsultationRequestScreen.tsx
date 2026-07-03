@@ -83,8 +83,10 @@ export function PhotoConsultationRequestScreen() {
             if (!result.canceled && result.assets) {
                 setLoading(true);
 
-                const uploadPromises = result.assets.map(async (asset) => {
-                    if (!asset.base64) return null;
+                const uploadedUrls: string[] = [];
+
+                for (const asset of result.assets) {
+                    if (!asset.base64) continue;
                     const fileName = `consultations/${Date.now()}_${uuidv4()}.jpg`;
 
                     const { data, error } = await supabase.storage
@@ -99,11 +101,8 @@ export function PhotoConsultationRequestScreen() {
                         .from('consultation-photos')
                         .getPublicUrl(data.path);
 
-                    return publicUrl;
-                });
-
-                const results = await Promise.all(uploadPromises);
-                const uploadedUrls = results.filter((url): url is string => url !== null);
+                    uploadedUrls.push(publicUrl);
+                }
 
                 setFormData(prev => ({
                     ...prev,
