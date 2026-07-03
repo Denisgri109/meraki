@@ -106,7 +106,7 @@ export function ChatListScreen() {
                 }
             }
         } catch (error) {
-            console.log('Location detection failed (non-critical):', error);
+            // Failed silently
         }
     };
 
