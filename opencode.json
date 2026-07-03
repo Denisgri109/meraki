@@ -8,7 +8,7 @@
         "-y",
         "@supabase/mcp-server-supabase@latest",
         "--access-token",
-        "sbp_81c084dbc8ab6379acca69ee96e38eba9dfe3a78"
+        "${SUPABASE_ACCESS_TOKEN}"
       ],
       "enabled": true
     },
@@ -19,7 +19,7 @@
         "@testsprite/testsprite-mcp@latest"
       ],
       "environment": {
-        "API_KEY": "sk-user-IzO5wRiLXLslw6rK85VuOEksewZoh7QtXQSHZX4Ke6et5vhW3B7QAGcQ6YSwomH1QpzPbaUh7jrp_EB-K2BBEqKeVtLzRPRUzUOiEpXi3MP8WD9T21qKklhX6qWMcQMYejU"
+        "API_KEY": "${TESTSPRITE_API_KEY}"
       },
       "enabled": true
     }
