@@ -163,7 +163,7 @@ Deno.serve(async (req: Request) => {
         }
 
         let paymentIntent;
-        if (body.payment_intent_id.startsWith('pi_simulated_') || body.payment_intent_id.startsWith('pi_mock_') || body.payment_intent_id.startsWith('mock_pi_')) {
+        if (Deno.env.get("ENVIRONMENT") === "development" && (body.payment_intent_id.startsWith('pi_simulated_') || body.payment_intent_id.startsWith('pi_mock_') || body.payment_intent_id.startsWith('mock_pi_'))) {
             console.log("Mock payment intent detected in finalize-shop-order:", body.payment_intent_id);
             
             // Calculate total price to match database expectations exactly
