@@ -286,11 +286,11 @@ describe('validateServiceName', () => {
     });
 
     it('rejects undefined/null inputs', () => {
-        let result = validateServiceName(undefined as any);
+        let result = validateServiceName(undefined as unknown as string);
         expect(result.valid).toBe(false);
         expect(result.error).toBe('Service name is required');
 
-        result = validateServiceName(null as any);
+        result = validateServiceName(null as unknown as string);
         expect(result.valid).toBe(false);
         expect(result.error).toBe('Service name is required');
     });
@@ -384,8 +384,9 @@ describe('International Phone Validation & Formatting Helpers', () => {
     describe('parsePhoneNumber', () => {
         it('handles empty inputs, returning default IE', () => {
             expect(parsePhoneNumber('')).toEqual({ countryCode: 'IE', localNumber: '' });
-            expect(parsePhoneNumber(null as any)).toEqual({ countryCode: 'IE', localNumber: '' });
-            expect(parsePhoneNumber(undefined as any)).toEqual({ countryCode: 'IE', localNumber: '' });
+            // Testing invalid inputs explicitly
+            expect(parsePhoneNumber(null as unknown as string)).toEqual({ countryCode: 'IE', localNumber: '' });
+            expect(parsePhoneNumber(undefined as unknown as string)).toEqual({ countryCode: 'IE', localNumber: '' });
         });
 
         it('strips spaces from inputs before parsing', () => {
