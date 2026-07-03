@@ -33,8 +33,7 @@ describe('loyalty utils', () => {
 
         it('should handle undefined or empty string', () => {
             expect(getRewardText('', null)).toBe('Reward');
-            // @ts-ignore
-            expect(getRewardText(undefined, null)).toBe('Reward');
+            expect(getRewardText(undefined as any, null)).toBe('Reward');
         });
     });
 });
