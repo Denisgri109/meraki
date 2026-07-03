@@ -143,7 +143,6 @@ export function CourseDetailScreen() {
             try {
                 const { error } = await supabase.rpc('update_lesson_durations', { payload: updates });
                 if (error) throw error;
-                console.log(`Successfully batch updated durations for ${updates.length} lessons`);
             } catch (err) {
                 console.error('Failed to batch update DB for duration correction', err);
             }
