@@ -82,27 +82,30 @@ export function PhotoConsultationRequestScreen() {
 
             if (!result.canceled && result.assets) {
                 setLoading(true);
+                const validAssets = result.assets.filter(asset => !!asset.base64);
 
-                const uploadedUrls: string[] = [];
-
-                for (const asset of result.assets) {
-                    if (!asset.base64) continue;
+                const uploadPromises = validAssets.map(async (asset) => {
                     const fileName = `consultations/${Date.now()}_${uuidv4()}.jpg`;
 
-                    const { data, error } = await supabase.storage
+                    const uploadResult = await supabase.storage
                         .from('consultation-photos')
-                        .upload(fileName, decode(asset.base64), {
+                        .upload(fileName, decode(asset.base64!), {
                             contentType: 'image/jpeg',
                         });
 
-                    if (error) throw error;
+                    if (uploadResult.error) throw uploadResult.error;
+                    return uploadResult;
+                });
 
+                const uploadResults = await Promise.all(uploadPromises);
+
+                const uploadedUrls = uploadResults.map(uploadResult => {
                     const { data: { publicUrl } } = supabase.storage
                         .from('consultation-photos')
-                        .getPublicUrl(data.path);
+                        .getPublicUrl(uploadResult.data.path);
 
-                    uploadedUrls.push(publicUrl);
-                }
+                    return publicUrl;
+                });
 
                 setFormData(prev => ({
                     ...prev,
