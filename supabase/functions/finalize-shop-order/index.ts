@@ -13,12 +13,12 @@ const baseCorsHeaders = {
 
 function getCorsHeaders(req: Request) {
     const origin = req.headers.get("Origin");
-    let allowedOrigin = "https://meraki.app"; // Default fallback safe origin
+    const allowedOriginsEnv = Deno.env.get("ALLOWED_ORIGINS");
+    const allowedOrigins = allowedOriginsEnv ? allowedOriginsEnv.split(",").map(o => o.trim()) : ["https://meraki.app"];
+
+    let allowedOrigin = allowedOrigins[0]; // Stick to configured list fallback
 
     if (origin) {
-        const allowedOriginsEnv = Deno.env.get("ALLOWED_ORIGINS");
-        const allowedOrigins = allowedOriginsEnv ? allowedOriginsEnv.split(",").map(o => o.trim()) : ["https://meraki.app"];
-
         // Always allow localhost for development if needed, or stick strictly to the list
         // In this security fix, we stick to the configured list.
         if (allowedOrigins.includes(origin)) {
