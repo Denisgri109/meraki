@@ -208,7 +208,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
                 break;
 
             default:
-                console.log('Unknown notification type:', data.type);
+                // Ignored unknown notification types silently
+                break;
         }
     };
 
