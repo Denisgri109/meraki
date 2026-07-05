@@ -6,11 +6,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // Creates a Stripe Checkout Session for an on-site QR product purchase.
 // Automatically checks for an active user voucher and applies the discount.
 //
-// ⚠️  SECURITY: The charge amount is ALWAYS taken from the server-side
-// PRODUCT_CATALOG below (the single source of truth). The client-supplied
+// ⚠️  SECURITY: The charge amount is ALWAYS looked up from the `products`
+// table (the single source of truth) by productId. The client-supplied
 // priceInCents / productName are NEVER trusted for the actual charge — they
 // are ignored entirely. A tampered QR URL cannot change what the customer is
-// charged. Only productId is trusted, and it must resolve to a known product.
+// charged. Only productId is trusted, and the product must have qr_enabled =
+// true AND is_active = true to be chargeable.
 // ============================================================================
 
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY")!;
@@ -19,35 +20,11 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const APP_URL = Deno.env.get("APP_URL") || "https://meraki.app";
 
-/**
- * Server-side product catalog — the single source of truth for prices.
- * The owner edits prices HERE (and in the matching client catalog) to change
- * what a product costs. Clients can never override these values.
- *
- * To add/remove products: update this map AND the matching client catalog at
- * meraki-WEB/src/lib/qr-catalog.ts so the QR generator stays in sync.
- */
-interface CatalogProduct {
-    name: string;
-    /** Price in euros (excluding discount). Server converts to cents. */
-    priceEur: number;
-    description?: string;
-}
-
-const PRODUCT_CATALOG: Record<string, CatalogProduct> = {
-    "socks-16":  { name: "Merakí Cozy Socks",        priceEur: 16.00, description: "Soft, organic cotton salon socks" },
-    "tshirt-25": { name: "Merakí Premium Tee",       priceEur: 25.00, description: "Relaxed fit, ultra-soft daily wear" },
-    "cap-20":    { name: "Signature Dad Cap",        priceEur: 20.00, description: "Embroidered logo, adjustable strap" },
-    "towel-12":  { name: "Microfiber Salon Towel",   priceEur: 12.50, description: "Quick-dry, absorbent hair towel" },
-    "tote-10":   { name: "Canvas Tote Bag",          priceEur: 10.00, description: "Eco-friendly, spacious everyday carry" },
-    "combo-45":  { name: "Ultimate Care Combo",      priceEur: 45.00, description: "Socks + Tee + Tote bag premium bundle" },
-};
-
 interface RequestBody {
     productId: string;
-    /** @deprecated Ignored. The charge amount comes from the server catalog. Kept for backward-compat with older clients. */
+    /** @deprecated Ignored. The charge amount comes from the products table. Kept for backward-compat with older clients. */
     productName?: string;
-    /** @deprecated Ignored. The charge amount comes from the server catalog. Kept for backward-compat with older clients. */
+    /** @deprecated Ignored. The charge amount comes from the products table. Kept for backward-compat with older clients. */
     priceInCents?: number;
     currency?: string;
     userId: string;
@@ -119,25 +96,43 @@ Deno.serve(async (req: Request) => {
             );
         }
 
-        // 2b. Resolve the product from the SERVER-SIDE catalog (source of truth).
-        // An unknown productId is rejected outright — no fallback to a client
-        // price. This closes the price-tampering vector completely.
-        const catalogProduct = PRODUCT_CATALOG[productId];
-        if (!catalogProduct) {
+        // 3. Use service role for DB operations (needed for product lookup + writes).
+        const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+        // 2b. Resolve the product from the `products` table (server source of truth).
+        // The product must exist AND be qr_enabled = true AND is_active = true.
+        // This closes the price-tampering vector completely: the client cannot
+        // influence the charge — not even by guessing another product's id, since
+        // non-qr_enabled products are rejected.
+        const { data: productRow, error: productError } = await supabaseAdmin
+            .from("products")
+            .select("id, name, retail_price, qr_enabled, is_active")
+            .eq("id", productId)
+            .maybeSingle();
+
+        if (productError) {
+            console.error("Product lookup error:", productError);
             return new Response(
-                JSON.stringify({
-                    error: `Unknown product: ${productId}. This product is not in the on-site catalog.`,
-                }),
+                JSON.stringify({ error: "Could not look up product. Please try again." }),
+                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+        if (!productRow) {
+            return new Response(
+                JSON.stringify({ error: `Unknown product: ${productId}.` }),
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+        if (!productRow.qr_enabled || !productRow.is_active) {
+            return new Response(
+                JSON.stringify({ error: "This product is not available for QR checkout." }),
                 { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
         // Authoritative price (cents), computed server-side. Never trust client input.
-        const priceInCents = Math.round(catalogProduct.priceEur * 100);
-        const productName = catalogProduct.name;
-
-        // 3. Use service role for DB operations
-        const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const priceInCents = Math.round(Number(productRow.retail_price) * 100);
+        const productName = productRow.name;
 
         // 4. Check for an active, unused voucher for this user
         const { data: activeVoucher } = await supabaseAdmin
