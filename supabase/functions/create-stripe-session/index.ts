@@ -5,6 +5,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // create-stripe-session Edge Function
 // Creates a Stripe Checkout Session for an on-site QR product purchase.
 // Automatically checks for an active user voucher and applies the discount.
+//
+// ⚠️  SECURITY: The charge amount is ALWAYS taken from the server-side
+// PRODUCT_CATALOG below (the single source of truth). The client-supplied
+// priceInCents / productName are NEVER trusted for the actual charge — they
+// are ignored entirely. A tampered QR URL cannot change what the customer is
+// charged. Only productId is trusted, and it must resolve to a known product.
 // ============================================================================
 
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY")!;
@@ -13,12 +19,40 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const APP_URL = Deno.env.get("APP_URL") || "https://meraki.app";
 
+/**
+ * Server-side product catalog — the single source of truth for prices.
+ * The owner edits prices HERE (and in the matching client catalog) to change
+ * what a product costs. Clients can never override these values.
+ *
+ * To add/remove products: update this map AND the matching client catalog at
+ * meraki-WEB/src/lib/qr-catalog.ts so the QR generator stays in sync.
+ */
+interface CatalogProduct {
+    name: string;
+    /** Price in euros (excluding discount). Server converts to cents. */
+    priceEur: number;
+    description?: string;
+}
+
+const PRODUCT_CATALOG: Record<string, CatalogProduct> = {
+    "socks-16":  { name: "Merakí Cozy Socks",        priceEur: 16.00, description: "Soft, organic cotton salon socks" },
+    "tshirt-25": { name: "Merakí Premium Tee",       priceEur: 25.00, description: "Relaxed fit, ultra-soft daily wear" },
+    "cap-20":    { name: "Signature Dad Cap",        priceEur: 20.00, description: "Embroidered logo, adjustable strap" },
+    "towel-12":  { name: "Microfiber Salon Towel",   priceEur: 12.50, description: "Quick-dry, absorbent hair towel" },
+    "tote-10":   { name: "Canvas Tote Bag",          priceEur: 10.00, description: "Eco-friendly, spacious everyday carry" },
+    "combo-45":  { name: "Ultimate Care Combo",      priceEur: 45.00, description: "Socks + Tee + Tote bag premium bundle" },
+};
+
 interface RequestBody {
     productId: string;
-    productName: string;
-    priceInCents: number;
+    /** @deprecated Ignored. The charge amount comes from the server catalog. Kept for backward-compat with older clients. */
+    productName?: string;
+    /** @deprecated Ignored. The charge amount comes from the server catalog. Kept for backward-compat with older clients. */
+    priceInCents?: number;
     currency?: string;
     userId: string;
+    /** 'embedded' = Stripe Embedded Checkout (web), 'hosted' = redirect to Stripe hosted page (mobile). Defaults to 'hosted'. */
+    uiMode?: 'hosted' | 'embedded';
 }
 
 Deno.serve(async (req: Request) => {
@@ -62,15 +96,18 @@ Deno.serve(async (req: Request) => {
         const body: RequestBody = await req.json();
         const {
             productId,
-            productName,
-            priceInCents,
+            // NOTE: productName / priceInCents from the client are deliberately
+            // ignored — the server catalog is the only source of truth for the
+            // charge. They remain in the type for backward compatibility with
+            // older mobile clients but have no effect on what is charged.
             currency = "eur",
             userId,
+            uiMode = "hosted",
         } = body;
 
-        if (!productId || !priceInCents || !userId) {
+        if (!productId || !userId) {
             return new Response(
-                JSON.stringify({ error: "Missing required fields: productId, priceInCents, userId" }),
+                JSON.stringify({ error: "Missing required fields: productId, userId" }),
                 { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
@@ -81,6 +118,23 @@ Deno.serve(async (req: Request) => {
                 { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
+
+        // 2b. Resolve the product from the SERVER-SIDE catalog (source of truth).
+        // An unknown productId is rejected outright — no fallback to a client
+        // price. This closes the price-tampering vector completely.
+        const catalogProduct = PRODUCT_CATALOG[productId];
+        if (!catalogProduct) {
+            return new Response(
+                JSON.stringify({
+                    error: `Unknown product: ${productId}. This product is not in the on-site catalog.`,
+                }),
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        // Authoritative price (cents), computed server-side. Never trust client input.
+        const priceInCents = Math.round(catalogProduct.priceEur * 100);
+        const productName = catalogProduct.name;
 
         // 3. Use service role for DB operations
         const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -172,12 +226,25 @@ Deno.serve(async (req: Request) => {
             "line_items[0][price_data][product_data][name]": productName || `Product ${productId}`,
             "line_items[0][price_data][unit_amount]": priceInCents.toString(),
             "line_items[0][quantity]": "1",
-            "success_url": `${APP_URL}/dashboard/qr-payments?success=true&session_id={CHECKOUT_SESSION_ID}`,
-            "cancel_url": `${APP_URL}/dashboard/qr-payments?cancelled=true`,
             "metadata[user_id]": userId,
             "metadata[product_id]": productId,
             "metadata[product_name]": productName || "",
         });
+
+        // ui_mode: 'embedded' → Stripe Embedded Checkout (web, no redirect).
+        // ui_mode: 'hosted'   → Stripe hosted Checkout page (mobile redirect).
+        if (uiMode === "embedded") {
+            sessionParams.set("ui_mode", "embedded");
+            // Embedded mode requires return_url (used by redirect-based PMs like iDEAL).
+            // success_url / cancel_url are NOT allowed in embedded mode.
+            sessionParams.set("return_url", `${APP_URL}/dashboard/checkout`);
+        } else {
+            sessionParams.set(
+                "success_url",
+                `${APP_URL}/dashboard/qr-payments?success=true&session_id={CHECKOUT_SESSION_ID}`,
+            );
+            sessionParams.set("cancel_url", `${APP_URL}/dashboard/qr-payments?cancelled=true`);
+        }
 
         if (voucherId) {
             sessionParams.set("metadata[voucher_id]", voucherId);
@@ -240,12 +307,14 @@ Deno.serve(async (req: Request) => {
             // Non-fatal — session was created, don't block the user
         }
 
-        console.log(`Checkout session ${session.id} created for user ${userId}. Discount: €${discountApplied / 100}`);
+        console.log(`Checkout session ${session.id} created for user ${userId}. Discount: €${discountApplied / 100} (ui_mode: ${uiMode})`);
 
         return new Response(
             JSON.stringify({
-                url: session.url,
+                url: session.url ?? null,
                 sessionId: session.id,
+                clientSecret: session.client_secret ?? null,
+                uiMode,
                 discountApplied: discountApplied / 100,
                 voucherCode: activeVoucher?.vouchers
                     ? (activeVoucher.vouchers as any).code
