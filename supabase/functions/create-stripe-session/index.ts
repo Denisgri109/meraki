@@ -6,6 +6,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // Creates a Stripe Checkout Session for an on-site QR product purchase.
 // Automatically checks for an active user voucher and applies the discount.
 //
+// Supports two modes:
+//   1. Authenticated — userId is a real UUID, auth header is verified, voucher
+//      discounts are applied if available.
+//   2. Guest — userId is "guest" or omitted, no auth header required, no
+//      voucher lookup. Stripe collects the customer's email at checkout.
+//
 // ⚠️  SECURITY: The charge amount is ALWAYS looked up from the `products`
 // table (the single source of truth) by productId. The client-supplied
 // priceInCents / productName are NEVER trusted for the actual charge — they
@@ -27,7 +33,10 @@ interface RequestBody {
     /** @deprecated Ignored. The charge amount comes from the products table. Kept for backward-compat with older clients. */
     priceInCents?: number;
     currency?: string;
-    userId: string;
+    /** The authenticated user's UUID, or "guest" for guest checkout. */
+    userId?: string;
+    /** Optional guest email — used to pre-fill Stripe's email field for guests. */
+    guestEmail?: string;
     /** 'embedded' = Stripe Embedded Checkout (web), 'hosted' = redirect to Stripe hosted page (mobile). Defaults to 'hosted'. */
     uiMode?: 'hosted' | 'embedded';
 }
@@ -48,28 +57,7 @@ Deno.serve(async (req: Request) => {
     }
 
     try {
-        // 1. Verify the calling user
-        const authHeader = req.headers.get("Authorization");
-        if (!authHeader) {
-            return new Response(
-                JSON.stringify({ error: "Missing Authorization header" }),
-                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-        }
-
-        const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            global: { headers: { Authorization: authHeader } },
-        });
-
-        const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
-        if (authError || !user) {
-            return new Response(
-                JSON.stringify({ error: "Unauthorized", details: authError?.message }),
-                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-        }
-
-        // 2. Parse body
+        // 1. Parse body first so we know if this is a guest or authenticated request
         const body: RequestBody = await req.json();
         const {
             productId,
@@ -79,27 +67,60 @@ Deno.serve(async (req: Request) => {
             // older mobile clients but have no effect on what is charged.
             currency = "eur",
             userId,
+            guestEmail,
             uiMode = "hosted",
         } = body;
 
-        if (!productId || !userId) {
+        if (!productId) {
             return new Response(
-                JSON.stringify({ error: "Missing required fields: productId, userId" }),
+                JSON.stringify({ error: "Missing required field: productId" }),
                 { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
-        if (user.id !== userId) {
-            return new Response(
-                JSON.stringify({ error: "User ID mismatch" }),
-                { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
+        // Determine if this is a guest checkout
+        const isGuest = !userId || userId === "guest";
+
+        // 2. Verify the calling user (skip for guests)
+        let authenticatedUserId: string | null = null;
+        let authenticatedUserEmail: string | null = null;
+
+        if (!isGuest) {
+            const authHeader = req.headers.get("Authorization");
+            if (!authHeader) {
+                return new Response(
+                    JSON.stringify({ error: "Missing Authorization header" }),
+                    { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                global: { headers: { Authorization: authHeader } },
+            });
+
+            const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+            if (authError || !user) {
+                return new Response(
+                    JSON.stringify({ error: "Unauthorized", details: authError?.message }),
+                    { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            if (user.id !== userId) {
+                return new Response(
+                    JSON.stringify({ error: "User ID mismatch" }),
+                    { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            authenticatedUserId = user.id;
+            authenticatedUserEmail = user.email ?? null;
         }
 
         // 3. Use service role for DB operations (needed for product lookup + writes).
         const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-        // 2b. Resolve the product from the `products` table (server source of truth).
+        // 3b. Resolve the product from the `products` table (server source of truth).
         // The product must exist AND be qr_enabled = true AND is_active = true.
         // This closes the price-tampering vector completely: the client cannot
         // influence the charge — not even by guessing another product's id, since
@@ -134,26 +155,30 @@ Deno.serve(async (req: Request) => {
         const priceInCents = Math.round(Number(productRow.retail_price) * 100);
         const productName = productRow.name;
 
-        // 4. Check for an active, unused voucher for this user
-        const { data: activeVoucher } = await supabaseAdmin
-            .from("user_vouchers")
-            .select(`
-                id,
-                voucher_id,
-                expires_at,
-                vouchers (
+        // 4. Check for an active, unused voucher for this user (skip for guests)
+        let activeVoucher: any = null;
+        if (!isGuest && authenticatedUserId) {
+            const { data: voucherData } = await supabaseAdmin
+                .from("user_vouchers")
+                .select(`
                     id,
-                    code,
-                    discount_value,
-                    discount_type
-                )
-            `)
-            .eq("user_id", userId)
-            .eq("is_used", false)
-            .gt("expires_at", new Date().toISOString())
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .maybeSingle();
+                    voucher_id,
+                    expires_at,
+                    vouchers (
+                        id,
+                        code,
+                        discount_value,
+                        discount_type
+                    )
+                `)
+                .eq("user_id", authenticatedUserId)
+                .eq("is_used", false)
+                .gt("expires_at", new Date().toISOString())
+                .order("created_at", { ascending: true })
+                .limit(1)
+                .maybeSingle();
+            activeVoucher = voucherData;
+        }
 
         // 5. Calculate the final price after any voucher discount
         let finalPriceInCents = priceInCents;
@@ -221,10 +246,15 @@ Deno.serve(async (req: Request) => {
             "line_items[0][price_data][product_data][name]": productName || `Product ${productId}`,
             "line_items[0][price_data][unit_amount]": priceInCents.toString(),
             "line_items[0][quantity]": "1",
-            "metadata[user_id]": userId,
             "metadata[product_id]": productId,
             "metadata[product_name]": productName || "",
+            "metadata[guest]": isGuest ? "true" : "false",
         });
+
+        // Set user_id metadata only for authenticated users
+        if (authenticatedUserId) {
+            sessionParams.set("metadata[user_id]", authenticatedUserId);
+        }
 
         // ui_mode: 'embedded' → Stripe Embedded Checkout (web, no redirect).
         // ui_mode: 'hosted'   → Stripe hosted Checkout page (mobile redirect).
@@ -251,9 +281,11 @@ Deno.serve(async (req: Request) => {
             sessionParams.set("discounts[0][coupon]", stripeCouponId);
         }
 
-        // Add customer email for receipt
-        if (user.email) {
-            sessionParams.set("customer_email", user.email);
+        // Add customer email for receipt — authenticated user's email, or guest-supplied email.
+        // If neither is available, Stripe will ask the customer for their email at checkout.
+        const customerEmail = authenticatedUserEmail || guestEmail;
+        if (customerEmail) {
+            sessionParams.set("customer_email", customerEmail);
         }
 
         // 7. Create Stripe Checkout Session
@@ -280,7 +312,7 @@ Deno.serve(async (req: Request) => {
         const { error: txError } = await supabaseAdmin
             .from("transactions")
             .insert({
-                user_id: userId,
+                user_id: authenticatedUserId,  // null for guests
                 stripe_session_id: session.id,
                 amount: priceInCents / 100,
                 currency,
@@ -291,6 +323,8 @@ Deno.serve(async (req: Request) => {
                 voucher_id: voucherId,
                 metadata: {
                     stripe_checkout_url: session.url,
+                    guest: isGuest,
+                    guest_email: isGuest ? (guestEmail || null) : null,
                     voucher_code: activeVoucher?.vouchers
                         ? (activeVoucher.vouchers as any).code
                         : null,
@@ -302,7 +336,8 @@ Deno.serve(async (req: Request) => {
             // Non-fatal — session was created, don't block the user
         }
 
-        console.log(`Checkout session ${session.id} created for user ${userId}. Discount: €${discountApplied / 100} (ui_mode: ${uiMode})`);
+        const logLabel = isGuest ? "guest" : `user ${authenticatedUserId}`;
+        console.log(`Checkout session ${session.id} created for ${logLabel}. Discount: €${discountApplied / 100} (ui_mode: ${uiMode})`);
 
         return new Response(
             JSON.stringify({

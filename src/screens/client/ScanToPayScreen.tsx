@@ -11,6 +11,7 @@ import { ScreenBackground } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
 import { useTransactionListener } from '../../hooks/useTransactionListener';
 import { MaterialIcons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 
 const { width } = Dimensions.get('window');
 const SCAN_AREA_SIZE = width * 0.7;
@@ -129,25 +130,50 @@ export function ScanToPayScreen() {
                 return;
             }
 
-            if (!user?.id) {
-                showAlert('Error', 'You must be logged in to make a payment.', 'error');
-                setScanned(false);
-                setProcessing(false);
-                return;
+            const isGuest = !user?.id;
+
+            let sessionData: any;
+
+            if (isGuest) {
+                // Guest flow: call the edge function directly via fetch (no auth header).
+                const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl
+                    || process.env.EXPO_PUBLIC_SUPABASE_URL
+                    || '';
+                const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey
+                    || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+                    || '';
+
+                const res = await fetch(`${supabaseUrl}/functions/v1/create-stripe-session`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': supabaseAnonKey,
+                    },
+                    body: JSON.stringify({
+                        productId: product.productId,
+                        productName: product.productName,
+                        priceInCents: product.priceInCents,
+                        userId: 'guest',
+                    }),
+                });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.error || 'Could not create payment session.');
+                sessionData = json;
+            } else {
+                // Authenticated flow: use supabase client (sends auth token automatically)
+                const { data: invokeData, error: sessionError } = await supabase.functions.invoke('create-stripe-session', {
+                    body: {
+                        productId: product.productId,
+                        productName: product.productName,
+                        priceInCents: product.priceInCents,
+                        userId: user.id,
+                    }
+                });
+
+                if (sessionError) throw sessionError;
+                if (invokeData?.error) throw new Error(invokeData.error);
+                sessionData = invokeData;
             }
-
-            // Call Supabase Edge Function to generate the personalized Stripe Checkout URL
-            const { data: sessionData, error: sessionError } = await supabase.functions.invoke('create-stripe-session', {
-                body: {
-                    productId: product.productId,
-                    productName: product.productName,
-                    priceInCents: product.priceInCents,
-                    userId: user.id,
-                }
-            });
-
-            if (sessionError) throw sessionError;
-            if (sessionData?.error) throw new Error(sessionData.error);
 
             const checkoutUrl = sessionData.url;
             const sessionId = sessionData.sessionId;
