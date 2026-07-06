@@ -46,10 +46,21 @@ Deno.serve(async (req: Request) => {
     const allowedOriginsStr = Deno.env.get("ALLOWED_ORIGINS") || "";
     const allowedOrigins = allowedOriginsStr.split(",").map(o => o.trim()).filter(Boolean);
 
+    // When ALLOWED_ORIGINS is configured, use it as an allowlist. When it's
+    // NOT configured, echo the requesting origin so the function works in
+    // every environment (local dev, Vercel previews, custom domains) without
+    // manual dashboard setup. Safe because the function doesn't use cookies
+    // (auth is via the Authorization header) and the charge amount is always
+    // resolved server-side from the products table.
+    const allowOrigin = allowedOrigins.length > 0
+        ? (allowedOrigins.includes(origin) ? origin : "https://meraki.app")
+        : (origin || "https://meraki.app");
+
     const corsHeaders: Record<string, string> = {
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-        "Access-Control-Allow-Origin": allowedOrigins.includes(origin) ? origin : "https://meraki.app",
+        "Access-Control-Allow-Origin": allowOrigin,
+        "Vary": "Origin",
     };
 
     if (req.method === "OPTIONS") {

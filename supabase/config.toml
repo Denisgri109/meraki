@@ -238,6 +238,24 @@ client_id = ""
 secret = ""
 redirect_uri = ""
 
+# ─── Edge Function config ────────────────────────────────────────────────────
+# By default, Supabase deploys every function with verify_jwt = true, meaning the
+# gateway rejects any request that lacks a valid user JWT BEFORE the function
+# runs. That breaks on-site QR checkout, which is designed to accept BOTH
+# authenticated users (verified inside the function via their JWT) AND
+# unauthenticated guests (userId = "guest", no JWT). The guest path never even
+# reaches the function code under verify_jwt = true — the gateway returns
+# 401 UNAUTHORIZED_NO_AUTH_HEADER, which the Supabase JS client surfaces as
+# "Failed to send a request to the Edge Function".
+#
+# Security is preserved because the function itself verifies authenticated
+# users (create-stripe-session/index.ts lines 88-118) and the charge amount is
+# always resolved server-side from the products table — the client cannot
+# influence what is charged. Only this one function is opened up; every other
+# function still requires a JWT.
+[functions.create-stripe-session]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
