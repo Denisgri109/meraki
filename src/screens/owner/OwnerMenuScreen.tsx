@@ -107,6 +107,7 @@ export function OwnerMenuScreen() {
                     <View style={styles.listGroup}>
                         {[
                             { icon: 'business-center', label: 'Business Settings', route: 'BusinessSettings' },
+                            { icon: 'palette', label: 'Customize App', route: 'CustomizeApp' },
                             { icon: 'support-agent', label: 'Support Settings', route: 'SupportSettings' },
 
                             { icon: 'list-alt', label: 'Service List', route: 'Services' },
@@ -120,7 +121,7 @@ export function OwnerMenuScreen() {
                         ].map((item, index) => (
                             <TouchableOpacity
                                 key={item.label}
-                                style={[styles.listItem, index === 9 && { borderBottomWidth: 0 }]}
+                                style={[styles.listItem, index === 10 && { borderBottomWidth: 0 }]}
                                 onPress={() => handleNavigate(item.route)}
                             >
                                 <View style={styles.listIconWrap}>

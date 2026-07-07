@@ -23,6 +23,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useModal } from '../../contexts/ModalContext';
 import { supabase } from '../../lib/supabase';
 import { ScreenBackground, MerakiText } from '../../components/ui';
+import { EditableImage } from '../../components/editable/EditableImage';
 import { colors, spacing, gradients } from '../../theme';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { Service } from '../../types/database';
@@ -797,10 +798,13 @@ export function ClientHomeScreen() {
                                 onPress={() => navigation.navigate('Shop')}
                             >
                                 <View style={styles.heroBannerGradient}>
-                                    <Image
-                                        source={require('../../assets/hero_beauty_banner.png')}
+                                    <EditableImage
+                                        contentKey="mobile.home.hero_banner"
+                                        fallbackSource={require('../../assets/hero_beauty_banner.png')}
                                         style={StyleSheet.absoluteFillObject}
                                         resizeMode="cover"
+                                        pathPrefix="mobile-content/hero"
+                                        alt="Home hero banner"
                                     />
                                     <LinearGradient
                                         colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.45)', 'rgba(0,0,0,0.7)']}
@@ -828,10 +832,13 @@ export function ClientHomeScreen() {
                                     onPress={() => navigation.navigate('Shop')}
                                 >
                                     <View style={styles.editorialGradient}>
-                                        <Image
-                                            source={require('../../assets/editorial_new_arrivals.png')}
+                                        <EditableImage
+                                            contentKey="mobile.home.editorial_shop"
+                                            fallbackSource={require('../../assets/editorial_new_arrivals.png')}
                                             style={StyleSheet.absoluteFillObject}
                                             resizeMode="cover"
+                                            pathPrefix="mobile-content/editorial-shop"
+                                            alt="Shop editorial image"
                                         />
                                         <LinearGradient
                                             colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0.05)']}
@@ -848,10 +855,13 @@ export function ClientHomeScreen() {
                                     onPress={() => navigation.navigate('Academy')}
                                 >
                                     <View style={styles.editorialGradient}>
-                                        <Image
-                                            source={require('../../assets/editorial_academy.png')}
+                                        <EditableImage
+                                            contentKey="mobile.home.editorial_academy"
+                                            fallbackSource={require('../../assets/editorial_academy.png')}
                                             style={StyleSheet.absoluteFillObject}
                                             resizeMode="cover"
+                                            pathPrefix="mobile-content/editorial-academy"
+                                            alt="Academy editorial image"
                                         />
                                         <LinearGradient
                                             colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0.05)']}

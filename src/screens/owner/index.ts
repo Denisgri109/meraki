@@ -10,6 +10,7 @@ export { PlatformAnalyticsScreen } from './PlatformAnalyticsScreen';
 export { OwnerOrdersScreen } from './OwnerOrdersScreen';
 export { OwnerOrderDetailScreen } from './OwnerOrderDetailScreen';
 export { OwnerMenuScreen } from './OwnerMenuScreen';
+export { CustomizeAppScreen } from './CustomizeAppScreen';
 export { SupportSettingsScreen } from './SupportSettingsScreen';
 export {
     MasterManagementScreen,

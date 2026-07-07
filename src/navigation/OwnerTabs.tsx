@@ -19,6 +19,7 @@ import {
     OwnerOrdersScreen,
     OwnerOrderDetailScreen,
     OwnerMenuScreen,
+    CustomizeAppScreen,
     MasterManagementScreen,
     MasterInviteScreen,
     MasterDetailScreen,
@@ -84,6 +85,7 @@ export type OwnerDashboardStackParamList = {
     AddOwnerSupply: { supply?: any } | undefined;
 
     BusinessSettings: undefined;
+    CustomizeApp: undefined;
     LoyaltyCardBuilder: undefined;
     PhotoConsultations: undefined;
     BookingConsultations: undefined;
@@ -121,6 +123,7 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="OwnerSupplies" component={OwnerSuppliesScreen} />
             <DashboardStack.Screen name="AddOwnerSupply" component={AddOwnerSupplyScreen} />
             <DashboardStack.Screen name="BusinessSettings" component={BusinessSettingsScreen} />
+            <DashboardStack.Screen name="CustomizeApp" component={CustomizeAppScreen} />
             <DashboardStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
             <DashboardStack.Screen name="PhotoConsultations" component={PhotoConsultationReviewScreen} />
             <DashboardStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
@@ -164,7 +167,7 @@ export type MenuStackParamList = {
     PlatformAnalytics: undefined;
     Notifications: undefined;
     BusinessSettings: undefined;
-
+    CustomizeApp: undefined;
     Inventory: undefined;
     OwnerSupplies: undefined;
     CustomerOrders: undefined;
@@ -212,6 +215,7 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="PlatformAnalytics" component={PlatformAnalyticsScreen} />
             <MenuStack.Screen name="Notifications" component={NotificationsScreen} />
             <MenuStack.Screen name="BusinessSettings" component={BusinessSettingsScreen} />
+            <MenuStack.Screen name="CustomizeApp" component={CustomizeAppScreen} />
 
             <MenuStack.Screen name="Inventory" component={InventoryScreen} />
             <MenuStack.Screen name="OwnerSupplies" component={OwnerSuppliesScreen} />

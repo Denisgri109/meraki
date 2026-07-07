@@ -24,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, Button, ScreenBackground, SearchablePicker, MerakiText } from '../../components/ui';
+import { ImageUrlUpload } from '../../components/ImageUrlUpload';
 import { TimezoneModal } from '../../components/TimezoneModal';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing, gradients } from '../../theme';
@@ -536,6 +537,23 @@ export function EditProfileScreen() {
         }
     };
 
+    const handleUrlAvatarUpload = async (publicUrl: string) => {
+        try {
+            setUploadingPhoto(true);
+            await supabase
+                .from('profiles')
+                .update({ avatar_url: publicUrl })
+                .eq('id', profile?.id || '');
+            await refreshProfile?.();
+            showAlert('Success', 'Profile photo updated from URL', 'success');
+        } catch (error: any) {
+            console.error('Failed to update photo from URL', { error: error?.message });
+            showAlert('Error', 'Failed to update photo. Please try again.', 'error');
+        } finally {
+            setUploadingPhoto(false);
+        }
+    };
+
     const isMasterOrOwner = profile?.role === 'master' || profile?.role === 'owner';
 
     const menuItems = [
@@ -588,6 +606,35 @@ export function EditProfileScreen() {
     // Render Personal section
     const renderPersonalSection = () => (
         <View style={styles.sectionContent}>
+            {/* Avatar section with file picker + URL upload */}
+            <View style={styles.avatarSection}>
+                {uploadingPhoto ? (
+                    <ActivityIndicator size="large" color={colors.accent} style={{ marginBottom: spacing.md }} />
+                ) : (
+                    <TouchableOpacity onPress={handleChangePhoto} activeOpacity={0.8}>
+                        {profile?.avatar_url ? (
+                            <Image source={{ uri: profile.avatar_url }} style={styles.personalAvatar} />
+                        ) : (
+                            <View style={[styles.personalAvatar, styles.avatarPlaceholder]}>
+                                <MaterialIcons name="person" size={40} color={colors.textMuted} />
+                            </View>
+                        )}
+                        <View style={styles.cameraBadge}>
+                            <MaterialIcons name="photo-camera" size={16} color="#fff" />
+                        </View>
+                    </TouchableOpacity>
+                )}
+                <MerakiText style={styles.avatarHint}>Tap photo to pick from gallery</MerakiText>
+                <ImageUrlUpload
+                    onUpload={handleUrlAvatarUpload}
+                    bucket="avatars"
+                    pathPrefix="url-uploads"
+                    userId={profile?.id}
+                    label="Or paste an image URL"
+                    compact
+                />
+            </View>
+
             <View style={styles.inputGroup}>
                 <MerakiText style={styles.inputLabel}>Full Name *</MerakiText>
                 <Card variant="glass" style={styles.inputContainer}>
@@ -1461,6 +1508,31 @@ const styles = StyleSheet.create({
     },
     title: { color: colors.text },
     avatarSection: { alignItems: 'center', marginBottom: spacing.xl },
+    personalAvatar: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: colors.surfaceLight,
+    },
+    cameraBadge: {
+        position: 'absolute',
+        bottom: 2,
+        right: 2,
+        backgroundColor: colors.accent,
+        borderRadius: 16,
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 3,
+        borderColor: colors.background,
+    },
+    avatarHint: {
+        fontSize: 12,
+        color: colors.textMuted,
+        marginTop: spacing.sm,
+        marginBottom: spacing.md,
+    },
     avatarGlow: {
         width: 120,
         height: 120,

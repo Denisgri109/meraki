@@ -12,6 +12,7 @@ import {
   Manrope_700Bold,
 } from '@expo-google-fonts/manrope';
 import { AuthProvider } from './contexts/AuthContext';
+import { EditProvider } from './contexts/EditContext';
 import { CartProvider } from './contexts/CartContext';
 import { ModalProvider } from './contexts/ModalContext';
 import { StripeProvider } from './components/StripeProvider';
@@ -42,14 +43,16 @@ export default function App() {
         <StripeProvider>
           <ModalProvider>
             <AuthProvider>
-              <CartProvider>
-                <View style={[styles.container, { backgroundColor: '#000' }]}>
-                  <StatusBar style="dark" />
-                  <GlobalBackground>
-                    <AppNavigator />
-                  </GlobalBackground>
-                </View>
-              </CartProvider>
+              <EditProvider>
+                <CartProvider>
+                  <View style={[styles.container, { backgroundColor: '#000' }]}>
+                    <StatusBar style="dark" />
+                    <GlobalBackground>
+                      <AppNavigator />
+                    </GlobalBackground>
+                  </View>
+                </CartProvider>
+              </EditProvider>
             </AuthProvider>
           </ModalProvider>
         </StripeProvider>

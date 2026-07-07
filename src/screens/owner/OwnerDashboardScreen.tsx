@@ -19,6 +19,7 @@ import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import { Card, ScreenBackground, MerakiText } from '../../components/ui';
+import { EditModeToggle } from '../../components/editable/EditModeToggle';
 import { colors, spacing, layout, gradients } from '../../theme';
 import { getDeviceTimezone, formatCurrency } from '../../utils/timezone';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -359,6 +360,7 @@ export function OwnerDashboardScreen() {
                             <MerakiText style={styles.userName}>{profile?.full_name?.split(' ')[0] || 'Owner'}</MerakiText>
                         </View>
                         <View style={styles.headerIcons}>
+                            <EditModeToggle />
                             <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('LoyaltyQR')}>
                                 <MaterialIcons name="qr-code-scanner" size={20} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
