@@ -85,8 +85,9 @@ export function useLessonQA({ lessonId, courseId, instructorId, isInstructor }: 
 
             if (error) throw error;
             setMessages((data as unknown as QAMessage[]) || []);
-        } catch (e) {
+        } catch (e: any) {
             console.error('Error loading QA messages:', e);
+            showAlert('Error', e.message || 'Failed to load QA messages', 'error');
         } finally {
             setLoading(false);
         }
