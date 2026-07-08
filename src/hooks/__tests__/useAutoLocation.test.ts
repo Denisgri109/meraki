@@ -210,4 +210,45 @@ describe('useAutoLocation', () => {
 
         consoleErrorSpy.mockRestore();
     });
+
+    it('should handle error when resolving country code fails', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        // Mock getAllCountries to reject to trigger the catch block
+        const apiError = new Error('API error');
+        (getAllCountries as jest.Mock).mockRejectedValue(apiError);
+
+        const { updateMock, eqMock } = createSupabaseMock();
+
+        const { result } = renderHook(() => useAutoLocation());
+
+        await waitFor(() => {
+            expect(result.current.detectedTimezone).toBe('America/New_York');
+            expect(result.current.detectedCountry).toBe('United States');
+            // detectedCountryCode should be empty since we failed to fetch it
+            expect(result.current.detectedCountryCode).toBe('');
+        });
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            'Could not resolve country code:',
+            apiError
+        );
+
+        // Verify profile is still updated, but without country_code
+        expect(supabase.from).toHaveBeenCalledWith('profiles');
+        expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
+            timezone: 'America/New_York',
+            country: 'United States',
+            latitude: 40.7128,
+            longitude: -74.006,
+        }));
+
+        // Assert country_code is not present in the update payload
+        const updateCallArgs = updateMock.mock.calls[0][0];
+        expect(updateCallArgs).not.toHaveProperty('country_code');
+
+        expect(eqMock).toHaveBeenCalledWith('id', 'user-123');
+
+        consoleErrorSpy.mockRestore();
+    });
 });
