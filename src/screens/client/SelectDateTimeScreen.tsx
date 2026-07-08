@@ -78,10 +78,25 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
     const [selectedPilatesSession, setSelectedPilatesSession] = useState<PilatesSession | null>(null);
 
     const parsedBlockedSlots = useMemo(() => {
-        return blockedSlots.map((blocked) => ({
+        const slots = blockedSlots.map((blocked) => ({
             start: new Date(blocked.start_time).getTime(),
             end: new Date(blocked.end_time).getTime(),
-        }));
+        })).sort((a, b) => a.start - b.start);
+
+        const merged: {start: number, end: number}[] = [];
+        if (slots.length > 0) {
+            let current = slots[0];
+            for (let i = 1; i < slots.length; i++) {
+                if (slots[i].start <= current.end) {
+                    current.end = Math.max(current.end, slots[i].end);
+                } else {
+                    merged.push(current);
+                    current = slots[i];
+                }
+            }
+            merged.push(current);
+        }
+        return merged;
     }, [blockedSlots]);
 
     const dates = generateDates();
@@ -246,11 +261,23 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
         slotDateTime.setHours(slot.getHours(), slot.getMinutes());
         if (isBefore(slotDateTime, now)) return false;
 
-        // Check blocked slots
+        // Check blocked slots using binary search
         const slotTimeMs = slotDateTime.getTime();
-        for (const blocked of parsedBlockedSlots) {
+        let left = 0;
+        let right = parsedBlockedSlots.length - 1;
+
+        while (left <= right) {
+            const mid = Math.floor((left + right) / 2);
+            const blocked = parsedBlockedSlots[mid];
+
             if (slotTimeMs >= blocked.start && slotTimeMs < blocked.end) {
-                return false;
+                return false; // Slot falls within a blocked interval
+            }
+
+            if (slotTimeMs < blocked.start) {
+                right = mid - 1;
+            } else {
+                left = mid + 1;
             }
         }
 
