@@ -120,4 +120,15 @@ describe('DeepLinkHandler Security Validations', () => {
     await simulateDeepLink('https://meraki.app/auth-callback?code=123');
     expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledWith('123');
   });
+
+  it('handles errors during deep link processing gracefully', async () => {
+    await simulateDeepLink('invalid_url_that_throws_error');
+
+    expect(console.error).toHaveBeenCalled();
+    expect(showModalMock).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Error',
+      message: 'Something went wrong while processing the stamp.',
+      type: 'error',
+    }));
+  });
 });
