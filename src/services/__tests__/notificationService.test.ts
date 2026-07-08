@@ -183,6 +183,22 @@ describe('notificationService', () => {
             consoleSpy.mockRestore();
         });
 
+        it('logs "Unknown error" if saving to supabase fails without a message', async () => {
+            (Constants as any).expoConfig = { extra: { eas: { projectId: 'test-project-id' } } };
+
+            const mockError = {}; // Error without a message property
+            const mockEq = jest.fn().mockResolvedValue({ error: mockError });
+            const mockUpdate = jest.fn().mockReturnValue({ eq: mockEq });
+            (supabase.from as jest.Mock).mockReturnValue({ update: mockUpdate });
+
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+            await registerForPushNotificationsAsync('user_123');
+
+            expect(consoleSpy).toHaveBeenCalledWith('Error saving push token:', 'Unknown error');
+            consoleSpy.mockRestore();
+        });
+
         it('returns null and logs error if getting push token fails', async () => {
             (Constants as any).expoConfig = { extra: { eas: { projectId: 'test-project-id' } } };
 
@@ -195,6 +211,21 @@ describe('notificationService', () => {
 
             expect(token).toBeNull();
             expect(consoleSpy).toHaveBeenCalledWith('Push notifications error:', mockError.message);
+            consoleSpy.mockRestore();
+        });
+
+        it('returns null and logs "Unknown error" if getting push token fails without a message', async () => {
+            (Constants as any).expoConfig = { extra: { eas: { projectId: 'test-project-id' } } };
+
+            const mockError = {}; // Error without a message property
+            (Notifications.getExpoPushTokenAsync as jest.Mock).mockRejectedValue(mockError);
+
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+            const token = await registerForPushNotificationsAsync('user_123');
+
+            expect(token).toBeNull();
+            expect(consoleSpy).toHaveBeenCalledWith('Push notifications error:', 'Unknown error');
             consoleSpy.mockRestore();
         });
     });
