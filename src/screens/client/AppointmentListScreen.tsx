@@ -394,10 +394,25 @@ export function AppointmentListScreen() {
     };
 
     const parsedRescheduleBlockedSlots = useMemo(() => {
-        return rescheduleBlockedSlots.map(blocked => ({
+        const slots = rescheduleBlockedSlots.map(blocked => ({
             startMs: new Date(blocked.start_time).getTime(),
             endMs: new Date(blocked.end_time).getTime()
-        }));
+        })).sort((a, b) => a.startMs - b.startMs);
+
+        const merged: { startMs: number; endMs: number }[] = [];
+        for (const slot of slots) {
+            if (merged.length === 0) {
+                merged.push({ ...slot });
+                continue;
+            }
+            const last = merged[merged.length - 1];
+            if (slot.startMs <= last.endMs) {
+                last.endMs = Math.max(last.endMs, slot.endMs);
+            } else {
+                merged.push({ ...slot });
+            }
+        }
+        return merged;
     }, [rescheduleBlockedSlots]);
 
     // Check if a reschedule time slot is available (mirrors SelectDateTimeScreen)
@@ -415,9 +430,21 @@ export function AppointmentListScreen() {
 
         const slotTimeMs = slotDateTime.getTime();
 
-        // Blocked
-        for (const blocked of parsedRescheduleBlockedSlots) {
-            if (slotTimeMs >= blocked.startMs && slotTimeMs < blocked.endMs) return false;
+        // Blocked (binary search)
+        let left = 0;
+        let right = parsedRescheduleBlockedSlots.length - 1;
+
+        while (left <= right) {
+            const mid = Math.floor((left + right) / 2);
+            const blocked = parsedRescheduleBlockedSlots[mid];
+
+            if (slotTimeMs >= blocked.startMs && slotTimeMs < blocked.endMs) {
+                return false;
+            } else if (slotTimeMs < blocked.startMs) {
+                right = mid - 1;
+            } else {
+                left = mid + 1;
+            }
         }
         return true;
     };
