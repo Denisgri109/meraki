@@ -27,6 +27,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenBackground, Card, MerakiText, Button, Input } from '../../../components/ui';
 import { MerakiModal } from '../../../components/ui';
 import { colors, spacing, layout } from '../../../theme';
+import { formatDaysAgo } from '../../../utils/timezone';
 import {
     approveApplication,
     rejectApplication,
@@ -92,12 +93,9 @@ export function MasterApplicationReviewScreen() {
     };
 
     const getTimeAgo = (dateString: string | null): string => {
-        if (!dateString) return 'Recently';
-        const diff = Date.now() - new Date(dateString).getTime();
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        if (days === 0) return 'Applied today';
-        if (days === 1) return 'Applied 1 day ago';
-        return `Applied ${days} days ago`;
+        const timeAgo = formatDaysAgo(dateString);
+        if (timeAgo === 'Recently') return 'Recently';
+        return `Applied ${timeAgo.toLowerCase()}`;
     };
 
     const tabs: { key: ReviewTab; label: string }[] = [

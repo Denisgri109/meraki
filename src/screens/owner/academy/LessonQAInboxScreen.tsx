@@ -21,6 +21,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Card, MerakiText, ScreenBackground } from '../../../components/ui';
 import { colors, spacing, layout } from '../../../theme';
+import { formatTimeAgo } from '../../../utils/timezone';
 
 type QAThread = {
     lesson_id: string;
@@ -264,16 +265,6 @@ export function LessonQAInboxScreen() {
     );
 }
 
-function formatTimeAgo(dateString: string): string {
-    const diff = Date.now() - new Date(dateString).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Now';
-    if (mins < 60) return `${mins}m`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h`;
-    const days = Math.floor(hours / 24);
-    return `${days}d`;
-}
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
