@@ -30,7 +30,7 @@ module.exports = {
         'react-native-qrcode-svg|' +
         'date-fns|' +
         'date-fns-tz|' +
-        'base64-arraybuffer|uuid|react-native-nfc-manager' +
+        'base64-arraybuffer|uuid|react-native-nfc-manager|expo-font|@expo/vector-icons|expo-image-picker' +
         ')/)',
     ],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
