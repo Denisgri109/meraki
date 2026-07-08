@@ -164,36 +164,44 @@ export function AcademyHomeScreen() {
 
             const lessonsToUpdate: { id: string; duration_minutes: number }[] = [];
 
-            const enrichedCourses = await Promise.all(
-                coursesData.map(async (course: Course) => {
+            const enrichedCourses: any[] = [];
+            const COURSE_CHUNK_SIZE = 3;
+            const LESSON_CHUNK_SIZE = 3;
+
+            for (let i = 0; i < coursesData.length; i += COURSE_CHUNK_SIZE) {
+                const courseChunk = coursesData.slice(i, i + COURSE_CHUNK_SIZE);
+                const chunkResults = await Promise.all(courseChunk.map(async (course: Course) => {
                     const courseLessons = lessonsByCourse[course.id] || [];
                     const count = courseLessons.length;
 
                     // Probe real video durations for direct uploads
                     let totalSeconds = 0;
-                    await Promise.all(
-                        courseLessons.map(async (lesson: any) => {
-                            // Trust the cached value to avoid N+1 probing and updates
-                            if (typeof lesson.duration_minutes === 'number' && lesson.duration_minutes > 0) {
-                                totalSeconds += lesson.duration_minutes;
-                                return;
-                            }
-
-                            if (lesson.video_url && !isStreamingUrl(lesson.video_url)) {
-                                const realDuration = await probeVideoDuration(lesson.video_url);
-                                if (realDuration !== null) {
-                                    totalSeconds += realDuration;
-                                    // Auto-correct stale DB values
-                                    if (lesson.duration_minutes !== realDuration) {
-                                        lessonsToUpdate.push({ id: lesson.id, duration_minutes: realDuration });
-                                    }
+                    for (let j = 0; j < courseLessons.length; j += LESSON_CHUNK_SIZE) {
+                        const lessonChunk = courseLessons.slice(j, j + LESSON_CHUNK_SIZE);
+                        await Promise.all(
+                            lessonChunk.map(async (lesson: any) => {
+                                // Trust the cached value to avoid N+1 probing and updates
+                                if (typeof lesson.duration_minutes === 'number' && lesson.duration_minutes > 0) {
+                                    totalSeconds += lesson.duration_minutes;
                                     return;
                                 }
-                            }
-                            // Fallback to DB value for streaming or failed probes
-                            totalSeconds += (lesson.duration_minutes || 0);
-                        })
-                    );
+
+                                if (lesson.video_url && !isStreamingUrl(lesson.video_url)) {
+                                    const realDuration = await probeVideoDuration(lesson.video_url);
+                                    if (realDuration !== null) {
+                                        totalSeconds += realDuration;
+                                        // Auto-correct stale DB values
+                                        if (lesson.duration_minutes !== realDuration) {
+                                            lessonsToUpdate.push({ id: lesson.id, duration_minutes: realDuration });
+                                        }
+                                        return;
+                                    }
+                                }
+                                // Fallback to DB value for streaming or failed probes
+                                totalSeconds += (lesson.duration_minutes || 0);
+                            })
+                        );
+                    }
 
                     return {
                         ...course,
@@ -204,8 +212,9 @@ export function AcademyHomeScreen() {
                             full_name: course.instructor?.full_name || 'Merakí Expert'
                         }
                     };
-                })
-            );
+                }));
+                enrichedCourses.push(...chunkResults);
+            }
 
             setCourses(enrichedCourses);
 
