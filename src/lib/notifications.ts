@@ -1,3 +1,8 @@
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+import { supabase } from './supabase';
+
 let Notifications: any = null;
 let notificationsAvailable = false;
 
@@ -5,13 +10,13 @@ try {
     Notifications = require('expo-notifications');
     notificationsAvailable = true;
 } catch (error) {
-    console.warn('[Notifications] Native module not available. Running in mock/limited mode.');
+    const isSimulated = !Device.isDevice || Constants.appOwnership === 'expo';
+    if (!isSimulated) {
+        console.warn('[Notifications] Native module not available. Running in mock/limited mode.');
+    } else if (__DEV__) {
+        console.debug('[Notifications] Running in simulated/Expo Go environment. Notifications may be limited.');
+    }
 }
-
-import * as Device from 'expo-device';
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
-import { supabase } from './supabase';
 
 // Configure notification behavior
 if (notificationsAvailable && Notifications) {
