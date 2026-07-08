@@ -1,3 +1,4 @@
+import { getTimeAgo } from "../../../utils/dateUtils";
 /**
  * MasterApplicationReviewScreen — Owner reviews a master application.
  * 
@@ -91,14 +92,6 @@ export function MasterApplicationReviewScreen() {
         }
     };
 
-    const getTimeAgo = (dateString: string | null): string => {
-        if (!dateString) return 'Recently';
-        const diff = Date.now() - new Date(dateString).getTime();
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        if (days === 0) return 'Applied today';
-        if (days === 1) return 'Applied 1 day ago';
-        return `Applied ${days} days ago`;
-    };
 
     const tabs: { key: ReviewTab; label: string }[] = [
         { key: 'profile', label: 'Profile' },
@@ -136,7 +129,7 @@ export function MasterApplicationReviewScreen() {
                         </MerakiText>
                         <View style={styles.timeBadge}>
                             <MaterialIcons name="schedule" size={14} color="#EE2B5B" />
-                            <MerakiText variant="caption" color="#EE2B5B">{getTimeAgo(application.created_at)}</MerakiText>
+                            <MerakiText variant="caption" color="#EE2B5B">Applied {getTimeAgo(application.created_at).toLowerCase()}</MerakiText>
                         </View>
                     </View>
 
