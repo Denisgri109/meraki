@@ -113,7 +113,6 @@ export function VoucherSignupScreen({ navigation }: VoucherSignupScreenProps) {
             let expiryDate = '';
             
             if (newUser) {
-                console.log('User signed up successfully. Attempting to claim voucher...', newUser.id);
                 try {
                     const { data: claimData, error: claimError } = await supabase.functions.invoke('claim-voucher', {
                         body: {
@@ -135,8 +134,6 @@ export function VoucherSignupScreen({ navigation }: VoucherSignupScreenProps) {
                         'warning'
                     );
                 }
-            } else {
-                console.log('No user returned directly. Check if email confirmation is enabled.');
             }
 
             // Resend OTP so they verify their email
