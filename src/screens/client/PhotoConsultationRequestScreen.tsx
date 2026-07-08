@@ -84,7 +84,8 @@ export function PhotoConsultationRequestScreen() {
                 setLoading(true);
                 const validAssets = result.assets.filter(asset => !!asset.base64);
 
-                const uploadPromises = validAssets.map(async (asset) => {
+                const uploadResults = [];
+                for (const asset of validAssets) {
                     const fileName = `consultations/${Date.now()}_${uuidv4()}.jpg`;
 
                     const uploadResult = await supabase.storage
@@ -94,10 +95,8 @@ export function PhotoConsultationRequestScreen() {
                         });
 
                     if (uploadResult.error) throw uploadResult.error;
-                    return uploadResult;
-                });
-
-                const uploadResults = await Promise.all(uploadPromises);
+                    uploadResults.push(uploadResult);
+                }
 
                 const uploadedUrls = uploadResults.map(uploadResult => {
                     const { data: { publicUrl } } = supabase.storage
