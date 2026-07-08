@@ -156,7 +156,7 @@ export async function registerForPushNotificationsAsync(userId: string) {
                     .eq('id', userId);
 
                 if (error) {
-                    console.error('Error saving push token:', error?.message || 'Unknown error');
+                    console.error('Error saving push token');
                 }
             }
 

@@ -179,7 +179,7 @@ describe('notificationService', () => {
 
             await registerForPushNotificationsAsync('user_123');
 
-            expect(consoleSpy).toHaveBeenCalledWith('Error saving push token:', mockError.message);
+            expect(consoleSpy).toHaveBeenCalledWith('Error saving push token');
             consoleSpy.mockRestore();
         });
 
