@@ -90,24 +90,7 @@ export function VoucherSignupScreen({ navigation }: VoucherSignupScreenProps) {
             if (signUpError) throw signUpError;
 
             // 2. Get the newly registered user's ID
-            // Since OTP is typically enabled, supabase.auth.getUser() might not return a session, 
-            // but we can query the user that was just created, or since standard auth flows in supabase
-            // allow signup to return the user metadata, let's fetch the current user or sign-in state.
             const { data: { user: newUser }, error: userError } = await supabase.auth.getUser();
-            
-            // If user is not immediately returned in active session, we might need to look them up.
-            // But normally, supabase.auth.getUser() or signup returns the user. Let's fall back to
-            // signing in/calling if we have a user. If newUser is not available (due to email confirmation required),
-            // wait, we can't invoke edge functions with user auth header if they are not confirmed/logged in!
-            // BUT wait, is email confirmation required? If it is, the user cannot log in yet, but their user record exists.
-            // Wait, let's look at how the `claim-voucher` edge function handles user authentication.
-            // It manually checks `Authorization` header JWT: `supabaseAuth.auth.getUser()`.
-            // If email confirmation is required, the user does NOT have a valid JWT session yet.
-            // However, Supabase's `signUp` method typically returns an active session if email confirmation is disabled,
-            // or if it's enabled, it returns the user object but no session (or a pending session).
-            // Let's call the `claim-voucher` function. If the user session is available, we pass it.
-            // Wait, what if we use the anon key or a custom fetch? The Edge Function requires authorization header.
-            // Let's sign the user up and call `claim-voucher` using the newly created session.
             
             let claimSuccess = false;
             let expiryDate = '';
