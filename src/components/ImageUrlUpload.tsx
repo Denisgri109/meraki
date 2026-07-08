@@ -25,6 +25,56 @@ interface ImageUrlUploadProps {
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_SIZE = 10 * 1024 * 1024;
 
+function isLocalOrPrivateIP(hostname: string): boolean {
+    // Strip trailing dot which is valid in DNS but bypasses simple string checks
+    const lowerHost = hostname.toLowerCase().replace(/\.$/, '');
+
+    if (lowerHost === 'localhost') return true;
+    if (lowerHost.endsWith('.local') || lowerHost.endsWith('.internal')) return true;
+
+    // Block common SSRF DNS bypass services
+    const bypassDomains = ['.nip.io', '.sslip.io', '.xip.io', 'vcap.me', 'localtest.me', 'lvh.me'];
+    if (bypassDomains.some(d => lowerHost.endsWith(d))) return true;
+
+    // Reject 0.0.0.0 and :: (can map to localhost)
+    if (lowerHost === '0.0.0.0' || lowerHost === '::' || lowerHost === '[::]') return true;
+
+    // IPv4 check
+    const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+    const match = lowerHost.match(ipv4Regex);
+    if (match) {
+        const parts = match.slice(1).map(Number);
+        if (
+            parts[0] === 127 || // 127.0.0.0/8 loopback
+            parts[0] === 10 || // 10.0.0.0/8 private
+            parts[0] === 0 || // 0.0.0.0/8 "this network"
+            (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) || // 172.16.0.0/12 private
+            (parts[0] === 192 && parts[1] === 168) || // 192.168.0.0/16 private
+            (parts[0] === 169 && parts[1] === 254) // 169.254.0.0/16 link-local
+        ) {
+            return true;
+        }
+    }
+
+    // IPv6 Loopback
+    if (lowerHost === '[::1]' || lowerHost === '::1') return true;
+
+    // General IPv6 private/local ranges (fc00::/7 unique local, fe80::/10 link-local)
+    // We only check bracketed IPv6 to avoid false positives on domains like fda.gov
+    if (lowerHost.startsWith('[fc') || lowerHost.startsWith('[fd') || lowerHost.startsWith('[fe8') || lowerHost.startsWith('[fe9') || lowerHost.startsWith('[fea') || lowerHost.startsWith('[feb')) {
+        return true;
+    }
+
+    // IPv4-mapped IPv6 addresses (e.g., ::ffff:127.0.0.1 which becomes [::ffff:7f00:1])
+    if (lowerHost.startsWith('[::ffff:') || lowerHost.startsWith('::ffff:')) {
+        // For simplicity and security, we block all IPv4-mapped IPv6 addresses
+        // because determining if it maps to a private IPv4 without a full parser is complex.
+        return true;
+    }
+
+    return false;
+}
+
 export function ImageUrlUpload({
     onUpload,
     bucket = 'site-images',
@@ -55,6 +105,11 @@ export function ImageUrlUpload({
 
         if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
             setError('Only HTTP(S) URLs are allowed');
+            return;
+        }
+
+        if (isLocalOrPrivateIP(parsedUrl.hostname)) {
+            setError('Invalid URL: Local or private networks are not allowed');
             return;
         }
 
