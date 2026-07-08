@@ -240,8 +240,9 @@ export function useLessonQA({ lessonId, courseId, instructorId, isInstructor }: 
                 const asset = result.assets[0];
                 await uploadAndSendImage(asset);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Image picker error:', err);
+            showAlert('Error', err.message || 'Could not pick image', 'error');
         }
     };
 
@@ -263,8 +264,9 @@ export function useLessonQA({ lessonId, courseId, instructorId, isInstructor }: 
                 const asset = result.assets[0];
                 await uploadAndSendImage(asset);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Camera error:', err);
+            showAlert('Error', err.message || 'Could not take photo', 'error');
         }
     };
 
