@@ -79,6 +79,26 @@ describe('useCitySelection', () => {
         expect(result.current.state.currentCountryCode).toBe('DC');
     });
 
+    it('should handle error when loading countries fails', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const mockError = new Error('Network error');
+        (getAllCountries as jest.Mock).mockRejectedValueOnce(mockError);
+
+        const props = { ...defaultProps, visible: true };
+        const { result } = renderHook(() => useCitySelection(props));
+
+        expect(result.current.state.loadingCountries).toBe(true);
+
+        await waitFor(() => {
+            expect(result.current.state.loadingCountries).toBe(false);
+        });
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load countries:', mockError);
+        expect(result.current.state.countries).toEqual([]);
+
+        consoleErrorSpy.mockRestore();
+    });
+
     it('should fetch states when currentCountryCode changes', async () => {
         const props = { ...defaultProps, visible: true, detectedCountryCode: 'US' };
         const { result } = renderHook(() => useCitySelection(props));
@@ -88,6 +108,26 @@ describe('useCitySelection', () => {
         });
 
         expect(getStatesOfCountry).toHaveBeenCalledWith('US');
+    });
+
+    it('should handle error when fetching states fails', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const mockError = new Error('Network error');
+        (getStatesOfCountry as jest.Mock).mockRejectedValueOnce(mockError);
+
+        const props = { ...defaultProps, visible: true, detectedCountryCode: 'US' };
+        const { result } = renderHook(() => useCitySelection(props));
+
+        expect(result.current.state.loadingStates).toBe(true);
+
+        await waitFor(() => {
+            expect(result.current.state.loadingStates).toBe(false);
+        });
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load states:', mockError);
+        expect(result.current.state.states).toEqual([]);
+
+        consoleErrorSpy.mockRestore();
     });
 
     it('should handle country selection and clear state', async () => {
