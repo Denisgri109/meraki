@@ -210,4 +210,27 @@ describe('useAutoLocation', () => {
 
         consoleErrorSpy.mockRestore();
     });
+
+    it('should handle detection error and still check location setup status', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const mockError = new Error('Timezone detection error');
+
+        // Mock getDeviceTimezone to throw an error to simulate a detection failure
+        (getDeviceTimezone as jest.Mock).mockImplementationOnce(() => {
+            throw mockError;
+        });
+
+        const { result } = renderHook(() => useAutoLocation());
+
+        await waitFor(() => {
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+                'Auto-location detection error:',
+                mockError
+            );
+            // Verify that checkLocationSetupStatus was still called
+            expect(result.current.isCityMissing).toBe(true);
+        });
+
+        consoleErrorSpy.mockRestore();
+    });
 });
