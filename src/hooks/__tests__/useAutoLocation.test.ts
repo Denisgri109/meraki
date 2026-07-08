@@ -210,4 +210,55 @@ describe('useAutoLocation', () => {
 
         consoleErrorSpy.mockRestore();
     });
+
+    it('should test location detection error specifically for getCurrentPositionAsync', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(new Error('Location detection error test'));
+
+        const { result } = renderHook(() => useAutoLocation());
+
+        await waitFor(() => {
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+                'Location detection error:',
+                expect.any(Error)
+            );
+            expect(result.current.isCityMissing).toBe(true);
+        });
+
+        consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle error when resolving country code fails', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        (getAllCountries as jest.Mock).mockRejectedValue(new Error('API Error'));
+
+        const { result } = renderHook(() => useAutoLocation());
+
+        await waitFor(() => {
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+                'Could not resolve country code:',
+                expect.any(Error)
+            );
+        });
+
+        consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle general auto-location detection error', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        (Location.requestForegroundPermissionsAsync as jest.Mock).mockRejectedValue(new Error('Permission Error'));
+
+        const { result } = renderHook(() => useAutoLocation());
+
+        await waitFor(() => {
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+                'Auto-location detection error:',
+                expect.any(Error)
+            );
+            expect(result.current.isCityMissing).toBe(true);
+        });
+
+        consoleErrorSpy.mockRestore();
+    });
+
 });
