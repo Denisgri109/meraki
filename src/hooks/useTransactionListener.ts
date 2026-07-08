@@ -82,12 +82,10 @@ export function useTransactionListener(
                     // If filtering by session ID, check it matches
                     if (sessionId && newRecord.stripe_session_id !== sessionId) return;
 
-                    console.log('[useTransactionListener] Payment completed:', newRecord.id);
                     setCompletedTransaction(newRecord);
                 }
             )
             .subscribe((status) => {
-                console.log('[useTransactionListener] Subscription status:', status);
                 setIsListening(status === 'SUBSCRIBED');
             });
 
@@ -95,7 +93,6 @@ export function useTransactionListener(
 
         // Cleanup on unmount or dependency change
         return () => {
-            console.log('[useTransactionListener] Unsubscribing from channel');
             if (channelRef.current) {
                 supabase.removeChannel(channelRef.current);
                 channelRef.current = null;
