@@ -312,12 +312,15 @@ export function useLessonQA({ lessonId, courseId, instructorId, isInstructor }: 
     const togglePin = async (messageId: string, currentlyPinned: boolean) => {
         if (!isInstructor) return;
         try {
-            await supabase
+            const { error } = await supabase
                 .from('lesson_qa_messages')
                 .update({ is_pinned: !currentlyPinned })
                 .eq('id', messageId);
-        } catch (err) {
+
+            if (error) throw error;
+        } catch (err: any) {
             console.error('Toggle pin error:', err);
+            showAlert('Error', err.message || 'Could not update pin status', 'error');
         }
     };
 
