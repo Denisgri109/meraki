@@ -212,3 +212,31 @@ export function getTimezoneLabel(timezoneValue: string): string {
     const tz = TIMEZONE_MAP[timezoneValue];
     return tz?.label || timezoneValue;
 }
+
+/**
+ * Format a date string to a short time ago string (e.g., 'Now', '5m', '2h', '3d')
+ */
+export function formatTimeAgo(dateString: string): string {
+    const diff = Date.now() - new Date(dateString).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Now';
+    if (mins < 60) return `${mins}m`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `${days}d`;
+}
+
+/**
+ * Format a date string to a days ago string (e.g., 'Recently', 'Today', '1 day ago', '3 days ago', '2w ago', '1mo ago')
+ */
+export function formatDaysAgo(dateString: string | null): string {
+    if (!dateString) return 'Recently';
+    const diff = Date.now() - new Date(dateString).getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (days === 0) return 'Today';
+    if (days === 1) return '1 day ago';
+    if (days < 7) return `${days} days ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return `${Math.floor(days / 30)}mo ago`;
+}
