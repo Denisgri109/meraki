@@ -388,14 +388,16 @@ export async function cancelAndRefund(
         // Supabase `FunctionsHttpError` contains the raw Response in `context`
         // We can extract the real JSON error body to show to the user.
         if (error.context && typeof error.context.json === 'function') {
+            let errData;
             try {
                 // We need to clone it because the body might already be read, or just read it natively
-                const errData = await error.context.json();
-                if (errData && errData.error) {
-                    throw new Error(errData.error);
-                }
+                errData = await error.context.json();
             } catch (jsonErr) {
                 console.error("Failed to parse edge function error JSON", jsonErr);
+            }
+
+            if (errData && errData.error) {
+                throw new Error(errData.error);
             }
         }
         

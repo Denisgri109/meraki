@@ -491,6 +491,28 @@ describe('cancelAndRefund', () => {
         await expect(cancelAndRefund('apt_123', 'client')).rejects.toThrow();
     });
 
+    it('throws inner error if context.json() returns { error: "..." }', async () => {
+        const edgeFunctionError = new Error('Function failed');
+        (edgeFunctionError as any).context = {
+            json: jest.fn().mockResolvedValue({ error: 'Inner function error message' }),
+        };
+        mockInvoke.mockResolvedValue({ data: null, error: edgeFunctionError });
+        await expect(cancelAndRefund('apt_123', 'client')).rejects.toThrow('Inner function error message');
+    });
+
+    it('logs error if context.json() fails to parse, but still throws original error', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const edgeFunctionError = new Error('Function failed');
+        const parseError = new Error('JSON parse failed');
+        (edgeFunctionError as any).context = {
+            json: jest.fn().mockRejectedValue(parseError),
+        };
+        mockInvoke.mockResolvedValue({ data: null, error: edgeFunctionError });
+        await expect(cancelAndRefund('apt_123', 'client')).rejects.toThrow('Function failed');
+        expect(consoleSpy).toHaveBeenCalledWith("Failed to parse edge function error JSON", parseError);
+        consoleSpy.mockRestore();
+    });
+
     it('throws on data.error', async () => {
         mockInvoke.mockResolvedValue({
             data: { error: 'Appointment not found' },
