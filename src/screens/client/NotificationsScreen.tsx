@@ -207,7 +207,10 @@ export function NotificationsScreen() {
             if (profile?.role === 'owner' && settings.stockAlerts) {
                 try {
                     const { data: lowStockProducts } = await (supabase as any)
-                        .from('products').select('id, name, stock_count, low_stock_threshold').eq('is_active', true);
+                        .from('products')
+                        .select('id, name, stock_count, low_stock_threshold')
+                        .eq('is_active', true)
+                        .or('stock_count.lt.5,low_stock_threshold.not.is.null');
                     if (lowStockProducts) {
                         for (const product of lowStockProducts as any[]) {
                             if (product.stock_count < (product.low_stock_threshold || 5)) {
