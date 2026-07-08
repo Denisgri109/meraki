@@ -30,7 +30,7 @@ module.exports = {
         'react-native-qrcode-svg|' +
         'date-fns|' +
         'date-fns-tz|' +
-        'base64-arraybuffer|uuid|react-native-nfc-manager' +
+        'base64-arraybuffer|uuid|react-native-nfc-manager|expo-font|expo-asset|expo-constants|expo-modules-core' +
         ')/)',
     ],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
@@ -51,3 +51,6 @@ module.exports = {
         '!src/**/__mocks__/**',
     ],
 };
+
+// Adding mock for ttf
+module.exports.moduleNameMapper['\\.(ttf)$'] = '<rootDir>/src/__mocks__/fileMock.js';

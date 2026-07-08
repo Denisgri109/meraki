@@ -762,7 +762,7 @@ function formatTime(dateString: string): string {
     return `${date.getDate()}/${date.getMonth() + 1} ${hours}:${mins}`;
 }
 
-async function sendPushNotification(
+export async function sendPushNotification(
     pushToken: string,
     title: string,
     body: string,
