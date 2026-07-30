@@ -26,7 +26,6 @@ yarn-error.log*
 # credentials
 credentials.json
 google-services-key.json
-google-services.json
 credentials/
 
 # expo
