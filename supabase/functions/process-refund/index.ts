@@ -34,25 +34,6 @@ Deno.serve(async (req: Request) => {
             );
         }
 
-        // Intercept simulated/mock payment intent IDs
-        if (Deno.env.get("ENVIRONMENT") === "development" && (payment_intent_id.startsWith('pi_mock_') || payment_intent_id.startsWith('pi_simulated_') || payment_intent_id.startsWith('mock_pi_'))) {
-            console.log("Mock payment intent detected in process-refund:", payment_intent_id);
-            return new Response(
-                JSON.stringify({
-                    success: true,
-                    refund_id: "re_mock_" + Math.random().toString(36).substr(2, 9),
-                    status: "succeeded",
-                    amount: amount || 1000,
-                }),
-                {
-                    headers: {
-                        ...corsHeaders,
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-        }
-
         // Create refund parameters
         const refundParams: Record<string, string> = {
             payment_intent: payment_intent_id,
