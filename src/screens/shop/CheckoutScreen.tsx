@@ -12,6 +12,7 @@ import {
     Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useConfirmPayment, CardField, isStripeAvailable } from '../../utils/stripe';
 import { useCart } from '../../contexts/CartContext';
@@ -27,6 +28,7 @@ import {
     formatCardBrand,
     PaymentMethod,
 } from '../../services/stripeService';
+import { redeemVoucher, RedeemVoucherResult } from '../../services/voucherService';
 import { validateFullName, validatePhone, validatePostalCode, parsePhoneNumber } from '../../utils/validation';
 import {
     EUROPEAN_COUNTRIES_SORTED,
@@ -65,6 +67,44 @@ export function CheckoutScreen() {
     const subtotal = getTotal();
     const shippingCost = getShippingCost(shippingCountry);
     const finalTotal = subtotal + shippingCost;
+
+    const [voucherCode, setVoucherCode] = useState('');
+    const [voucherChecking, setVoucherChecking] = useState(false);
+    const [voucherError, setVoucherError] = useState<string | null>(null);
+    const [appliedVoucher, setAppliedVoucher] = useState<RedeemVoucherResult | null>(null);
+
+    const voucherDiscountEuros = (appliedVoucher?.discount_amount_cents ?? 0) / 100;
+    const effectiveTotal = Math.max(0, finalTotal - voucherDiscountEuros);
+
+    const handleApplyVoucher = async () => {
+        if (!user?.id) return;
+        if (voucherCode.trim().length < 3) {
+            setVoucherError('Enter a valid voucher code.');
+            return;
+        }
+        setVoucherChecking(true);
+        setVoucherError(null);
+        try {
+            const result = await redeemVoucher(voucherCode, user.id, eurosToCents(finalTotal));
+            if (!result.success) {
+                setVoucherError(result.message || 'Voucher could not be applied.');
+                setAppliedVoucher(null);
+                return;
+            }
+            setAppliedVoucher(result);
+        } catch (error: any) {
+            setVoucherError(error.message || 'Voucher could not be applied.');
+            setAppliedVoucher(null);
+        } finally {
+            setVoucherChecking(false);
+        }
+    };
+
+    const handleRemoveVoucher = () => {
+        setAppliedVoucher(null);
+        setVoucherCode('');
+        setVoucherError(null);
+    };
 
     useEffect(() => {
         fetchPaymentMethods();
@@ -202,7 +242,7 @@ export function CheckoutScreen() {
             }
 
             // 2. Process payment — use FINAL TOTAL (subtotal + shipping)
-            const totalInCents = eurosToCents(finalTotal);
+            const totalInCents = eurosToCents(effectiveTotal);
 
             // SIMULATION MODE: Bypass real Stripe payment for testing
             // Set to true to simulate payments without real charges
@@ -266,6 +306,18 @@ export function CheckoutScreen() {
             const alreadyFinalized = finalizedOrder?.already_finalized === true;
             if (!orderId) throw new Error('Order finalization failed.');
 
+            if (!alreadyFinalized && appliedVoucher?.voucher_id) {
+                try {
+                    await (supabase as any)
+                        .from('voucher_redemptions')
+                        .update({ order_id: orderId })
+                        .eq('voucher_id', appliedVoucher.voucher_id)
+                        .eq('user_id', user.id);
+                } catch (linkError) {
+                    console.error('Failed to link voucher redemption to order:', linkError);
+                }
+            }
+
             if (!alreadyFinalized) {
                 await sendOwnerNotification(orderId, finalTotal);
             }
@@ -274,7 +326,7 @@ export function CheckoutScreen() {
 
             showAlert(
                 '🎉 Order Placed!',
-                `Your order #${orderId.slice(0, 8).toUpperCase()} has been confirmed.\n\nSubtotal: €${subtotal.toFixed(2)}\nShipping: €${shippingCost.toFixed(2)}\nTotal: €${finalTotal.toFixed(2)}\n\nShipping to: ${shippingCity}, ${getCountryName(shippingCountry)}`,
+                `Your order #${orderId.slice(0, 8).toUpperCase()} has been confirmed.\n\nSubtotal: €${subtotal.toFixed(2)}\nShipping: €${shippingCost.toFixed(2)}${appliedVoucher ? `\nVoucher ${appliedVoucher.code}: -€${voucherDiscountEuros.toFixed(2)}` : ''}\nTotal: €${effectiveTotal.toFixed(2)}\n\nShipping to: ${shippingCity}, ${getCountryName(shippingCountry)}`,
                 'success',
                 {
                     onConfirm: () => {
@@ -343,11 +395,72 @@ export function CheckoutScreen() {
                                     </Text>
                                     <Text style={styles.summaryShippingPrice}>€{shippingCost.toFixed(2)}</Text>
                                 </View>
+                                {appliedVoucher && (
+                                    <View style={styles.summaryItem}>
+                                        <Text style={styles.voucherDiscountLabel}>
+                                            Voucher {appliedVoucher.code}
+                                        </Text>
+                                        <Text style={styles.voucherDiscountPrice}>-€{voucherDiscountEuros.toFixed(2)}</Text>
+                                    </View>
+                                )}
                                 <View style={styles.divider} />
                                 <View style={styles.summaryItem}>
                                     <Text style={styles.summaryTotal}>Total</Text>
-                                    <Text style={styles.summaryTotalPrice}>€{finalTotal.toFixed(2)}</Text>
+                                    <Text style={styles.summaryTotalPrice}>€{effectiveTotal.toFixed(2)}</Text>
                                 </View>
+                            </View>
+                        </View>
+
+                        {/* Voucher Code */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Voucher</Text>
+                            <View style={styles.formCard}>
+                                {appliedVoucher ? (
+                                    <View style={styles.voucherAppliedRow}>
+                                        <View style={styles.voucherAppliedLeft}>
+                                            <MaterialIcons name="check-circle" size={20} color="#059669" />
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.voucherAppliedTitle}>
+                                                    {appliedVoucher.code} applied
+                                                </Text>
+                                                <Text style={styles.voucherAppliedText}>
+                                                    You saved €{voucherDiscountEuros.toFixed(2)}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        <TouchableOpacity onPress={handleRemoveVoucher} disabled={loading}>
+                                            <Text style={styles.voucherRemoveText}>Remove</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                ) : (
+                                    <>
+                                        <View style={styles.voucherInputRow}>
+                                            <TextInput
+                                                style={[styles.fieldInput, styles.voucherInput]}
+                                                placeholder="VOUCHER CODE"
+                                                placeholderTextColor={colors.textMuted}
+                                                value={voucherCode}
+                                                onChangeText={(t) => setVoucherCode(t.toUpperCase())}
+                                                autoCapitalize="characters"
+                                                editable={!loading && !voucherChecking}
+                                            />
+                                            <TouchableOpacity
+                                                style={[styles.voucherApplyButton, (voucherChecking || loading) && { opacity: 0.6 }]}
+                                                onPress={handleApplyVoucher}
+                                                disabled={voucherChecking || loading}
+                                            >
+                                                {voucherChecking ? (
+                                                    <ActivityIndicator size="small" color="#FFF" />
+                                                ) : (
+                                                    <Text style={styles.voucherApplyText}>Apply</Text>
+                                                )}
+                                            </TouchableOpacity>
+                                        </View>
+                                        {!!voucherError && (
+                                            <Text style={styles.voucherErrorText}>{voucherError}</Text>
+                                        )}
+                                    </>
+                                )}
                             </View>
                         </View>
 
@@ -552,9 +665,15 @@ export function CheckoutScreen() {
                             <Text style={styles.footerLabel}>Shipping</Text>
                             <Text style={styles.footerValue}>€{shippingCost.toFixed(2)}</Text>
                         </View>
+                        {appliedVoucher && (
+                            <View style={styles.footerRow}>
+                                <Text style={styles.footerLabel}>Voucher {appliedVoucher.code}</Text>
+                                <Text style={[styles.footerValue, { color: '#059669' }]}>-€{voucherDiscountEuros.toFixed(2)}</Text>
+                            </View>
+                        )}
                     </View>
                     <Button
-                        title={loading ? 'Processing...' : `Pay €${finalTotal.toFixed(2)}`}
+                        title={loading ? 'Processing...' : `Pay €${effectiveTotal.toFixed(2)}`}
                         onPress={handlePlaceOrder}
                         fullWidth
                         disabled={loading || items.length === 0}
@@ -676,6 +795,54 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: spacing.sm,
     },
+    voucherDiscountLabel: {
+        fontSize: 14,
+        color: '#059669',
+        fontWeight: '600',
+    },
+    voucherDiscountPrice: {
+        fontSize: 14,
+        color: '#059669',
+        fontWeight: '700',
+    },
+    voucherInputRow: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+    },
+    voucherInput: {
+        flex: 1,
+        fontWeight: '700',
+        letterSpacing: 1,
+    },
+    voucherApplyButton: {
+        backgroundColor: '#000',
+        borderRadius: 12,
+        paddingHorizontal: spacing.lg,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 88,
+    },
+    voucherApplyText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
+    voucherErrorText: {
+        marginTop: spacing.sm,
+        fontSize: 12,
+        color: '#DC2626',
+        fontWeight: '600',
+    },
+    voucherAppliedRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    voucherAppliedLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+        flex: 1,
+    },
+    voucherAppliedTitle: { fontSize: 14, fontWeight: '700', color: '#047857' },
+    voucherAppliedText: { fontSize: 12, color: '#059669', marginTop: 1 },
+    voucherRemoveText: { fontSize: 12, fontWeight: '700', color: '#DC2626' },
     summaryItemName: {
         flex: 1,
         fontSize: 14,

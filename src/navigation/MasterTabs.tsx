@@ -18,6 +18,7 @@ import {
     CreateServiceScreen,
     BusinessSettingsScreen,
     LoyaltyCardBuilderScreen,
+    AftercareCampaignsScreen,
     SuppliesScreen,
     AddSupplyScreen,
     ServiceSuppliesScreen,
@@ -25,6 +26,7 @@ import {
     MasterMenuScreen,
 } from '../screens/master';
 import PhotoConsultationReviewScreen from '../screens/master/PhotoConsultationReviewScreen';
+import { QrPaymentsScreen } from '../screens/owner';
 import {
     EditProfileScreen,
     HelpSupportScreen,
@@ -56,6 +58,8 @@ export type DashboardStackParamList = {
     ServiceSupplies: { serviceId?: string } | undefined;
     Notifications: undefined;
     Earnings: undefined;
+    QrPayments: undefined;
+    AftercareCampaigns: undefined;
 };
 
 const DashboardStack = createNativeStackNavigator<DashboardStackParamList>();
@@ -80,6 +84,8 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
             <DashboardStack.Screen name="Notifications" component={NotificationsScreen} />
             <DashboardStack.Screen name="Earnings" component={MasterEarningsScreen} />
+            <DashboardStack.Screen name="QrPayments" component={QrPaymentsScreen} />
+            <DashboardStack.Screen name="AftercareCampaigns" component={AftercareCampaignsScreen} />
         </DashboardStack.Navigator>
     );
 }
@@ -127,6 +133,8 @@ export type MenuStackParamList = {
     PrivacyPolicy: undefined;
     CreateService: { service?: any } | undefined;
     ServiceSupplies: { serviceId?: string } | undefined;
+    QrPayments: undefined;
+    AftercareCampaigns: undefined;
 };
 
 const MenuStack = createNativeStackNavigator<MenuStackParamList>();
@@ -154,6 +162,8 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
             <MenuStack.Screen name="CreateService" component={CreateServiceScreen} />
             <MenuStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
+            <MenuStack.Screen name="QrPayments" component={QrPaymentsScreen} />
+            <MenuStack.Screen name="AftercareCampaigns" component={AftercareCampaignsScreen} />
         </MenuStack.Navigator>
     );
 }

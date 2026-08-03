@@ -20,6 +20,8 @@ import { colors, spacing } from '../../theme';
 import { Service, Profile, Tables } from '../../types/database';
 import { getDeviceTimezone, getTimezoneAbbreviation, COMMON_TIMEZONES } from '../../utils/timezone';
 import { useHideTabBar } from '../../hooks/useHideTabBar';
+import { usePilatesWaiver } from '../../hooks/usePilatesWaiver';
+import PilatesWaiverSheet from '../../components/PilatesWaiverSheet';
 
 type BookingStackParamList = {
     BookingMain: undefined;
@@ -76,6 +78,9 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
     const [blockedSlots, setBlockedSlots] = useState<any[]>([]);
     const [pilatesSessions, setPilatesSessions] = useState<PilatesSession[]>([]);
     const [selectedPilatesSession, setSelectedPilatesSession] = useState<PilatesSession | null>(null);
+    const [waiverVisible, setWaiverVisible] = useState(false);
+    const [checkingWaiver, setCheckingWaiver] = useState(false);
+    const { checkWaiver } = usePilatesWaiver();
 
     const parsedBlockedSlots = useMemo(() => {
         return blockedSlots.map((blocked) => ({
@@ -266,19 +271,32 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
         return !!dayAvailability;
     };
 
-    const handleContinue = () => {
+    const proceedToPilatesConfirm = (session: PilatesSession) => {
+        navigation.navigate('BookingConfirm', {
+            serviceId,
+            masterId: session.host?.profile_id || session.owner_id,
+            dateTime: session.starts_at,
+            pilatesSessionId: session.id,
+        });
+    };
+
+    const handleContinue = async () => {
         if (masterId === user?.id) return;
 
         if (service?.category === 'Pilates') {
             if (!selectedPilatesSession) return;
             const hostId = selectedPilatesSession.host?.profile_id || selectedPilatesSession.owner_id;
             if (hostId === user?.id) return;
-            navigation.navigate('BookingConfirm', {
-                serviceId,
-                masterId: selectedPilatesSession.host?.profile_id || selectedPilatesSession.owner_id,
-                dateTime: selectedPilatesSession.starts_at,
-                pilatesSessionId: selectedPilatesSession.id,
-            });
+
+            setCheckingWaiver(true);
+            const hasWaiver = await checkWaiver();
+            setCheckingWaiver(false);
+            if (!hasWaiver) {
+                setWaiverVisible(true);
+                return;
+            }
+
+            proceedToPilatesConfirm(selectedPilatesSession);
             return;
         }
 
@@ -535,12 +553,24 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                 {/* Bottom Button */}
                 <View style={styles.bottomBar}>
                     <Button
-                        title="Continue"
+                        title={checkingWaiver ? 'Checking waiver...' : 'Continue'}
                         onPress={handleContinue}
-                        disabled={isSelfBooking || (service?.category === 'Pilates' ? !selectedPilatesSession : !selectedTime || isFetchingSlots)}
+                        disabled={checkingWaiver || isSelfBooking || (service?.category === 'Pilates' ? !selectedPilatesSession : !selectedTime || isFetchingSlots)}
                         fullWidth
                     />
                 </View>
+
+                {/* Pilates waiver gate — blocks booking until the health screening is signed */}
+                <PilatesWaiverSheet
+                    visible={waiverVisible}
+                    onSigned={() => {
+                        setWaiverVisible(false);
+                        if (selectedPilatesSession) {
+                            proceedToPilatesConfirm(selectedPilatesSession);
+                        }
+                    }}
+                    onDismiss={() => setWaiverVisible(false)}
+                />
             </SafeAreaView>
         </ScreenBackground>
     );

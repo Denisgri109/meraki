@@ -110,10 +110,12 @@ export function MasterMenuScreen() {
                             { icon: 'block', label: 'Blocked Slots', route: 'BlockedSlots' },
                             { icon: 'photo-camera', label: 'Photo Consultations', route: 'PhotoConsultations' },
                             { icon: 'chat', label: 'Booking Consultations', route: 'BookingConsultations' },
+                            { icon: 'qr-code', label: 'QR Payments', route: 'QrPayments' },
+                            { icon: 'notifications-active', label: 'Aftercare & Campaigns', route: 'AftercareCampaigns' },
                         ].map((item, index) => (
                             <TouchableOpacity
                                 key={item.label}
-                                style={[styles.listItem, index === 5 && { borderBottomWidth: 0 }]}
+                                style={[styles.listItem, index === 7 && { borderBottomWidth: 0 }]}
                                 onPress={() => handleNavigate(item.route)}
                             >
                                 <View style={styles.listIconWrap}>

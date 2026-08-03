@@ -170,6 +170,34 @@ export function PilatesHubScreen() {
                         </Text>
                     </Card>
 
+                    <TouchableOpacity
+                        style={styles.waiversLink}
+                        onPress={() => navigation.navigate('PilatesWaivers')}
+                    >
+                        <View style={styles.waiversLinkIcon}>
+                            <MaterialCommunityIcons name="shield-check" size={20} color="#047857" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.waiversLinkTitle}>Signed Waivers</Text>
+                            <Text style={styles.waiversLinkMeta}>View client health screenings & liability waivers</Text>
+                        </View>
+                        <MaterialIcons name="chevron-right" size={22} color={colors.textSecondary} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.waiversLink}
+                        onPress={() => navigation.navigate('Instructors')}
+                    >
+                        <View style={styles.waiversLinkIcon}>
+                            <MaterialIcons name="verified-user" size={20} color="#047857" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.waiversLinkTitle}>Instructors</Text>
+                            <Text style={styles.waiversLinkMeta}>Authorize waiver access & QR Pay for staff</Text>
+                        </View>
+                        <MaterialIcons name="chevron-right" size={22} color={colors.textSecondary} />
+                    </TouchableOpacity>
+
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Your Studios ({studios.length})</Text>
                     </View>
@@ -304,6 +332,27 @@ const styles = StyleSheet.create({
     },
     infoText: { fontSize: 14, color: '#065F46', lineHeight: 20 },
     sectionHeader: { marginBottom: spacing.md },
+    waiversLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+        padding: spacing.md,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.08)',
+        marginBottom: spacing.lg,
+    },
+    waiversLinkIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#ECFDF5',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    waiversLinkTitle: { fontWeight: '700', color: colors.text, fontSize: 15 },
+    waiversLinkMeta: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
     sectionTitle: {
         fontSize: 12,
         fontWeight: '700',

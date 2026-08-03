@@ -118,10 +118,15 @@ export function OwnerMenuScreen() {
                             { icon: 'photo-camera', label: 'Photo Consultations', route: 'PhotoConsultations' },
                             { icon: 'school', label: 'Manage Academy', route: 'ManageAcademy' },
                             { icon: 'account-balance-wallet', label: 'Earnings', route: 'Earnings' },
+                            { icon: 'account-balance', label: 'Finance', route: 'Finance' },
+                            { icon: 'confirmation-number', label: 'Vouchers', route: 'Vouchers' },
+                            { icon: 'loyalty', label: 'Class Packages', route: 'ClassPackages' },
+                            { icon: 'qr-code', label: 'QR Payments', route: 'QrPayments' },
+                            { icon: 'verified-user', label: 'Instructors', route: 'Instructors' },
                         ].map((item, index) => (
                             <TouchableOpacity
                                 key={item.label}
-                                style={[styles.listItem, index === 10 && { borderBottomWidth: 0 }]}
+                                style={[styles.listItem, index === 15 && { borderBottomWidth: 0 }]}
                                 onPress={() => handleNavigate(item.route)}
                             >
                                 <View style={styles.listIconWrap}>

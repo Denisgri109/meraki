@@ -28,8 +28,11 @@ import {
     PaymentMethod,
 } from '../../services/stripeService';
 import { confirmBooking } from '../../services/bookingService';
+import { getActivePassSummary, redeemClassCredit, PassSummaryRow } from '../../services/classPassService';
 import { getTimezoneAbbreviation } from '../../utils/timezone';
 import { useHideTabBar } from '../../hooks/useHideTabBar';
+import { usePilatesWaiver } from '../../hooks/usePilatesWaiver';
+import PilatesWaiverSheet from '../../components/PilatesWaiverSheet';
 
 type BookingStackParamList = {
     BookingMain: undefined;
@@ -69,9 +72,14 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
     const [submitting, setSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
 
-    // Credit state
     const [availableCredits, setAvailableCredits] = useState<any[]>([]);
     const [appliedCredit, setAppliedCredit] = useState<any | null>(null);
+
+    const [passSummary, setPassSummary] = useState<PassSummaryRow[]>([]);
+    const [useClassCredit, setUseClassCredit] = useState(false);
+
+    const isClassCreditBooking =
+        service?.category === 'Pilates' && !!pilatesSessionId && useClassCredit && passSummary.length > 0;
 
     // Payment state
     const [savedCards, setSavedCards] = useState<PaymentMethod[]>([]);
@@ -88,6 +96,9 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
     // App Terms of Service state
     const [acceptedAppTOS, setAcceptedAppTOS] = useState(false);
     const [showAppTOSModal, setShowAppTOSModal] = useState(false);
+
+    const [waiverVisible, setWaiverVisible] = useState(false);
+    const { checkWaiver } = usePilatesWaiver();
 
     // Modal state
     const [modalConfig, setModalConfig] = useState<{
@@ -108,6 +119,17 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (!pilatesSessionId || !user?.id) return;
+        let cancelled = false;
+        checkWaiver().then((has) => {
+            if (!cancelled && !has) setWaiverVisible(true);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [pilatesSessionId, user?.id]);
 
     const fetchData = async () => {
         try {
@@ -145,6 +167,14 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
                 setPilatesSettings(pilatesData || null);
                 setPilatesSession((sessionData as unknown as PilatesSession) || null);
+
+                try {
+                    const summary = await getActivePassSummary();
+                    setPassSummary(summary);
+                    if (summary.length > 0) setUseClassCredit(true);
+                } catch (summaryError) {
+                    console.error('Failed to load class pass summary:', summaryError);
+                }
             }
 
             // Fetch available credits for the user
@@ -245,27 +275,29 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
         const finalPrice = calculateFinalPrice();
 
-        // Validate payment method selection
-        if (!showNewCard && !selectedCardId) {
-            setModalConfig({
-                visible: true,
-                title: 'Payment Required',
-                message: 'Please select a payment method to continue.',
-                type: 'warning',
-                onConfirm: () => setModalConfig(prev => ({ ...prev, visible: false })),
-            });
-            return;
-        }
+        if (!isClassCreditBooking) {
+            // Validate payment method selection
+            if (!showNewCard && !selectedCardId) {
+                setModalConfig({
+                    visible: true,
+                    title: 'Payment Required',
+                    message: 'Please select a payment method to continue.',
+                    type: 'warning',
+                    onConfirm: () => setModalConfig(prev => ({ ...prev, visible: false })),
+                });
+                return;
+            }
 
-        if (showNewCard && !newCardComplete) {
-            setModalConfig({
-                visible: true,
-                title: 'Card Required',
-                message: 'Please enter your card details to continue.',
-                type: 'warning',
-                onConfirm: () => setModalConfig(prev => ({ ...prev, visible: false })),
-            });
-            return;
+            if (showNewCard && !newCardComplete) {
+                setModalConfig({
+                    visible: true,
+                    title: 'Card Required',
+                    message: 'Please enter your card details to continue.',
+                    type: 'warning',
+                    onConfirm: () => setModalConfig(prev => ({ ...prev, visible: false })),
+                });
+                return;
+            }
         }
 
         // Validate App Terms of Service (always required)
@@ -294,34 +326,41 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
         setSubmitting(true);
         try {
-            const { amountToPay } = calculatePayment();
+            let appointmentId: string;
 
-            const appointmentId = await confirmBooking({
-                user,
-                profile,
-                master,
-                service,
-                masterId,
-                serviceId,
-                startTime,
-                amountToPay,
-                showNewCard,
-                selectedCardId,
-                notes,
-                pilatesSessionId,
-                appliedCredit,
-                confirmSetupIntent,
-                confirmPayment
-            });
+            if (isClassCreditBooking) {
+                appointmentId = await redeemClassCredit(pilatesSessionId!, passSummary[0].user_pass_id);
+            } else {
+                const { amountToPay } = calculatePayment();
+
+                appointmentId = await confirmBooking({
+                    user,
+                    profile,
+                    master,
+                    service,
+                    masterId,
+                    serviceId,
+                    startTime,
+                    amountToPay,
+                    showNewCard,
+                    selectedCardId,
+                    notes,
+                    pilatesSessionId,
+                    appliedCredit,
+                    confirmSetupIntent,
+                    confirmPayment
+                });
+            }
 
             const discountMsg = appliedCredit ? `\n\n💰 Discount of €${getDiscountAmount().toFixed(2)} applied!` : '';
+            const creditPassMsg = isClassCreditBooking ? '\n\n🎟️ Booked with 1 class credit.' : '';
 
             setIsSuccess(true);
 
             setModalConfig({
                 visible: true,
                 title: 'Booking Confirmed! ✅',
-                message: `Your appointment with ${master?.full_name} has been confirmed!${discountMsg}\n\n📅 ${format(startTime, 'EEEE, MMMM d')} at ${format(startTime, 'HH:mm')}\n\n💳 Payment processed successfully.`,
+                message: `Your appointment with ${master?.full_name} has been confirmed!${discountMsg}${creditPassMsg}\n\n📅 ${format(startTime, 'EEEE, MMMM d')} at ${format(startTime, 'HH:mm')}\n\n${isClassCreditBooking ? '🎟️ Class credit applied — no card charged.' : '💳 Payment processed successfully.'}`,
                 type: 'success',
                 onConfirm: () => {
                     setModalConfig(prev => ({ ...prev, visible: false }));
@@ -349,7 +388,15 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color={colors.text} />
                     </View>
-                </SafeAreaView>
+                <PilatesWaiverSheet
+                    visible={waiverVisible}
+                    onSigned={() => setWaiverVisible(false)}
+                    onDismiss={() => {
+                        setWaiverVisible(false);
+                        if (navigation.canGoBack()) navigation.goBack();
+                    }}
+                />
+            </SafeAreaView>
             </ScreenBackground>
         );
     }
@@ -517,7 +564,30 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                     )}
 
                     {/* Available Credits */}
-                    {availableCredits.length > 0 && (
+                    {passSummary.length > 0 && service?.category === 'Pilates' && pilatesSessionId && (
+                        <View style={styles.creditsSection}>
+                            <Text style={styles.sectionLabel}>🎟️ Class Pass Credit</Text>
+                            <TouchableOpacity
+                                style={[styles.creditCard, useClassCredit && styles.creditCardApplied]}
+                                onPress={() => {
+                                    setUseClassCredit(!useClassCredit);
+                                    if (!useClassCredit) setAppliedCredit(null);
+                                }}
+                            >
+                                <View style={styles.creditInfo}>
+                                    <Text style={styles.creditAmount}>
+                                        Book with 1 class credit ({passSummary.reduce((s, p) => s + p.remaining_credits, 0)} available)
+                                    </Text>
+                                    <Text style={styles.creditDesc}>{passSummary[0].name}</Text>
+                                </View>
+                                <View style={[styles.creditCheck, useClassCredit && styles.creditCheckActive]}>
+                                    <Text style={styles.creditCheckText}>{useClassCredit ? "✓" : ""}</Text>
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                    {availableCredits.length > 0 && !useClassCredit && (
                         <View style={styles.creditsSection}>
                             <Text style={styles.sectionLabel}>🎁 Available Credits</Text>
                             {availableCredits.map((credit) => {
@@ -545,6 +615,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                     )}
 
                     {/* Payment Method Selection */}
+                    {!isClassCreditBooking && (
                     <View style={styles.paymentSection}>
                         <Text style={styles.sectionLabel}>💳 Payment Method</Text>
 
@@ -638,6 +709,18 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                             </Text>
                         </View>
                     </View>
+                    )}
+
+                    {isClassCreditBooking && (
+                        <View style={styles.creditsSection}>
+                            <View style={styles.paymentInfo}>
+                                <MaterialIcons name="auto-awesome" size={16} color={colors.primary} />
+                                <Text style={styles.paymentInfoText}>
+                                    This class will be paid for with 1 credit from your class pass.
+                                </Text>
+                            </View>
+                        </View>
+                    )}
 
                     {/* Price Summary */}
                     <Card style={styles.priceSection} variant="glass">
@@ -653,8 +736,8 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                         )}
                         <View style={styles.priceDivider} />
                         <View style={styles.priceRow}>
-                            <Text style={styles.totalLabel}>Total to Pay</Text>
-                            <Text style={styles.totalValue}>€{calculateFinalPrice().toFixed(2)}</Text>
+                                <Text style={styles.totalLabel}>Total to Pay</Text>
+                                <Text style={styles.totalValue}>€{isClassCreditBooking ? '0.00' : calculateFinalPrice().toFixed(2)}</Text>
                         </View>
                     </Card>
                 </ScrollView>
@@ -662,7 +745,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 {/* Bottom Button */}
                 <View style={styles.bottomBar}>
                     <Button
-                        title={submitting || isSuccess ? 'Processing...' : `Pay €${calculateFinalPrice().toFixed(2)} & Confirm`}
+                        title={submitting || isSuccess ? 'Processing...' : isClassCreditBooking ? 'Book with 1 Class Credit' : `Pay €${calculateFinalPrice().toFixed(2)} & Confirm`}
                         onPress={handleConfirmBooking}
                         loading={submitting || isSuccess}
                         disabled={submitting || isSuccess || isSelfBooking}

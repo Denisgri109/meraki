@@ -31,6 +31,7 @@ import {
     DiscoverMastersScreen,
     NFCScannerScreen,
     ScanToPayScreen,
+    ClassPassesScreen,
 } from '../screens/client';
 
 import { ShopScreen, ProductDetailScreen, CartScreen, CheckoutScreen } from '../screens/shop';
@@ -61,6 +62,7 @@ export type HomeStackParamList = {
     QRScanner: undefined;
     NFCScanner: undefined;
     ScanToPay: undefined;
+    ClassPasses: undefined;
     MasterDetail: { masterId: string };
     ServiceDetail: { serviceId: string };
 
@@ -89,6 +91,7 @@ function HomeStackNavigator() {
             <HomeStack.Screen name="QRScanner" component={QRScannerScreen} />
             <HomeStack.Screen name="NFCScanner" component={NFCScannerScreen} />
             <HomeStack.Screen name="ScanToPay" component={ScanToPayScreen} />
+            <HomeStack.Screen name="ClassPasses" component={ClassPassesScreen} />
             <HomeStack.Screen name="MasterDetail" component={MasterDetailScreen} />
             <HomeStack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
 
@@ -193,6 +196,7 @@ export type MenuStackParamList = {
     StampCards: undefined;
     QRScanner: undefined;
     NFCScanner: undefined;
+    ClassPasses: undefined;
 };
 
 const MenuStack = createNativeStackNavigator<MenuStackParamList>();
@@ -212,6 +216,7 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="StampCards" component={StampCardsScreen} />
             <MenuStack.Screen name="QRScanner" component={QRScannerScreen} />
             <MenuStack.Screen name="NFCScanner" component={NFCScannerScreen} />
+            <MenuStack.Screen name="ClassPasses" component={ClassPassesScreen} />
         </MenuStack.Navigator>
     );
 }

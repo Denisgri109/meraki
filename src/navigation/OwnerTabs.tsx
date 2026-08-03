@@ -12,6 +12,11 @@ import {
     ServiceFormScreen,
     PilatesTimetableScreen,
     PilatesHubScreen,
+    PilatesWaiversScreen,
+    VouchersScreen,
+    ClassPackagesScreen,
+    QrPaymentsScreen,
+    InstructorsScreen,
     InventoryScreen,
     OwnerSuppliesScreen,
     AddOwnerSupplyScreen,
@@ -23,6 +28,7 @@ import {
     MasterManagementScreen,
     MasterInviteScreen,
     MasterDetailScreen,
+    OwnerFinanceScreen,
     SupportSettingsScreen,
 } from '../screens/owner';
 import {
@@ -71,6 +77,11 @@ export type OwnerDashboardStackParamList = {
     ServiceForm: { service?: any } | undefined;
     PilatesTimetable: { service: any };
     PilatesHub: undefined;
+    PilatesWaivers: undefined;
+    Vouchers: undefined;
+    ClassPackages: undefined;
+    QrPayments: undefined;
+    Instructors: undefined;
     Inventory: undefined;
     ProductDetail: { productId: string; product: any };
     LoyaltyQR: undefined;
@@ -94,6 +105,7 @@ export type OwnerDashboardStackParamList = {
     OrderDetail: { order: any };
     Notifications: undefined;
     Earnings: undefined;
+    Finance: undefined;
     MasterManagement: undefined;
     MasterInvite: undefined;
     MasterDetail: { master: any };
@@ -110,6 +122,11 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="ServiceForm" component={ServiceFormScreen} />
             <DashboardStack.Screen name="PilatesTimetable" component={PilatesTimetableScreen} />
             <DashboardStack.Screen name="PilatesHub" component={PilatesHubScreen} />
+            <DashboardStack.Screen name="PilatesWaivers" component={PilatesWaiversScreen} />
+            <DashboardStack.Screen name="Vouchers" component={VouchersScreen} />
+            <DashboardStack.Screen name="ClassPackages" component={ClassPackagesScreen} />
+            <DashboardStack.Screen name="QrPayments" component={QrPaymentsScreen} />
+            <DashboardStack.Screen name="Instructors" component={InstructorsScreen} />
             <DashboardStack.Screen name="Inventory" component={InventoryScreen} />
             <DashboardStack.Screen name="ProductDetail" component={ProductDetailScreen} />
             <DashboardStack.Screen name="LoyaltyQR" component={LoyaltyQRScreen} />
@@ -132,6 +149,7 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="OrderDetail" component={OwnerOrderDetailScreen} />
             <DashboardStack.Screen name="Notifications" component={NotificationsScreen} />
             <DashboardStack.Screen name="Earnings" component={MasterEarningsScreen} />
+            <DashboardStack.Screen name="Finance" component={OwnerFinanceScreen} />
             <DashboardStack.Screen name="MasterManagement" component={MasterManagementScreen} />
             <DashboardStack.Screen name="MasterInvite" component={MasterInviteScreen} />
             <DashboardStack.Screen name="MasterDetail" component={MasterDetailScreen} />
@@ -176,6 +194,11 @@ export type MenuStackParamList = {
     ServiceForm: { service?: any } | undefined;
     PilatesTimetable: { service: any };
     PilatesHub: undefined;
+    PilatesWaivers: undefined;
+    Vouchers: undefined;
+    ClassPackages: undefined;
+    QrPayments: undefined;
+    Instructors: undefined;
     BlockedSlots: undefined;
     LoyaltyCardBuilder: undefined;
     BookingConsultations: undefined;
@@ -195,6 +218,7 @@ export type MenuStackParamList = {
     StudentDetail: { enrollment: any };
     LessonQADetail: { lesson: any; courseId: string; instructorId: string; instructorName?: string };
     Earnings: undefined;
+    Finance: undefined;
     MasterManagement: undefined;
     MasterInvite: undefined;
     MasterDetail: { master: any };
@@ -225,6 +249,11 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="ServiceForm" component={ServiceFormScreen} />
             <MenuStack.Screen name="PilatesTimetable" component={PilatesTimetableScreen} />
             <MenuStack.Screen name="PilatesHub" component={PilatesHubScreen} />
+            <MenuStack.Screen name="PilatesWaivers" component={PilatesWaiversScreen} />
+            <MenuStack.Screen name="Vouchers" component={VouchersScreen} />
+            <MenuStack.Screen name="ClassPackages" component={ClassPackagesScreen} />
+            <MenuStack.Screen name="QrPayments" component={QrPaymentsScreen} />
+            <MenuStack.Screen name="Instructors" component={InstructorsScreen} />
             <MenuStack.Screen name="BlockedSlots" component={BlockedSlotsScreen} />
             <MenuStack.Screen name="LoyaltyCardBuilder" component={LoyaltyCardBuilderScreen} />
             <MenuStack.Screen name="BookingConsultations" component={BookingConsultationReviewScreen} />
@@ -244,6 +273,7 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="StudentDetail" component={StudentDetailScreen} />
             <MenuStack.Screen name="LessonQADetail" component={LessonQADetailScreen} />
             <MenuStack.Screen name="Earnings" component={MasterEarningsScreen} />
+            <MenuStack.Screen name="Finance" component={OwnerFinanceScreen} />
             <MenuStack.Screen name="MasterManagement" component={MasterManagementScreen} />
             <MenuStack.Screen name="MasterInvite" component={MasterInviteScreen} />
             <MenuStack.Screen name="MasterDetail" component={MasterDetailScreen} />

@@ -23,6 +23,7 @@ export * from './BookAndChatScreen';
 export { NFCScannerScreen } from './NFCScannerScreen';
 export { ConsultationWaitingScreen } from './ConsultationWaitingScreen';
 export { ScanToPayScreen } from './ScanToPayScreen';
+export { ClassPassesScreen } from './ClassPassesScreen';
 
 
 
