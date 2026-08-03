@@ -117,7 +117,8 @@
       ],
       "@react-native-community/datetimepicker",
       "react-native-nfc-manager",
-      "expo-font"
+      "expo-font",
+      "expo-asset"
     ],
     "extra": {
       "eas": {
