@@ -79,14 +79,36 @@ export async function fetchPendingMasters(): Promise<{ data: PendingMaster[] | n
 // ─── Invite / Create ─────────────────────────────────────────────────────────
 
 /**
- * Invite a new master (creates a pending_masters record).
- * The invited master will be able to register and auto-link.
+ * Invite a new master. Calls the invite-master Edge Function which writes the
+ * master_applications record and emails the invite link via Resend
+ * (same path as the web app). Also keeps a pending_masters record so the
+ * mobile pending list stays populated; that insert is best-effort.
  */
 export async function inviteMaster(
     payload: InviteMasterPayload,
     ownerId: string
-): Promise<{ data: PendingMaster | null; error: any }> {
-    const { data, error } = await supabase
+): Promise<{ data: PendingMaster | null; emailSent: boolean; error: Error | null }> {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+        return { data: null, emailSent: false, error: new Error('Session expired. Please log in again.') };
+    }
+
+    const { data: fnData, error: fnError } = await supabase.functions.invoke('invite-master', {
+        body: { email: payload.email, full_name: payload.full_name },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+    });
+
+    if (fnError) {
+        return { data: null, emailSent: false, error: fnError instanceof Error ? fnError : new Error(String(fnError)) };
+    }
+    if (fnData?.error) {
+        return { data: null, emailSent: false, error: new Error(fnData.error) };
+    }
+
+    const emailSent = fnData?.email_sent === true;
+
+    let pending: PendingMaster | null = null;
+    const { data: pendingData } = await supabase
         .from('pending_masters')
         .insert({
             full_name: payload.full_name,
@@ -98,8 +120,9 @@ export async function inviteMaster(
         })
         .select()
         .single();
+    pending = pendingData as PendingMaster | null;
 
-    return { data: data as PendingMaster | null, error };
+    return { data: pending, emailSent, error: null };
 }
 
 export async function approveApplication(

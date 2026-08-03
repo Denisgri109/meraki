@@ -26,10 +26,14 @@ const createChainMock = () => {
 
 let mockChain: any;
 let mockFromFn: jest.Mock;
+let mockGetSession: jest.Mock;
+let mockInvoke: jest.Mock;
 
 jest.mock('../../lib/supabase', () => ({
     supabase: {
         from: (...args: any[]) => mockFromFn(...args),
+        auth: { getSession: (...args: any[]) => mockGetSession(...args) },
+        functions: { invoke: (...args: any[]) => mockInvoke(...args) },
     },
 }));
 
@@ -51,6 +55,8 @@ beforeEach(() => {
     jest.clearAllMocks();
     mockChain = createChainMock();
     mockFromFn = jest.fn().mockReturnValue(mockChain);
+    mockGetSession = jest.fn().mockResolvedValue({ data: { session: { access_token: 'tok-1' } }, error: null });
+    mockInvoke = jest.fn().mockResolvedValue({ data: { success: true, email_sent: true }, error: null });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -95,13 +101,24 @@ describe('fetchPendingMasters', () => {
 // inviteMaster
 // ═══════════════════════════════════════════════════════════════════════════
 describe('inviteMaster', () => {
-    it('inserts into pending_masters table', async () => {
-        const newMaster = {
-            id: '1',
-            full_name: 'Jane Smith',
-            email: 'jane@test.com',
-            master_status: 'invited',
-        };
+    it('calls the invite-master edge function with the owner session token', async () => {
+        mockChain.single.mockResolvedValue({ data: { id: '1' }, error: null });
+
+        const result = await inviteMaster(
+            { full_name: 'Jane Smith', email: 'jane@test.com', phone: '123', bio: 'bio' },
+            'owner-123'
+        );
+
+        expect(mockInvoke).toHaveBeenCalledWith('invite-master', {
+            body: { email: 'jane@test.com', full_name: 'Jane Smith' },
+            headers: { Authorization: 'Bearer tok-1' },
+        });
+        expect(result.emailSent).toBe(true);
+        expect(result.error).toBeNull();
+    });
+
+    it('still writes pending_masters for the mobile pending list (best effort)', async () => {
+        const newMaster = { id: '1', full_name: 'Jane Smith', email: 'jane@test.com', master_status: 'invited' };
         mockChain.single.mockResolvedValue({ data: newMaster, error: null });
 
         const result = await inviteMaster(
@@ -110,18 +127,69 @@ describe('inviteMaster', () => {
         );
 
         expect(mockFromFn).toHaveBeenCalledWith('pending_masters');
+        expect(mockChain.insert).toHaveBeenCalledWith(expect.objectContaining({
+            full_name: 'Jane Smith',
+            email: 'jane@test.com',
+            master_status: 'invited',
+            created_by: 'owner-123',
+        }));
         expect(result.data).toEqual(newMaster);
     });
 
-    it('returns error on insert failure', async () => {
-        const err = new Error('Insert failed');
-        mockChain.single.mockResolvedValue({ data: null, error: err });
+    it('returns error without touching pending_masters when the edge function fails', async () => {
+        mockInvoke.mockResolvedValue({ data: null, error: new Error('Function unreachable') });
 
         const result = await inviteMaster(
             { full_name: 'Jane', email: 'jane@test.com' },
             'owner-123'
         );
-        expect(result.error).toBe(err);
+
+        expect(result.error?.message).toBe('Function unreachable');
+        expect(result.emailSent).toBe(false);
+        expect(mockFromFn).not.toHaveBeenCalledWith('pending_masters');
+    });
+
+    it('surfaces edge function body errors (e.g. duplicate application)', async () => {
+        mockInvoke.mockResolvedValue({
+            data: { error: 'An application for this email already exists (status: invited)' },
+            error: null,
+        });
+
+        const result = await inviteMaster(
+            { full_name: 'Jane', email: 'jane@test.com' },
+            'owner-123'
+        );
+
+        expect(result.error?.message).toContain('already exists');
+        expect(result.emailSent).toBe(false);
+    });
+
+    it('reports emailSent=false when Resend is not configured but the invite succeeded', async () => {
+        mockInvoke.mockResolvedValue({
+            data: { success: true, email_sent: false, note: 'RESEND_API_KEY not configured' },
+            error: null,
+        });
+        mockChain.single.mockResolvedValue({ data: { id: '1' }, error: null });
+
+        const result = await inviteMaster(
+            { full_name: 'Jane', email: 'jane@test.com' },
+            'owner-123'
+        );
+
+        expect(result.error).toBeNull();
+        expect(result.emailSent).toBe(false);
+    });
+
+    it('fails fast when the session is expired', async () => {
+        mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
+
+        const result = await inviteMaster(
+            { full_name: 'Jane', email: 'jane@test.com' },
+            'owner-123'
+        );
+
+        expect(result.error?.message).toContain('Session expired');
+        expect(mockInvoke).not.toHaveBeenCalled();
     });
 });
 

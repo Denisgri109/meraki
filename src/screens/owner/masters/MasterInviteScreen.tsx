@@ -59,7 +59,7 @@ export function MasterInviteScreen() {
         }
 
         setSubmitting(true);
-        const { data, error } = await inviteMaster(
+        const { error, emailSent } = await inviteMaster(
             {
                 full_name: fullName.trim(),
                 email: email.trim().toLowerCase(),
@@ -72,11 +72,18 @@ export function MasterInviteScreen() {
 
         if (error) {
             showAlert('Error', error.message || 'Failed to send invitation', 'error');
-        } else {
+        } else if (emailSent) {
             showAlert(
                 'Invitation Sent!',
-                `${fullName.trim()} has been invited to join Merakí as a beauty master.`,
+                `${fullName.trim()} has been invited to join Merakí — an email with the registration link was sent to ${email.trim().toLowerCase()}.`,
                 'success'
+            );
+            navigation.goBack();
+        } else {
+            showAlert(
+                'Invitation Recorded',
+                `${fullName.trim()} was invited, but the email could not be sent right now. Ask them to register manually, or contact support if this persists.`,
+                'warning'
             );
             navigation.goBack();
         }
