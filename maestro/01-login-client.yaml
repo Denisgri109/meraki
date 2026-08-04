@@ -1,0 +1,16 @@
+appId: ${APP_ID}
+---
+# Tier 3 — Flow 1: Auth -> role-based shell landing.
+# Requires: TEST_EMAIL / TEST_PASSWORD env pointing at a seeded CLIENT account.
+- launchApp
+- assertVisible: "name@example.com"
+- inputText:
+    text: "${TEST_EMAIL}"
+    id: "login-email" # TODO: add testID="login-email" on the email Input (LoginScreen.tsx:86)
+- inputText:
+    text: "${TEST_PASSWORD}"
+    id: "login-password" # TODO: add testID="login-password" (LoginScreen.tsx:100)
+- tapOn: "Login"
+- # Client shell lands on client Home tab — dashboard greeting must render
+- assertVisible:
+    id: "client-home-header" # TODO: instrument client HomeScreen header

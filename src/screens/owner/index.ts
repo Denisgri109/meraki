@@ -17,6 +17,10 @@ export { ClassPackagesScreen } from './ClassPackagesScreen';
 export { QrPaymentsScreen } from './QrPaymentsScreen';
 export { InstructorsScreen } from './InstructorsScreen';
 export { OwnerFinanceScreen } from './OwnerFinanceScreen';
+export { ClientDirectoryScreen } from './ClientDirectoryScreen';
+export { ClientDetailScreen } from './ClientDetailScreen';
+export { ClientInviteScreen } from './ClientInviteScreen';
+export { AddToBookingScreen } from './AddToBookingScreen';
 export { SupportSettingsScreen } from './SupportSettingsScreen';
 export {
     MasterManagementScreen,

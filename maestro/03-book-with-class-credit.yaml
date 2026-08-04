@@ -1,0 +1,21 @@
+appId: ${APP_ID}
+---
+# Tier 3 — Flow 3: Book with 1 class credit (loyalty bypass of Stripe).
+# Requires: seeded client with an ACTIVE user_pass (credits_remaining >= 1).
+- runFlow: 01-login-client.yaml
+- tapOn: "Book"
+- tapOn:
+    id: "service-pilates-reformer"
+- tapOn:
+    id: "timeslot-first-available"
+- # Waiver already signed in seeded account
+- tapOn: "Continue"
+- assertVisible:
+    id: "booking-confirm-screen"
+- # Toggle is auto-on when passes exist; assert the zero-price CTA copy
+- assertVisible: "Book with 1 Class Credit"
+- tapOn: "Book with 1 Class Credit"
+- # No card sheet must appear — the redeem_class_credit RPC books directly
+- assertNotVisible:
+    id: "card-field" # TODO: instrument Stripe CardField
+- assertVisible: "Booking Confirmed" # final success copy on confirm/success screen

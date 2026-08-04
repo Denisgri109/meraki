@@ -29,6 +29,10 @@ import {
     MasterInviteScreen,
     MasterDetailScreen,
     OwnerFinanceScreen,
+    ClientDirectoryScreen,
+    ClientDetailScreen,
+    ClientInviteScreen,
+    AddToBookingScreen,
     SupportSettingsScreen,
 } from '../screens/owner';
 import {
@@ -110,6 +114,10 @@ export type OwnerDashboardStackParamList = {
     MasterInvite: undefined;
     MasterDetail: { master: any };
     SupportSettings: undefined;
+    ClientDirectory: undefined;
+    ClientDetail: { clientId: string };
+    ClientInvite: undefined;
+    AddToBooking: { clientId: string };
 };
 
 const DashboardStack = createNativeStackNavigator<OwnerDashboardStackParamList>();
@@ -154,6 +162,10 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="MasterInvite" component={MasterInviteScreen} />
             <DashboardStack.Screen name="MasterDetail" component={MasterDetailScreen} />
             <DashboardStack.Screen name="SupportSettings" component={SupportSettingsScreen} />
+            <DashboardStack.Screen name="ClientDirectory" component={ClientDirectoryScreen} />
+            <DashboardStack.Screen name="ClientDetail" component={ClientDetailScreen} />
+            <DashboardStack.Screen name="ClientInvite" component={ClientInviteScreen} />
+            <DashboardStack.Screen name="AddToBooking" component={AddToBookingScreen} />
         </DashboardStack.Navigator>
     );
 }
@@ -223,6 +235,10 @@ export type MenuStackParamList = {
     MasterInvite: undefined;
     MasterDetail: { master: any };
     SupportSettings: undefined;
+    ClientDirectory: undefined;
+    ClientDetail: { clientId: string };
+    ClientInvite: undefined;
+    AddToBooking: { clientId: string };
     ProductDetail: { productId: string; product: any };
 };
 
@@ -278,6 +294,10 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="MasterInvite" component={MasterInviteScreen} />
             <MenuStack.Screen name="MasterDetail" component={MasterDetailScreen} />
             <MenuStack.Screen name="SupportSettings" component={SupportSettingsScreen} />
+            <MenuStack.Screen name="ClientDirectory" component={ClientDirectoryScreen} />
+            <MenuStack.Screen name="ClientDetail" component={ClientDetailScreen} />
+            <MenuStack.Screen name="ClientInvite" component={ClientInviteScreen} />
+            <MenuStack.Screen name="AddToBooking" component={AddToBookingScreen} />
             <MenuStack.Screen name="ProductDetail" component={ProductDetailScreen} />
         </MenuStack.Navigator>
     );

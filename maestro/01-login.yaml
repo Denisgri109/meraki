@@ -1,0 +1,7 @@
+appId: com.meraki.app
+---
+- launchApp
+- assertVisible: "Sign in"
+- inputText:
+    id: "email-input"
+    text: "${TEST_EMAIL}"

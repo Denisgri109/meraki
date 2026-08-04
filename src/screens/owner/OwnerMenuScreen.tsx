@@ -123,10 +123,11 @@ export function OwnerMenuScreen() {
                             { icon: 'loyalty', label: 'Class Packages', route: 'ClassPackages' },
                             { icon: 'qr-code', label: 'QR Payments', route: 'QrPayments' },
                             { icon: 'verified-user', label: 'Instructors', route: 'Instructors' },
+                            { icon: 'groups', label: 'Clients', route: 'ClientDirectory' },
                         ].map((item, index) => (
                             <TouchableOpacity
                                 key={item.label}
-                                style={[styles.listItem, index === 15 && { borderBottomWidth: 0 }]}
+                                style={[styles.listItem, index === 16 && { borderBottomWidth: 0 }]}
                                 onPress={() => handleNavigate(item.route)}
                             >
                                 <View style={styles.listIconWrap}>

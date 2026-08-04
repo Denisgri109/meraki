@@ -1,0 +1,30 @@
+appId: ${APP_ID}
+---
+# Tier 3 — Flow 2: Pilates waiver gate.
+# A pilates booking by a user with NO signed waiver must be intercepted.
+- runFlow: 01-login-client.yaml
+- tapOn: "Book"
+- tapOn:
+    id: "service-pilates-reformer" # TODO: instrument service list rows
+- tapOn:
+    id: "timeslot-first-available"
+- tapOn: "Continue"
+# Waiver sheet must open BEFORE the confirm step
+- assertVisible: "Pilates Waiver" # PilatesWaiverSheet title copy
+- assertVisible: "Emergency Contact"
+- # Sign + submit
+- inputText:
+    id: "waiver-emergency-name" # TODO
+    text: "Jane Doe"
+- inputText:
+    id: "waiver-emergency-phone" # TODO
+    text: "+353871234567"
+- tapOn:
+    id: "waiver-agree-terms" # TODO
+- tapOn:
+    id: "waiver-agree-liability" # TODO
+- tapOn:
+    id: "waiver-submit" # TODO
+- # Gate passed — booking confirm screen now reachable
+- assertVisible:
+    id: "booking-confirm-screen" # TODO

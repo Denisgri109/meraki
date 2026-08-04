@@ -1,0 +1,34 @@
+PASS src/contexts/__tests__/TabBarContext.test.tsx
+PASS src/services/__tests__/bookingService.test.ts
+PASS src/contexts/__tests__/EditContext.test.tsx
+PASS src/components/ui/__tests__/MerakiText.test.tsx
+PASS src/components/ui/__tests__/Card.test.tsx
+PASS src/components/ui/__tests__/Button.test.tsx
+PASS src/components/ui/__tests__/Input.test.tsx
+PASS src/navigation/__tests__/navigationUtils.test.ts
+PASS src/lib/__tests__/notifications.test.ts
+PASS src/components/__tests__/CitySelectionModal.test.tsx
+PASS src/contexts/__tests__/CartContext.chaos.test.tsx
+PASS src/components/__tests__/NotificationPermissionPrompt.test.tsx
+PASS src/contexts/__tests__/NotificationContext.test.tsx
+PASS src/screens/owner/__tests__/QrPaymentsScreen.test.tsx (5.346 s)
+PASS src/contexts/__tests__/CartContext.test.tsx
+PASS src/__tests__/security-a11y.audit.test.ts
+PASS src/contexts/__tests__/AuthContext.test.tsx
+PASS src/components/__tests__/DeepLinkHandler.test.tsx
+PASS src/components/__tests__/DrawerMenu.test.tsx (5.43 s)
+PASS src/services/__tests__/qrPayService.test.ts
+PASS src/contexts/__tests__/ModalContext.test.tsx
+PASS src/services/__tests__/voucherService.test.ts
+PASS src/services/__tests__/masterManagementService.test.ts
+PASS src/services/__tests__/classPassService.test.ts
+PASS src/lib/__tests__/supabaseApi.test.ts
+PASS src/services/__tests__/notificationService.test.ts
+PASS src/services/__tests__/aftercareService.test.ts
+PASS src/components/__tests__/PilatesWaiverSheet.test.tsx (5.86 s)
+PASS src/services/__tests__/stripeService.test.ts (6.187 s)
+
+Test Suites: 29 passed, 29 total
+Tests:       335 passed, 335 total
+Snapshots:   0 total
+Time:        7.466 s

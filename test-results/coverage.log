@@ -1,0 +1,98 @@
+PASS src/utils/__tests__/timezone.test.ts (6.57 s)
+PASS src/hooks/__tests__/usePilatesWaiver.test.ts (6.719 s)
+PASS src/hooks/__tests__/useStripeConnectGate.test.ts (6.754 s)
+PASS src/hooks/__tests__/useCitySelection.test.ts (7.003 s)
+PASS src/components/ui/__tests__/Button.test.tsx (7.156 s)
+PASS src/services/__tests__/bookingService.test.ts (7.133 s)
+PASS src/components/ui/__tests__/Input.test.tsx (7.288 s)
+PASS src/hooks/__tests__/useHideTabBar.test.ts
+PASS src/components/__tests__/CitySelectionModal.test.tsx (7.662 s)
+PASS src/utils/__tests__/shippingUtils.test.ts
+PASS src/hooks/__tests__/useResponsive.test.ts
+PASS src/contexts/__tests__/CartContext.test.tsx
+PASS src/utils/__tests__/locationApi.test.ts
+PASS src/components/__tests__/DrawerMenu.test.tsx (8.574 s)
+PASS src/contexts/__tests__/NotificationContext.test.tsx
+PASS src/services/__tests__/notificationService.test.ts
+PASS src/services/__tests__/masterManagementService.test.ts
+PASS src/hooks/__tests__/useAutoLocation.test.ts (8.449 s)
+PASS src/utils/__tests__/validation.test.ts
+PASS src/navigation/__tests__/navigationUtils.test.ts
+PASS src/hooks/__tests__/useSafeBack.test.ts
+PASS src/services/__tests__/stripeService.test.ts (8.917 s)
+PASS src/hooks/__tests__/useMenuBackHandler.test.ts
+PASS src/hooks/__tests__/useTransactionListener.test.ts
+PASS src/contexts/__tests__/ModalContext.test.tsx
+PASS src/components/ui/__tests__/Card.test.tsx
+PASS src/components/ui/__tests__/MerakiText.test.tsx
+PASS src/contexts/__tests__/AuthContext.test.tsx
+PASS src/contexts/__tests__/CartContext.chaos.test.tsx
+PASS src/components/__tests__/NotificationPermissionPrompt.test.tsx
+PASS src/contexts/__tests__/EditContext.test.tsx
+PASS src/lib/__tests__/notifications.test.ts
+PASS src/lib/__tests__/supabaseApi.test.ts
+PASS src/__tests__/security-a11y.audit.test.ts
+PASS src/services/__tests__/voucherService.test.ts
+PASS src/components/__tests__/DeepLinkHandler.test.tsx
+PASS src/contexts/__tests__/TabBarContext.test.tsx
+PASS src/services/__tests__/qrPayService.test.ts
+PASS src/utils/__tests__/loyalty.test.ts
+PASS src/services/__tests__/classPassService.test.ts
+PASS src/services/__tests__/aftercareService.test.ts
+PASS src/utils/__tests__/distance.test.ts
+-----------------------------|---------|----------|---------|---------|----------------------------------------------------------------------------------------
+File                         | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                                      
+-----------------------------|---------|----------|---------|---------|----------------------------------------------------------------------------------------
+All files                    |   78.16 |    68.59 |   80.38 |    81.4 |                                                                                        
+ components/ui               |   36.27 |    47.36 |    25.8 |   37.37 |                                                                                        
+  Button.tsx                 |   91.66 |    81.63 |     100 |   91.66 | 165-171                                                                                
+  Card.tsx                   |     100 |      100 |     100 |     100 |                                                                                        
+  Input.tsx                  |   42.85 |    94.73 |   33.33 |   42.85 | 57-62                                                                                  
+  MerakiModal.tsx            |       0 |        0 |       0 |       0 | 18-265                                                                                 
+  MerakiText.tsx             |     100 |      100 |     100 |     100 |                                                                                        
+  SafeBackButton.tsx         |       0 |        0 |       0 |       0 | 22-46                                                                                  
+  ScreenBackground.tsx       |       0 |      100 |       0 |       0 | 8-19                                                                                   
+  SearchablePicker.tsx       |       0 |        0 |       0 |       0 | 43-162                                                                                 
+ contexts                    |   72.36 |    57.69 |   86.41 |   73.18 |                                                                                        
+  AuthContext.tsx            |   26.51 |    12.28 |      40 |   27.34 | 43-66,76-77,84-85,92,97-98,104-146,158-176,181-182,187-194,206-241,246-266,270-284,309 
+  CartContext.tsx            |     100 |    92.85 |     100 |     100 | 70                                                                                     
+  EditContext.tsx            |   92.18 |    79.31 |   92.85 |   96.42 | 47,87                                                                                  
+  ModalContext.tsx           |   92.85 |    77.77 |     100 |     100 | 44,65                                                                                  
+  NotificationContext.tsx    |   98.87 |    84.44 |     100 |   98.86 | 202                                                                                    
+  TabBarContext.tsx          |     100 |      100 |      90 |     100 |                                                                                        
+ hooks                       |   96.59 |    74.22 |      98 |    97.8 |                                                                                        
+  index.ts                   |       0 |        0 |       0 |       0 |                                                                                        
+  useAutoLocation.ts         |   95.58 |    81.57 |     100 |   95.52 | 36,125-127                                                                             
+  useCitySelection.ts        |    92.7 |    63.41 |   93.33 |   95.18 | 62-63,71,84                                                                            
+  useHideTabBar.ts           |     100 |      100 |     100 |     100 |                                                                                        
+  useMenuBackHandler.ts      |     100 |      100 |     100 |     100 |                                                                                        
+  usePilatesWaiver.ts        |     100 |    65.78 |     100 |     100 | 73-83,103-105,110-117,131                                                              
+  useResponsive.ts           |     100 |    94.11 |     100 |     100 | 52                                                                                     
+  useSafeBack.ts             |     100 |      100 |     100 |     100 |                                                                                        
+  useStripeConnectGate.ts    |   96.87 |     73.8 |     100 |     100 | 25,55-63,70-89,99-105                                                                  
+  useTransactionListener.ts  |     100 |    78.57 |     100 |     100 | 45-47,99                                                                               
+ lib                         |   52.33 |    44.18 |   41.17 |   53.46 |                                                                                        
+  notifications.ts           |    37.8 |    29.41 |   23.07 |   39.74 | 8,20-29,50,56-59,68-76,80-83,91-94,114-129,145-248,258,270                             
+  supabaseApi.ts             |     100 |      100 |     100 |     100 |                                                                                        
+ services                    |   80.63 |    75.86 |   86.88 |   89.15 |                                                                                        
+  aftercareService.ts        |      74 |    69.49 |     100 |     100 | 36-51,59-73,84-90                                                                      
+  bookingService.ts          |   97.56 |    88.57 |     100 |   97.43 | 176                                                                                    
+  classPassService.ts        |   68.83 |       60 |      70 |   83.05 | 49-55,97,115-121,125-132                                                               
+  masterManagementService.ts |    62.5 |    57.69 |   77.77 |   67.56 | 132-191                                                                                
+  notificationService.ts     |   85.96 |    81.39 |   66.66 |   85.71 | 13,20-29,54,80,89-90,168                                                               
+  qrPayService.ts            |   84.31 |    77.08 |     100 |     100 | 35-36,47,51-65,74,77,86-100                                                            
+  stripeService.ts           |    88.5 |    86.81 |     100 |   90.41 | 110-111,391-398                                                                        
+  voucherService.ts          |   82.92 |    76.31 |     100 |   94.11 | 47,78                                                                                  
+ utils                       |   82.77 |    78.27 |   88.73 |   88.11 |                                                                                        
+  distance.ts                |     100 |    97.14 |     100 |     100 | 65                                                                                     
+  locationApi.ts             |     100 |    95.83 |     100 |     100 | 8                                                                                      
+  loyalty.ts                 |     100 |      100 |     100 |     100 |                                                                                        
+  shippingUtils.ts           |     100 |      100 |     100 |     100 |                                                                                        
+  timezone.ts                |   95.34 |       92 |     100 |   95.34 | 149,175                                                                                
+  validation.ts              |   71.29 |     68.6 |   78.37 |   79.64 | 59,81-152,217,264                                                                      
+-----------------------------|---------|----------|---------|---------|----------------------------------------------------------------------------------------
+
+Test Suites: 42 passed, 42 total
+Tests:       608 passed, 608 total
+Snapshots:   0 total
+Time:        14.814 s

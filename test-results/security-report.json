@@ -1,0 +1,29 @@
+{
+  "generatedAt": "2026-08-03T22:08:48.803Z",
+  "totals": {
+    "sourceFilesScanned": 193,
+    "filesWithAccessibilityProps": 6,
+    "accessibilityCoveragePct": 3.1
+  },
+  "findings": [
+    {
+      "id": "SEC-AUTH-STORAGE",
+      "severity": "HIGH",
+      "title": "Supabase session persisted in AsyncStorage instead of SecureStore/Keychain",
+      "location": "src/lib/supabase.ts:11",
+      "recommendation": "Swap the auth.storage adapter to an ExpoSecureStore-backed shim (SecureStore has a 2KB value limit — chunk the JWT) so refresh tokens live in Keychain/Keystore."
+    },
+    {
+      "id": "SEC-BIOMETRIC",
+      "severity": "MEDIUM",
+      "title": "No biometric app-unlock (expo-local-authentication absent from package.json)",
+      "recommendation": "Add optional FaceID/TouchID gate on app foreground when a session exists."
+    },
+    {
+      "id": "A11Y-COVERAGE",
+      "severity": "MEDIUM",
+      "title": "6/193 source files declare accessibility props",
+      "recommendation": "Every icon-only TouchableOpacity and primary CTA needs accessibilityLabel/accessibilityRole; minimum touch target 44x44."
+    }
+  ]
+}

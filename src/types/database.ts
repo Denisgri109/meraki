@@ -4031,6 +4031,17 @@ export type Database = {
         }
         Returns: string
       }
+      owner_book_for_client: {
+        Args: {
+          p_client_id: string
+          p_master_id?: string | null
+          p_notes?: string | null
+          p_service_id?: string | null
+          p_session_id?: string | null
+          p_start_time?: string | null
+        }
+        Returns: string
+      }
       calculate_confirmation_deadline: {
         Args: {
           p_appointment_time: string

@@ -1,0 +1,21 @@
+appId: ${APP_ID}
+---
+# Tier 3 — Flow 4: Voucher redemption in shop checkout.
+# Requires: seeded ACTIVE voucher code TEST_VOUCHER (e.g. SUMMER25, 25% off).
+- runFlow: 01-login-client.yaml
+- tapOn: "Shop"
+- tapOn:
+    id: "product-card-first" # TODO: instrument product card list
+- tapOn: "Add to Cart"
+- tapOn: "Checkout"
+- inputText:
+    id: "voucher-code-input" # TODO
+    text: "${TEST_VOUCHER}"
+- tapOn:
+    id: "voucher-apply" # TODO
+- # Discount line must materialise and total must drop
+- assertVisible:
+    id: "checkout-discount-line" # TODO
+- tapOn:
+    id: "checkout-pay" # TODO
+- assertVisible: "Order Confirmed" # order success copy

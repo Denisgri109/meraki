@@ -1,0 +1,137 @@
+[banner] Meraki Mobile Test Pipeline
+Run started 03/08/2026 20:26:12.56
+Args: --unit
+[stage 1] PRE-FLIGHT: toolchain 
+node 0-ok
+node_modules present - skipping install
+[stage 2] STATIC ANALYSIS: tsc --noEmit [03/08/2026 20:26:12.82]
+tsc errors: 67 (baseline 67)
+[stage 3] TIER 1: unit 
+[FAIL] Tier 1 unit tests failed. See test-results\tier1-unit.log [03/08/2026 20:26:25.05]
+Security/a11y audit findings: test-results\security-report.json
+[banner] ALL STAGES PASSED
+Run finished 03/08/2026 20:26:25.08
+[banner] Meraki Mobile Test Pipeline
+Run started 03/08/2026 20:26:29.80
+Args: --unit
+[stage 1] PRE-FLIGHT: toolchain 
+node 0-ok
+node_modules present - skipping install
+[stage 2] STATIC ANALYSIS: tsc --noEmit [03/08/2026 20:26:30.06]
+tsc errors: 67 (baseline 67)
+[stage 3] TIER 1: unit 
+[FAIL] Tier 1 unit tests failed. See test-results\tier1-unit.log [03/08/2026 20:26:42.57]
+Security/a11y audit findings: test-results\security-report.json
+[banner] ALL STAGES PASSED
+Run finished 03/08/2026 20:26:42.59
+[banner] Meraki Mobile Test Pipeline
+Run started 03/08/2026 20:27:25.62
+Args: --unit
+[stage 1] "PRE-FLIGHT: toolchain & dependencies" [03/08/2026 20:27:25.65]
+node 0-ok
+node_modules present - skipping install
+[stage 2] "STATIC ANALYSIS: tsc --noEmit" [03/08/2026 20:27:25.87]
+tsc errors: 67 (baseline 67)
+[stage 3] "TIER 1: unit & domain logic (utils + hooks)" [03/08/2026 20:27:40.73]
+Security/a11y audit findings: test-results\security-report.json
+[banner] ALL STAGES PASSED
+Run finished 03/08/2026 20:27:48.64
+[banner] Meraki Mobile Test Pipeline
+"Run started 03/08/2026 20:28:15.28"
+"Args: --unit"
+[stage 1] "PRE-FLIGHT: toolchain & dependencies" [03/08/2026 20:28:15.31]
+"node 0-ok"
+"node_modules present - skipping install"
+[stage 2] "STATIC ANALYSIS: tsc --noEmit" [03/08/2026 20:28:15.51]
+"tsc errors: 67 (baseline 67)"
+[stage 3] "TIER 1: unit & domain logic (utils + hooks)" [03/08/2026 20:28:25.29]
+"Security/a11y audit findings: test-results\security-report.json"
+[banner] ALL STAGES PASSED
+"Run finished 03/08/2026 20:28:32.39"
+[banner] Meraki Mobile Test Pipeline
+"Run started 03/08/2026 20:28:39.68"
+"Args: --integration"
+[stage 1] "PRE-FLIGHT: toolchain & dependencies" [03/08/2026 20:28:39.71]
+"node 0-ok"
+"node_modules present - skipping install"
+[stage 2] "STATIC ANALYSIS: tsc --noEmit" [03/08/2026 20:28:39.92]
+"tsc errors: 67 (baseline 67)"
+[stage 4] "TIER 2/4/5: integration + chaos + security/a11y audit" [03/08/2026 20:28:49.78]
+"Security/a11y audit findings: test-results\security-report.json"
+[banner] ALL STAGES PASSED
+"Run finished 03/08/2026 20:28:58.34"
+[banner] Meraki Mobile Test Pipeline
+"Run started 03/08/2026 20:29:04.35"
+"Args: --e2e"
+[stage 1] "PRE-FLIGHT: toolchain & dependencies" [03/08/2026 20:29:04.38]
+"node 0-ok"
+"node_modules present - skipping install"
+[stage 2] "STATIC ANALYSIS: tsc --noEmit" [03/08/2026 20:29:04.62]
+[banner] Meraki Mobile Test Pipeline
+"Run started 03/08/2026 20:29:04.67"
+"Args: --coverage"
+[stage 1] "PRE-FLIGHT: toolchain & dependencies" [03/08/2026 20:29:04.70]
+"node 0-ok"
+"node_modules present - skipping install"
+[stage 2] "STATIC ANALYSIS: tsc --noEmit" [03/08/2026 20:29:04.94]
+"tsc errors: 0 (baseline 67)"
+[stage 6] "COVERAGE: jest --coverage (HTML in coverage\lcov-report)" [03/08/2026 20:29:05.01]
+"HTML report: coverage\lcov-report\index.html"
+"Security/a11y audit findings: test-results\security-report.json"
+[banner] ALL STAGES PASSED
+"Run finished 03/08/2026 20:29:21.24"
+"tsc errors: 67 (baseline 67)"
+[stage 5] "TIER 3: E2E (Maestro)" [03/08/2026 20:29:24.09]
+"maestro CLI not installed - skipping E2E tier."
+"Install: npm i -D maestro  (see maestro\README.md)"
+"Security/a11y audit findings: test-results\security-report.json"
+[banner] ALL STAGES PASSED
+"Run finished 03/08/2026 20:29:24.20"
+[banner] Meraki Mobile Test Pipeline
+"Run started 03/08/2026 20:29:33.86"
+"Args: "
+[stage 1] "PRE-FLIGHT: toolchain & dependencies" [03/08/2026 20:29:33.90]
+"node 0-ok"
+"node_modules present - skipping install"
+[stage 2] "STATIC ANALYSIS: tsc --noEmit" [03/08/2026 20:29:34.12]
+"tsc errors: 67 (baseline 67)"
+[stage 3] "TIER 1: unit & domain logic (utils + hooks)" [03/08/2026 20:29:44.06]
+[stage 4] "TIER 2/4/5: integration + chaos + security/a11y audit" [03/08/2026 20:29:51.50]
+[stage 5] "TIER 3: E2E (Maestro)" [03/08/2026 20:30:00.15]
+"maestro CLI not installed - skipping E2E tier."
+"Install: npm i -D maestro  (see maestro\README.md)"
+"Security/a11y audit findings: test-results\security-report.json"
+[banner] ALL STAGES PASSED
+"Run finished 03/08/2026 20:30:00.28"
+[banner] Meraki Mobile Test Pipeline
+"Run started 03/08/2026 21:07:09.99"
+"Args: "
+[stage 1] "PRE-FLIGHT: toolchain & dependencies" [03/08/2026 21:07:10.02]
+"node 0-ok"
+"node_modules present - skipping install"
+[stage 2] "STATIC ANALYSIS: tsc --noEmit" [03/08/2026 21:07:10.22]
+"tsc errors: 67 (baseline 67)"
+[stage 3] "TIER 1: unit & domain logic (utils + hooks)" [03/08/2026 21:07:19.44]
+[stage 4] "TIER 2/4/5: integration + chaos + security/a11y audit" [03/08/2026 21:07:25.95]
+[stage 5] "TIER 3: E2E (Maestro)" [03/08/2026 21:07:34.33]
+"maestro CLI not installed - skipping E2E tier."
+"Install: npm i -D maestro  (see maestro\README.md)"
+"Security/a11y audit findings: test-results\security-report.json"
+[banner] ALL STAGES PASSED
+"Run finished 03/08/2026 21:07:34.45"
+[banner] Meraki Mobile Test Pipeline
+"Run started 03/08/2026 21:07:40.38"
+"Args: "
+[stage 1] "PRE-FLIGHT: toolchain & dependencies" [03/08/2026 21:07:40.41]
+"node 0-ok"
+"node_modules present - skipping install"
+[stage 2] "STATIC ANALYSIS: tsc --noEmit" [03/08/2026 21:07:40.60]
+"tsc errors: 67 (baseline 67)"
+[stage 3] "TIER 1: unit & domain logic (utils + hooks)" [03/08/2026 21:07:49.96]
+[stage 4] "TIER 2/4/5: integration + chaos + security/a11y audit" [03/08/2026 21:07:56.44]
+[stage 5] "TIER 3: E2E (Maestro)" [03/08/2026 21:08:04.96]
+"maestro CLI not installed - skipping E2E tier."
+"Install: npm i -D maestro  (see maestro\README.md)"
+"Security/a11y audit findings: test-results\security-report.json"
+[banner] ALL STAGES PASSED
+"Run finished 03/08/2026 21:08:05.08"
