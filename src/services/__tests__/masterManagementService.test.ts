@@ -44,6 +44,7 @@ jest.mock('../../lib/supabaseApi', () => ({
 import {
     fetchActiveMasters,
     fetchPendingMasters,
+    fetchMasterApplications,
     inviteMaster,
     updateMasterProfile,
     deactivateMaster,
@@ -257,17 +258,53 @@ describe('reactivateMaster', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 // fetchMasterCounts
 // ═══════════════════════════════════════════════════════════════════════════
+describe('fetchMasterApplications', () => {
+    it('queries master_applications filtered by status, newest first', async () => {
+        mockChain.order.mockResolvedValue({
+            data: [{ id: 'app-1', full_name: 'Ada', status: 'pending' }],
+            error: null,
+        });
+
+        const result = await fetchMasterApplications();
+
+        expect(mockFromFn).toHaveBeenCalledWith('master_applications');
+        expect(mockChain.eq).toHaveBeenCalledWith('status', 'pending');
+        expect(mockChain.order).toHaveBeenCalledWith('created_at', { ascending: false });
+        expect(result.data).toHaveLength(1);
+        expect(result.error).toBeNull();
+    });
+
+    it('supports reviewing other statuses', async () => {
+        mockChain.order.mockResolvedValue({ data: [], error: null });
+        await fetchMasterApplications('approved');
+        expect(mockChain.eq).toHaveBeenCalledWith('status', 'approved');
+    });
+
+    it('surfaces query errors', async () => {
+        mockChain.order.mockResolvedValue({ data: null, error: new Error('denied') });
+        const result = await fetchMasterApplications();
+        expect(result.data).toBeNull();
+        expect(result.error).toBeTruthy();
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// fetchMasterCounts
+// ═══════════════════════════════════════════════════════════════════════════
 describe('fetchMasterCounts', () => {
-    it('returns counts for active masters and pending invitations', async () => {
+    it('returns counts for active masters, applications and pending invitations', async () => {
         // mockFromFn will be called twice — one for profiles, one for pending_masters
         // We need to handle sequential calls
         let callCount = 0;
         const profileChain = createChainMock();
         const pendingChain = createChainMock();
 
+        const applicationChain = createChainMock();
+
         mockFromFn.mockImplementation((table: string) => {
             if (table === 'profiles') return profileChain;
             if (table === 'pending_masters') return pendingChain;
+            if (table === 'master_applications') return applicationChain;
             return createChainMock();
         });
 
@@ -281,9 +318,11 @@ describe('fetchMasterCounts', () => {
             return chain;
         });
         pendingChain.eq.mockResolvedValue({ count: 3, error: null });
+        applicationChain.eq.mockResolvedValue({ count: 2, error: null });
 
         const result = await fetchMasterCounts();
         expect(result.activeMasters).toBe(5);
         expect(result.pendingInvitations).toBe(3);
+        expect(result.pendingApplications).toBe(2);
     });
 });

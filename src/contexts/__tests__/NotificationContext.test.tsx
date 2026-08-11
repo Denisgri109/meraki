@@ -280,16 +280,16 @@ describe('NotificationContext', () => {
 
         it('navigates for appointment_reminder', () => {
             simulateNotificationResponse({ type: 'appointment_reminder', appointmentId: 'apt_1' });
-            expect(mockNavigate).toHaveBeenCalledWith('Book', {
-                screen: 'AppointmentDetails',
+            expect(mockNavigate).toHaveBeenCalledWith('Home', {
+                screen: 'AppointmentConfirmation',
                 params: { appointmentId: 'apt_1' },
             });
         });
 
         it('navigates for confirmation_request with snake_case id', () => {
             simulateNotificationResponse({ type: 'confirmation_request', appointment_id: 'apt_2' });
-            expect(mockNavigate).toHaveBeenCalledWith('Book', {
-                screen: 'AppointmentDetails',
+            expect(mockNavigate).toHaveBeenCalledWith('Home', {
+                screen: 'AppointmentConfirmation',
                 params: { appointmentId: 'apt_2' },
             });
         });

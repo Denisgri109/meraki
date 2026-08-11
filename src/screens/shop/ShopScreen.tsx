@@ -21,6 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { useModal } from '../../contexts/ModalContext';
 import { Card, Button, ScreenBackground, MerakiText } from '../../components/ui';
+import { EditableText } from '../../components/editable/EditableText';
 import { colors, spacing, layout, gradients } from '../../theme';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 
@@ -210,7 +211,11 @@ export function ShopScreen() {
                     <View style={styles.headerContainer}>
                         <View style={styles.headerRow}>
                             <View style={styles.headerLeft}>
-                                <MerakiText style={styles.headerLabel}>THE COLLECTION</MerakiText>
+                                <EditableText
+                                    contentKey="mobile.shop.header_label"
+                                    label="Shop Eyebrow"
+                                    style={styles.headerLabel}
+                                />
                                 <MerakiText variant="h1" style={styles.headerTitle}>Shop</MerakiText>
                                 {(isMaster || isAdmin) && (
                                     <MerakiText variant="caption" style={styles.headerSubtitle}>Wholesale Prices</MerakiText>
@@ -350,7 +355,11 @@ export function ShopScreen() {
 
                                             {/* Product Info — Stitch Style */}
                                             <View style={styles.productInfo}>
-                                                <MerakiText style={styles.productBrandLabel}>MERAKÍ</MerakiText>
+                                                <EditableText
+                                                    contentKey="mobile.shop.brand_label"
+                                                    label="Product Brand Label"
+                                                    style={styles.productBrandLabel}
+                                                />
                                                 <MerakiText variant="bodyBold" style={styles.productName} numberOfLines={2}>
                                                     {product.name}
                                                 </MerakiText>

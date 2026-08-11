@@ -4,6 +4,7 @@ export { EditProfileScreen } from './EditProfileScreen';
 export { ServiceDetailScreen } from './ServiceDetailScreen';
 export { SelectDateTimeScreen } from './SelectDateTimeScreen';
 export { BookingConfirmScreen } from './BookingConfirmScreen';
+export { AppointmentConfirmationScreen } from './AppointmentConfirmationScreen';
 export { OrdersScreen } from './OrdersScreen';
 export { MasterDetailScreen } from './MasterDetailScreen';
 export { HelpSupportScreen } from './HelpSupportScreen';

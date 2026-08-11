@@ -17,11 +17,20 @@ import { ScreenBackground } from '../../components/ui';
 import { colors, spacing } from '../../theme';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useEditMode } from '../../contexts/EditContext';
+import { EditableText } from '../../components/editable/EditableText';
+import {
+    FAQ_ITEMS_KEY,
+    SUPPORT_SETTINGS_KEY,
+    parseFaqItems,
+    parseSupportSettings,
+} from '../../lib/mobileContent';
 
 export function HelpSupportScreen() {
     const navigation = useNavigation<any>();
     const handleBack = useMenuBackHandler();
     const { user, profile } = useAuth();
+    const { content } = useEditMode();
 
     const [supportPhone, setSupportPhone] = useState<string>('');
     const [supportEmail, setSupportEmail] = useState<string>('');
@@ -125,58 +134,26 @@ export function HelpSupportScreen() {
         }
     };
 
-    const faqs = [
-        {
-            question: 'How do I book an appointment?',
-            answer: 'Navigate to the Book tab, select "Book New", choose your desired service, select a Master, pick your date and time, and confirm your booking.'
-        },
-        {
-            question: 'Can I cancel or reschedule my appointment?',
-            answer: 'Yes. Navigate to the Book tab, select the "Appointments" sub-tab, tap the appointment you wish to change, and select Cancel or Reschedule. Please note that cancellations or reschedules within 24 hours of your appointment may incur a 50% penalty fee.'
-        },
-        {
-            question: 'How do deposits work?',
-            answer: 'Some services require a deposit at the time of booking. The deposit is applied toward your total service cost. The remaining balance is due at the salon on the day of your appointment.'
-        },
-        {
-            question: 'What payment methods are accepted?',
-            answer: 'We accept all major credit and debit cards through our secure Stripe payment system. You can save and manage your cards under Menu > Payment.'
-        },
-        {
-            question: 'How do I earn loyalty points?',
-            answer: 'Earn points by scanning the Master\'s QR code at the salon using the in-app scanner after your service. You can view your stamp cards and track your rewards under Menu > Loyalty.'
-        },
-        {
-            question: 'How do I update my profile or security settings?',
-            answer: 'Go to Menu > Edit Profile to update your name, photo, and bio. Security settings (like password changes) can be managed under Settings.'
-        },
-        {
-            question: 'How do refunds work?',
-            answer: 'Refunds are processed by the salon owner. If eligible, refunds are returned to your original payment method and typically appear within 5-10 business days.'
-        },
-        {
-            question: 'How do I access courses in the Academy?',
-            answer: 'Navigate to the Academy tab. You can browse and purchase courses, watch video lessons, track your progress, and submit your homework assignments directly from the app.'
-        },
-        {
-            question: 'How does the Shop and shipping work?',
-            answer: 'Tap the Shop tab to browse products. Fill in your European shipping address and check out securely. You can view and track your purchases under Menu > Orders.'
-        },
-        {
-            question: 'What are photo consultations?',
-            answer: 'If a Master requires a pre-service assessment, you can submit a photo consultation request. Navigate to the Book tab, upload your photos, and once approved, you will be able to book.'
-        }
-    ];
+    // FAQ items and support contact details are owner-managed and shared with
+    // the website via `global_settings`; the bundled defaults apply until the
+    // owner saves their own.
+    const faqs = parseFaqItems(content[FAQ_ITEMS_KEY]);
+    const sharedSupport = parseSupportSettings(content[SUPPORT_SETTINGS_KEY]);
 
     const isOwner = profile?.role === 'owner';
 
+    // Prefer the shared owner-managed details, then this master's own
+    // settings, then a role-appropriate placeholder.
+    const resolvedPhone = sharedSupport.phone || supportPhone;
+    const resolvedEmail = sharedSupport.email || supportEmail;
+
     // Show real values, or "Not set up yet" after loading, or "Loading…" while still loading
-    const displayPhone = loadingSettings
+    const displayPhone = loadingSettings && !sharedSupport.phone
         ? 'Loading…'
-        : supportPhone || (isOwner ? 'Not configured — tap Support Settings' : 'Not available yet');
-    const displayEmail = loadingSettings
+        : resolvedPhone || (isOwner ? 'Not configured — tap Support Settings' : 'Not available yet');
+    const displayEmail = loadingSettings && !sharedSupport.email
         ? 'Loading…'
-        : supportEmail || (isOwner ? 'Not configured — tap Support Settings' : 'Not available yet');
+        : resolvedEmail || (isOwner ? 'Not configured — tap Support Settings' : 'Not available yet');
 
     const handleChatAction = () => {
         if (isOwner) {
@@ -204,7 +181,7 @@ export function HelpSupportScreen() {
             title: 'Call Us',
             subtitle: displayPhone,
             action: () => {
-                if (supportPhone) Linking.openURL(`tel:${supportPhone.replace(/\s/g, '')}`);
+                if (resolvedPhone) Linking.openURL(`tel:${resolvedPhone.replace(/\s/g, '')}`);
             },
             loading: false,
         },
@@ -213,7 +190,7 @@ export function HelpSupportScreen() {
             title: 'Email Support',
             subtitle: displayEmail,
             action: () => {
-                if (supportEmail) Linking.openURL(`mailto:${supportEmail}`);
+                if (resolvedEmail) Linking.openURL(`mailto:${resolvedEmail}`);
             },
             loading: false,
         },
@@ -226,7 +203,11 @@ export function HelpSupportScreen() {
                     <TouchableOpacity onPress={handleBack} style={styles.backButton}>
                         <Text style={styles.backButtonText}>←</Text>
                     </TouchableOpacity>
-                    <Text style={styles.title}>Help & Support</Text>
+                    <EditableText
+                        contentKey="support.header_title"
+                        label="Support Title"
+                        style={styles.title}
+                    />
                     <View style={{ width: 40 }} />
                 </View>
 
@@ -234,13 +215,20 @@ export function HelpSupportScreen() {
                     {/* Fallback Warning Banner */}
                     <View style={styles.fallbackContainer}>
                         <Text style={styles.fallbackIcon}>💡</Text>
-                        <Text style={styles.fallbackText}>
-                            If a feature is not working as expected, please try the website.
-                        </Text>
+                        <EditableText
+                            contentKey="support.banner_text"
+                            label="Support Banner"
+                            multiline
+                            style={styles.fallbackText}
+                        />
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Contact Us</Text>
+                        <EditableText
+                            contentKey="mobile.support.contact_title"
+                            label="Contact Section Title"
+                            style={styles.sectionTitle}
+                        />
                         {contactOptions.map((option, index) => (
                             <TouchableOpacity
                                 key={index}
@@ -266,9 +254,13 @@ export function HelpSupportScreen() {
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-                        {faqs.map((faq, index) => (
-                            <Card key={index} style={styles.faqCard} variant="elevated">
+                        <EditableText
+                            contentKey="mobile.support.faq_title"
+                            label="FAQ Section Title"
+                            style={styles.sectionTitle}
+                        />
+                        {faqs.map((faq) => (
+                            <Card key={faq.id} style={styles.faqCard} variant="elevated">
                                 <Text style={styles.faqQuestion}>{faq.question}</Text>
                                 <Text style={styles.faqAnswer}>{faq.answer}</Text>
                             </Card>

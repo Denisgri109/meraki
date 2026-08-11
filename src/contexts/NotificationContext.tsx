@@ -173,8 +173,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             case 'appointment_reminder':
             case 'confirmation_request':
                 if (appointmentId) {
-                    navigation.navigate('Book', {
-                        screen: 'AppointmentDetails',
+                    navigation.navigate('Home', {
+                        screen: 'AppointmentConfirmation',
                         params: { appointmentId },
                     });
                 }

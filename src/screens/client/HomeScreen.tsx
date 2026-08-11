@@ -24,6 +24,7 @@ import { useModal } from '../../contexts/ModalContext';
 import { supabase } from '../../lib/supabase';
 import { ScreenBackground, MerakiText } from '../../components/ui';
 import { EditableImage } from '../../components/editable/EditableImage';
+import { EditableText } from '../../components/editable/EditableText';
 import { colors, spacing, gradients } from '../../theme';
 import { safeSupabaseFetch } from '../../lib/supabaseApi';
 import { Service } from '../../types/database';
@@ -811,14 +812,24 @@ export function ClientHomeScreen() {
                                         style={StyleSheet.absoluteFillObject}
                                     />
                                     <View style={styles.heroContent}>
-                                        <MerakiText style={[styles.heroTagline, { color: '#FFFFFF' }]}>
-                                            WE'RE OBSESSED{'\n'}WITH YOU
-                                        </MerakiText>
-                                        <MerakiText style={[styles.heroSubtext, { color: 'rgba(255,255,255,0.8)' }]}>
-                                            Discover the skincare, lash, and{'\n'}beauty products curated for you
-                                        </MerakiText>
+                                        <EditableText
+                                            contentKey="mobile.home.hero_tagline"
+                                            label="Hero Headline"
+                                            multiline
+                                            style={[styles.heroTagline, { color: '#FFFFFF' }]}
+                                        />
+                                        <EditableText
+                                            contentKey="mobile.home.hero_subtext"
+                                            label="Hero Subtext"
+                                            multiline
+                                            style={[styles.heroSubtext, { color: 'rgba(255,255,255,0.8)' }]}
+                                        />
                                         <View style={[styles.heroButton, { backgroundColor: '#FFFFFF' }]}>
-                                            <MerakiText style={[styles.heroButtonText, { color: '#1A1A1A' }]}>Shop Now</MerakiText>
+                                            <EditableText
+                                                contentKey="mobile.home.hero_button"
+                                                label="Hero Button Label"
+                                                style={[styles.heroButtonText, { color: '#1A1A1A' }]}
+                                            />
                                         </View>
                                     </View>
                                 </View>
@@ -844,9 +855,21 @@ export function ClientHomeScreen() {
                                             colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0.05)']}
                                             style={StyleSheet.absoluteFillObject}
                                         />
-                                        <MerakiText style={styles.editorialLabel}>NEW ARRIVALS</MerakiText>
-                                        <MerakiText style={styles.editorialTitle}>Fresh Drops</MerakiText>
-                                        <MerakiText style={styles.editorialCta}>SHOP NOW →</MerakiText>
+                                        <EditableText
+                                            contentKey="mobile.home.editorial_shop_label"
+                                            label="Shop Card — Eyebrow"
+                                            style={styles.editorialLabel}
+                                        />
+                                        <EditableText
+                                            contentKey="mobile.home.editorial_shop_title"
+                                            label="Shop Card — Title"
+                                            style={styles.editorialTitle}
+                                        />
+                                        <EditableText
+                                            contentKey="mobile.home.editorial_shop_cta"
+                                            label="Shop Card — Link"
+                                            style={styles.editorialCta}
+                                        />
                                     </View>
                                 </TouchableOpacity>
                                 <TouchableOpacity
@@ -867,9 +890,21 @@ export function ClientHomeScreen() {
                                             colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0.05)']}
                                             style={StyleSheet.absoluteFillObject}
                                         />
-                                        <MerakiText style={styles.editorialLabel}>ACADEMY</MerakiText>
-                                        <MerakiText style={styles.editorialTitle}>Learn & Grow</MerakiText>
-                                        <MerakiText style={styles.editorialCta}>EXPLORE →</MerakiText>
+                                        <EditableText
+                                            contentKey="mobile.home.editorial_academy_label"
+                                            label="Academy Card — Eyebrow"
+                                            style={styles.editorialLabel}
+                                        />
+                                        <EditableText
+                                            contentKey="mobile.home.editorial_academy_title"
+                                            label="Academy Card — Title"
+                                            style={styles.editorialTitle}
+                                        />
+                                        <EditableText
+                                            contentKey="mobile.home.editorial_academy_cta"
+                                            label="Academy Card — Link"
+                                            style={styles.editorialCta}
+                                        />
                                     </View>
                                 </TouchableOpacity>
                             </View>

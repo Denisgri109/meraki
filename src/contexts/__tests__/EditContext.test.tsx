@@ -9,10 +9,15 @@ import { render, act, waitFor } from '@testing-library/react-native';
 import { EditProvider, useEditMode } from '../EditContext';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../AuthContext';
-import { makeBuilder, mockUser, mockProfile } from '../../__mocks__/merakiData';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { makeBuilder, makeMockChannel, mockUser, mockProfile } from '../../__mocks__/merakiData';
 
 jest.mock('../../lib/supabase', () => ({
-    supabase: { from: jest.fn() },
+    supabase: {
+        from: jest.fn(),
+        channel: jest.fn(),
+        removeChannel: jest.fn(),
+    },
 }));
 
 jest.mock('../AuthContext', () => ({
@@ -49,8 +54,16 @@ const asClient = () => {
     });
 };
 
-beforeEach(() => {
+beforeEach(async () => {
     jest.resetAllMocks();
+    // resetAllMocks() wipes the shared AsyncStorage mock's implementations too,
+    // so restore them and start each test from an empty content cache.
+    const store: Record<string, string> = {};
+    (AsyncStorage.getItem as jest.Mock).mockImplementation(async (k: string) => store[k] ?? null);
+    (AsyncStorage.setItem as jest.Mock).mockImplementation(async (k: string, v: string) => {
+        store[k] = v;
+    });
+    (supabase.channel as jest.Mock).mockReturnValue(makeMockChannel());
 });
 
 describe('EditContext — content loading', () => {
@@ -166,7 +179,23 @@ describe('EditContext — updateContent', () => {
         );
     });
 
-    it('surfaces upsert errors and keeps the optimistic value', async () => {
+    it('surfaces upsert errors and rolls the optimistic value back', async () => {
+        asOwner();
+        fromMock
+            .mockReturnValueOnce(makeBuilder({ data: [{ key: 'mobile.x', value: 'before' }], error: null }))
+            .mockReturnValue(makeBuilder({ data: null, error: { message: 'RLS violated' } }));
+        renderProvider();
+        await waitFor(() => expect(snapshot.getContent('mobile.x', '')).toBe('before'));
+
+        let result: any;
+        await act(async () => {
+            result = await snapshot.updateContent('mobile.x', 'v');
+        });
+        expect(result.error).toBe('RLS violated');
+        expect(snapshot.getContent('mobile.x', '')).toBe('before');
+    });
+
+    it('drops a never-persisted key entirely when the upsert fails', async () => {
         asOwner();
         fromMock
             .mockReturnValueOnce(makeBuilder({ data: [], error: null }))
@@ -174,11 +203,83 @@ describe('EditContext — updateContent', () => {
         renderProvider();
         await waitFor(() => expect(fromMock).toHaveBeenCalled());
 
-        let result: any;
         await act(async () => {
-            result = await snapshot.updateContent('mobile.x', 'v');
+            await snapshot.updateContent('mobile.new', 'v');
         });
-        expect(result.error).toBe('RLS violated');
+        expect(snapshot.content['mobile.new']).toBeUndefined();
+    });
+});
+
+describe('EditContext — clientView', () => {
+    it('owners keep edit rights while browsing the client tabs', async () => {
+        asOwner();
+        fromMock.mockReturnValue(makeBuilder({ data: [], error: null }));
+        renderProvider();
+
+        await act(async () => snapshot.toggleEditMode());
+        expect(snapshot.isEditMode).toBe(true);
+
+        await act(async () => snapshot.setClientView(true));
+        expect(snapshot.isClientView).toBe(true);
+        // Client View is a navigator swap, not a permission change — the owner
+        // must still be able to edit the client-facing copy they are looking at.
+        expect(snapshot.canEdit).toBe(true);
+        expect(snapshot.isEditMode).toBe(true);
+
+        await act(async () => snapshot.setClientView(false));
+        expect(snapshot.isClientView).toBe(false);
+    });
+
+    it('non-owners cannot enter client view', async () => {
+        asClient();
+        fromMock.mockReturnValue(makeBuilder({ data: [], error: null }));
+        renderProvider();
+
+        await act(async () => snapshot.setClientView(true));
+        expect(snapshot.isClientView).toBe(false);
+    });
+});
+
+describe('EditContext — clearContent', () => {
+    it('deletes a single override so the fallback applies again', async () => {
+        asOwner();
+        fromMock
+            .mockReturnValueOnce(makeBuilder({ data: [{ key: 'mobile.a', value: 'custom' }], error: null }))
+            .mockReturnValue(makeBuilder({ data: null, error: null }));
+        renderProvider();
+        await waitFor(() => expect(snapshot.getContent('mobile.a', 'FB')).toBe('custom'));
+
+        let result: any;
+        await act(async () => { result = await snapshot.clearContent('mobile.a'); });
+
+        expect(result.error).toBeNull();
+        expect(snapshot.getContent('mobile.a', 'FB')).toBe('FB');
+    });
+
+    it('restores the override when the delete fails', async () => {
+        asOwner();
+        fromMock
+            .mockReturnValueOnce(makeBuilder({ data: [{ key: 'mobile.a', value: 'custom' }], error: null }))
+            .mockReturnValue(makeBuilder({ data: null, error: { message: 'blocked' } }));
+        renderProvider();
+        await waitFor(() => expect(snapshot.getContent('mobile.a', 'FB')).toBe('custom'));
+
+        let result: any;
+        await act(async () => { result = await snapshot.clearContent('mobile.a'); });
+
+        expect(result.error).toBe('blocked');
+        expect(snapshot.getContent('mobile.a', 'FB')).toBe('custom');
+    });
+
+    it('refuses non-owners without writing', async () => {
+        asClient();
+        fromMock.mockReturnValue(makeBuilder({ data: [], error: null }));
+        renderProvider();
+
+        let result: any;
+        await act(async () => { result = await snapshot.clearContent('mobile.a'); });
+        expect(result.error).toMatch(/owners/);
+        expect(fromMock).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -210,7 +311,7 @@ describe('EditContext — resetContent', () => {
         expect(snapshot.content['web.keep']).toBe('3');
     });
 
-    it('rolls back local deletions by refetching when delete fails', async () => {
+    it('rolls back local deletions when delete fails', async () => {
         asOwner();
         const rows = [{ key: 'mobile.a', value: 'original' }];
         fromMock

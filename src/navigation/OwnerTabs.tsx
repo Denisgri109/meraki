@@ -28,6 +28,7 @@ import {
     MasterManagementScreen,
     MasterInviteScreen,
     MasterDetailScreen,
+    MasterApplicationReviewScreen,
     OwnerFinanceScreen,
     ClientDirectoryScreen,
     ClientDetailScreen,
@@ -113,6 +114,7 @@ export type OwnerDashboardStackParamList = {
     MasterManagement: undefined;
     MasterInvite: undefined;
     MasterDetail: { master: any };
+    MasterApplicationReview: { application: any };
     SupportSettings: undefined;
     ClientDirectory: undefined;
     ClientDetail: { clientId: string };
@@ -161,6 +163,7 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="MasterManagement" component={MasterManagementScreen} />
             <DashboardStack.Screen name="MasterInvite" component={MasterInviteScreen} />
             <DashboardStack.Screen name="MasterDetail" component={MasterDetailScreen} />
+            <DashboardStack.Screen name="MasterApplicationReview" component={MasterApplicationReviewScreen} />
             <DashboardStack.Screen name="SupportSettings" component={SupportSettingsScreen} />
             <DashboardStack.Screen name="ClientDirectory" component={ClientDirectoryScreen} />
             <DashboardStack.Screen name="ClientDetail" component={ClientDetailScreen} />
@@ -234,6 +237,7 @@ export type MenuStackParamList = {
     MasterManagement: undefined;
     MasterInvite: undefined;
     MasterDetail: { master: any };
+    MasterApplicationReview: { application: any };
     SupportSettings: undefined;
     ClientDirectory: undefined;
     ClientDetail: { clientId: string };
@@ -293,6 +297,7 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="MasterManagement" component={MasterManagementScreen} />
             <MenuStack.Screen name="MasterInvite" component={MasterInviteScreen} />
             <MenuStack.Screen name="MasterDetail" component={MasterDetailScreen} />
+            <MenuStack.Screen name="MasterApplicationReview" component={MasterApplicationReviewScreen} />
             <MenuStack.Screen name="SupportSettings" component={SupportSettingsScreen} />
             <MenuStack.Screen name="ClientDirectory" component={ClientDirectoryScreen} />
             <MenuStack.Screen name="ClientDetail" component={ClientDetailScreen} />

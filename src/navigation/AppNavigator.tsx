@@ -3,9 +3,11 @@ import { View, ActivityIndicator, StyleSheet, Linking } from 'react-native';
 import { NavigationContainer, LinkingOptions, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
+import { useEditMode } from '../contexts/EditContext';
 import { NotificationProvider, useNotifications } from '../contexts/NotificationContext';
 import { DeepLinkHandler } from '../components/DeepLinkHandler';
 import { NotificationPermissionPrompt } from '../components/NotificationPermissionPrompt';
+import { EditToolbar } from '../components/editable/EditToolbar';
 import { AuthStack } from './AuthStack';
 import { ClientTabs } from './ClientTabs';
 import { MasterTabs } from './MasterTabs';
@@ -80,6 +82,10 @@ function NotificationPromptBridge() {
 
 export function AppNavigator() {
     const { session, profile, loading } = useAuth();
+    // Client View lets an owner walk the client tab set to edit client-facing
+    // copy and imagery in place — those screens are otherwise unreachable to
+    // owners, so their editable regions could never be opened.
+    const { isClientView } = useEditMode();
     const {
         isCityMissing,
         detectedCountry,
@@ -97,8 +103,12 @@ export function AppNavigator() {
         );
     }
 
+    const isOwner = profile?.role === 'owner';
+    const ownerInClientView = isOwner && isClientView;
+
     const getInitialRoute = (): keyof RootStackParamList => {
         if (!session) return 'Auth';
+        if (ownerInClientView) return 'ClientApp';
         if (profile?.role === 'owner') return 'OwnerApp';
         if (profile?.role === 'master') {
             // Show onboarding if not completed (handles null, undefined, and false)
@@ -111,8 +121,12 @@ export function AppNavigator() {
     };
 
     const renderAppScreens = () => {
-        if (profile?.role === 'owner') {
-            return <Stack.Screen name="OwnerApp" component={OwnerTabs} />;
+        if (isOwner) {
+            return ownerInClientView ? (
+                <Stack.Screen name="ClientApp" component={ClientTabs} />
+            ) : (
+                <Stack.Screen name="OwnerApp" component={OwnerTabs} />
+            );
         }
         if (profile?.role === 'master') {
             return (
@@ -172,6 +186,9 @@ export function AppNavigator() {
                         </Stack.Navigator>
                     </DeepLinkHandler>
                     <NotificationPromptBridge />
+                    {/* Inside the container so it can navigate, outside the
+                        navigator so it floats above every screen. */}
+                    {session && <EditToolbar />}
                 </NotificationProvider>
             </NavigationContainer>
 

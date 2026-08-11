@@ -26,14 +26,16 @@ import { colors, spacing, layout } from '../../../theme';
 import {
     fetchActiveMasters,
     fetchPendingMasters,
+    fetchMasterApplications,
     fetchMasterCounts,
     type MasterProfile,
     type PendingMaster,
+    type MasterApplication,
 } from '../../../services/masterManagementService';
 
 const { width } = Dimensions.get('window');
 
-type Tab = 'active' | 'invited';
+type Tab = 'active' | 'applications' | 'invited';
 
 export function MasterManagementScreen() {
     const navigation = useNavigation<any>();
@@ -43,17 +45,24 @@ export function MasterManagementScreen() {
 
     const [masters, setMasters] = useState<MasterProfile[]>([]);
     const [invited, setInvited] = useState<PendingMaster[]>([]);
-    const [counts, setCounts] = useState({ activeMasters: 0, pendingInvitations: 0 });
+    const [applications, setApplications] = useState<MasterApplication[]>([]);
+    const [counts, setCounts] = useState({
+        activeMasters: 0,
+        pendingInvitations: 0,
+        pendingApplications: 0,
+    });
 
     const loadData = useCallback(async () => {
         try {
-            const [mastersRes, invitedRes, countsRes] = await Promise.all([
+            const [mastersRes, invitedRes, applicationsRes, countsRes] = await Promise.all([
                 fetchActiveMasters(),
                 fetchPendingMasters(),
+                fetchMasterApplications('pending'),
                 fetchMasterCounts(),
             ]);
             setMasters(mastersRes.data || []);
             setInvited(invitedRes.data || []);
+            setApplications(applicationsRes.data || []);
             setCounts(countsRes);
         } catch (e) {
             console.error('MasterManagement load error:', e);
@@ -69,6 +78,7 @@ export function MasterManagementScreen() {
 
     const tabs: { key: Tab; label: string; count: number }[] = [
         { key: 'active', label: 'Active', count: counts.activeMasters },
+        { key: 'applications', label: 'Applications', count: counts.pendingApplications },
         { key: 'invited', label: 'Invited', count: counts.pendingInvitations },
     ];
 
@@ -149,6 +159,48 @@ export function MasterManagementScreen() {
         </Card>
     );
 
+    const renderApplicationCard = ({ item }: { item: MasterApplication }) => (
+        <TouchableOpacity
+            onPress={() => navigation.navigate('MasterApplicationReview', { application: item })}
+            activeOpacity={0.7}
+        >
+            <Card variant="glass" style={styles.card} noPadding>
+                <View style={styles.cardContent}>
+                    <LinearGradient
+                        colors={['rgba(212,168,83,0.25)', 'rgba(212,168,83,0.08)']}
+                        style={styles.avatar}
+                    >
+                        <MerakiText style={styles.avatarInitial}>
+                            {(item.full_name || 'A').charAt(0).toUpperCase()}
+                        </MerakiText>
+                    </LinearGradient>
+                    <View style={styles.cardInfo}>
+                        <MerakiText variant="bodyBold" numberOfLines={1}>
+                            {item.full_name || 'Unknown applicant'}
+                        </MerakiText>
+                        <MerakiText variant="caption" color={colors.textSecondary} numberOfLines={1}>
+                            {item.specialties?.join(', ') || 'Beauty Professional'}
+                        </MerakiText>
+                        <View style={styles.metaRow}>
+                            <View style={[styles.statusBadge, { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
+                                <MerakiText variant="caption" color={colors.warning}>
+                                    Awaiting review
+                                </MerakiText>
+                            </View>
+                            {item.city ? (
+                                <View style={styles.metaChip}>
+                                    <MaterialIcons name="location-on" size={12} color={colors.textMuted} />
+                                    <MerakiText variant="caption" color={colors.textMuted}>{item.city}</MerakiText>
+                                </View>
+                            ) : null}
+                        </View>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={22} color={colors.textMuted} />
+                </View>
+            </Card>
+        </TouchableOpacity>
+    );
+
     const renderEmptyState = (message: string, icon: string) => (
         <View style={styles.emptyState}>
             <MaterialCommunityIcons name={icon as any} size={56} color={colors.textMuted} style={{ opacity: 0.3 }} />
@@ -161,6 +213,7 @@ export function MasterManagementScreen() {
     const getListData = () => {
         switch (activeTab) {
             case 'active': return masters;
+            case 'applications': return applications;
             case 'invited': return invited;
         }
     };
@@ -168,6 +221,7 @@ export function MasterManagementScreen() {
     const getRenderer = () => {
         switch (activeTab) {
             case 'active': return renderMasterCard as any;
+            case 'applications': return renderApplicationCard as any;
             case 'invited': return renderInvitedCard as any;
         }
     };
@@ -175,6 +229,7 @@ export function MasterManagementScreen() {
     const getEmptyMessage = () => {
         switch (activeTab) {
             case 'active': return 'No active masters yet';
+            case 'applications': return 'No applications awaiting review';
             case 'invited': return 'No pending invitations';
         }
     };
@@ -209,6 +264,10 @@ export function MasterManagementScreen() {
                     <LinearGradient colors={['rgba(63,185,80,0.10)', 'rgba(63,185,80,0.02)']} style={styles.statCard}>
                         <MerakiText style={styles.statValue}>{counts.activeMasters}</MerakiText>
                         <MerakiText variant="caption" color={colors.textMuted}>Active</MerakiText>
+                    </LinearGradient>
+                    <LinearGradient colors={['rgba(245,158,11,0.10)', 'rgba(245,158,11,0.02)']} style={styles.statCard}>
+                        <MerakiText style={styles.statValue}>{counts.pendingApplications}</MerakiText>
+                        <MerakiText variant="caption" color={colors.textMuted}>Applications</MerakiText>
                     </LinearGradient>
                     <LinearGradient colors={['rgba(88,166,255,0.10)', 'rgba(88,166,255,0.02)']} style={styles.statCard}>
                         <MerakiText style={styles.statValue}>{counts.pendingInvitations}</MerakiText>

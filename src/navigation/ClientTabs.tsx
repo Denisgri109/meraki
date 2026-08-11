@@ -32,6 +32,7 @@ import {
     NFCScannerScreen,
     ScanToPayScreen,
     ClassPassesScreen,
+    AppointmentConfirmationScreen,
 } from '../screens/client';
 
 import { ShopScreen, ProductDetailScreen, CartScreen, CheckoutScreen } from '../screens/shop';
@@ -69,6 +70,7 @@ export type HomeStackParamList = {
     DiscoverMasters: undefined;
     SelectDateTime: { serviceId: string; masterId: string };
     BookingConfirm: { serviceId: string; masterId: string; dateTime: string; pilatesSessionId?: string };
+    AppointmentConfirmation: { appointmentId: string };
 };
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -98,6 +100,7 @@ function HomeStackNavigator() {
             <HomeStack.Screen name="DiscoverMasters" component={DiscoverMastersScreen} />
             <HomeStack.Screen name="SelectDateTime" component={SelectDateTimeScreen} />
             <HomeStack.Screen name="BookingConfirm" component={BookingConfirmScreen} />
+            <HomeStack.Screen name="AppointmentConfirmation" component={AppointmentConfirmationScreen} />
         </HomeStack.Navigator>
     );
 }

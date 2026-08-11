@@ -15,6 +15,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import { supabase } from '../../lib/supabase';
 import { Button, Input, MerakiText, SearchablePicker } from '../../components/ui';
+import { EditableText } from '../../components/editable/EditableText';
 import { getAllCountries, getCitiesOfCountry, type Country, type City } from '../../utils/locationApi';
 import { colors, spacing, layout } from '../../theme';
 import { StatusBar } from 'expo-status-bar';
@@ -219,8 +220,16 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                                 <MaterialIcons name="arrow-back-ios-new" size={20} color={colors.primary} />
                             </TouchableOpacity>
                             <View style={styles.headerTexts}>
-                                <MerakiText variant="h2" style={styles.title}>Create Account</MerakiText>
-                                <MerakiText style={styles.subtitle}>Join the Merakí community</MerakiText>
+                                <EditableText
+                                    contentKey="mobile.auth.register_title"
+                                    label="Sign Up Title"
+                                    style={styles.title}
+                                />
+                                <EditableText
+                                    contentKey="mobile.auth.register_subtitle"
+                                    label="Sign Up Subtitle"
+                                    style={styles.subtitle}
+                                />
                             </View>
                         </View>
 

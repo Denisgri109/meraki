@@ -76,6 +76,7 @@ describe('Security — sensitive data must never reach AsyncStorage outside the 
         const approved = new Set([
             '@meraki_cart',                        // cart line items
             '@meraki_notification_prompt_shown',   // UX flag
+            '@meraki_site_content',                // public owner-authored copy (world-readable)
             'last_consultations_view',             // owner UX timestamp
             'client_activity_cleared_at',          // client UX timestamp
             'supabase.auth.token',                 // supabase-js v1 legacy cleanup target

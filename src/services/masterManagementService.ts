@@ -76,6 +76,23 @@ export async function fetchPendingMasters(): Promise<{ data: PendingMaster[] | n
     return { data: data as PendingMaster[] | null, error };
 }
 
+/**
+ * Fetch master applications awaiting an owner decision — the mobile equivalent
+ * of the web dashboard's "Pending Approvals" list.
+ */
+export async function fetchMasterApplications(
+    status: string = 'pending'
+): Promise<{ data: MasterApplication[] | null; error: Error | null }> {
+    const { data, error } = await safeSupabaseFetch(
+        supabase
+            .from('master_applications')
+            .select('*')
+            .eq('status', status)
+            .order('created_at', { ascending: false }) as any
+    );
+    return { data: data as MasterApplication[] | null, error };
+}
+
 // ─── Invite / Create ─────────────────────────────────────────────────────────
 
 /**
@@ -253,14 +270,17 @@ export async function reactivateMaster(
 export async function fetchMasterCounts(): Promise<{
     activeMasters: number;
     pendingInvitations: number;
+    pendingApplications: number;
 }> {
-    const [activeRes, invRes] = await Promise.all([
+    const [activeRes, invRes, appRes] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'master').eq('master_status', 'active'),
         supabase.from('pending_masters').select('*', { count: 'exact', head: true }).eq('master_status', 'invited'),
+        supabase.from('master_applications').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     ]);
 
     return {
         activeMasters: activeRes.count || 0,
         pendingInvitations: invRes.count || 0,
+        pendingApplications: appRes.count || 0,
     };
 }

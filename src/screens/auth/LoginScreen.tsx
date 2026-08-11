@@ -12,6 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import { Button, Input, MerakiText } from '../../components/ui';
+import { EditableText } from '../../components/editable/EditableText';
 import { colors, spacing } from '../../theme';
 import { StatusBar } from 'expo-status-bar';
 
@@ -71,10 +72,19 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
                         {/* Brand Identity */}
                         <View style={styles.header}>
                             <View style={styles.logoContainer}>
-                                <MerakiText variant="h1" style={styles.logo}>Merakí</MerakiText>
+                                <EditableText
+                                    contentKey="brand.logo_text"
+                                    fallback="Merakí"
+                                    label="Brand Name"
+                                    style={styles.logo}
+                                />
                                 <View style={styles.logoGlow} />
                             </View>
-                            <MerakiText style={styles.tagline}>BEAUTY WITH SOUL</MerakiText>
+                            <EditableText
+                                contentKey="mobile.auth.login_tagline"
+                                label="Sign In Tagline"
+                                style={styles.tagline}
+                            />
                         </View>
 
                         {/* Login Form */}

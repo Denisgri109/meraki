@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-08-03T22:08:48.803Z",
+  "generatedAt": "2026-08-09T16:42:30.523Z",
   "totals": {
-    "sourceFilesScanned": 193,
-    "filesWithAccessibilityProps": 6,
-    "accessibilityCoveragePct": 3.1
+    "sourceFilesScanned": 198,
+    "filesWithAccessibilityProps": 9,
+    "accessibilityCoveragePct": 4.5
   },
   "findings": [
     {
@@ -22,7 +22,7 @@
     {
       "id": "A11Y-COVERAGE",
       "severity": "MEDIUM",
-      "title": "6/193 source files declare accessibility props",
+      "title": "9/198 source files declare accessibility props",
       "recommendation": "Every icon-only TouchableOpacity and primary CTA needs accessibilityLabel/accessibilityRole; minimum touch target 44x44."
     }
   ]

@@ -26,4 +26,5 @@ export {
     MasterManagementScreen,
     MasterInviteScreen,
     MasterDetailScreen,
+    MasterApplicationReviewScreen,
 } from './masters';
