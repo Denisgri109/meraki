@@ -96,6 +96,35 @@ export const deleteVoucher = async (id: string): Promise<void> => {
     if (error) throw error;
 };
 
+/**
+ * Read-only voucher check for a checkout "Apply" button.
+ *
+ * `redeem_voucher` is a commit — it writes the redemption row and increments
+ * `current_uses`. Calling it to validate meant an abandoned checkout, a removed
+ * voucher or a declined card burned the voucher permanently. `preview_voucher`
+ * runs the same validation ladder and writes nothing; the redemption happens
+ * inside `finalize_shop_order`, in the same transaction as the order.
+ */
+export const previewVoucher = async (
+    code: string,
+    amountCents?: number
+): Promise<RedeemVoucherResult> => {
+    const trimmed = code.trim();
+    if (trimmed.length < 3) throw new Error('Voucher code is required.');
+
+    const { data, error } = await supabase.rpc('preview_voucher', {
+        p_code: trimmed,
+        p_amount_cents: amountCents ?? null,
+    });
+    if (error) throw error;
+    return data as unknown as RedeemVoucherResult;
+};
+
+/**
+ * Commits a redemption immediately. Only for flows that are not tied to an
+ * order (voucher signup, QR single-item checkout). Shop checkout must use
+ * {@link previewVoucher} plus `finalize-shop-order`.
+ */
 export const redeemVoucher = async (
     code: string,
     userId: string,

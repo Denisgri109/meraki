@@ -277,28 +277,15 @@ export function ChatScreen() {
             if (!user?.id || !conversationId) return;
 
             try {
-                // Determine other participant's ID accurately
-                const { data: conv } = await safeSupabaseFetch(
-                    (supabase as any)
-                        .from('conversations')
-                        .select('client_id, master_id')
-                        .eq('id', conversationId)
-                        .single()
-                );
-
-                if (!conv) return;
-
-                const otherParticipantId = user.id === (conv as any).client_id ? (conv as any).master_id : (conv as any).client_id;
-
-                if (!otherParticipantId) return;
-
+                // The messages table's UPDATE policy is `auth.uid() = sender_id`,
+                // so a direct update of the *other* party's rows silently
+                // matched nothing and unread badges never cleared. Use the same
+                // SECURITY DEFINER RPC the website uses: it checks conversation
+                // membership and flips is_read/read_at server-side.
                 const { error } = await safeSupabaseFetch(
-                    (supabase as any)
-                        .from('messages')
-                        .update({ is_read: true, read_at: new Date().toISOString() })
-                        .eq('conversation_id', conversationId)
-                        .eq('sender_id', otherParticipantId)
-                        .eq('is_read', false)
+                    (supabase as any).rpc('mark_conversation_read', {
+                        p_conversation_id: conversationId,
+                    })
                 );
 
                 if (error) {

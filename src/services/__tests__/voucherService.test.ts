@@ -1,4 +1,4 @@
-import { createVoucher, redeemVoucher, toggleVoucherActive, deleteVoucher, listVouchers } from '../voucherService';
+import { createVoucher, previewVoucher, redeemVoucher, toggleVoucherActive, deleteVoucher, listVouchers } from '../voucherService';
 import { supabase } from '../../lib/supabase';
 
 jest.mock('../../lib/supabase', () => ({
@@ -118,6 +118,62 @@ describe('voucherService', () => {
         it('rejects short codes before hitting the backend', async () => {
             await expect(redeemVoucher('AB', 'u1')).rejects.toThrow('required');
             expect(supabase.rpc).not.toHaveBeenCalled();
+        });
+    });
+
+    // The checkout "Apply" button must never consume a voucher. Before this,
+    // Apply called redeem_voucher, so removing the voucher or abandoning the
+    // basket burned it permanently.
+    describe('previewVoucher', () => {
+        it('calls the read-only preview_voucher RPC, never redeem_voucher', async () => {
+            (supabase.rpc as jest.Mock).mockResolvedValue({
+                data: { success: true, code: 'SUMMER50', discount_amount_cents: 2500, new_total_cents: 2500 },
+                error: null,
+            });
+
+            const result = await previewVoucher('  summer50 ', 5000);
+
+            expect(supabase.rpc).toHaveBeenCalledTimes(1);
+            expect(supabase.rpc).toHaveBeenCalledWith('preview_voucher', {
+                p_code: 'summer50',
+                p_amount_cents: 5000,
+            });
+            expect(supabase.rpc).not.toHaveBeenCalledWith('redeem_voucher', expect.anything());
+            expect(result.success).toBe(true);
+            expect(result.new_total_cents).toBe(2500);
+        });
+
+        it('passes a null amount through when the basket total is unknown', async () => {
+            (supabase.rpc as jest.Mock).mockResolvedValue({ data: { success: true }, error: null });
+
+            await previewVoucher('SUMMER50');
+
+            expect(supabase.rpc).toHaveBeenCalledWith('preview_voucher', {
+                p_code: 'SUMMER50',
+                p_amount_cents: null,
+            });
+        });
+
+        it('rejects short codes before hitting the backend', async () => {
+            await expect(previewVoucher('AB')).rejects.toThrow('required');
+            expect(supabase.rpc).not.toHaveBeenCalled();
+        });
+
+        it('surfaces an RPC error instead of pretending the voucher applied', async () => {
+            (supabase.rpc as jest.Mock).mockResolvedValue({ data: null, error: new Error('boom') });
+            await expect(previewVoucher('SUMMER50', 1000)).rejects.toThrow('boom');
+        });
+
+        it('returns the failure payload for an invalid code without throwing', async () => {
+            (supabase.rpc as jest.Mock).mockResolvedValue({
+                data: { success: false, message: 'This voucher has expired.' },
+                error: null,
+            });
+
+            const result = await previewVoucher('OLDCODE', 1000);
+
+            expect(result.success).toBe(false);
+            expect(result.message).toBe('This voucher has expired.');
         });
     });
 });

@@ -28,7 +28,7 @@ import {
     formatCardBrand,
     PaymentMethod,
 } from '../../services/stripeService';
-import { redeemVoucher, RedeemVoucherResult } from '../../services/voucherService';
+import { previewVoucher, RedeemVoucherResult } from '../../services/voucherService';
 import { validateFullName, validatePhone, validatePostalCode, parsePhoneNumber } from '../../utils/validation';
 import {
     EUROPEAN_COUNTRIES_SORTED,
@@ -85,7 +85,10 @@ export function CheckoutScreen() {
         setVoucherChecking(true);
         setVoucherError(null);
         try {
-            const result = await redeemVoucher(voucherCode, user.id, eurosToCents(finalTotal));
+            // Read-only check. The voucher is redeemed by finalize-shop-order,
+            // in the same transaction as the order, so removing it or
+            // abandoning the checkout costs the customer nothing.
+            const result = await previewVoucher(voucherCode, eurosToCents(finalTotal));
             if (!result.success) {
                 setVoucherError(result.message || 'Voucher could not be applied.');
                 setAppliedVoucher(null);
@@ -298,6 +301,11 @@ export function CheckoutScreen() {
                         country: shippingCountry,
                         notes: notes || null,
                     },
+                    // Redeemed server-side inside the order transaction, which
+                    // is also what makes the discounted charge match the order
+                    // total. Sending the code (not the discount) keeps the
+                    // amount authoritative on the server.
+                    voucher_code: appliedVoucher?.code ?? null,
                 },
             });
 
@@ -306,20 +314,8 @@ export function CheckoutScreen() {
             const alreadyFinalized = finalizedOrder?.already_finalized === true;
             if (!orderId) throw new Error('Order finalization failed.');
 
-            if (!alreadyFinalized && appliedVoucher?.voucher_id) {
-                try {
-                    await (supabase as any)
-                        .from('voucher_redemptions')
-                        .update({ order_id: orderId })
-                        .eq('voucher_id', appliedVoucher.voucher_id)
-                        .eq('user_id', user.id);
-                } catch (linkError) {
-                    console.error('Failed to link voucher redemption to order:', linkError);
-                }
-            }
-
             if (!alreadyFinalized) {
-                await sendOwnerNotification(orderId, finalTotal);
+                await sendOwnerNotification(orderId, effectiveTotal);
             }
 
             clearCart();

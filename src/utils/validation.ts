@@ -8,6 +8,15 @@ export interface CountryConfig {
     format: (localNumber: string) => string;
 }
 
+/**
+ * Mirrors meraki-WEB `src/lib/validation.ts`. Anything outside this set is
+ * rejected before it reaches a country regex, and every phone helper caps the
+ * input length — a long adversarial string must never reach the matchers.
+ */
+export const VALID_PHONE_CHARS = /^[+\d\s().-]+$/;
+
+export const MAX_PHONE_LENGTH = 50;
+
 export const SUPPORTED_COUNTRIES: CountryConfig[] = [
     {
         name: 'Ireland',
@@ -19,8 +28,8 @@ export const SUPPORTED_COUNTRIES: CountryConfig[] = [
             let cleaned = local.replace(/\D/g, '');
             if (cleaned.startsWith('0')) cleaned = cleaned.substring(1);
             
-            if (cleaned.length < 8 || cleaned.length > 10) {
-                return { valid: false, error: 'Irish phone numbers must be 8-10 digits' };
+            if (cleaned.length < 7 || cleaned.length > 10) {
+                return { valid: false, error: 'Irish phone numbers must be 7-10 digits' };
             }
             return { valid: true };
         },
@@ -155,7 +164,8 @@ export const SUPPORTED_COUNTRIES: CountryConfig[] = [
 ];
 
 export function cleanPhoneNumber(phone: string): string {
-    return phone.replace(/[\s\-\(\)]/g, '');
+    if (!phone || phone.length > MAX_PHONE_LENGTH || !VALID_PHONE_CHARS.test(phone)) return '';
+    return phone.replace(/\D/g, '');
 }
 
 // Pre-calculate and sort country prefixes to avoid recreating arrays and regexes on every function call
@@ -169,6 +179,9 @@ const SORTED_COUNTRY_PREFIXES = [...SUPPORTED_COUNTRIES]
 
 export function parsePhoneNumber(phone: string): { countryCode: string; localNumber: string } {
     if (!phone) return { countryCode: 'IE', localNumber: '' };
+    if (phone.length > MAX_PHONE_LENGTH || !VALID_PHONE_CHARS.test(phone)) {
+        return { countryCode: 'IE', localNumber: '' };
+    }
     
     let cleaned = phone.replace(/\s+/g, '');
     
@@ -216,6 +229,9 @@ export function validatePhone(phone: string, countryCode: string): { valid: bool
     if (!phone || phone.trim() === '') {
         return { valid: false, error: 'Phone number is required' };
     }
+    if (phone.length > MAX_PHONE_LENGTH || !VALID_PHONE_CHARS.test(phone)) {
+        return { valid: false, error: 'Phone number contains invalid characters or is too long' };
+    }
     const config = SUPPORTED_COUNTRIES.find(c => c.code === countryCode);
     if (!config) return { valid: false, error: 'Unsupported country code' };
 
@@ -236,12 +252,14 @@ export function validatePhone(phone: string, countryCode: string): { valid: bool
 
 export function formatPhone(phone: string, countryCode: string): string {
     if (!phone || phone.trim() === '') return '';
+    if (phone.length > MAX_PHONE_LENGTH || !VALID_PHONE_CHARS.test(phone)) return '';
     const config = SUPPORTED_COUNTRIES.find(c => c.code === countryCode);
     if (!config) return phone;
     return config.format(phone);
 }
 
 export function normalizePhone(localPhone: string, countryCode: string): string {
+    if (!localPhone || localPhone.length > MAX_PHONE_LENGTH || !VALID_PHONE_CHARS.test(localPhone)) return '';
     const config = SUPPORTED_COUNTRIES.find(c => c.code === countryCode);
     if (!config) return '';
     const validation = config.validate(localPhone);
@@ -259,6 +277,9 @@ export function validateIrishPhone(phone: string): { valid: boolean; error?: str
     if (!phone || phone.trim() === '') {
         return { valid: false, error: 'Phone number is required' };
     }
+    if (phone.length > MAX_PHONE_LENGTH || !VALID_PHONE_CHARS.test(phone)) {
+        return { valid: false, error: 'Phone number contains invalid characters or is too long' };
+    }
     const parsed = parsePhoneNumber(phone);
     if (parsed.countryCode !== 'IE') {
         return { valid: false, error: 'Please enter a valid Irish phone number starting with +353' };
@@ -269,6 +290,7 @@ export function validateIrishPhone(phone: string): { valid: boolean; error?: str
 
 export function formatIrishPhone(phone: string): string {
     if (!phone || phone.trim() === '') return '';
+    if (phone.length > MAX_PHONE_LENGTH || !VALID_PHONE_CHARS.test(phone)) return '';
     const parsed = parsePhoneNumber(phone);
     if (parsed.countryCode !== 'IE') return phone;
     const ieConfig = SUPPORTED_COUNTRIES.find(c => c.code === 'IE')!;
@@ -278,6 +300,7 @@ export function formatIrishPhone(phone: string): string {
 }
 
 export function normalizeIrishPhone(phone: string): string {
+    if (!phone || phone.length > MAX_PHONE_LENGTH || !VALID_PHONE_CHARS.test(phone)) return '';
     const parsed = parsePhoneNumber(phone);
     if (parsed.countryCode !== 'IE') return '';
     const ieConfig = SUPPORTED_COUNTRIES.find(c => c.code === 'IE')!;

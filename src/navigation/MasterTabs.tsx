@@ -18,7 +18,6 @@ import {
     CreateServiceScreen,
     BusinessSettingsScreen,
     LoyaltyCardBuilderScreen,
-    AftercareCampaignsScreen,
     SuppliesScreen,
     AddSupplyScreen,
     ServiceSuppliesScreen,
@@ -59,7 +58,6 @@ export type DashboardStackParamList = {
     Notifications: undefined;
     Earnings: undefined;
     QrPayments: undefined;
-    AftercareCampaigns: undefined;
 };
 
 const DashboardStack = createNativeStackNavigator<DashboardStackParamList>();
@@ -85,7 +83,6 @@ function DashboardStackNavigator() {
             <DashboardStack.Screen name="Notifications" component={NotificationsScreen} />
             <DashboardStack.Screen name="Earnings" component={MasterEarningsScreen} />
             <DashboardStack.Screen name="QrPayments" component={QrPaymentsScreen} />
-            <DashboardStack.Screen name="AftercareCampaigns" component={AftercareCampaignsScreen} />
         </DashboardStack.Navigator>
     );
 }
@@ -134,7 +131,6 @@ export type MenuStackParamList = {
     CreateService: { service?: any } | undefined;
     ServiceSupplies: { serviceId?: string } | undefined;
     QrPayments: undefined;
-    AftercareCampaigns: undefined;
 };
 
 const MenuStack = createNativeStackNavigator<MenuStackParamList>();
@@ -163,7 +159,6 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="CreateService" component={CreateServiceScreen} />
             <MenuStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
             <MenuStack.Screen name="QrPayments" component={QrPaymentsScreen} />
-            <MenuStack.Screen name="AftercareCampaigns" component={AftercareCampaignsScreen} />
         </MenuStack.Navigator>
     );
 }

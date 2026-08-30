@@ -22,7 +22,6 @@ import { Appointment, Service, Profile } from '../../types/database';
 type RootStackParamList = {
     AppointmentConfirmation: { appointmentId: string };
     Home: undefined;
-    AppointmentSuccess: { appointmentId: string }; // Added for new handleConfirm logic
 };
 
 type AppointmentConfirmationScreenProps = {
@@ -102,6 +101,50 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
         }
     };
 
+    // Tell the master what the client decided. The website does the same, so
+    // both platforms notify identically.
+    const notifyMaster = async (confirmed: boolean) => {
+        const pushToken = (master as any)?.push_token;
+        if (!pushToken) return;
+        try {
+            await supabase.functions.invoke('send-push-notification', {
+                body: {
+                    to: pushToken,
+                    sound: 'default',
+                    title: confirmed ? 'Appointment Confirmed ✅' : 'Appointment Cancelled',
+                    body: confirmed
+                        ? 'A client confirmed their attendance.'
+                        : 'A client cancelled their appointment. The slot is open again.',
+                    data: { appointmentId, type: confirmed ? 'appointment_confirmed' : 'appointment_cancelled' },
+                },
+            });
+        } catch (e) {
+            console.error('Failed to notify master:', e);
+        }
+    };
+
+    // `client_confirm_appointment` is the same RPC the website uses. The
+    // previous implementation called `confirm_appointment_no_payment`, which
+    // does not exist in the database, and then navigated to an
+    // `AppointmentSuccess` route that is not registered in any navigator — so
+    // confirming from a push notification always failed.
+    const submitResponse = async (confirmed: boolean) => {
+        const { data, error } = await (supabase as any).rpc('client_confirm_appointment', {
+            p_appointment_id: appointmentId,
+            p_response: confirmed ? 'yes' : 'no',
+        });
+
+        if (error) throw error;
+
+        // The RPC returns a single row: { success, new_status, message }.
+        const result = Array.isArray(data) ? data[0] : data;
+        if (!result?.success) {
+            throw new Error(result?.message || 'Failed to submit your response');
+        }
+        await notifyMaster(confirmed);
+        return result;
+    };
+
     const handleConfirm = () => {
         showConfirm(
             'Confirm Appointment',
@@ -109,18 +152,10 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
             async () => {
                 setConfirming(true);
                 try {
-                    const { data, error } = await (supabase as any).rpc('confirm_appointment_no_payment', {
-                        p_appointment_id: appointmentId,
-                        p_client_id: user?.id
+                    await submitResponse(true);
+                    showAlert('Appointment Confirmed', 'Your attendance is confirmed. See you soon!', 'success', {
+                        onConfirm: () => navigation.navigate('Home'),
                     });
-
-                    if (error) throw error;
-
-                    if (data.success) {
-                        navigation.replace('AppointmentSuccess', { appointmentId });
-                    } else {
-                        showAlert('Error', data.message || 'Failed to confirm appointment', 'error');
-                    }
                 } catch (error: any) {
                     console.error('Error confirming appointment:', error);
                     showAlert('Error', error.message || 'Something went wrong', 'error');
@@ -140,21 +175,9 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
             async () => {
                 setProcessing(true);
                 try {
-                    const { data, error } = await supabase.functions.invoke('client-confirm-appointment', {
-                        body: {
-                            appointment_id: appointmentId,
-                            response: 'no',
-                        },
-                    });
-
-                    if (error) throw error;
-
-                    if (data.success) {
-                        showAlert('Appointment Cancelled', 'Your appointment has been cancelled.', 'success');
-                        navigation.navigate('Home');
-                    } else {
-                        showAlert('Error', data.message || 'Failed to cancel appointment', 'error');
-                    }
+                    await submitResponse(false);
+                    showAlert('Appointment Cancelled', 'Your appointment has been cancelled.', 'success');
+                    navigation.navigate('Home');
                 } catch (error: any) {
                     showAlert('Error', error.message || 'Something went wrong', 'error');
                 } finally {

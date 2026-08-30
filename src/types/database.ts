@@ -4206,6 +4206,14 @@ export type Database = {
         Args: { p_code: string; p_user_id: string; p_amount_cents?: number | null }
         Returns: Json
       }
+      preview_voucher: {
+        Args: { p_code: string; p_amount_cents?: number | null }
+        Returns: Json
+      }
+      mark_conversation_read: {
+        Args: { p_conversation_id: string }
+        Returns: number
+      }
       grant_user_pass: {
         Args: {
           p_user_id: string

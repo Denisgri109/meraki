@@ -111,11 +111,16 @@ export function MasterMenuScreen() {
                             { icon: 'photo-camera', label: 'Photo Consultations', route: 'PhotoConsultations' },
                             { icon: 'chat', label: 'Booking Consultations', route: 'BookingConsultations' },
                             { icon: 'qr-code', label: 'QR Payments', route: 'QrPayments' },
-                            { icon: 'notifications-active', label: 'Aftercare & Campaigns', route: 'AftercareCampaigns' },
-                        ].map((item, index) => (
+                            // 'Aftercare & Campaigns' removed 2026-08-30: the
+                            // aftercare_campaigns table was dropped from the
+                            // database in 20260613180736_remove_aftercare_campaigns,
+                            // so every action on that screen failed. The screen
+                            // and service are left in the repo for whenever the
+                            // feature comes back with a table behind it.
+                        ].map((item, index, list) => (
                             <TouchableOpacity
                                 key={item.label}
-                                style={[styles.listItem, index === 7 && { borderBottomWidth: 0 }]}
+                                style={[styles.listItem, index === list.length - 1 && { borderBottomWidth: 0 }]}
                                 onPress={() => handleNavigate(item.route)}
                             >
                                 <View style={styles.listIconWrap}>

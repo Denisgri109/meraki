@@ -7,10 +7,17 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 interface RequestBody {
     amount: number;
     currency: string;
+    /**
+     * Ignored. The Stripe customer is always resolved from the caller's own
+     * profile — accepting it from the client let a caller create a
+     * PaymentIntent against somebody else's saved cards. Kept in the type for
+     * backward compatibility with clients that still send it.
+     */
     customer_id?: string;
     payment_method_id?: string;
     appointment_id: string;
@@ -20,20 +27,14 @@ interface RequestBody {
 }
 
 Deno.serve(async (req: Request) => {
-    const origin = req.headers.get("origin") || "";
-    const allowedOriginsStr = Deno.env.get("ALLOWED_ORIGINS") || "";
-    const allowedOrigins = allowedOriginsStr.split(",").map(o => o.trim()).filter(Boolean);
-
-    const corsHeaders: Record<string, string> = {
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-        "Access-Control-Allow-Origin": allowedOrigins.includes(origin) ? origin : "https://meraki.app",
-    };
-
     // Handle CORS
     if (req.method === "OPTIONS") {
         return new Response("ok", {
-            headers: corsHeaders,
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+            },
         });
     }
 
@@ -45,7 +46,7 @@ Deno.serve(async (req: Request) => {
         if (!authHeader) {
             return new Response(
                 JSON.stringify({ error: "Missing Authorization header" }),
-                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 401, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
             );
         }
 
@@ -59,7 +60,7 @@ Deno.serve(async (req: Request) => {
             console.error("Auth error:", authError);
             return new Response(
                 JSON.stringify({ error: "Unauthorized", details: authError?.message }),
-                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 401, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
             );
         }
 
@@ -77,18 +78,56 @@ Deno.serve(async (req: Request) => {
             capture_method = "manual",
         } = body;
 
-        if (!amount) {
+        if (!Number.isInteger(amount) || amount <= 0) {
             return new Response(
-                JSON.stringify({ error: "Missing required field: amount" }),
-                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                JSON.stringify({ error: "Amount must be a positive whole number of cents" }),
+                { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
             );
         }
 
-        let stripeCustomerId = customer_id;
+        // 1b. Resolve the Stripe customer from the CALLER'S OWN profile.
+        // `customer_id` in the request body is ignored: trusting it allowed a
+        // caller to create a PaymentIntent against another user's saved cards.
+        const { data: callerProfile } = await supabase
+            .from("profiles")
+            .select("stripe_customer_id")
+            .eq("id", user.id)
+            .maybeSingle();
+
+        let stripeCustomerId: string | undefined = callerProfile?.stripe_customer_id ?? undefined;
+
         // Safety check for mock IDs here too
         if (stripeCustomerId && stripeCustomerId.startsWith('cus_mock_')) {
-            console.warn("Mock customer ID detected in payment intent:", stripeCustomerId);
+            console.warn("Mock customer ID on profile:", stripeCustomerId);
             stripeCustomerId = undefined;
+        }
+
+        if (customer_id && stripeCustomerId && customer_id !== stripeCustomerId) {
+            console.warn(`Ignoring client-supplied customer_id ${customer_id} for user ${user.id}`);
+        }
+
+        // 1c. A saved card may only be used if it is attached to the caller's
+        // own Stripe customer.
+        if (payment_method_id) {
+            if (!stripeCustomerId) {
+                return new Response(
+                    JSON.stringify({ error: "No Stripe customer on file for this account" }),
+                    { status: 403, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+                );
+            }
+
+            const pmRes = await fetch(
+                `https://api.stripe.com/v1/payment_methods/${payment_method_id}`,
+                { headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` } },
+            );
+            const pm = await pmRes.json();
+
+            if (!pmRes.ok || pm.error || pm.customer !== stripeCustomerId) {
+                return new Response(
+                    JSON.stringify({ error: "Payment method does not belong to this account" }),
+                    { status: 403, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+                );
+            }
         }
 
         // 2. Check if the master has a Stripe Connect account for destination charges
@@ -142,8 +181,32 @@ Deno.serve(async (req: Request) => {
             console.error("Stripe payment intent creation error:", paymentIntent.error);
             return new Response(
                 JSON.stringify({ error: paymentIntent.error.message }),
-                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
             );
+        }
+
+        // 3. Record the PaymentIntent we just issued. Postgres cannot call
+        // Stripe, so this ledger is the only thing the booking RPCs can trust
+        // when a client hands them a payment reference: it proves the id is
+        // real, belongs to this user, and is for this amount.
+        try {
+            const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+                auth: { autoRefreshToken: false, persistSession: false },
+            });
+            const { error: ledgerError } = await serviceClient
+                .from("payment_intent_ledger")
+                .insert({
+                    stripe_payment_intent_id: paymentIntent.id,
+                    user_id: user.id,
+                    amount_cents: amount,
+                    currency: currency,
+                    purpose: appointment_id ? "booking" : (description || "payment"),
+                });
+            if (ledgerError) {
+                console.error("Failed to record payment intent in ledger:", ledgerError);
+            }
+        } catch (ledgerErr) {
+            console.error("Ledger write threw:", ledgerErr);
         }
 
         return new Response(
@@ -152,14 +215,17 @@ Deno.serve(async (req: Request) => {
                 paymentIntentId: paymentIntent.id,
             }),
             {
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*",
+                },
             }
         );
     } catch (error) {
         console.error("Error creating payment intent:", error);
         return new Response(
             JSON.stringify({ error: "Failed to create payment intent", details: String(error) }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
         );
     }
 });

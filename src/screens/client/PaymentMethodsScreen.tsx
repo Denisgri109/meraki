@@ -164,6 +164,20 @@ export function PaymentMethodsScreen() {
                             exp_year: newCard.expYear,
                             is_default: isFirst,
                         });
+
+                    // The website makes the first saved card Stripe's default
+                    // too (invoice_settings.default_payment_method). Without
+                    // this the two platforms disagree about which card is
+                    // default and Stripe receipts pick the wrong one.
+                    if (isFirst) {
+                        const { error: defaultError } = await supabase.functions.invoke(
+                            'set-default-payment-method',
+                            { body: { payment_method_id: newCard.id } },
+                        );
+                        if (defaultError) {
+                            console.error('Failed to set Stripe default card:', defaultError);
+                        }
+                    }
                 }
 
                 setShowAddModal(false);
@@ -193,16 +207,27 @@ export function PaymentMethodsScreen() {
 
     const handleSetDefault = async (cardId: string) => {
         try {
-            // Update all cards to not default
+            // Stripe is the source of truth for the customer's default card —
+            // the edge function verifies the card belongs to this customer and
+            // writes invoice_settings.default_payment_method, exactly as the
+            // website does. Writing only the local table left the two
+            // platforms showing different defaults.
+            const { error: defaultError } = await supabase.functions.invoke(
+                'set-default-payment-method',
+                { body: { payment_method_id: cardId } },
+            );
+            if (defaultError) throw defaultError;
+
+            // Mirror it locally: checkout preselects from payment_methods.
             await (supabase as any)
                 .from('payment_methods')
                 .update({ is_default: false })
                 .eq('user_id', user?.id);
 
-            // Set this card as default
             await (supabase as any)
                 .from('payment_methods')
                 .update({ is_default: true })
+                .eq('user_id', user?.id)
                 .eq('stripe_payment_method_id', cardId);
 
             setDefaultCardId(cardId);

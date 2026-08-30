@@ -6,31 +6,11 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const baseCorsHeaders = {
+const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-function getCorsHeaders(req: Request) {
-    const origin = req.headers.get("Origin");
-    const allowedOriginsEnv = Deno.env.get("ALLOWED_ORIGINS");
-    const allowedOrigins = allowedOriginsEnv ? allowedOriginsEnv.split(",").map(o => o.trim()) : ["https://meraki.app"];
-
-    let allowedOrigin = allowedOrigins[0]; // Stick to configured list fallback
-
-    if (origin) {
-        // Always allow localhost for development if needed, or stick strictly to the list
-        // In this security fix, we stick to the configured list.
-        if (allowedOrigins.includes(origin)) {
-            allowedOrigin = origin;
-        }
-    }
-
-    return {
-        ...baseCorsHeaders,
-        "Access-Control-Allow-Origin": allowedOrigin,
-    };
-}
 
 const shippingCosts: Record<string, number> = {
     GB: 4.99,
@@ -96,15 +76,21 @@ type RequestBody = {
         country: string;
         notes?: string;
     };
+    /**
+     * Optional voucher code. It is redeemed inside the same transaction that
+     * creates the order, so an abandoned checkout never burns a voucher and a
+     * discounted charge always matches the order total. Previously the client
+     * redeemed the voucher itself on "Apply" and charged the discounted amount,
+     * which then failed this function's amount check — money taken, no order.
+     */
+    voucher_code?: string | null;
 };
 
-function jsonResponse(body: unknown, status = 200, req?: Request) {
-    // If req is not passed, fallback to a safe default. In practice we will pass it.
-    const headers = req ? getCorsHeaders(req) : { ...baseCorsHeaders, "Access-Control-Allow-Origin": "https://meraki.app" };
+function jsonResponse(body: unknown, status = 200) {
     return new Response(JSON.stringify(body), {
         status,
         headers: {
-            ...headers,
+            ...corsHeaders,
             "Content-Type": "application/json",
         },
     });
@@ -134,17 +120,17 @@ function validateBody(body: RequestBody) {
 
 Deno.serve(async (req: Request) => {
     if (req.method === "OPTIONS") {
-        return new Response("ok", { headers: getCorsHeaders(req) });
+        return new Response("ok", { headers: corsHeaders });
     }
 
     if (req.method !== "POST") {
-        return jsonResponse({ error: "Method not allowed" }, 405, req);
+        return jsonResponse({ error: "Method not allowed" }, 405);
     }
 
     try {
         const authHeader = req.headers.get("Authorization");
         if (!authHeader) {
-            return jsonResponse({ error: "Missing Authorization header" }, 401, req);
+            return jsonResponse({ error: "Missing Authorization header" }, 401);
         }
 
         const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -153,80 +139,42 @@ Deno.serve(async (req: Request) => {
 
         const { data: userData, error: authError } = await authClient.auth.getUser();
         if (authError || !userData.user) {
-            return jsonResponse({ error: "Unauthorized", details: authError?.message }, 401, req);
+            return jsonResponse({ error: "Unauthorized", details: authError?.message }, 401);
         }
 
         const body = (await req.json()) as RequestBody;
         const validationError = validateBody(body);
         if (validationError) {
-            return jsonResponse({ error: validationError }, 400, req);
+            return jsonResponse({ error: validationError }, 400);
         }
 
-        let paymentIntent;
-        if (Deno.env.get("ENVIRONMENT") === "development" && (body.payment_intent_id.startsWith('pi_simulated_') || body.payment_intent_id.startsWith('pi_mock_') || body.payment_intent_id.startsWith('mock_pi_'))) {
-            console.log("Mock payment intent detected in finalize-shop-order:", body.payment_intent_id);
-            
-            // Calculate total price to match database expectations exactly
-            const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-                auth: { autoRefreshToken: false, persistSession: false },
-            });
-            
-            const productIds = body.items.map(item => item.product_id);
-            const { data: products } = await serviceClient.from('products').select('id, retail_price, wholesale_price').in('id', productIds);
-            const { data: profile } = await serviceClient.from('profiles').select('role').eq('id', userData.user.id).single();
-            
-            let subtotal = 0;
-            for (const item of body.items) {
-                const prod = products?.find(p => p.id === item.product_id);
-                if (prod) {
-                    const price = (profile?.role === 'master' || profile?.role === 'owner') ? prod.wholesale_price : prod.retail_price;
-                    subtotal += price * item.quantity;
-                }
-            }
-            
-            const country = body.shipping.country.toUpperCase();
-            const shippingCost = shippingCosts[country] || 0;
-            const totalCents = Math.round((subtotal + shippingCost) * 100);
+        const stripeResponse = await fetch(`https://api.stripe.com/v1/payment_intents/${body.payment_intent_id}`, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+            },
+        });
 
-            paymentIntent = {
-                id: body.payment_intent_id,
-                status: "succeeded",
-                amount_received: totalCents,
-                amount: totalCents,
-                currency: body.currency || "eur",
-                metadata: {
-                    user_id: userData.user.id
-                }
-            };
-        } else {
-            const stripeResponse = await fetch(`https://api.stripe.com/v1/payment_intents/${body.payment_intent_id}`, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
-                },
-            });
-
-            paymentIntent = await stripeResponse.json();
-            if (!stripeResponse.ok || paymentIntent.error) {
-                return jsonResponse({ error: paymentIntent.error?.message || "Could not verify payment" }, 400, req);
-            }
+        const paymentIntent = await stripeResponse.json();
+        if (!stripeResponse.ok || paymentIntent.error) {
+            return jsonResponse({ error: paymentIntent.error?.message || "Could not verify payment" }, 400);
         }
 
         if (paymentIntent.status !== "succeeded") {
-            return jsonResponse({ error: "Payment has not succeeded" }, 400, req);
+            return jsonResponse({ error: "Payment has not succeeded" }, 400);
         }
 
         if (paymentIntent.metadata?.user_id !== userData.user.id) {
-            return jsonResponse({ error: "Payment does not belong to this user" }, 403, req);
+            return jsonResponse({ error: "Payment does not belong to this user" }, 403);
         }
 
         if (paymentIntent.metadata?.appointment_id) {
-            return jsonResponse({ error: "Payment intent is not a shop payment" }, 400, req);
+            return jsonResponse({ error: "Payment intent is not a shop payment" }, 400);
         }
 
         const requestedCurrency = (body.currency || paymentIntent.currency || "").toLowerCase();
         if (paymentIntent.currency !== requestedCurrency) {
-            return jsonResponse({ error: "Payment currency mismatch" }, 400, req);
+            return jsonResponse({ error: "Payment currency mismatch" }, 400);
         }
 
         const country = body.shipping.country.toUpperCase();
@@ -258,14 +206,15 @@ Deno.serve(async (req: Request) => {
                 amount_cents: paymentIntent.amount_received || paymentIntent.amount,
                 currency: paymentIntent.currency,
             },
+            p_voucher_code: body.voucher_code?.trim() || null,
         });
 
         if (error) {
-            return jsonResponse({ error: error.message }, 400, req);
+            return jsonResponse({ error: error.message }, 400);
         }
 
-        return jsonResponse(data, 200, req);
+        return jsonResponse(data);
     } catch (error) {
-        return jsonResponse({ error: "Failed to finalize order", details: String(error) }, 500, req);
+        return jsonResponse({ error: "Failed to finalize order", details: String(error) }, 500);
     }
 });

@@ -220,11 +220,36 @@ export function AppointmentListScreen() {
         setCancellationLoading(true);
 
         try {
-            // Call the unified cancel-and-refund Edge Function
+            const isPilatesBooking =
+                appointmentToCancel.service_category === 'Pilates' ||
+                appointmentToCancel.service?.category === 'Pilates';
+
+            // Money first — cancel-and-refund refuses an appointment that is
+            // already marked cancelled, and it is a no-op when no Stripe
+            // payment is attached (credit-funded classes).
             const result = await cancelAndRefund(
                 appointmentToCancel.id,
                 'client',
             );
+
+            // ── Then Pilates housekeeping. `cancel_pilates_booking` is what
+            // releases the seat (pilates_session_bookings → 'cancelled') and
+            // returns the class credit when the cancellation is outside the
+            // policy window. This screen used to skip it entirely, so a
+            // cancelled class stayed full for everyone else and any class
+            // credit spent on it was simply lost.
+            if (isPilatesBooking) {
+                const { data: pilatesResult, error: pilatesError } = await (supabase as any).rpc(
+                    'cancel_pilates_booking',
+                    { p_appointment_id: appointmentToCancel.id },
+                );
+                if (pilatesError) {
+                    console.error('Failed to release the Pilates seat:', pilatesError);
+                } else if ((pilatesResult as any)?.refunded) {
+                    (result as CancelAndRefundResult & { credit_note?: string }).credit_note =
+                        '1 class credit was returned to your pass.';
+                }
+            }
 
             // Notify master
             await notifyMasterOfCancellation(appointmentToCancel);

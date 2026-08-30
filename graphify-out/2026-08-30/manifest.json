@@ -666,10 +666,10 @@
     "semantic_hash": "a0ffe4ce73b09e11f16e8cf1fe69ca41"
   },
   "src/navigation/MasterTabs.tsx": {
-    "mtime": 1788105648.4862628,
-    "seen": 1788106818.9986024,
-    "ast_hash": "a3a48169b1cc3c7f90a3a01fae244f1c",
-    "semantic_hash": ""
+    "mtime": 1785607197.440178,
+    "seen": 1788047471.55282,
+    "ast_hash": "ee8ee5f31ac65e62ff17f913d97ffb03",
+    "semantic_hash": "ee8ee5f31ac65e62ff17f913d97ffb03"
   },
   "src/navigation/OwnerTabs.tsx": {
     "mtime": 1786292415.9121425,
@@ -780,10 +780,10 @@
     "semantic_hash": "5b4729f7e57f1499262d97984133c459"
   },
   "src/screens/chat/ChatScreen.tsx": {
-    "mtime": 1788105571.6420124,
-    "seen": 1788106819.006523,
-    "ast_hash": "6e0bb6dc7c21f64c255a0c4a6506aa1f",
-    "semantic_hash": ""
+    "mtime": 1783099331.6621125,
+    "seen": 1788047471.5528326,
+    "ast_hash": "8269963c4bb9396045b3731770c4c764",
+    "semantic_hash": "8269963c4bb9396045b3731770c4c764"
   },
   "src/screens/chat/index.ts": {
     "mtime": 1783035022.0176756,
@@ -792,16 +792,16 @@
     "semantic_hash": "388f4d345eb10c2e118c4ceabcf7ce69"
   },
   "src/screens/client/AppointmentConfirmationScreen.tsx": {
-    "mtime": 1788106367.0708075,
-    "seen": 1788106819.0067666,
-    "ast_hash": "0bac22b7adf1d577d89960839c81bc32",
-    "semantic_hash": ""
+    "mtime": 1783035022.0327382,
+    "seen": 1788047471.5528338,
+    "ast_hash": "251265ab5bd1068138bbfa43bbdb2a06",
+    "semantic_hash": "251265ab5bd1068138bbfa43bbdb2a06"
   },
   "src/screens/client/AppointmentListScreen.tsx": {
-    "mtime": 1788106432.3585734,
-    "seen": 1788106819.0067685,
-    "ast_hash": "4417bdb1d0d27e8497a9afe63c7fec48",
-    "semantic_hash": ""
+    "mtime": 1783035022.0365357,
+    "seen": 1788047471.5528345,
+    "ast_hash": "12c69ddabab4d18e27d42660c41f4fc4",
+    "semantic_hash": "12c69ddabab4d18e27d42660c41f4fc4"
   },
   "src/screens/client/BookAndChatScreen.tsx": {
     "mtime": 1783035022.0430882,
@@ -894,10 +894,10 @@
     "semantic_hash": "ac14d75ae4038e6e51c93d52331bec08"
   },
   "src/screens/client/PaymentMethodsScreen.tsx": {
-    "mtime": 1788105680.5278294,
-    "seen": 1788106819.0107596,
-    "ast_hash": "86fe6f3e725c8168a22a1e4ef7f3bc17",
-    "semantic_hash": ""
+    "mtime": 1783035022.0645509,
+    "seen": 1788047471.5528457,
+    "ast_hash": "088df0a75f3346c3324c6112209950a0",
+    "semantic_hash": "088df0a75f3346c3324c6112209950a0"
   },
   "src/screens/client/PhotoConsultationRequestScreen.tsx": {
     "mtime": 1783108950.9215946,
@@ -1038,10 +1038,10 @@
     "semantic_hash": "f8f8e8bead4d1497a9bf72acebae92b7"
   },
   "src/screens/master/MasterMenuScreen.tsx": {
-    "mtime": 1788105628.0151525,
-    "seen": 1788106819.0190985,
-    "ast_hash": "3fd9ce8bf1cdd8215014e6ae397e654f",
-    "semantic_hash": ""
+    "mtime": 1785607197.0763807,
+    "seen": 1788047471.5528631,
+    "ast_hash": "9f2cc988d3e80e9c3687037bdb9df66f",
+    "semantic_hash": "9f2cc988d3e80e9c3687037bdb9df66f"
   },
   "src/screens/master/MasterOnboardingScreen.tsx": {
     "mtime": 1783035022.1077058,
@@ -1350,10 +1350,10 @@
     "semantic_hash": "c25322c116114e9900b02582ba3314e7"
   },
   "src/screens/shop/CheckoutScreen.tsx": {
-    "mtime": 1788105561.1754835,
-    "seen": 1788106819.0412157,
-    "ast_hash": "3388316716c42d498e14f84cbe57bd86",
-    "semantic_hash": ""
+    "mtime": 1785545894.614678,
+    "seen": 1788047471.5529006,
+    "ast_hash": "4bfff851314984f6096550f9aaaad7fd",
+    "semantic_hash": "4bfff851314984f6096550f9aaaad7fd"
   },
   "src/screens/shop/ProductDetailScreen.tsx": {
     "mtime": 1783035022.1827202,
@@ -1422,10 +1422,10 @@
     "semantic_hash": "e7e54553729bb23581ff5f2537e9ff59"
   },
   "src/services/__tests__/voucherService.test.ts": {
-    "mtime": 1788105990.0599627,
-    "seen": 1788106819.0483406,
-    "ast_hash": "02500c3ee790ae731163a6e7c5696fb0",
-    "semantic_hash": ""
+    "mtime": 1785546211.0917408,
+    "seen": 1788047471.5529094,
+    "ast_hash": "b41934993ccf0e7a7cb3a6ccfb2c73cc",
+    "semantic_hash": "b41934993ccf0e7a7cb3a6ccfb2c73cc"
   },
   "src/services/aftercareService.ts": {
     "mtime": 1785608521.3982344,
@@ -1476,10 +1476,10 @@
     "semantic_hash": "e059fb3be135da19ea05604468b9e260"
   },
   "src/services/voucherService.ts": {
-    "mtime": 1788105546.5141048,
-    "seen": 1788106819.053721,
-    "ast_hash": "92513ca04b21918eef1394122a94707d",
-    "semantic_hash": ""
+    "mtime": 1785546038.5824518,
+    "seen": 1788047471.552915,
+    "ast_hash": "f23447ecceaa7c08fd8cbb5529410037",
+    "semantic_hash": "f23447ecceaa7c08fd8cbb5529410037"
   },
   "src/theme/colors.ts": {
     "mtime": 1783035022.1964462,
@@ -1506,10 +1506,10 @@
     "semantic_hash": "501c5939e1899412774b5f924aaff1cb"
   },
   "src/types/database.ts": {
-    "mtime": 1788105873.5639906,
-    "seen": 1788106819.056271,
-    "ast_hash": "caf7e6f3965070e8ba9ef90677089976",
-    "semantic_hash": ""
+    "mtime": 1785792198.5027952,
+    "seen": 1788047471.5529184,
+    "ast_hash": "e1d2efbb57447496d02d07acf8256d24",
+    "semantic_hash": "e1d2efbb57447496d02d07acf8256d24"
   },
   "src/types/loyalty.ts": {
     "mtime": 1783035022.2048447,
@@ -1548,10 +1548,10 @@
     "semantic_hash": "704259795a81de370f56fd4c331dbf03"
   },
   "src/utils/__tests__/validation.test.ts": {
-    "mtime": 1788106014.7821,
-    "seen": 1788106819.0578258,
-    "ast_hash": "be8419c4863ceefb249fb01785f5ea56",
-    "semantic_hash": ""
+    "mtime": 1783104743.6517012,
+    "seen": 1788047471.5529242,
+    "ast_hash": "fd745c446d03d1226a225a1a0e7008cd",
+    "semantic_hash": "fd745c446d03d1226a225a1a0e7008cd"
   },
   "src/utils/distance.ts": {
     "mtime": 1783035022.2185285,
@@ -1596,10 +1596,10 @@
     "semantic_hash": "90a4cbaeeb39e7427dd339a32dfc81be"
   },
   "src/utils/validation.ts": {
-    "mtime": 1788105608.6692965,
-    "seen": 1788106819.0594,
-    "ast_hash": "f97db20e62d0150bd786a8ffeb9a9059",
-    "semantic_hash": ""
+    "mtime": 1783035022.22655,
+    "seen": 1788047471.5529292,
+    "ast_hash": "b91d501b06c7f30234f503824fdad342",
+    "semantic_hash": "b91d501b06c7f30234f503824fdad342"
   },
   "supabase/.temp/linked-project.json": {
     "mtime": 1783277983.6826067,
@@ -1626,10 +1626,10 @@
     "semantic_hash": "9d6f103eac8513b381ac78d4cb97e91c"
   },
   "supabase/functions/cancel-and-refund/index.ts": {
-    "mtime": 1788106532.78952,
-    "seen": 1788106819.0612705,
-    "ast_hash": "611ce5f85daa6ce528c4cf2f8f71ecd1",
-    "semantic_hash": ""
+    "mtime": 1783099326.3357553,
+    "seen": 1788047471.5529323,
+    "ast_hash": "4447b8263f6651ac9d9a3307ee47fe7f",
+    "semantic_hash": "4447b8263f6651ac9d9a3307ee47fe7f"
   },
   "supabase/functions/cancel-payment/index.ts": {
     "mtime": 1783099326.3372617,
@@ -1656,10 +1656,10 @@
     "semantic_hash": "9df45c56ecd6a7b962f81868104c2b36"
   },
   "supabase/functions/create-payment-intent/index.ts": {
-    "mtime": 1788105524.2731059,
-    "seen": 1788106819.0626192,
-    "ast_hash": "1cc570e72ae01facde17f6b44ee59fdf",
-    "semantic_hash": ""
+    "mtime": 1783035022.2593455,
+    "seen": 1788047471.5529356,
+    "ast_hash": "70de423a714242c215209ba0045dcca3",
+    "semantic_hash": "70de423a714242c215209ba0045dcca3"
   },
   "supabase/functions/create-portal-session/index.ts": {
     "mtime": 1783035022.2618816,
@@ -1686,10 +1686,10 @@
     "semantic_hash": "ce23c539194c83ad715bda5fbd0c9fe3"
   },
   "supabase/functions/finalize-shop-order/index.ts": {
-    "mtime": 1788105535.0799181,
-    "seen": 1788106819.063689,
-    "ast_hash": "ccac4fb35482bf52c37c62134a37bb00",
-    "semantic_hash": ""
+    "mtime": 1783099326.3405166,
+    "seen": 1788047471.552939,
+    "ast_hash": "0fcbd4921ae33c7a3da481a70ea5878d",
+    "semantic_hash": "0fcbd4921ae33c7a3da481a70ea5878d"
   },
   "supabase/functions/handle-no-show-enhanced/index.ts": {
     "mtime": 1783035022.272213,
@@ -1818,255 +1818,15 @@
     "semantic_hash": "da52bb184f23e33e3e1179453d3a68a9"
   },
   "test-results/security-report.json": {
-    "mtime": 1788106576.2245336,
-    "seen": 1788106819.0687163,
-    "ast_hash": "220b64a3802ac34926dd27e08b6ac99a",
-    "semantic_hash": ""
+    "mtime": 1786293750.526436,
+    "seen": 1788047471.5529554,
+    "ast_hash": "df4d84e1c6affcf69ec9120f66e13fa2",
+    "semantic_hash": "df4d84e1c6affcf69ec9120f66e13fa2"
   },
   "tsconfig.json": {
     "mtime": 1783035022.382025,
     "seen": 1788047471.5529559,
     "ast_hash": "5b4f5f73ac30dd5877668a73117c8a60",
     "semantic_hash": "5b4f5f73ac30dd5877668a73117c8a60"
-  },
-  ".jules/sentinel.md": {
-    "mtime": 1783099332.1116219,
-    "seen": 1788106819.0689788,
-    "ast_hash": "425f1d605f67010c9e9f2ff3853f04b7",
-    "semantic_hash": ""
-  },
-  "CLAUDE.md": {
-    "mtime": 1788047128.490346,
-    "seen": 1788106819.068981,
-    "ast_hash": "8a6643a420fdad6bfb583523bc6cef16",
-    "semantic_hash": ""
-  },
-  "CUSTOMIZATION.md": {
-    "mtime": 1786292642.86287,
-    "seen": 1788106819.0689826,
-    "ast_hash": "3dc5683db3922f8b2bb55eeb17f9e352",
-    "semantic_hash": ""
-  },
-  "MERAKI_APP_DOCUMENTATION.md": {
-    "mtime": 1783035021.5608711,
-    "seen": 1788106819.0689843,
-    "ast_hash": "8d080b37f299442671a4020ecfab7e22",
-    "semantic_hash": ""
-  },
-  "README.md": {
-    "mtime": 1783035021.5649555,
-    "seen": 1788106819.068986,
-    "ast_hash": "8e8afbb9df5433c4c138d0d23af6539e",
-    "semantic_hash": ""
-  },
-  "TESTING_GUIDE.md": {
-    "mtime": 1783035021.5662587,
-    "seen": 1788106819.0689871,
-    "ast_hash": "ef469e7b69cd9ee277f0477e60640b66",
-    "semantic_hash": ""
-  },
-  "WEB_PARITY_AUDIT.md": {
-    "mtime": 1786292619.0457041,
-    "seen": 1788106819.0689893,
-    "ast_hash": "429af210b9b11ae16d8bb66fafa31b2d",
-    "semantic_hash": ""
-  },
-  "maestro/01-login-client.yaml": {
-    "mtime": 1785785134.3367796,
-    "seen": 1788106819.0689907,
-    "ast_hash": "06cb1a97a28be1c00254a4e348ad1729",
-    "semantic_hash": ""
-  },
-  "maestro/01-login.yaml": {
-    "mtime": 1785785069.4039054,
-    "seen": 1788106819.0689921,
-    "ast_hash": "a6ee154c38aa511c02c77b573df2988f",
-    "semantic_hash": ""
-  },
-  "maestro/02-pilates-waiver-gate.yaml": {
-    "mtime": 1785785134.4558764,
-    "seen": 1788106819.068994,
-    "ast_hash": "c7254e8de8c887b41fc43eddfd89bbf8",
-    "semantic_hash": ""
-  },
-  "maestro/03-book-with-class-credit.yaml": {
-    "mtime": 1785785134.3390212,
-    "seen": 1788106819.0689952,
-    "ast_hash": "7d888be2acd882e51094173f2b3071df",
-    "semantic_hash": ""
-  },
-  "maestro/04-voucher-checkout.yaml": {
-    "mtime": 1785785134.4573846,
-    "seen": 1788106819.0689967,
-    "ast_hash": "11b414440a6e3d1fda364102d4b7759e",
-    "semantic_hash": ""
-  },
-  "maestro/05-owner-qr-pay.yaml": {
-    "mtime": 1785785134.340253,
-    "seen": 1788106819.0689974,
-    "ast_hash": "6dce92f3397f3da3961d3df14021b8a3",
-    "semantic_hash": ""
-  },
-  "maestro/README.md": {
-    "mtime": 1785785112.652164,
-    "seen": 1788106819.068999,
-    "ast_hash": "5ae5a8818e514046e5c4b98dac280b18",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/drawable-hdpi/notification_icon.png": {
-    "mtime": 1783035021.6025462,
-    "seen": 1788106819.0690005,
-    "ast_hash": "ef12bd8183d11572231c5e00e7892d66",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/drawable-mdpi/notification_icon.png": {
-    "mtime": 1783035021.6116076,
-    "seen": 1788106819.0690014,
-    "ast_hash": "098829a963e6ba77307c126490e37567",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/drawable-xhdpi/notification_icon.png": {
-    "mtime": 1783035021.6165116,
-    "seen": 1788106819.0690029,
-    "ast_hash": "b61d2472be8c5076443e86ca0f9bdbea",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/drawable-xxhdpi/notification_icon.png": {
-    "mtime": 1783035021.6200926,
-    "seen": 1788106819.0690038,
-    "ast_hash": "25b9a7663aa51840c174df527dc14792",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/drawable-xxxhdpi/notification_icon.png": {
-    "mtime": 1783035021.6225958,
-    "seen": 1788106819.0690053,
-    "ast_hash": "152e2922a3e2773f2bc4b5e768903412",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-hdpi/ic_launcher.webp": {
-    "mtime": 1783035021.6315517,
-    "seen": 1788106819.0690064,
-    "ast_hash": "9f0a4f45cd8db84fdd72fa64ee6a6a92",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.webp": {
-    "mtime": 1783035021.6330514,
-    "seen": 1788106819.0690074,
-    "ast_hash": "82655855089dd8da938eef87e1fe8e33",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-hdpi/ic_launcher_round.webp": {
-    "mtime": 1783035021.6355538,
-    "seen": 1788106819.0690086,
-    "ast_hash": "9b7edf74528ec477aec1e522e91f3b68",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-mdpi/ic_launcher.webp": {
-    "mtime": 1783035021.6386127,
-    "seen": 1788106819.06901,
-    "ast_hash": "091afefdbb5d6e7fa574254d398cada0",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.webp": {
-    "mtime": 1783035021.6418617,
-    "seen": 1788106819.0690107,
-    "ast_hash": "b857a5f674869b0dd4321aa9210d31de",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-mdpi/ic_launcher_round.webp": {
-    "mtime": 1783035021.644253,
-    "seen": 1788106819.069012,
-    "ast_hash": "081e4b9f45ffac6502ac5cdcc6da2e13",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-xhdpi/ic_launcher.webp": {
-    "mtime": 1783035021.6463468,
-    "seen": 1788106819.0690129,
-    "ast_hash": "d7b208fdd40fe520d70249ea324ff5e5",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.webp": {
-    "mtime": 1783035021.6484149,
-    "seen": 1788106819.0690143,
-    "ast_hash": "c33a8de995177cec7cdca4d713003658",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp": {
-    "mtime": 1783035021.650441,
-    "seen": 1788106819.0690155,
-    "ast_hash": "18573c21638461d422472dfecc09c2cf",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.webp": {
-    "mtime": 1783035021.6525836,
-    "seen": 1788106819.0690167,
-    "ast_hash": "ad2d34c118da1f5efdc6fc0408a5f07f",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.webp": {
-    "mtime": 1783035021.6540682,
-    "seen": 1788106819.069018,
-    "ast_hash": "3d1dcf6d3a282b11d9c87f4f7877d2df",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp": {
-    "mtime": 1783035021.655863,
-    "seen": 1788106819.0690188,
-    "ast_hash": "380e12453410278df34fa610aecceff2",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp": {
-    "mtime": 1783035021.6584246,
-    "seen": 1788106819.0690203,
-    "ast_hash": "d356bf7183f2ab1a1b84bcc3e2824092",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.webp": {
-    "mtime": 1783035021.6609912,
-    "seen": 1788106819.0690212,
-    "ast_hash": "813beeaf2a1e71262cb93473b3bddfa0",
-    "semantic_hash": ""
-  },
-  "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp": {
-    "mtime": 1783035021.663015,
-    "seen": 1788106819.0690222,
-    "ast_hash": "21defa31703bbbec8ea3b57c098b9206",
-    "semantic_hash": ""
-  },
-  "dist-debug/logo512.png": {
-    "mtime": 1783035021.751416,
-    "seen": 1788106819.0690234,
-    "ast_hash": "917515db74ea8d1aee6a246cfbcc0b45",
-    "semantic_hash": ""
-  },
-  "dist-test/logo512.png": {
-    "mtime": 1783035021.751416,
-    "seen": 1788106819.0690246,
-    "ast_hash": "917515db74ea8d1aee6a246cfbcc0b45",
-    "semantic_hash": ""
-  },
-  "public/logo512.png": {
-    "mtime": 1783035021.751416,
-    "seen": 1788106819.0690258,
-    "ast_hash": "917515db74ea8d1aee6a246cfbcc0b45",
-    "semantic_hash": ""
-  },
-  "src/assets/editorial_academy.png": {
-    "mtime": 1783035021.7816133,
-    "seen": 1788106819.0690486,
-    "ast_hash": "eb0f1539f0266894239d1a828dea1c83",
-    "semantic_hash": ""
-  },
-  "src/assets/editorial_new_arrivals.png": {
-    "mtime": 1783035021.7991385,
-    "seen": 1788106819.06905,
-    "ast_hash": "ab1141dbeddc4b80de6a15dc7c337a29",
-    "semantic_hash": ""
-  },
-  "src/assets/hero_beauty_banner.png": {
-    "mtime": 1783035021.8066533,
-    "seen": 1788106819.069051,
-    "ast_hash": "ee6c0c028c8c6806d23f1141bd9ba897",
-    "semantic_hash": ""
   }
 }

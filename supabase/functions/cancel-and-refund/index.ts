@@ -15,6 +15,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const CANCELLATION_WINDOW_HOURS = 24;
@@ -22,7 +23,13 @@ const LATE_CANCELLATION_REFUND_PERCENT = 50;
 
 interface RequestBody {
     appointment_id: string;
-    cancelled_by: "client" | "master";
+    /**
+     * Advisory only. The real role is derived from the caller's identity —
+     * this function used to trust the body, so any signed-in user could pass
+     * `cancelled_by: "master"` and force a 100% refund on someone else's
+     * booking (or their own late cancellation).
+     */
+    cancelled_by?: "client" | "master";
     reason?: string;
 }
 
@@ -63,12 +70,35 @@ Deno.serve(async (req: Request) => {
 
     try {
         const body: RequestBody = await req.json();
-        const { appointment_id, cancelled_by, reason } = body;
+        const { appointment_id, reason } = body;
 
-        if (!appointment_id || !cancelled_by) {
+        if (!appointment_id) {
             return new Response(
-                JSON.stringify({ error: "Missing appointment_id or cancelled_by" }),
+                JSON.stringify({ error: "Missing appointment_id" }),
                 { status: 400, headers: corsHeaders }
+            );
+        }
+
+        // ── Identify the caller ────────────────────────────────────────────
+        // This function issues real Stripe refunds with the service role. It
+        // previously did no caller check at all, so any signed-in user could
+        // cancel and refund any appointment in the business by id.
+        const authHeader = req.headers.get("Authorization");
+        if (!authHeader) {
+            return new Response(
+                JSON.stringify({ error: "Missing Authorization header" }),
+                { status: 401, headers: corsHeaders }
+            );
+        }
+
+        const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: authHeader } },
+        });
+        const { data: { user }, error: authError } = await authClient.auth.getUser();
+        if (authError || !user) {
+            return new Response(
+                JSON.stringify({ error: "Unauthorized" }),
+                { status: 401, headers: corsHeaders }
             );
         }
 
@@ -96,6 +126,29 @@ Deno.serve(async (req: Request) => {
                 { status: 400, headers: corsHeaders }
             );
         }
+
+        // ── Authorise, and derive the role from who is actually calling ────
+        const { data: callerProfile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+        const isOwner = callerProfile?.role === "owner";
+        const isThisClient = appointment.client_id === user.id;
+        const isThisMaster = appointment.master_id === user.id;
+
+        if (!isThisClient && !isThisMaster && !isOwner) {
+            return new Response(
+                JSON.stringify({ error: "You cannot cancel this appointment" }),
+                { status: 403, headers: corsHeaders }
+            );
+        }
+
+        // A client cancelling their own booking is subject to the late-
+        // cancellation fee; the master (or the owner acting for the business)
+        // cancelling always refunds in full.
+        const cancelled_by: "client" | "master" = isThisClient ? "client" : "master";
 
         // 2. Calculate time until appointment
         const now = new Date();

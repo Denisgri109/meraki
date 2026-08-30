@@ -17,6 +17,8 @@ import {
     normalizePhone,
     validatePrice,
     validatePostalCode,
+    MAX_PHONE_LENGTH,
+    VALID_PHONE_CHARS,
 } from '../validation';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -35,8 +37,10 @@ describe('cleanPhoneNumber', () => {
         expect(cleanPhoneNumber('(087) 1234567')).toBe('0871234567');
     });
 
-    it('retains plus sign in phone number', () => {
-        expect(cleanPhoneNumber('+353871234567')).toBe('+353871234567');
+    // Parity with meraki-WEB `src/lib/validation.ts`: cleanPhoneNumber now
+    // returns digits only, so a country prefix survives without its '+'.
+    it('strips the plus sign and keeps the digits', () => {
+        expect(cleanPhoneNumber('+353871234567')).toBe('353871234567');
     });
 
     it('returns empty string for empty input', () => {
@@ -47,8 +51,14 @@ describe('cleanPhoneNumber', () => {
         expect(cleanPhoneNumber('0871234567')).toBe('0871234567');
     });
 
-    it('retains letters in phone number', () => {
-        expect(cleanPhoneNumber('087abc1234567')).toBe('087abc1234567');
+    // Letters are not valid phone characters. The web build has always
+    // rejected them outright rather than passing them to a country matcher.
+    it('rejects a phone number containing letters', () => {
+        expect(cleanPhoneNumber('087abc1234567')).toBe('');
+    });
+
+    it('rejects an over-long input instead of matching against it', () => {
+        expect(cleanPhoneNumber('0'.repeat(51))).toBe('');
     });
 
     it('removes spaces, dashes, and parentheses mixed together', () => {
@@ -513,6 +523,63 @@ describe('International Phone Validation & Formatting Helpers', () => {
             expect(validatePrice(-1)).toEqual({ valid: false, error: 'Price cannot be negative' });
             expect(validatePrice('-10.50')).toEqual({ valid: false, error: 'Price cannot be negative' });
             expect(validatePrice(-0.01)).toEqual({ valid: false, error: 'Price cannot be negative' });
+        });
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Web parity — hardened phone input handling
+//
+// meraki-WEB's src/lib/validation.ts caps every phone helper at 50 characters
+// and rejects anything outside `[+\d\s().-]` before it reaches a country
+// matcher. The mobile copy had neither guard, and disagreed with the web on
+// the minimum Irish length (8 vs 7 digits), so a 7-digit Irish landline was
+// accepted on the website and rejected in the app.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('phone input hardening (parity with meraki-WEB)', () => {
+    const longInput = '3'.repeat(MAX_PHONE_LENGTH + 1);
+
+    it('exposes the shared character allow-list', () => {
+        expect(VALID_PHONE_CHARS.test('+353 (87) 123-4567')).toBe(true);
+        expect(VALID_PHONE_CHARS.test('087abc')).toBe(false);
+        expect(VALID_PHONE_CHARS.test('087;DROP')).toBe(false);
+    });
+
+    it('accepts a 7-digit Irish number, matching the website', () => {
+        expect(validateIrishPhone('+353 1234567')).toEqual({ valid: true });
+        expect(validatePhone('1234567', 'IE')).toEqual({ valid: true });
+    });
+
+    it('still rejects a 6-digit Irish number', () => {
+        expect(validateIrishPhone('+353 123456').valid).toBe(false);
+    });
+
+    it('rejects over-long input in every phone helper', () => {
+        expect(validatePhone(longInput, 'IE').valid).toBe(false);
+        expect(validateIrishPhone(longInput).valid).toBe(false);
+        expect(formatPhone(longInput, 'IE')).toBe('');
+        expect(formatIrishPhone(longInput)).toBe('');
+        expect(normalizePhone(longInput, 'IE')).toBe('');
+        expect(normalizeIrishPhone(longInput)).toBe('');
+        expect(cleanPhoneNumber(longInput)).toBe('');
+        expect(parsePhoneNumber(longInput)).toEqual({ countryCode: 'IE', localNumber: '' });
+    });
+
+    it('rejects input containing characters that are not phone characters', () => {
+        const bad = '087<script>';
+        expect(validatePhone(bad, 'IE').valid).toBe(false);
+        expect(validateIrishPhone(bad).valid).toBe(false);
+        expect(formatPhone(bad, 'IE')).toBe('');
+        expect(normalizePhone(bad, 'IE')).toBe('');
+        expect(parsePhoneNumber(bad)).toEqual({ countryCode: 'IE', localNumber: '' });
+    });
+
+    it('leaves ordinary numbers working', () => {
+        expect(validateIrishPhone('087 123 4567')).toEqual({ valid: true });
+        expect(normalizeIrishPhone('087 123 4567')).toBe('+353871234567');
+        expect(parsePhoneNumber('+353871234567')).toEqual({
+            countryCode: 'IE',
+            localNumber: '871234567',
         });
     });
 });
