@@ -186,12 +186,13 @@ export function ScanToPayScreen() {
             setListenEnabled(true); // Start listening to realtime updates
 
             // Open Stripe Checkout in WebBrowser
-            console.log('Opening Stripe Checkout URL in WebBrowser:', checkoutUrl);
+            // The checkout URL is a live payment link — never log its value.
+            if (__DEV__) console.debug('Opening Stripe Checkout in the in-app browser');
             const browserResult = await WebBrowser.openBrowserAsync(checkoutUrl);
 
             // User closed the browser window manually
             if (browserResult.type === 'cancel') {
-                console.log('Browser was closed manually by user');
+                if (__DEV__) console.debug('Checkout browser dismissed by the user');
                 // We keep listening in the background just in case they paid right before closing
                 // But allow rescan in case they cancelled
                 setTimeout(() => {

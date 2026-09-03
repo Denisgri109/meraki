@@ -5,10 +5,12 @@
     "version": "1.0.0",
     "scheme": "meraki",
     "orientation": "portrait",
-    "icon": "./public/logo512.png",
-    "userInterfaceStyle": "dark",
+    "icon": "./public/icon.png",
+    "userInterfaceStyle": "light",
     "splash": {
-      "backgroundColor": "#121212"
+      "image": "./public/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -22,35 +24,32 @@
       "infoPlist": {
         "NFCReaderUsageDescription": "This app uses NFC to pair loyalty stamp tags",
         "LSApplicationQueriesSchemes": [
-          "meraki",
           "meraki"
         ],
         "ITSAppUsesNonExemptEncryption": false
       },
       "associatedDomains": [
-        "applinks:meraki.app",
         "applinks:meraki.app"
       ]
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./public/logo512.png",
-        "backgroundColor": "#121212"
+        "foregroundImage": "./public/adaptive-icon.png",
+        "backgroundColor": "#000000"
       },
       "softwareKeyboardLayoutMode": "pan",
       "package": "com.meraki.app",
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
         "android.permission.NFC",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS"
       ],
       "intentFilters": [
         {
           "action": "VIEW",
-          "autoVerify": true,
           "data": [
             {
               "scheme": "meraki",
@@ -64,7 +63,6 @@
         },
         {
           "action": "VIEW",
-          "autoVerify": true,
           "data": [
             {
               "scheme": "meraki",
@@ -98,8 +96,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./public/logo512.png",
-          "color": "#8B5CF6",
+          "icon": "./public/notification-icon.png",
+          "color": "#E8A0B4",
           "sounds": []
         }
       ],

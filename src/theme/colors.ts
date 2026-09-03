@@ -116,6 +116,12 @@ export const colors = {
     accent: pink.base,       // ActivityIndicators, highlights, prices
     gold: pink.light,        // Stamp cards, rewards, loyalty (now pink-tinted)
     secondary: '#A78BFA',    // Purple accent for variety (lashes category, schedule dots)
+
+    // Brand-pink aliases used by the voucher sign-up and scan-to-pay screens.
+    brandPink: pink.base,
+    brandPinkLight: pink.light,
+    /** Alias for `text`; some screens spell the primary text colour this way. */
+    textPrimary: text.primary,
 };
 
 export const gradients = {

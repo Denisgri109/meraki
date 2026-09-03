@@ -19,6 +19,19 @@ interface SafeResponse<T> {
 }
 
 /**
+ * Whether a thrown error is the device having no usable connection, rather than the server
+ * rejecting the request. React Native's fetch reports every transport failure this way.
+ */
+function isOfflineError(error: Error): boolean {
+    const message = error.message.toLowerCase();
+    return (
+        message.includes('network request failed') ||
+        message.includes('failed to fetch') ||
+        message.includes('network error')
+    );
+}
+
+/**
  * Safely executes a promise with a timeout to prevent infinite loading
  * @param promise The Supabase query promise
  * @param options Configuration options
@@ -63,11 +76,25 @@ export async function safeSupabaseFetch<T>(
     } catch (error: unknown) {
         clearTimeout(timeoutId!);
 
-        const err = error instanceof Error ? error : new Error(String(error));
+        let err = error instanceof Error ? error : new Error(String(error));
 
         const isTimeout = err.message === errorMessage;
 
-        console.error(`Supabase Fetch Error (${isTimeout ? 'Timeout' : 'Network/Auth'}):`, err);
+        // A dropped connection surfaces as "Network request failed" from fetch, and a timeout
+        // is usually the same thing arriving more slowly. Neither tells the user anything, so
+        // both are rewritten into something they can act on — unless the caller supplied its
+        // own errorMessage, which is more specific than anything generic we could say.
+        const callerSuppliedMessage = options.errorMessage !== undefined;
+        if ((isTimeout && !callerSuppliedMessage) || isOfflineError(err)) {
+            err = new Error(
+                "Can't reach Merakí. Check your internet connection and try again.",
+                { cause: error }
+            );
+        }
+
+        if (__DEV__) {
+            console.error(`Supabase fetch failed (${isTimeout ? 'timeout' : 'network/auth'}):`, error);
+        }
 
         if (throwError) throw err;
 

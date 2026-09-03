@@ -1,4 +1,9 @@
-let Notifications: any = null;
+import type * as ExpoNotifications from 'expo-notifications';
+
+// The module is required lazily so a build without the native module (web, unit tests)
+// degrades to a no-op instead of throwing at import time. The types above are erased at
+// compile time and cost nothing at runtime.
+let Notifications: typeof ExpoNotifications | null = null;
 let notificationsAvailable = false;
 
 try {
@@ -31,7 +36,13 @@ if (notificationsAvailable && Notifications) {
 }
 
 export interface NotificationData {
-    type: 'appointment_reminder' | 'confirmation_request' | 'message' | 'consultation_response';
+    type:
+        | 'appointment_reminder'
+        | 'confirmation_request'
+        | 'message'
+        | 'consultation_response'
+        | 'promotion'
+        | 'aftercare';
     appointmentId?: string;
     appointment_id?: string;
     conversationId?: string;
@@ -199,7 +210,7 @@ export async function scheduleLocalNotification(
     if (!notificationsAvailable || !Notifications) {
         return 'mock-notification-id';
     }
-    const trigger: Notifications.NotificationTriggerInput = triggerSeconds
+    const trigger: ExpoNotifications.NotificationTriggerInput = triggerSeconds
         ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: triggerSeconds, repeats: false }
         : null;
 
@@ -252,8 +263,8 @@ export async function setBadgeCount(count: number): Promise<void> {
  * Add notification response listener
  */
 export function addNotificationResponseListener(
-    callback: (response: Notifications.NotificationResponse) => void
-): Notifications.Subscription {
+    callback: (response: ExpoNotifications.NotificationResponse) => void
+): ExpoNotifications.Subscription {
     if (!notificationsAvailable || !Notifications) {
         return { remove: () => {} } as any;
     }
@@ -264,8 +275,8 @@ export function addNotificationResponseListener(
  * Add notification received listener (when app is in foreground)
  */
 export function addNotificationReceivedListener(
-    callback: (notification: Notifications.Notification) => void
-): Notifications.Subscription {
+    callback: (notification: ExpoNotifications.Notification) => void
+): ExpoNotifications.Subscription {
     if (!notificationsAvailable || !Notifications) {
         return { remove: () => {} } as any;
     }

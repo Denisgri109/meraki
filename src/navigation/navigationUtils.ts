@@ -40,3 +40,15 @@ export function canGoBack<T extends Record<string, unknown>>(
     const state = navigation.getState();
     return !!(state && state.routes && state.routes.length > 1);
 }
+
+/**
+ * Cancel a tab press so the screen can reset its stack instead of just re-focusing.
+ *
+ * react-navigation 7 loses the bottom-tab event map through the `listeners` prop, so the
+ * event arrives typed as `EventArg<'tabPress', false>` — without `preventDefault`, even
+ * though `BottomTabNavigationEventMap` declares `canPreventDefault: true` and the method is
+ * always there at runtime. This narrows in one place rather than casting at every tab.
+ */
+export function preventTabPressDefault(event: unknown): void {
+    (event as { preventDefault?: () => void }).preventDefault?.();
+}

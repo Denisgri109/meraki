@@ -113,7 +113,7 @@ export function ManageAcademyScreen() {
                     <View style={{ width: 24 }} />
                 </View>
 
-                <Tab.Navigator
+                <Tab.Navigator id={undefined}
                     tabBar={props => <CustomTabBar {...props} />}
                     screenOptions={{
                         swipeEnabled: true,

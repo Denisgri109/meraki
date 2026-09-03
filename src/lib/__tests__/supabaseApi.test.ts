@@ -89,7 +89,7 @@ describe('safeSupabaseFetch', () => {
 
     it('catches and returns error when promise rejects (e.g., network error)', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        const err = new Error('Network error');
+        const err = new Error('Row level security violation');
         const rejectedPromise = Promise.reject(err);
 
         const result = await safeSupabaseFetch(rejectedPromise);
@@ -104,15 +104,48 @@ describe('safeSupabaseFetch', () => {
 
     it('catches and throws error when promise rejects and throwError is true', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        const err = new Error('Network error');
+        const err = new Error('Row level security violation');
         const rejectedPromise = Promise.reject(err);
 
         await expect(
             safeSupabaseFetch(rejectedPromise, { throwError: true })
-        ).rejects.toThrow('Network error');
+        ).rejects.toThrow('Row level security violation');
         expect(consoleSpy).toHaveBeenCalled();
 
         consoleSpy.mockRestore();
+    });
+
+    it('rewrites a dropped connection into copy the user can act on', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const original = new Error('Network request failed');
+
+        const result = await safeSupabaseFetch(Promise.reject(original));
+
+        expect(result.error?.message).toBe(
+            "Can't reach Merakí. Check your internet connection and try again."
+        );
+        // The original is kept on `cause` so a crash report still shows what actually failed.
+        expect(result.error?.cause).toBe(original);
+
+        consoleSpy.mockRestore();
+    });
+
+    it('gives a timeout the same readable copy', async () => {
+        jest.useFakeTimers();
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        const pending = new Promise<{ data: null; error: null }>(() => {});
+        const call = safeSupabaseFetch(pending, { timeout: 100 });
+        jest.advanceTimersByTime(101);
+        const result = await call;
+
+        expect(result.timeout).toBe(true);
+        expect(result.error?.message).toBe(
+            "Can't reach Merakí. Check your internet connection and try again."
+        );
+
+        consoleSpy.mockRestore();
+        jest.useRealTimers();
     });
 
     it('wraps non-Error objects in an Error object when caught', async () => {

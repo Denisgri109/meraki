@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import type { TablesUpdate } from '../types/database';
 import {
     getAllCountries,
     getStatesOfCountry,
@@ -120,7 +121,7 @@ export function useCitySelection({
 
         setSaving(true);
         try {
-            const updateData: Record<string, string | boolean | number | null> = {
+            const updateData: TablesUpdate<'profiles'> = {
                 city: selectedCity.trim() || null,
                 latitude: currentStateLat ? parseFloat(currentStateLat) : null,
                 longitude: currentStateLng ? parseFloat(currentStateLng) : null,

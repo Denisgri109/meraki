@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { preventTabPressDefault } from './navigationUtils';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -77,7 +78,7 @@ const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 
 function HomeStackNavigator() {
     return (
-        <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+        <HomeStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <HomeStack.Screen name="HomeMain" component={HomeScreen} />
             <HomeStack.Screen name="ChatList" component={ChatListScreen} />
 
@@ -117,7 +118,7 @@ const ShopStack = createNativeStackNavigator<ShopStackParamList>();
 
 function ShopStackNavigator() {
     return (
-        <ShopStack.Navigator screenOptions={{ headerShown: false }}>
+        <ShopStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <ShopStack.Screen name="ShopMain" component={ShopScreen} />
             <ShopStack.Screen name="ProductDetail" component={ProductDetailScreen} />
             <ShopStack.Screen name="Cart" component={CartScreen} />
@@ -140,7 +141,7 @@ const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
 function ProfileStackNavigator() {
     return (
-        <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+        <ProfileStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <ProfileStack.Screen name="ProfileMain" component={EditProfileScreen} />
             <ProfileStack.Screen name="HelpSupport" component={HelpSupportScreen} />
             <ProfileStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
@@ -164,7 +165,7 @@ const AcademyStack = createNativeStackNavigator<AcademyStackParamList>();
 
 function AcademyStackNavigator() {
     return (
-        <AcademyStack.Navigator screenOptions={{ headerShown: false }}>
+        <AcademyStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <AcademyStack.Screen name="AcademyHome" component={AcademyHomeScreen} />
             <AcademyStack.Screen name="CourseDetail" component={CourseDetailScreen} />
             <AcademyStack.Screen name="Lesson" component={LessonScreen} />
@@ -206,7 +207,7 @@ const MenuStack = createNativeStackNavigator<MenuStackParamList>();
 
 function MenuStackNavigator() {
     return (
-        <MenuStack.Navigator screenOptions={{ headerShown: false }}>
+        <MenuStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <MenuStack.Screen name="MenuMain" component={MenuScreen} />
             <MenuStack.Screen name="Profile" component={EditProfileScreen} />
             <MenuStack.Screen name="Orders" component={OrdersScreen} />
@@ -274,7 +275,7 @@ function ClientTabsInner() {
 
     return (
         <>
-            <Tab.Navigator
+            <Tab.Navigator id={undefined}
                 screenOptions={({ navigation }) => ({
                     headerShown: false,
                     tabBarStyle: styles.tabBar,
@@ -295,7 +296,7 @@ function ClientTabsInner() {
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
-                            e.preventDefault();
+                            preventTabPressDefault(e);
                             navigation.dispatch(
                                 CommonActions.reset({
                                     index: 0,
@@ -317,7 +318,7 @@ function ClientTabsInner() {
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
-                            e.preventDefault();
+                            preventTabPressDefault(e);
                             navigation.dispatch(
                                 CommonActions.reset({
                                     index: 0,
@@ -339,7 +340,7 @@ function ClientTabsInner() {
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
-                            e.preventDefault();
+                            preventTabPressDefault(e);
                             navigation.dispatch(
                                 CommonActions.reset({
                                     index: 0,
@@ -360,7 +361,7 @@ function ClientTabsInner() {
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
-                            e.preventDefault();
+                            preventTabPressDefault(e);
                             navigation.dispatch(
                                 CommonActions.reset({
                                     index: 0,
@@ -381,7 +382,7 @@ function ClientTabsInner() {
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
-                            e.preventDefault();
+                            preventTabPressDefault(e);
                             navigation.dispatch(
                                 CommonActions.reset({
                                     index: 0,

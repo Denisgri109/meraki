@@ -19,7 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ScreenBackground, Card, MerakiText } from '../../components/ui';
 import { useModal } from '../../contexts/ModalContext';
 import { colors, spacing } from '../../theme';
-import { Service, MasterService } from '../../types/database';
+import { Service, MasterService, type TablesUpdate } from '../../types/database';
 
 type ServiceWithConfig = Service & {
     config?: MasterService;
@@ -123,11 +123,17 @@ export function MyServicesScreen() {
         const numValue = value ? Number(value) : null;
         if (value && isNaN(Number(value))) return; // Invalid
 
+        // Spelling the branch out keeps the column literal, so Supabase can still type-check
+        // the patch. A computed `{ [field]: numValue }` key widens to Record<string, number>
+        // and the generated Update type rejects it.
+        const patch: TablesUpdate<'master_services'> =
+            field === 'custom_price' ? { custom_price: numValue } : { custom_duration: numValue };
+
         try {
             if (service.config) {
                 const { error } = await supabase
                     .from('master_services')
-                    .update({ [field]: numValue })
+                    .update(patch)
                     .eq('id', service.config.id);
                 if (error) throw error;
             } else {
@@ -139,7 +145,7 @@ export function MyServicesScreen() {
                         master_id: user!.id,
                         service_id: service.id,
                         is_available: false, // Default to false if just setting price? Or true?
-                        [field]: numValue
+                        ...patch,
                     });
                 if (error) throw error;
             }

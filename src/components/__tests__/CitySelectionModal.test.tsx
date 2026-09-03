@@ -39,7 +39,7 @@ describe('CitySelectionModal', () => {
         detectedCountry: 'United States',
         detectedCountryCode: 'US',
         onCitySaved: jest.fn(),
-        onClose: jest.fn(),
+        onDismiss: jest.fn(),
     };
 
     const mockActions = {

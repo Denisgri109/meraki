@@ -34,7 +34,7 @@ const BookingStack = createNativeStackNavigator<BookingStackParamList>();
 
 function BookingStackNavigator() {
     return (
-        <BookingStack.Navigator screenOptions={{ headerShown: false }}>
+        <BookingStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <BookingStack.Screen name="BookingMain" component={BookingScreen} />
             <BookingStack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
             <BookingStack.Screen name="MasterDetail" component={MasterDetailScreen} />
@@ -53,7 +53,7 @@ const MessagesStack = createNativeStackNavigator<MessagesStackParamList>();
 
 function MessagesStackNavigator() {
     return (
-        <MessagesStack.Navigator screenOptions={{ headerShown: false }}>
+        <MessagesStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <MessagesStack.Screen name="MessagesMain" component={ChatListScreen} />
         </MessagesStack.Navigator>
     );
@@ -63,7 +63,7 @@ const AppointmentStack = createNativeStackNavigator();
 
 function AppointmentStackNavigator() {
     return (
-        <AppointmentStack.Navigator screenOptions={{ headerShown: false }}>
+        <AppointmentStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <AppointmentStack.Screen name="AppointmentList" component={AppointmentListScreen} />
         </AppointmentStack.Navigator>
     );
@@ -172,7 +172,7 @@ export function BookAndChatScreen() {
     const { isTabBarVisible } = useTabBar();
 
     return (
-        <TopTab.Navigator
+        <TopTab.Navigator id={undefined}
             tabBar={props => <CustomTabBar {...props} />}
             style={{ backgroundColor: colors.background }}
             screenOptions={{

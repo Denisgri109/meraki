@@ -350,8 +350,26 @@ export function validateFullName(name: string): { valid: boolean; error?: string
         return { valid: false, error: 'Full name is required' };
     }
 
-    if (name.trim().length < 2) {
+    const trimmed = name.trim();
+
+    if (trimmed.length < 2) {
         return { valid: false, error: 'Name must be at least 2 characters' };
+    }
+    if (trimmed.length > 100) {
+        return { valid: false, error: 'Name must be 100 characters or fewer' };
+    }
+    if (/\d/.test(trimmed)) {
+        return { valid: false, error: 'Name cannot contain numbers' };
+    }
+    // At least two letters, so "!!" or "- -" cannot pass as a name. \p{L} keeps accented and
+    // non-Latin names valid.
+    if ((trimmed.match(/\p{L}/gu) || []).length < 2) {
+        return { valid: false, error: 'Please enter your real name' };
+    }
+    // Letters, spaces and the punctuation that genuinely appears in names (O'Brien,
+    // Anne-Marie, Jr.).
+    if (!/^[\p{L}\p{M}][\p{L}\p{M}\s'’.-]*$/u.test(trimmed)) {
+        return { valid: false, error: 'Name contains invalid characters' };
     }
 
     return { valid: true };

@@ -160,7 +160,7 @@ export function AppNavigator() {
             >
                 <NotificationProvider>
                     <DeepLinkHandler>
-                        <Stack.Navigator
+                        <Stack.Navigator id={undefined}
                             initialRouteName={getInitialRoute()}
                             screenOptions={{
                                 headerShown: false,

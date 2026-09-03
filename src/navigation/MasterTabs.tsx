@@ -1,4 +1,5 @@
 import React from 'react';
+import { preventTabPressDefault } from './navigationUtils';
 import { StripeConnectGate } from '../components/StripeConnectGate';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -64,7 +65,7 @@ const DashboardStack = createNativeStackNavigator<DashboardStackParamList>();
 
 function DashboardStackNavigator() {
     return (
-        <DashboardStack.Navigator screenOptions={{ headerShown: false }}>
+        <DashboardStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <DashboardStack.Screen name="DashboardMain" component={MasterDashboardScreen} />
             <DashboardStack.Screen name="ChatList" component={ChatListScreen} />
 
@@ -99,7 +100,7 @@ const ShopStack = createNativeStackNavigator<ShopStackParamList>();
 
 function ShopStackNavigator() {
     return (
-        <ShopStack.Navigator screenOptions={{ headerShown: false }}>
+        <ShopStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <ShopStack.Screen name="ShopMain" component={ShopScreen} />
             <ShopStack.Screen name="ProductDetail" component={ProductDetailScreen} />
             <ShopStack.Screen name="Cart" component={CartScreen} />
@@ -137,7 +138,7 @@ const MenuStack = createNativeStackNavigator<MenuStackParamList>();
 
 function MenuStackNavigator() {
     return (
-        <MenuStack.Navigator screenOptions={{ headerShown: false }}>
+        <MenuStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <MenuStack.Screen name="MenuMain" component={MasterMenuScreen} />
             <MenuStack.Screen name="Profile" component={EditProfileScreen} />
             <MenuStack.Screen name="Portfolio" component={PortfolioScreen} />
@@ -182,7 +183,7 @@ const MessagesStack = createNativeStackNavigator<MessagesStackParamList>();
 
 function MessagesStackNavigator() {
     return (
-        <MessagesStack.Navigator screenOptions={{ headerShown: false }}>
+        <MessagesStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <MessagesStack.Screen name="ChatList" component={ChatListScreen} />
 
         </MessagesStack.Navigator>
@@ -201,7 +202,7 @@ export function MasterTabs() {
     return (
         <>
             <StripeConnectGate />
-            <Tab.Navigator
+            <Tab.Navigator id={undefined}
                 screenOptions={{
                     headerShown: false,
                     tabBarStyle: styles.tabBar,
@@ -222,7 +223,7 @@ export function MasterTabs() {
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
-                            e.preventDefault();
+                            preventTabPressDefault(e);
                             navigation.dispatch(
                                 CommonActions.reset({
                                     index: 0,
@@ -242,7 +243,7 @@ export function MasterTabs() {
                     } as any}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
-                            e.preventDefault();
+                            preventTabPressDefault(e);
                             navigation.dispatch(
                                 CommonActions.reset({
                                     index: 0,
@@ -264,7 +265,7 @@ export function MasterTabs() {
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
-                            e.preventDefault();
+                            preventTabPressDefault(e);
                             navigation.dispatch(
                                 CommonActions.reset({
                                     index: 0,
@@ -285,7 +286,7 @@ export function MasterTabs() {
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
-                            e.preventDefault();
+                            preventTabPressDefault(e);
                             navigation.dispatch(
                                 CommonActions.reset({
                                     index: 0,
@@ -306,7 +307,7 @@ export function MasterTabs() {
                     } as any)}
                     listeners={({ navigation, route }) => ({
                         tabPress: (e) => {
-                            e.preventDefault();
+                            preventTabPressDefault(e);
                             navigation.dispatch(
                                 CommonActions.reset({
                                     index: 0,

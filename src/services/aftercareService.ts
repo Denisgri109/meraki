@@ -1,9 +1,45 @@
 import { supabase } from '../lib/supabase';
-import type { Database, Tables } from '../types/database';
 
-export type AftercareCampaign = Tables<'aftercare_campaigns'>;
+// ─── PARKED FEATURE ─────────────────────────────────────────────────────────────
+// The `aftercare_campaigns` table was dropped by migration
+// 20260613180736_remove_aftercare_campaigns, and MasterMenuScreen removed the menu
+// entry on 2026-08-30, so nothing in the app reaches this service or
+// AftercareCampaignsScreen any more. Both were kept on purpose, "for whenever the
+// feature comes back with a table behind it".
+//
+// The row shape therefore cannot come from the generated database types — it is
+// declared here instead, and the client is cast at the query boundary. Delete this
+// file, the screen and their tests if the feature is not coming back; restore the
+// table and swap these back to `Tables<'aftercare_campaigns'>` if it is.
+export interface AftercareCampaign {
+    id: string;
+    master_id: string;
+    name: string;
+    message: string;
+    campaign_type: string;
+    is_recurring: boolean | null;
+    send_date: string | null;
+    days_after_appointment: number | null;
+    service_category: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    last_broadcast_at: string | null;
+    is_active: boolean | null;
+    created_at: string | null;
+    updated_at: string | null;
+}
 
-type CampaignUpdate = Database['public']['Tables']['aftercare_campaigns']['Update'];
+type CampaignUpdate = Partial<Omit<AftercareCampaign, 'id' | 'master_id'>>;
+
+/**
+ * The table is absent from the schema, so the generated client types every column as
+ * `never`. Queries go through this deliberately untyped handle; `AftercareCampaign` above is
+ * the contract the callers rely on, and the casts back to it are made explicit at each
+ * return site.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const campaigns = (): any => (supabase as any).from('aftercare_campaigns');
+
 export type CampaignType = 'aftercare' | 'promotion' | 'vacation' | 'announcement';
 
 export interface CampaignInput {
@@ -28,8 +64,7 @@ const validateCampaign = (input: CampaignInput) => {
 };
 
 export const listCampaigns = async (masterId: string): Promise<AftercareCampaign[]> => {
-    const { data, error } = await supabase
-        .from('aftercare_campaigns')
+    const { data, error } = await campaigns()
         .select('*')
         .eq('master_id', masterId)
         .order('created_at', { ascending: false });
@@ -39,8 +74,7 @@ export const listCampaigns = async (masterId: string): Promise<AftercareCampaign
 
 export const createCampaign = async (masterId: string, input: CampaignInput): Promise<AftercareCampaign> => {
     validateCampaign(input);
-    const { data, error } = await supabase
-        .from('aftercare_campaigns')
+    const { data, error } = await campaigns()
         .insert({
             master_id: masterId,
             name: input.name.trim(),
@@ -75,8 +109,7 @@ export const updateCampaign = async (id: string, input: Partial<CampaignInput>):
 
     if (Object.keys(patch).length === 0) throw new Error('No valid fields to update.');
 
-    const { data, error } = await supabase
-        .from('aftercare_campaigns')
+    const { data, error } = await campaigns()
         .update(patch)
         .eq('id', id)
         .select()
@@ -86,6 +119,6 @@ export const updateCampaign = async (id: string, input: Partial<CampaignInput>):
 };
 
 export const deleteCampaign = async (id: string): Promise<void> => {
-    const { error } = await supabase.from('aftercare_campaigns').delete().eq('id', id);
+    const { error } = await campaigns().delete().eq('id', id);
     if (error) throw error;
 };

@@ -332,6 +332,35 @@ describe('validateFullName', () => {
         const result = validateFullName('   ');
         expect(result.valid).toBe(false);
     });
+
+    it('rejects a name made of digits and symbols', () => {
+        expect(validateFullName('123 !!! 456').valid).toBe(false);
+    });
+
+    it('rejects a name containing a number', () => {
+        expect(validateFullName('John2 Doe').valid).toBe(false);
+    });
+
+    it('rejects punctuation with fewer than two letters', () => {
+        expect(validateFullName('- -').valid).toBe(false);
+        expect(validateFullName('A.').valid).toBe(false);
+    });
+
+    it('rejects a name over 100 characters', () => {
+        expect(validateFullName('a'.repeat(101)).valid).toBe(false);
+    });
+
+    it('accepts apostrophes, hyphens and periods', () => {
+        expect(validateFullName("O'Brien")).toEqual({ valid: true });
+        expect(validateFullName('Anne-Marie')).toEqual({ valid: true });
+        expect(validateFullName('Martin Jr.')).toEqual({ valid: true });
+    });
+
+    it('accepts accented and non-Latin names', () => {
+        expect(validateFullName('Ugnė Grinevičiūtė')).toEqual({ valid: true });
+        expect(validateFullName('José Álvarez')).toEqual({ valid: true });
+        expect(validateFullName('Ολυμπία')).toEqual({ valid: true });
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

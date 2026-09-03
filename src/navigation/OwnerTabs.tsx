@@ -1,4 +1,5 @@
 import React from 'react';
+import { preventTabPressDefault } from './navigationUtils';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CommonActions, getFocusedRouteNameFromRoute } from '@react-navigation/native';
@@ -126,7 +127,7 @@ const DashboardStack = createNativeStackNavigator<OwnerDashboardStackParamList>(
 
 function DashboardStackNavigator() {
     return (
-        <DashboardStack.Navigator screenOptions={{ headerShown: false }}>
+        <DashboardStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <DashboardStack.Screen name="DashboardMain" component={OwnerDashboardScreen} />
             <DashboardStack.Screen name="Services" component={ServiceListScreen} />
             <DashboardStack.Screen name="ServiceForm" component={ServiceFormScreen} />
@@ -183,7 +184,7 @@ const MessagesStack = createNativeStackNavigator<MessagesStackParamList>();
 
 function MessagesStackNavigator() {
     return (
-        <MessagesStack.Navigator screenOptions={{ headerShown: false }}>
+        <MessagesStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <MessagesStack.Screen name="ChatList" component={ChatListScreen} />
 
         </MessagesStack.Navigator>
@@ -250,7 +251,7 @@ const MenuStack = createNativeStackNavigator<MenuStackParamList>();
 
 function MenuStackNavigator() {
     return (
-        <MenuStack.Navigator screenOptions={{ headerShown: false }}>
+        <MenuStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <MenuStack.Screen name="MenuMain" component={OwnerMenuScreen} />
             <MenuStack.Screen name="Profile" component={EditProfileScreen} />
             <MenuStack.Screen name="Availability" component={MasterAvailabilityScreen} />
@@ -322,7 +323,7 @@ const AcademyStack = createNativeStackNavigator<AcademyStackParamList>();
 
 function AcademyStackNavigator() {
     return (
-        <AcademyStack.Navigator screenOptions={{ headerShown: false }}>
+        <AcademyStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
             <AcademyStack.Screen name="ManageAcademy" component={ManageAcademyScreen} />
             <AcademyStack.Screen name="CourseEditor" component={CourseEditorScreen} />
             <AcademyStack.Screen name="LessonEditor" component={LessonEditorScreen} />
@@ -353,7 +354,7 @@ export function OwnerTabs() {
     };
 
     return (
-        <Tab.Navigator
+        <Tab.Navigator id={undefined}
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: styles.tabBar,
@@ -374,7 +375,7 @@ export function OwnerTabs() {
                 } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
-                        e.preventDefault();
+                        preventTabPressDefault(e);
                         navigation.dispatch(
                             CommonActions.reset({
                                 index: 0,
@@ -395,7 +396,7 @@ export function OwnerTabs() {
                 } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
-                        e.preventDefault();
+                        preventTabPressDefault(e);
                         navigation.dispatch(
                             CommonActions.reset({
                                 index: 0,
@@ -415,7 +416,7 @@ export function OwnerTabs() {
                 } as any}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
-                        e.preventDefault();
+                        preventTabPressDefault(e);
                         navigation.dispatch(
                             CommonActions.reset({
                                 index: 0,
@@ -437,7 +438,7 @@ export function OwnerTabs() {
                 } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
-                        e.preventDefault();
+                        preventTabPressDefault(e);
                         navigation.dispatch(
                             CommonActions.reset({
                                 index: 0,
@@ -458,7 +459,7 @@ export function OwnerTabs() {
                 } as any)}
                 listeners={({ navigation, route }) => ({
                     tabPress: (e) => {
-                        e.preventDefault();
+                        preventTabPressDefault(e);
                         navigation.dispatch(
                             CommonActions.reset({
                                 index: 0,
