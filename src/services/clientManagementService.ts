@@ -1,7 +1,7 @@
 // T08 — clientManagementService: owner client directory, walk-in invite,
 // owner-initiated pay-at-venue bookings (via owner_book_for_client RPC), and
 // client notification (conversation message mirroring bookingService pattern,
-// plus send-push-notification when the client has a push_token).
+// plus send-push-notification, addressed by client id).
 
 import { supabase } from '../lib/supabase';
 
@@ -165,7 +165,6 @@ async function hasSignedCurrentWaiver(clientId: string): Promise<boolean> {
 async function notifyClientOfBooking(args: {
     clientId: string;
     ownerUserId: string;
-    clientPushToken: string | null;
     serviceLabel: string;
     when: Date;
     isPilates: boolean;
@@ -184,20 +183,20 @@ async function notifyClientOfBooking(args: {
         if (error) console.warn('Owner booking message insert failed:', error.message);
     }
 
-    if (args.clientPushToken) {
-        try {
-            await supabase.functions.invoke('send-push-notification', {
-                body: {
-                    to: args.clientPushToken,
-                    sound: 'default',
-                    title: 'New booking from Merakí',
-                    body,
-                    data: { appointmentId: args.appointmentId },
-                },
-            });
-        } catch (e) {
-            console.warn('Owner booking push failed (non-fatal):', e);
-        }
+    // Addressed by recipient id: the edge function resolves the push token with the service
+    // role and reports {skipped: true} when the client has notifications off, so the caller
+    // no longer needs to fetch and pass a token around.
+    try {
+        await supabase.functions.invoke('send-push-notification', {
+            body: {
+                userId: args.clientId,
+                title: 'New booking from Merakí',
+                body,
+                data: { type: 'appointment_reminder', appointmentId: args.appointmentId },
+            },
+        });
+    } catch (e) {
+        console.warn('Owner booking push failed (non-fatal):', e);
     }
 }
 
@@ -205,7 +204,7 @@ export async function addClientToPilatesSession(
     clientId: string,
     sessionId: string,
     notes: string | undefined,
-    ctx: { ownerUserId: string; clientPushToken: string | null; serviceLabel: string; startsAt: string },
+    ctx: { ownerUserId: string; serviceLabel: string; startsAt: string },
 ): Promise<{ error: string | null }> {
     try {
         const { data: appointmentId, error } = await supabase.rpc('owner_book_for_client', {
@@ -217,7 +216,6 @@ export async function addClientToPilatesSession(
         await notifyClientOfBooking({
             clientId,
             ownerUserId: ctx.ownerUserId,
-            clientPushToken: ctx.clientPushToken,
             serviceLabel: ctx.serviceLabel,
             when: new Date(ctx.startsAt),
             isPilates: true,
@@ -235,7 +233,7 @@ export async function addClientToBeautyAppointment(
     serviceId: string,
     startTimeIso: string,
     notes: string | undefined,
-    ctx: { ownerUserId: string; clientPushToken: string | null; serviceLabel: string },
+    ctx: { ownerUserId: string; serviceLabel: string },
 ): Promise<{ error: string | null }> {
     try {
         const { data: appointmentId, error } = await supabase.rpc('owner_book_for_client', {
@@ -249,7 +247,6 @@ export async function addClientToBeautyAppointment(
         await notifyClientOfBooking({
             clientId,
             ownerUserId: ctx.ownerUserId,
-            clientPushToken: ctx.clientPushToken,
             serviceLabel: ctx.serviceLabel,
             when: new Date(startTimeIso),
             isPilates: false,

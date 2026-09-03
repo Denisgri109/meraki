@@ -112,18 +112,8 @@ export function BookingConsultationReviewScreen() {
     // Send push notification to client
     const notifyClient = async (clientId: string, title: string, body: string, data?: Record<string, any>) => {
         try {
-            const { data: clientProfile } = await supabase
-                .from('profiles')
-                .select('push_token')
-                .eq('id', clientId)
-                .single();
-
-            const pushToken = clientProfile?.push_token;
-            if (!pushToken) return;
-
             await supabase.functions.invoke('send-push-notification', { body: {
-                    to: pushToken,
-                    sound: 'default',
+                    userId: clientId,
                     title,
                     body,
                     data: { type: 'consultation_response', ...data },

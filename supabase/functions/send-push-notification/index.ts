@@ -9,7 +9,6 @@ interface PushMessage {
   body: string;
   data?: Record<string, unknown>;
   sound?: string;
-  badge?: number;
   channelId?: string;
 }
 
@@ -30,53 +29,79 @@ function channelFor(type: unknown): string {
   }
 }
 
-/**
- * verify_jwt alone is not enough here: the anon key that ships inside the app bundle is
- * itself a valid project JWT, so anyone holding it could relay an arbitrary title and body
- * to any Expo token they knew. Every legitimate caller is a signed-in screen, so require a
- * real user behind the token.
- */
-async function callerIsSignedIn(req: Request): Promise<boolean> {
-  const authorization = req.headers.get("Authorization");
-  if (!authorization) return false;
-
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authorization } } },
-  );
-
-  const { data, error } = await supabase.auth.getUser();
-  return !error && !!data.user;
+function json(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 Deno.serve(async (req: Request) => {
   try {
-    if (!(await callerIsSignedIn(req))) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Sign-in required" }),
-        { status: 401, headers: { "Content-Type": "application/json" } },
-      );
+    const authorization = req.headers.get("Authorization");
+    if (!authorization) return json({ success: false, error: "Sign-in required" }, 401);
+
+    // verify_jwt alone is not enough: the anon key shipped in the app bundle is itself a
+    // valid project JWT. Resolve the caller so only a real signed-in user gets through.
+    const caller = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authorization } } },
+    );
+
+    const { data: userData, error: userError } = await caller.auth.getUser();
+    if (userError || !userData.user) {
+      return json({ success: false, error: "Sign-in required" }, 401);
     }
 
-    const { token, title, body, data } = await req.json();
+    const { userId, title, body, data } = await req.json();
 
-    if (!token || !title || !body) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields: token, title, body" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+    if (!title || !body) {
+      return json({ error: "Missing required fields: title, body" }, 400);
+    }
+    // Recipients are named by id only. Accepting a caller-supplied push token was what let
+    // anyone who could read profiles.push_token relay an arbitrary message to that device.
+    if (!userId || typeof userId !== "string") {
+      return json({ error: "Missing required field: userId" }, 400);
     }
 
-    if (typeof token !== "string" || !token.startsWith("ExponentPushToken")) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Not a valid Expo push token" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+    // Authorise the same way the profiles policy does: studio staff, or someone the caller
+    // actually shares a conversation or an appointment with.
+    const [{ data: staff }, { data: viaChat }, { data: viaBooking }] = await Promise.all([
+      caller.rpc("is_staff"),
+      caller.rpc("shares_conversation_with", { p_other: userId }),
+      caller.rpc("shares_appointment_with", { p_other: userId }),
+    ]);
+
+    if (!staff && !viaChat && !viaBooking) {
+      return json({ success: false, error: "Not allowed to notify this user" }, 403);
+    }
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const { data: recipient, error: lookupError } = await admin
+      .from("profiles")
+      .select("push_token")
+      .eq("id", userId)
+      .single();
+
+    if (lookupError) {
+      return json({ success: false, error: "Recipient not found" }, 404);
+    }
+
+    const pushToken = recipient?.push_token ?? null;
+
+    // A recipient who never enabled notifications is not an error — the caller should carry
+    // on with whatever it was doing.
+    if (!pushToken || !pushToken.startsWith("ExponentPushToken")) {
+      return json({ success: false, skipped: true, reason: "No push token registered" }, 200);
     }
 
     const message: PushMessage = {
-      to: token,
+      to: pushToken,
       title,
       body,
       data: data ?? {},
@@ -103,22 +128,24 @@ Deno.serve(async (req: Request) => {
     const ticket = Array.isArray(result?.data) ? result.data[0] : result?.data;
     const accepted = response.ok && ticket?.status === "ok";
 
-    return new Response(
-      JSON.stringify({
+    // Drop a token Expo says is dead so it is not retried forever.
+    if (!accepted && ticket?.details?.error === "DeviceNotRegistered") {
+      await admin
+        .from("profiles")
+        .update({ push_token: null, push_token_updated_at: null })
+        .eq("id", userId);
+    }
+
+    return json(
+      {
         success: accepted,
         error: accepted ? undefined : ticket?.message ?? result?.errors ?? "Push was rejected",
         details: ticket?.details,
         result,
-      }),
-      {
-        status: accepted ? 200 : 502,
-        headers: { "Content-Type": "application/json" },
       },
+      accepted ? 200 : 502,
     );
   } catch (error) {
-    return new Response(
-      JSON.stringify({ success: false, error: (error as Error).message }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    return json({ success: false, error: (error as Error).message }, 500);
   }
 });

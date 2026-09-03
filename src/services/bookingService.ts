@@ -176,18 +176,18 @@ export const confirmBooking = async ({
         console.warn('Failed to auto-create conversation', err);
     }
 
-    if (master?.push_token) {
-        try {
-            await supabase.functions.invoke('send-push-notification', { body: {
-                    to: master.push_token,
-                    sound: 'default',
-                    title: 'New Booking Confirmed ✅',
-                    body: `${profile?.full_name || 'A client'} booked ${service.name} on ${format(startTime, 'MMM d')} at ${format(startTime, 'HH:mm')}.`,
-                    data: { appointmentId: appointmentId },
-                } });
-        } catch (e) {
-            console.error('Failed to send booking notification:', e);
-        }
+    // Addressed by recipient id, not by push token: the edge function looks the token up
+    // with the service role, so the app never has to read anyone else's token. It also
+    // returns {skipped: true} rather than an error when the master has notifications off.
+    try {
+        await supabase.functions.invoke('send-push-notification', { body: {
+                userId: masterId,
+                title: 'New Booking Confirmed ✅',
+                body: `${profile?.full_name || 'A client'} booked ${service.name} on ${format(startTime, 'MMM d')} at ${format(startTime, 'HH:mm')}.`,
+                data: { type: 'appointment_reminder', appointmentId: appointmentId },
+            } });
+    } catch (e) {
+        console.error('Failed to send booking notification:', e);
     }
 
     return appointmentId;

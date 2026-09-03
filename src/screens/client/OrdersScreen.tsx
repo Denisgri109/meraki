@@ -41,7 +41,7 @@ type Appointment = {
     service_name: string | null;
     service_category: string | null;
     service: { name: string; duration_minutes: number; category?: string } | null;
-    master: { full_name: string; push_token?: string } | null;
+    master: { full_name: string } | null;
 };
 
 type ProductOrder = {
@@ -133,7 +133,7 @@ export function OrdersScreen() {
                     service_name,
                     service_category,
                     service:services(name, duration_minutes, category),
-                    master:profiles!appointments_master_id_fkey(full_name, push_token)
+                    master:profiles!appointments_master_id_fkey(full_name)
                 `)
                 .eq('client_id', user.id)
                 .order('start_time', { ascending: false });
@@ -227,16 +227,14 @@ export function OrdersScreen() {
 
     // Send notification to Master about cancellation
     const notifyMasterOfCancellation = async (apt: Appointment) => {
-        const masterPushToken = apt.master?.push_token;
-        if (!masterPushToken) return;
+        if (!apt.master_id) return;
 
         try {
             await supabase.functions.invoke('send-push-notification', { body: {
-                    to: masterPushToken,
-                    sound: 'default',
+                    userId: apt.master_id,
                     title: 'Appointment Canceled',
                     body: `${user?.user_metadata?.full_name || 'Client'} canceled their appointment. The slot is open again.`,
-                    data: { appointmentId: apt.id },
+                    data: { type: 'appointment_reminder', appointmentId: apt.id },
                 } });
         } catch (e) {
             console.error('Failed to send cancellation notification:', e);
@@ -287,8 +285,7 @@ export function OrdersScreen() {
 
     // Notify master of reschedule
     const notifyMasterOfReschedule = async (apt: Appointment, newTime: Date, needsApproval: boolean) => {
-        const masterPushToken = apt.master?.push_token;
-        if (!masterPushToken) return;
+        if (!apt.master_id) return;
 
         const message = needsApproval
             ? `${user?.user_metadata?.full_name || 'Client'} wants to move today's appt to ${format(newTime, 'EEEE, MMM d at HH:mm')}. Approve or decline?`
@@ -296,11 +293,10 @@ export function OrdersScreen() {
 
         try {
             await supabase.functions.invoke('send-push-notification', { body: {
-                    to: masterPushToken,
-                    sound: 'default',
+                    userId: apt.master_id,
                     title: needsApproval ? 'Reschedule Request' : 'Appointment Rescheduled',
                     body: message,
-                    data: { appointmentId: apt.id },
+                    data: { type: 'appointment_reminder', appointmentId: apt.id },
                 } });
         } catch (e) {
             console.error('Failed to send reschedule notification:', e);

@@ -42,7 +42,7 @@ type Appointment = {
     service_name: string | null;
     service_category: string | null;
     service: { name: string; duration_minutes: number } | null;
-    client: { full_name: string; phone: string | null; push_token?: string } | null;
+    client: { full_name: string; phone: string | null } | null;
     deposit_amount?: number | null;
     deposit_paid?: boolean | null;
 };
@@ -106,7 +106,7 @@ export function MasterAppointmentsScreen() {
                     service_name,
                     service_category,
                     service:services(name, duration_minutes),
-                    client:profiles!appointments_client_id_fkey(full_name, phone, push_token),
+                    client:profiles!appointments_client_id_fkey(full_name, phone),
                     confirmation:appointment_confirmations(confirmed, confirmed_at)
                 `)
                 .eq('master_id', user.id)
@@ -364,15 +364,15 @@ export function MasterAppointmentsScreen() {
 
             if (error) throw error;
 
-            // Send Push Notification to Client
-            const clientPushToken = (appointmentToReschedule as any).client?.push_token;
-            if (clientPushToken) {
+            // Send Push Notification to Client, addressed by user id — the edge function
+            // resolves the token itself so the app never reads someone else's.
+            const clientId = (appointmentToReschedule as any).client_id;
+            if (clientId) {
                 await supabase.functions.invoke('send-push-notification', { body: {
-                        to: clientPushToken,
-                        sound: 'default',
+                        userId: clientId,
                         title: 'Reschedule Request',
                         body: `Master ${user?.user_metadata?.full_name || ''} proposed a new time for your appointment.`,
-                        data: { appointmentId: appointmentToReschedule.id },
+                        data: { type: 'appointment_reminder', appointmentId: appointmentToReschedule.id },
                     } });
             }
 

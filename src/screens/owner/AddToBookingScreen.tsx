@@ -43,7 +43,6 @@ export function AddToBookingScreen() {
     const [notes, setNotes] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
-    const [clientPushToken, setClientPushToken] = useState<string | null>(null);
     const [clientName, setClientName] = useState<string>('');
 
     // Pilatessessions w/ booked counts
@@ -64,11 +63,10 @@ export function AddToBookingScreen() {
     const loadBasics = useCallback(async () => {
         const { data: client } = await supabase
             .from('profiles')
-            .select('full_name, push_token')
+            .select('full_name')
             .eq('id', clientId)
             .maybeSingle();
         setClientName((client as any)?.full_name || 'Client');
-        setClientPushToken((client as any)?.push_token ?? null);
 
         const { data: raw } = await supabase
             .from('pilates_class_sessions')
@@ -180,7 +178,6 @@ export function AddToBookingScreen() {
                 if (!selectedSession) { await showAlert('Pick a session first.', 'Add to Booking'); return; }
                 const res = await addClientToPilatesSession(clientId, selectedSession.id, notes.trim() || undefined, {
                     ownerUserId: user.id,
-                    clientPushToken,
                     serviceLabel: selectedSession.service_name,
                     startsAt: selectedSession.starts_at,
                 });
@@ -192,7 +189,6 @@ export function AddToBookingScreen() {
                 const svc = services.find(s => s.id === serviceId);
                 const res = await addClientToBeautyAppointment(clientId, masterId, serviceId, new Date(selectedSlot).toISOString(), notes.trim() || undefined, {
                     ownerUserId: user.id,
-                    clientPushToken,
                     serviceLabel: svc?.name || 'appointment',
                 });
                 if (res.error) { await showAlert(res.error, 'Booking Error'); return; }

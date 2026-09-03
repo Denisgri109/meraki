@@ -323,7 +323,7 @@ describe('confirmBooking — side effects', () => {
         await expect(confirmBooking(BASE)).resolves.toBe('appt-123');
     });
 
-    it('invokes send-push-notification edge function when master has push_token', async () => {
+    it('notifies the master by user id, not by push token', async () => {
         mockTables();
         (BASE.confirmPayment as jest.Mock).mockResolvedValue({ error: null });
         supabaseMock.functions.invoke.mockResolvedValue({ data: {}, error: null });
@@ -334,21 +334,35 @@ describe('confirmBooking — side effects', () => {
             'send-push-notification',
             expect.objectContaining({
                 body: expect.objectContaining({
-                    to: 'ExponentPushToken[m]',
+                    userId: BASE.masterId,
                     title: expect.stringContaining('New Booking Confirmed'),
-                    data: { appointmentId: 'appt-123' },
+                    // A `type` is required or NotificationContext cannot route the tap.
+                    data: { type: 'appointment_reminder', appointmentId: 'appt-123' },
                 }),
             })
         );
     });
 
-    it('does not invoke push edge function when master.push_token is absent', async () => {
+    it('never sends a push token to the edge function', async () => {
         mockTables();
         (BASE.confirmPayment as jest.Mock).mockResolvedValue({ error: null });
+        supabaseMock.functions.invoke.mockResolvedValue({ data: {}, error: null });
 
-        await confirmBooking({ ...BASE, master: mockMaster({ push_token: null }) });
+        await confirmBooking(BASE);
 
-        expect(supabaseMock.functions.invoke).not.toHaveBeenCalled();
+        const [, options] = supabaseMock.functions.invoke.mock.calls[0];
+        expect(options.body).not.toHaveProperty('to');
+        expect(options.body).not.toHaveProperty('token');
+    });
+
+    it('still notifies when the master has no token — the function reports it as skipped', async () => {
+        mockTables();
+        (BASE.confirmPayment as jest.Mock).mockResolvedValue({ error: null });
+        supabaseMock.functions.invoke.mockResolvedValue({ data: { skipped: true }, error: null });
+
+        await expect(
+            confirmBooking({ ...BASE, master: mockMaster({ push_token: null }) })
+        ).resolves.toBe('appt-123');
     });
 
     it('swallows push-notification failures without failing the booking', async () => {

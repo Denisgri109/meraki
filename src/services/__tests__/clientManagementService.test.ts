@@ -173,7 +173,6 @@ describe('addClientToPilatesSession', () => {
 
         const res = await addClientToPilatesSession(CLIENT, 'sess-1', 'note', {
             ownerUserId: OWNER,
-            clientPushToken: 'ExponentPushToken[xyz]',
             serviceLabel: 'Reformer',
             startsAt: '2026-08-10T18:00:00Z',
         });
@@ -185,7 +184,7 @@ describe('addClientToPilatesSession', () => {
         });
         expect(mockInvoke).toHaveBeenCalledWith('send-push-notification', expect.objectContaining({
             body: expect.objectContaining({
-                to: 'ExponentPushToken[xyz]',
+                userId: CLIENT,
                 body: expect.stringContaining('Please sign your pilates waiver'),
             }),
         }));
@@ -198,29 +197,36 @@ describe('addClientToPilatesSession', () => {
         mockTables['messages'] = [{ data: { id: 'm1' }, error: null }];
 
         await addClientToPilatesSession(CLIENT, 's1', undefined, {
-            ownerUserId: OWNER, clientPushToken: 't', serviceLabel: 'Reformer', startsAt: '2026-08-10T18:00:00Z',
+            ownerUserId: OWNER, serviceLabel: 'Reformer', startsAt: '2026-08-10T18:00:00Z',
         });
         expect(mockInvoke).toHaveBeenCalledWith('send-push-notification', expect.objectContaining({
             body: expect.objectContaining({ body: expect.not.stringContaining('waiver') }),
         }));
     });
 
-    it('does NOT push when client has no push_token', async () => {
+    it('addresses the push by client id and never sends a push token', async () => {
         mockRpcs['owner_book_for_client'] = { data: 'appt-3', error: null };
         mockTables['pilates_waivers'] = [{ data: [], error: null }];
         mockTables['conversations'] = [{ data: { id: 'c1' }, error: null }];
         mockTables['messages'] = [{ data: { id: 'm1' }, error: null }];
 
         await addClientToPilatesSession(CLIENT, 's1', undefined, {
-            ownerUserId: OWNER, clientPushToken: null, serviceLabel: 'Reformer', startsAt: '2026-08-10T18:00:00Z',
+            ownerUserId: OWNER, serviceLabel: 'Reformer', startsAt: '2026-08-10T18:00:00Z',
         });
-        expect(mockInvoke).not.toHaveBeenCalledWith('send-push-notification', expect.anything());
+
+        // Whether the client has notifications on is now the edge function's business; it
+        // answers {skipped: true} rather than making the caller fetch a token first.
+        const call = mockInvoke.mock.calls.find((c: any[]) => c[0] === 'send-push-notification');
+        expect(call).toBeDefined();
+        expect(call[1].body.userId).toBe(CLIENT);
+        expect(call[1].body).not.toHaveProperty('to');
+        expect(call[1].body).not.toHaveProperty('token');
     });
 
     it('surfaces RPC error verbatim (duplicate 23505-style message)', async () => {
         mockRpcs['owner_book_for_client'] = { data: null, error: { message: 'Client is already booked on this session' } };
         const res = await addClientToPilatesSession(CLIENT, 's1', undefined, {
-            ownerUserId: OWNER, clientPushToken: null, serviceLabel: 'R', startsAt: '2026-08-10T18:00:00Z',
+            ownerUserId: OWNER, serviceLabel: 'R', startsAt: '2026-08-10T18:00:00Z',
         });
         expect(res.error).toBe('Client is already booked on this session');
     });
@@ -233,7 +239,7 @@ describe('addClientToBeautyAppointment', () => {
         mockTables['messages'] = [{ data: { id: 'm1' }, error: null }];
 
         const res = await addClientToBeautyAppointment(CLIENT, 'm1', 'svc-1', '2026-08-10T12:00:00.000Z', 'n', {
-            ownerUserId: OWNER, clientPushToken: 'tok', serviceLabel: 'Facial',
+            ownerUserId: OWNER, serviceLabel: 'Facial',
         });
 
         expect(res.error).toBeNull();

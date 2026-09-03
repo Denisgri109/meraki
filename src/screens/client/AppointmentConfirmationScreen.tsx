@@ -104,18 +104,20 @@ export function AppointmentConfirmationScreen({ navigation, route }: Appointment
     // Tell the master what the client decided. The website does the same, so
     // both platforms notify identically.
     const notifyMaster = async (confirmed: boolean) => {
-        const pushToken = (master as any)?.push_token;
-        if (!pushToken) return;
+        const masterId = (master as any)?.id;
+        if (!masterId) return;
         try {
             await supabase.functions.invoke('send-push-notification', {
                 body: {
-                    to: pushToken,
-                    sound: 'default',
+                    userId: masterId,
                     title: confirmed ? 'Appointment Confirmed ✅' : 'Appointment Cancelled',
                     body: confirmed
                         ? 'A client confirmed their attendance.'
                         : 'A client cancelled their appointment. The slot is open again.',
-                    data: { appointmentId, type: confirmed ? 'appointment_confirmed' : 'appointment_cancelled' },
+                    // NotificationContext only routes its known types; the old
+                    // appointment_confirmed / appointment_cancelled values fell through and
+                    // the tap did nothing.
+                    data: { type: 'appointment_reminder', appointmentId },
                 },
             });
         } catch (e) {

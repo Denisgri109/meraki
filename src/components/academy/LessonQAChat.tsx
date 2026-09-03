@@ -175,20 +175,12 @@ export function useLessonQA({ lessonId, courseId, instructorId, isInstructor }: 
 
             if (!isInstructor && instructorId) {
                 try {
-                    const { data: instructorProfile } = await supabase
-                        .from('profiles')
-                        .select('push_token')
-                        .eq('id', instructorId)
-                        .single();
-
-                    if (instructorProfile?.push_token) {
-                        await sendPushNotification(
-                            instructorProfile.push_token,
-                            `${profile?.full_name || 'A student'} asked a question`,
-                            content?.trim() || 'Sent a photo',
-                            { type: 'lesson_qa', lesson_id: lessonId, course_id: courseId }
-                        );
-                    }
+                    await sendPushNotification(
+                        instructorId,
+                        `${profile?.full_name || 'A student'} asked a question`,
+                        content?.trim() || 'Sent a photo',
+                        { type: 'message', lesson_id: lessonId, course_id: courseId }
+                    );
                 } catch (pushErr) {
                     console.warn('Push notification skipped:', pushErr);
                 }
@@ -196,20 +188,12 @@ export function useLessonQA({ lessonId, courseId, instructorId, isInstructor }: 
 
             if (isInstructor && replyTo?.sender_id) {
                 try {
-                    const { data: studentProfile } = await supabase
-                        .from('profiles')
-                        .select('push_token')
-                        .eq('id', replyTo.sender_id)
-                        .single();
-
-                    if (studentProfile?.push_token) {
-                        await sendPushNotification(
-                            studentProfile.push_token,
-                            'Instructor replied to your question!',
-                            content?.trim() || 'Sent feedback',
-                            { type: 'lesson_qa', lesson_id: lessonId, course_id: courseId }
-                        );
-                    }
+                    await sendPushNotification(
+                        replyTo.sender_id,
+                        'Instructor replied to your question!',
+                        content?.trim() || 'Sent feedback',
+                        { type: 'message', lesson_id: lessonId, course_id: courseId }
+                    );
                 } catch (pushErr) {
                     console.warn('Push notification skipped:', pushErr);
                 }
@@ -762,20 +746,23 @@ function formatTime(dateString: string): string {
     return `${date.getDate()}/${date.getMonth() + 1} ${hours}:${mins}`;
 }
 
+/**
+ * Addressed by recipient id. The edge function resolves the push token with the service
+ * role, so the app never reads another user's token, and it picks the Android channel from
+ * data.type.
+ */
 async function sendPushNotification(
-    pushToken: string,
+    userId: string,
     title: string,
     body: string,
     data: Record<string, string>
 ) {
     try {
         await supabase.functions.invoke('send-push-notification', { body: {
-                to: pushToken,
-                sound: 'default',
+                userId,
                 title,
                 body,
                 data,
-                channelId: 'messages',
             } });
     } catch (err) {
         console.error('Push notification send error:', err);
