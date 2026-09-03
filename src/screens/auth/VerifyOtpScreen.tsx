@@ -163,6 +163,8 @@ export function VerifyOtpScreen({ navigation, route }: VerifyOtpScreenProps) {
                 >
                     <View style={styles.header}>
                         <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back"
                             style={styles.backButton}
                             onPress={() => navigation.goBack()}
                         >

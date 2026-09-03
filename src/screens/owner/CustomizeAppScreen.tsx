@@ -313,7 +313,9 @@ export function CustomizeAppScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.backBtn}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => safeGoBack(navigation)} style={styles.backBtn}>
                         <MaterialIcons name="arrow-back" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText style={styles.headerTitle}>Customize App</MerakiText>
@@ -748,6 +750,8 @@ export function CustomizeAppScreen() {
                                         </View>
                                         <View style={styles.faqActions}>
                                             <TouchableOpacity
+                                                accessibilityRole="button"
+                                                accessibilityLabel="Edit"
                                                 onPress={() => openFaqEditor(faq)}
                                                 style={styles.faqIconButton}
                                                 disabled={savingFaqs}
@@ -759,6 +763,8 @@ export function CustomizeAppScreen() {
                                                 />
                                             </TouchableOpacity>
                                             <TouchableOpacity
+                                                accessibilityRole="button"
+                                                accessibilityLabel="Delete"
                                                 onPress={() => handleDeleteFaq(faq)}
                                                 style={styles.faqIconButton}
                                                 disabled={savingFaqs}
@@ -840,6 +846,8 @@ export function CustomizeAppScreen() {
                                     {editingFaqId ? 'Edit question' : 'New question'}
                                 </MerakiText>
                                 <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close"
                                     onPress={() => setFaqModalOpen(false)}
                                     style={styles.faqIconButton}
                                 >

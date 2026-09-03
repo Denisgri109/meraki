@@ -129,6 +129,8 @@ export function CoursesListScreen() {
                 />
 
                 <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Add"
                     style={styles.fab}
                     onPress={() => navigation.navigate('CourseEditor', { courseId: null })}
                 >

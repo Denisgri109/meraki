@@ -463,6 +463,8 @@ export function OrdersScreen() {
                 {/* Header — Stitch Style */}
                 <View style={styles.header}>
                     <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back"
                         style={styles.backButton}
                         onPress={handleBack}
                     >
@@ -579,6 +581,8 @@ export function OrdersScreen() {
                                                 {canModify && (
                                                     <View style={styles.actionButtons}>
                                                         <TouchableOpacity
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel="Messages"
                                                             style={styles.chatButton}
                                                             onPress={() => handleChat(apt)}
                                                         >

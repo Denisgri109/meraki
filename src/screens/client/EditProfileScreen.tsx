@@ -611,7 +611,9 @@ export function EditProfileScreen() {
                 {uploadingPhoto ? (
                     <ActivityIndicator size="large" color={colors.accent} style={{ marginBottom: spacing.md }} />
                 ) : (
-                    <TouchableOpacity onPress={handleChangePhoto} activeOpacity={0.8}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Profile" onPress={handleChangePhoto} activeOpacity={0.8}>
                         {profile?.avatar_url ? (
                             <Image source={{ uri: profile.avatar_url }} style={styles.personalAvatar} />
                         ) : (
@@ -987,7 +989,9 @@ export function EditProfileScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <View style={styles.modalHeader}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.modalCloseBtn}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.modalCloseBtn}>
                         <MaterialIcons name="arrow-back" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText variant="h2" style={styles.modalTitle}>Edit Profile</MerakiText>
@@ -1114,7 +1118,9 @@ export function EditProfileScreen() {
                                                             placeholderTextColor={colors.textMuted}
                                                             autoCapitalize="none"
                                                         />
-                                                        <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)} style={cpStyles.eyeBtn}>
+                                                        <TouchableOpacity
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel="Show or hide password" onPress={() => setShowCurrentPassword(!showCurrentPassword)} style={cpStyles.eyeBtn}>
                                                             <MaterialIcons name={showCurrentPassword ? 'visibility-off' : 'visibility'} size={20} color={colors.textSecondary} />
                                                         </TouchableOpacity>
                                                     </View>
@@ -1132,7 +1138,9 @@ export function EditProfileScreen() {
                                                             placeholderTextColor={colors.textMuted}
                                                             autoCapitalize="none"
                                                         />
-                                                        <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)} style={cpStyles.eyeBtn}>
+                                                        <TouchableOpacity
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel="Show or hide password" onPress={() => setShowNewPassword(!showNewPassword)} style={cpStyles.eyeBtn}>
                                                             <MaterialIcons name={showNewPassword ? 'visibility-off' : 'visibility'} size={20} color={colors.textSecondary} />
                                                         </TouchableOpacity>
                                                     </View>
@@ -1151,7 +1159,9 @@ export function EditProfileScreen() {
                                                             placeholderTextColor={colors.textMuted}
                                                             autoCapitalize="none"
                                                         />
-                                                        <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={cpStyles.eyeBtn}>
+                                                        <TouchableOpacity
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel="Show or hide password" onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={cpStyles.eyeBtn}>
                                                             <MaterialIcons name={showConfirmPassword ? 'visibility-off' : 'visibility'} size={20} color={colors.textSecondary} />
                                                         </TouchableOpacity>
                                                     </View>
@@ -1251,7 +1261,9 @@ export function EditProfileScreen() {
                                                             placeholderTextColor={colors.textMuted}
                                                             autoCapitalize="none"
                                                         />
-                                                        <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)} style={cpStyles.eyeBtn}>
+                                                        <TouchableOpacity
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel="Show or hide password" onPress={() => setShowNewPassword(!showNewPassword)} style={cpStyles.eyeBtn}>
                                                             <MaterialIcons name={showNewPassword ? 'visibility-off' : 'visibility'} size={20} color={colors.textSecondary} />
                                                         </TouchableOpacity>
                                                     </View>
@@ -1270,7 +1282,9 @@ export function EditProfileScreen() {
                                                             placeholderTextColor={colors.textMuted}
                                                             autoCapitalize="none"
                                                         />
-                                                        <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={cpStyles.eyeBtn}>
+                                                        <TouchableOpacity
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel="Show or hide password" onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={cpStyles.eyeBtn}>
                                                             <MaterialIcons name={showConfirmPassword ? 'visibility-off' : 'visibility'} size={20} color={colors.textSecondary} />
                                                         </TouchableOpacity>
                                                     </View>

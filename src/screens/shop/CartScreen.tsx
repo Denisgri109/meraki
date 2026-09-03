@@ -42,7 +42,9 @@ export function CartScreen() {
                 <SafeAreaView style={styles.container}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backBtn}>
                             <MaterialIcons name="arrow-back" size={22} color="#1A1A1A" />
                         </TouchableOpacity>
                         <MerakiText style={styles.headerTitle}>BAG</MerakiText>
@@ -72,7 +74,9 @@ export function CartScreen() {
             <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backBtn}>
                         <MaterialIcons name="arrow-back" size={22} color="#1A1A1A" />
                     </TouchableOpacity>
                     <MerakiText style={styles.headerTitle}>BAG</MerakiText>
@@ -119,6 +123,8 @@ export function CartScreen() {
                                 {/* Quantity Controls */}
                                 <View style={styles.quantityRow}>
                                     <TouchableOpacity
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Delete"
                                         style={styles.qtyBtn}
                                         onPress={() => handleRemoveItem(item.id, item.name)}
                                     >

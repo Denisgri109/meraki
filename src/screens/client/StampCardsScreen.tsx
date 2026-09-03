@@ -115,6 +115,8 @@ export function StampCardsScreen() {
       <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
         <View style={styles.header}>
           <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
@@ -127,12 +129,16 @@ export function StampCardsScreen() {
           <MerakiText style={styles.headerTitle}>Stamp Cards</MerakiText>
           <View style={styles.headerActions}>
             <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Scan NFC tag"
               onPress={() => navigation.navigate("NFCScanner")}
               style={[styles.actionButton, { marginRight: 8 }]}
             >
               <MaterialIcons name="nfc" size={20} color={colors.primary} />
             </TouchableOpacity>
             <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Scan QR code"
               onPress={() => navigation.navigate("QRScanner")}
               style={styles.actionButton}
             >

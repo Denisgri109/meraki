@@ -191,7 +191,9 @@ export function ClassPackagesScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <View style={{ flex: 1 }}>
@@ -259,7 +261,9 @@ export function ClassPackagesScreen() {
                                             {pkg.is_active ? 'Hide' : 'Activate'}
                                         </Text>
                                     </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => handleDelete(pkg)} style={styles.deleteButton}>
+                                    <TouchableOpacity
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Delete" onPress={() => handleDelete(pkg)} style={styles.deleteButton}>
                                         <MaterialIcons name="delete-outline" size={16} color="#EF4444" />
                                     </TouchableOpacity>
                                 </View>
@@ -278,7 +282,9 @@ export function ClassPackagesScreen() {
                         <View style={styles.modalSheet}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{editing ? 'Edit Package' : 'Create Package'}</Text>
-                                <TouchableOpacity onPress={() => setShowModal(false)} disabled={saving} style={styles.closeButton}>
+                                <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close" onPress={() => setShowModal(false)} disabled={saving} style={styles.closeButton}>
                                     <MaterialIcons name="close" size={18} color={colors.textSecondary} />
                                 </TouchableOpacity>
                             </View>

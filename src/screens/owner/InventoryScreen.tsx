@@ -345,11 +345,15 @@ export function InventoryScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backBtn}>
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText variant="h3" style={styles.headerTitle}>Inventory</MerakiText>
-                    <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Add" style={styles.addButton} onPress={() => setShowAddModal(true)}>
                         <MaterialCommunityIcons name="plus" size={24} color={colors.text} />
                     </TouchableOpacity>
                 </View>
@@ -365,7 +369,9 @@ export function InventoryScreen() {
                         onChangeText={setSearchQuery}
                     />
                     {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Close" onPress={() => setSearchQuery('')}>
                             <MaterialCommunityIcons name="close" size={20} color={colors.textMuted} />
                         </TouchableOpacity>
                     )}
@@ -479,6 +485,8 @@ export function InventoryScreen() {
                                             </View>
                                         </View>
                                         <TouchableOpacity
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Delete"
                                             style={styles.deleteButton}
                                             onPress={() => handleDeleteProduct(product)}
                                         >

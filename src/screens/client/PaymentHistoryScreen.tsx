@@ -246,6 +246,8 @@ export function PaymentHistoryScreen() {
                 {/* Header — Stitch Style */}
                 <View style={styles.header}>
                     <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back"
                         style={styles.backButton}
                         onPress={handleBack}
                     >

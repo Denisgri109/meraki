@@ -190,7 +190,9 @@ export function PhotoConsultationRequestScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Photo Consultation</Text>

@@ -407,7 +407,9 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                 <ScrollView style={styles.scrollView}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                             <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                         <Text style={styles.title}>Confirm Booking</Text>

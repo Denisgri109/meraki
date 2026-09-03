@@ -116,7 +116,9 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
                                     variant="glass"
                                     containerStyle={styles.inputContainer}
                                     rightIcon={
-                                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                        <TouchableOpacity
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Show or hide password" onPress={() => setShowPassword(!showPassword)}>
                                             <MaterialIcons
                                                 name={showPassword ? 'visibility' : 'visibility-off'}
                                                 size={20}

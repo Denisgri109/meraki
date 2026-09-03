@@ -185,7 +185,9 @@ export function CreateServiceScreen() {
                     >
                         {/* Header */}
                         <View style={styles.header}>
-                            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                                 <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                             </TouchableOpacity>
                             <MerakiText variant="h1" style={{ marginBottom: spacing.xs }}>

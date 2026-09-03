@@ -48,7 +48,9 @@ export function ClientInviteScreen() {
             <ScreenBackground>
                 <SafeAreaView style={styles.container} edges={['top']}>
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={() => safeGoBack(navigation)} style={styles.backButton}>
                             <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                         </TouchableOpacity>
                         <MerakiText style={styles.title}>New Client</MerakiText>
@@ -70,7 +72,9 @@ export function ClientInviteScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => safeGoBack(navigation)} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText style={styles.title}>New Client</MerakiText>

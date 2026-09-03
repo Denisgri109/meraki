@@ -133,7 +133,9 @@ export function AddOwnerSupplyScreen() {
                     >
                         {/* Header */}
                         <View style={styles.header}>
-                            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                                 <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                             </TouchableOpacity>
                             <MerakiText variant="h3" style={styles.title}>
@@ -176,6 +178,8 @@ export function AddOwnerSupplyScreen() {
                                 <MerakiText variant="caption" style={styles.label}>Current Quantity *</MerakiText>
                                 <View style={styles.quantityInputRow}>
                                     <TouchableOpacity
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Remove"
                                         style={styles.adjustButton}
                                         onPress={() => handleAdjustQuantity(-1)}
                                     >
@@ -189,6 +193,8 @@ export function AddOwnerSupplyScreen() {
                                         textAlign="center"
                                     />
                                     <TouchableOpacity
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Add"
                                         style={styles.adjustButton}
                                         onPress={() => handleAdjustQuantity(1)}
                                     >

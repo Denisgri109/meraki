@@ -154,6 +154,8 @@ export function OwnerSuppliesScreen() {
                     </View>
                 </TouchableOpacity>
                 <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Delete"
                     style={styles.deleteButton}
                     onPress={() => handleDeleteSupply(item)}
                 >
@@ -172,11 +174,15 @@ export function OwnerSuppliesScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText variant="h3" style={styles.title}>My Supplies</MerakiText>
                     <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Add"
                         style={styles.addButton}
                         onPress={() => (navigation as any).navigate('AddOwnerSupply')}
                     >

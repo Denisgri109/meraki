@@ -707,7 +707,9 @@ export function PhotoConsultationReviewScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backBtn}>
                         <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <View style={styles.headerCenter}>

@@ -106,7 +106,9 @@ export function ManageAcademyScreen() {
         <View style={styles.container}>
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText variant="h3" style={styles.headerTitle}>Manage Academy</MerakiText>

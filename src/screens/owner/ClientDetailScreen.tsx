@@ -48,7 +48,9 @@ export function ClientDetailScreen() {
             <ScreenBackground>
                 <SafeAreaView style={styles.container} edges={['top']}>
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={() => safeGoBack(navigation)} style={styles.backButton}>
                             <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                         </TouchableOpacity>
                         <MerakiText style={styles.title}>Client</MerakiText>
@@ -100,7 +102,9 @@ export function ClientDetailScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => safeGoBack(navigation)} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText style={styles.title} numberOfLines={1}>{client?.full_name || 'Client'}</MerakiText>

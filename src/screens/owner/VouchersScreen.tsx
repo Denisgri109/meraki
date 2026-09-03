@@ -173,7 +173,9 @@ export function VouchersScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <View style={{ flex: 1 }}>
@@ -268,7 +270,9 @@ export function VouchersScreen() {
                                                 {v.is_active ? 'Deactivate' : 'Activate'}
                                             </Text>
                                         </TouchableOpacity>
-                                        <TouchableOpacity onPress={() => handleDelete(v)} style={styles.deleteButton}>
+                                        <TouchableOpacity
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Delete" onPress={() => handleDelete(v)} style={styles.deleteButton}>
                                             <MaterialIcons name="delete-outline" size={16} color="#EF4444" />
                                         </TouchableOpacity>
                                     </View>
@@ -292,7 +296,9 @@ export function VouchersScreen() {
                                         <Text style={styles.modalSubtitle}>Expires in 7 days · Benefit valid 7 days after redemption</Text>
                                     </View>
                                 </View>
-                                <TouchableOpacity onPress={() => setShowCreate(false)} style={styles.closeButton}>
+                                <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close" onPress={() => setShowCreate(false)} style={styles.closeButton}>
                                     <MaterialIcons name="close" size={18} color={colors.textSecondary} />
                                 </TouchableOpacity>
                             </View>

@@ -186,7 +186,9 @@ export function DiscoverMastersScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     <View style={styles.headerRow}>
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                             <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                         <MerakiText style={styles.headerTitle}>Discover Masters</MerakiText>
@@ -214,7 +216,9 @@ export function DiscoverMastersScreen() {
                             onChangeText={setSearchQuery}
                         />
                         {searchQuery.length > 0 && (
-                            <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Close" onPress={() => setSearchQuery('')}>
                                 <MaterialIcons name="cancel" size={20} color={colors.textMuted} />
                             </TouchableOpacity>
                         )}

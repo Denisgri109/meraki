@@ -323,7 +323,9 @@ export function PaymentMethodsScreen() {
                 >
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={handleBack} style={styles.backButton}>
                             <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                         <Text style={styles.title}>Payment Methods</Text>

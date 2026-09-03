@@ -324,7 +324,9 @@ export function BusinessSettingsScreen() {
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
                             <MerakiText variant="body" color={colors.text} style={{ fontWeight: '600' }}>{title}</MerakiText>
-                            <TouchableOpacity onPress={() => setPickerVisible(null)}>
+                            <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Close" onPress={() => setPickerVisible(null)}>
                                 <MaterialCommunityIcons name="close" size={22} color={colors.textMuted} />
                             </TouchableOpacity>
                         </View>
@@ -369,7 +371,9 @@ export function BusinessSettingsScreen() {
             <ScreenBackground>
                 <SafeAreaView style={styles.tcModalContainer} edges={['top']}>
                     <View style={styles.tcModalHeader}>
-                        <TouchableOpacity onPress={() => setTcModalVisible(false)} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={() => setTcModalVisible(false)} style={styles.backButton}>
                             <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                         </TouchableOpacity>
                         <View style={{ flex: 1 }}>
@@ -418,7 +422,9 @@ export function BusinessSettingsScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <View>

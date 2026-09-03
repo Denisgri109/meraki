@@ -615,13 +615,19 @@ export function ClientHomeScreen() {
                             <MerakiText style={styles.userName}>{profile?.full_name?.split(' ')[0] || 'Guest'}</MerakiText>
                         </View>
                         <View style={styles.headerIcons}>
-                            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('QRScanner')}>
+                            <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Scan QR code" style={styles.iconBtn} onPress={() => navigation.navigate('QRScanner')}>
                                 <MaterialIcons name="qr-code-scanner" size={20} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('NFCScanner')}>
+                            <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Scan NFC tag" style={styles.iconBtn} onPress={() => navigation.navigate('NFCScanner')}>
                                 <MaterialIcons name="nfc" size={20} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
+                            <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Notifications" style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
                                 <MaterialIcons name="notifications-none" size={22} color="rgba(0, 0, 0, 0.55)" />
                             </TouchableOpacity>
                             {cartCount > 0 && (

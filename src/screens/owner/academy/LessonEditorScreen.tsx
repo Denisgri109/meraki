@@ -220,12 +220,16 @@ export function LessonEditorScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText variant="h3" style={styles.headerTitle}>{isNew ? 'New Lesson' : 'Edit Lesson'}</MerakiText>
                     {!isNew ? (
-                        <TouchableOpacity onPress={() => setDeleteModalVisible(true)}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Delete" onPress={() => setDeleteModalVisible(true)}>
                             <MaterialCommunityIcons name="delete" size={24} color={colors.error} />
                         </TouchableOpacity>
                     ) : (

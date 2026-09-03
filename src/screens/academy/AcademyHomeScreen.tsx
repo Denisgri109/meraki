@@ -294,7 +294,9 @@ export function AcademyHomeScreen() {
                                 onChangeText={setSearchQuery}
                             />
                             {searchQuery.length > 0 && (
-                                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close" onPress={() => setSearchQuery('')}>
                                     <MaterialIcons name="close" size={18} color={colors.textMuted} />
                                 </TouchableOpacity>
                             )}

@@ -188,7 +188,9 @@ export function QrPaymentsScreen() {
             <ScreenBackground>
                 <SafeAreaView style={styles.container} edges={['top']}>
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                             <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                         </TouchableOpacity>
                         <Text style={styles.title}>QR Payments</Text>
@@ -210,7 +212,9 @@ export function QrPaymentsScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <View style={{ flex: 1 }}>
@@ -267,7 +271,9 @@ export function QrPaymentsScreen() {
                                                 <MaterialIcons name="edit" size={13} color="#1F2937" />
                                                 <Text style={styles.smallButtonText}>Edit</Text>
                                             </TouchableOpacity>
-                                            <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(code)}>
+                                            <TouchableOpacity
+                                                accessibilityRole="button"
+                                                accessibilityLabel="Delete" style={styles.deleteButton} onPress={() => handleDelete(code)}>
                                                 <MaterialIcons name="delete-outline" size={15} color="#EF4444" />
                                             </TouchableOpacity>
                                         </View>
@@ -286,6 +292,8 @@ export function QrPaymentsScreen() {
                 >
                     <View style={styles.fullscreenWrap}>
                         <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Close"
                             style={styles.fullscreenClose}
                             onPress={() => setFullscreen(null)}
                         >
@@ -314,7 +322,9 @@ export function QrPaymentsScreen() {
                         <View style={styles.modalSheet}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{editing ? 'Edit Payment Method' : 'Add Payment Method'}</Text>
-                                <TouchableOpacity onPress={() => setShowModal(false)} disabled={saving} style={styles.closeButton}>
+                                <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close" onPress={() => setShowModal(false)} disabled={saving} style={styles.closeButton}>
                                     <MaterialIcons name="close" size={18} color={colors.textSecondary} />
                                 </TouchableOpacity>
                             </View>

@@ -271,6 +271,8 @@ export function ServiceSuppliesScreen() {
                                 )}
                             </View>
                             <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Close"
                                 style={styles.unlinkButton}
                                 onPress={() => handleUnlinkSupply(link.id)}
                             >
@@ -298,7 +300,9 @@ export function ServiceSuppliesScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     {serviceId && (
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backBtn}>
                             <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                         </TouchableOpacity>
                     )}
@@ -349,7 +353,9 @@ export function ServiceSuppliesScreen() {
                         <SafeAreaView style={styles.modalContainer} edges={['top']}>
                             <View style={styles.modalHeader}>
                                 <MerakiText variant="h2" style={{ flex: 1, marginRight: spacing.md }}>Link Supply to {selectedService?.name}</MerakiText>
-                                <TouchableOpacity onPress={() => setShowLinkModal(false)}>
+                                <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close" onPress={() => setShowLinkModal(false)}>
                                     <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
                                 </TouchableOpacity>
                             </View>

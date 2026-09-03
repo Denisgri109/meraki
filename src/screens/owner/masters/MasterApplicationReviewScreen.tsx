@@ -111,7 +111,9 @@ export function MasterApplicationReviewScreen() {
             <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backBtn}>
                         <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText variant="bodyBold" style={styles.headerTitle} numberOfLines={1}>

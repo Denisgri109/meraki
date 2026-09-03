@@ -256,6 +256,8 @@ export function ScanToPayScreen() {
                 <SafeAreaView style={styles.overlay}>
                     <View style={styles.header}>
                         <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Close"
                             style={styles.closeButton}
                             onPress={() => navigation.goBack()}
                         >

@@ -147,7 +147,9 @@ export function OwnerOrderDetailScreen() {
             <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backBtn}>
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText variant="h2">Order Detail</MerakiText>

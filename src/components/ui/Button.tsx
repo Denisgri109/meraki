@@ -71,6 +71,9 @@ export function Button({
                     containerStyle
                 ]}
                 disabled={isDisabled}
+                accessibilityRole="button"
+                accessibilityLabel={props.accessibilityLabel ?? title}
+                accessibilityState={{ disabled: !!isDisabled, busy: loading }}
                 {...props}
             >
                 {content}
@@ -84,6 +87,9 @@ export function Button({
                 onPress={props.onPress}
                 activeOpacity={0.8}
                 disabled={isDisabled}
+                accessibilityRole="button"
+                accessibilityLabel={props.accessibilityLabel ?? title}
+                accessibilityState={{ disabled: !!isDisabled, busy: loading }}
                 style={[containerStyle, isDisabled && styles.disabled, style]}
                 {...props}
             >
@@ -106,6 +112,9 @@ export function Button({
     return (
         <TouchableOpacity
             disabled={isDisabled}
+            accessibilityRole="button"
+            accessibilityLabel={props.accessibilityLabel ?? title}
+            accessibilityState={{ disabled: !!isDisabled, busy: loading }}
             style={[
                 styles.button,
                 getVariantStyle(variant),

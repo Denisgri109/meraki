@@ -87,6 +87,8 @@ export function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) 
         <View style={styles.content}>
             <View style={styles.header}>
                 <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Go back"
                     style={styles.backButton}
                     onPress={() => navigation.goBack()}
                 >

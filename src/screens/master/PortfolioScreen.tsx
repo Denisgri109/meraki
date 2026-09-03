@@ -265,6 +265,8 @@ export function PortfolioScreen() {
 
     const renderItem = ({ item }: { item: Portfolio }) => (
         <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Edit text"
             style={styles.itemContainer}
             onPress={() => openDetail(item)}
             activeOpacity={0.8}
@@ -335,6 +337,8 @@ export function PortfolioScreen() {
                         {/* Actions */}
                         <View style={styles.modalActions}>
                             <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Delete"
                                 style={styles.deleteButton}
                                 onPress={() => deleteImage(selectedItem)}
                                 activeOpacity={0.7}
@@ -378,7 +382,9 @@ export function PortfolioScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText variant="h2">Portfolio</MerakiText>

@@ -155,7 +155,9 @@ export function AddToBookingScreen() {
             <ScreenBackground>
                 <SafeAreaView style={styles.container} edges={['top']}>
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={() => safeGoBack(navigation)} style={styles.backButton}>
                             <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                         </TouchableOpacity>
                         <MerakiText style={styles.title}>Add to Booking</MerakiText>
@@ -208,7 +210,9 @@ export function AddToBookingScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => safeGoBack(navigation)} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText style={styles.title} numberOfLines={1}>Add {clientName || 'client'}</MerakiText>

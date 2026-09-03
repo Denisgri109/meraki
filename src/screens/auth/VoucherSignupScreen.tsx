@@ -183,6 +183,8 @@ export function VoucherSignupScreen({ navigation }: VoucherSignupScreenProps) {
                         {/* Header */}
                         <View style={styles.header}>
                             <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Go back"
                                 style={styles.backButton}
                                 onPress={() => navigation.goBack()}
                             >
@@ -226,7 +228,9 @@ export function VoucherSignupScreen({ navigation }: VoucherSignupScreenProps) {
                                 autoCapitalize="none"
                                 autoCorrect={false}
                                 rightIcon={
-                                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                    <TouchableOpacity
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Show or hide password" onPress={() => setShowPassword(!showPassword)}>
                                         <MaterialIcons
                                             name={showPassword ? 'visibility-off' : 'visibility'}
                                             size={20}

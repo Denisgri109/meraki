@@ -189,7 +189,9 @@ export function SearchMastersScreen() {
                         onChangeText={setSearchQuery}
                     />
                     {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Close" onPress={() => setSearchQuery('')}>
                             <MaterialIcons name="cancel" size={20} color={colors.textMuted} />
                         </TouchableOpacity>
                     )}

@@ -66,6 +66,8 @@ export function MasterMenuScreen() {
 
                         <View style={styles.headerActions}>
                             <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Notifications"
                                 style={styles.headerIconBtn}
                                 onPress={() => handleNavigate('Notifications')}
                                 activeOpacity={0.7}

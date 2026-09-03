@@ -224,6 +224,8 @@ export function ShopScreen() {
                             <View style={styles.headerRight}>
                                 {isAdmin && (
                                     <TouchableOpacity
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Add"
                                         style={styles.addButton}
                                         onPress={() => setShowAddModal(true)}
                                     >
@@ -258,7 +260,9 @@ export function ShopScreen() {
                                     onChangeText={setSearchQuery}
                                 />
                                 {searchQuery.length > 0 && (
-                                    <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                    <TouchableOpacity
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Close" onPress={() => setSearchQuery('')}>
                                         <MaterialIcons name="close" size={18} color={colors.textMuted} />
                                     </TouchableOpacity>
                                 )}
@@ -327,7 +331,9 @@ export function ShopScreen() {
                                                 )}
 
                                                 {/* Heart / Favorite Icon */}
-                                                <TouchableOpacity style={styles.heartButton} activeOpacity={0.7}>
+                                                <TouchableOpacity
+                                                    accessibilityRole="button"
+                                                    accessibilityLabel="Add to favourites" style={styles.heartButton} activeOpacity={0.7}>
                                                     <MaterialIcons name="favorite-border" size={18} color="#1A1A1A" />
                                                 </TouchableOpacity>
 
@@ -378,6 +384,8 @@ export function ShopScreen() {
 
                                                     {/* Add to Cart Button */}
                                                     <TouchableOpacity
+                                                        accessibilityRole="button"
+                                                        accessibilityLabel="Add"
                                                         style={[
                                                             styles.addToCartButton,
                                                             product.stock_count === 0 && styles.addToCartDisabled

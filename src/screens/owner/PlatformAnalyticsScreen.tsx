@@ -234,7 +234,9 @@ export function PlatformAnalyticsScreen() {
             <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialCommunityIcons name="chevron-left" size={28} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText variant="h2" style={styles.headerTitle}>Platform Analytics</MerakiText>

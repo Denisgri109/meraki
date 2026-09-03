@@ -486,7 +486,9 @@ export function PilatesTimetableScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <View style={{ flex: 1 }}>
@@ -1006,7 +1008,9 @@ export function PilatesTimetableScreen() {
                                         })}
                                     </Text>
                                 </View>
-                                <TouchableOpacity onPress={() => setEditingSession(null)} style={styles.modalClose}>
+                                <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close" onPress={() => setEditingSession(null)} style={styles.modalClose}>
                                     <MaterialIcons name="close" size={22} color={colors.text} />
                                 </TouchableOpacity>
                             </View>
@@ -1090,7 +1094,9 @@ export function PilatesTimetableScreen() {
                                     <Text style={styles.modalKicker}>EDIT WEEKLY CLASS</Text>
                                     <Text style={styles.modalTitle}>Class Slot Details</Text>
                                 </View>
-                                <TouchableOpacity onPress={() => setEditingTemplate(null)} style={styles.modalClose}>
+                                <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close" onPress={() => setEditingTemplate(null)} style={styles.modalClose}>
                                     <MaterialIcons name="close" size={22} color={colors.text} />
                                 </TouchableOpacity>
                             </View>
@@ -1204,7 +1210,9 @@ export function PilatesTimetableScreen() {
                                     <Text style={styles.modalKicker}>EDIT INSTRUCTOR</Text>
                                     <Text style={styles.modalTitle}>Instructor Profile</Text>
                                 </View>
-                                <TouchableOpacity onPress={() => setEditingHost(null)} style={styles.modalClose}>
+                                <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close" onPress={() => setEditingHost(null)} style={styles.modalClose}>
                                     <MaterialIcons name="close" size={22} color={colors.text} />
                                 </TouchableOpacity>
                             </View>

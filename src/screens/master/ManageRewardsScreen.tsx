@@ -296,7 +296,9 @@ export function ManageRewardsScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <View style={styles.headerRow}>
@@ -304,7 +306,9 @@ export function ManageRewardsScreen() {
                             <Text style={styles.title}>Rewards Library</Text>
                             <Text style={styles.subtitle}>Manage rewards for points & stamps</Text>
                         </View>
-                        <TouchableOpacity style={styles.addButton} onPress={() => openEditor()}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Add" style={styles.addButton} onPress={() => openEditor()}>
                             <MaterialCommunityIcons name="plus" size={24} color={colors.text} />
                         </TouchableOpacity>
                     </View>

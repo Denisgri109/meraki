@@ -56,7 +56,9 @@ export function ClientDirectoryScreen() {
             <ScreenBackground>
                 <SafeAreaView style={styles.container} edges={['top']}>
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={() => safeGoBack(navigation)} style={styles.backButton}>
                             <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                         </TouchableOpacity>
                         <MerakiText style={styles.title}>Clients</MerakiText>
@@ -108,11 +110,15 @@ export function ClientDirectoryScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => safeGoBack(navigation)} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText style={styles.title}>Clients</MerakiText>
-                    <TouchableOpacity onPress={() => navigation.navigate('ClientInvite')} style={styles.addButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Add person" onPress={() => navigation.navigate('ClientInvite')} style={styles.addButton}>
                         <MaterialIcons name="person-add" size={20} color="#fff" />
                     </TouchableOpacity>
                 </View>

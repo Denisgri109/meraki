@@ -635,7 +635,9 @@ export function MasterAppointmentsScreen() {
                             onChangeText={setSearchQuery}
                         />
                         {searchQuery.length > 0 && (
-                            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ marginRight: 8 }}>
+                            <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Clear" onPress={() => setSearchQuery('')} style={{ marginRight: 8 }}>
                                 <MaterialCommunityIcons name="close-circle" size={18} color={colors.textSecondary} />
                             </TouchableOpacity>
                         )}
@@ -643,7 +645,9 @@ export function MasterAppointmentsScreen() {
                         {/* Date Filter Button in Search Bar */}
                         <View style={{ flexDirection: 'row', alignItems: 'center', borderLeftWidth: 1, borderLeftColor: colors.border, paddingLeft: 10 }}>
                             {filterDate && (
-                                <TouchableOpacity onPress={() => setFilterDate(null)} style={{ marginRight: 4 }}>
+                                <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close" onPress={() => setFilterDate(null)} style={{ marginRight: 4 }}>
                                     <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
                                 </TouchableOpacity>
                             )}

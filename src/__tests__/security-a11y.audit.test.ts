@@ -111,6 +111,17 @@ describe('Security — auth session & logout hygiene', () => {
         expect(supa).toMatch(/detectSessionInUrl:\s*false/);
     });
 
+    it('the session is persisted to the Keychain/Keystore, not to AsyncStorage', () => {
+        const supa = read(path.join(SRC, 'lib', 'supabase.ts'));
+        expect(supa).toMatch(/storage:\s*secureStorageAdapter/);
+        // Importing AsyncStorage here again would mean the session had drifted back to
+        // unencrypted files; the adapter owns the only remaining use, for migration.
+        expect(supa).not.toMatch(/@react-native-async-storage/);
+
+        const adapter = read(path.join(SRC, 'lib', 'secureStorage.ts'));
+        expect(adapter).toMatch(/from 'expo-secure-store'/);
+    });
+
     it('app.json does not ship an embedded service-role key', () => {
         const appJson = read(path.join(APP_ROOT, 'app.json'));
         expect(appJson).not.toMatch(/service_role/i);
@@ -139,6 +150,45 @@ describe('Accessibility — existing labels are preserved (regression floor)', (
         expect(/accessibility(Label|Hint|Role|State)/.test(content)).toBe(true);
     });
 
+    it('no icon-only button is left without a label for a screen reader', () => {
+        // A TouchableOpacity whose only content is an icon announces nothing at all — a
+        // screen-reader user hears "button" with no indication of what it does. Buttons that
+        // contain text are fine; the text is read out.
+        const ICON = /<(MaterialIcons|MaterialCommunityIcons|Ionicons|Feather|FontAwesome\d?|AntDesign|Entypo)/;
+        const TEXT = /<(Text|MerakiText|EditableText)/;
+        const offenders: string[] = [];
+
+        for (const fp of SOURCE_FILES) {
+            if (!fp.endsWith('.tsx')) continue;
+            const content = read(fp);
+
+            for (const open of content.matchAll(/<TouchableOpacity/g)) {
+                const start = open.index!;
+                let depth = 0;
+                let i = start + '<TouchableOpacity'.length;
+                for (; i < content.length; i++) {
+                    const ch = content[i];
+                    if (ch === '{') depth++;
+                    else if (ch === '}') depth--;
+                    else if (ch === '>' && depth === 0) break;
+                }
+                const openTag = content.slice(start, i + 1);
+                if (openTag.includes('accessibilityLabel') || openTag.trimEnd().endsWith('/>')) continue;
+
+                const close = content.indexOf('</TouchableOpacity>', i);
+                if (close === -1) continue;
+
+                const body = content.slice(i + 1, close);
+                if (ICON.test(body) && !TEXT.test(body)) {
+                    const line = content.slice(0, start).split('\n').length;
+                    offenders.push(`${path.relative(SRC, fp)}:${line}`);
+                }
+            }
+        }
+
+        expect(offenders).toEqual([]);
+    });
+
     it('SafeBackButton (global back control) exposes an accessibilityLabel AND role=button', () => {
         const content = read(path.join(SRC, 'components', 'ui', 'SafeBackButton.tsx'));
         expect(content).toMatch(/accessibilityLabel\s*=/);
@@ -161,14 +211,6 @@ afterAll(() => {
         },
         findings: [
             {
-                id: 'SEC-AUTH-STORAGE',
-                severity: 'HIGH',
-                title: 'Supabase session persisted in AsyncStorage instead of SecureStore/Keychain',
-                location: 'src/lib/supabase.ts:11',
-                recommendation:
-                    'Swap the auth.storage adapter to an ExpoSecureStore-backed shim (SecureStore has a 2KB value limit — chunk the JWT) so refresh tokens live in Keychain/Keystore.',
-            },
-            {
                 id: 'SEC-BIOMETRIC',
                 severity: 'MEDIUM',
                 title: 'No biometric app-unlock (expo-local-authentication absent from package.json)',
@@ -177,10 +219,10 @@ afterAll(() => {
             },
             {
                 id: 'A11Y-COVERAGE',
-                severity: 'MEDIUM',
+                severity: 'LOW',
                 title: `${a11y.length}/${SOURCE_FILES.length} source files declare accessibility props`,
                 recommendation:
-                    'Every icon-only TouchableOpacity and primary CTA needs accessibilityLabel/accessibilityRole; minimum touch target 44x44.',
+                    'Every icon-only TouchableOpacity is now labelled and the shared Button announces its title, both pinned by tests above. Remaining work is touch-target sizing (44x44) and a pass with VoiceOver/TalkBack on a device.',
             },
         ],
     };

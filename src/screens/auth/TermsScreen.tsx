@@ -26,6 +26,8 @@ export const TermsScreen = ({ navigation }: TermsScreenProps) => {
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
                     <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back"
                         onPress={() => navigation.goBack()}
                         style={styles.backButton}
                     >

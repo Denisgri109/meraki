@@ -966,6 +966,8 @@ export function AppointmentListScreen() {
                                         {canModify && (
                                             <View style={styles.actionButtons}>
                                                 <TouchableOpacity
+                                                    accessibilityRole="button"
+                                                    accessibilityLabel="Messages"
                                                     style={styles.chatButton}
                                                     onPress={() => handleChat(apt)}
                                                 >

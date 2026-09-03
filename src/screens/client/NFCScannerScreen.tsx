@@ -266,7 +266,9 @@ export function NFCScannerScreen() {
                 <SafeAreaView style={styles.container}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                             <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>NFC Simulator</Text>
@@ -395,7 +397,9 @@ export function NFCScannerScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Scan NFC Tag</Text>

@@ -314,7 +314,9 @@ export function OwnerFinanceScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <View style={{ flex: 1 }}>
@@ -511,7 +513,9 @@ export function OwnerFinanceScreen() {
                         <View style={styles.modalSheet}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>Refund payment</Text>
-                                <TouchableOpacity onPress={() => setRefundTarget(null)} disabled={refundProcessing} style={styles.closeButton}>
+                                <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close" onPress={() => setRefundTarget(null)} disabled={refundProcessing} style={styles.closeButton}>
                                     <MaterialIcons name="close" size={18} color={colors.textSecondary} />
                                 </TouchableOpacity>
                             </View>

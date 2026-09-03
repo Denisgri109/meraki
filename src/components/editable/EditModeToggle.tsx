@@ -11,6 +11,9 @@ export function EditModeToggle() {
 
     return (
         <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={isEditMode ? 'Finish editing this page' : 'Edit this page'}
+            accessibilityState={{ selected: isEditMode }}
             style={[
                 styles.container,
                 isEditMode ? styles.active : styles.inactive,

@@ -243,12 +243,16 @@ export function CourseEditorScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText variant="h3" style={styles.headerTitle}>{isNew ? 'New Course' : 'Edit Course'}</MerakiText>
                     {!isNew && (
-                        <TouchableOpacity onPress={() => setDeleteModalVisible(true)}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Delete" onPress={() => setDeleteModalVisible(true)}>
                             <MaterialCommunityIcons name="delete" size={24} color={colors.error} />
                         </TouchableOpacity>
                     )}
@@ -334,7 +338,9 @@ export function CourseEditorScreen() {
                                         <MerakiText variant="body" style={styles.chapterTitle}>
                                             Chapter {idx + 1}: {chapter.title}
                                         </MerakiText>
-                                        <TouchableOpacity onPress={() => deleteChapter(chapter.id)}>
+                                        <TouchableOpacity
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Close" onPress={() => deleteChapter(chapter.id)}>
                                             <MaterialCommunityIcons name="close" size={16} color={colors.textMuted} />
                                         </TouchableOpacity>
                                     </View>

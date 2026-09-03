@@ -1,18 +1,11 @@
 {
-  "generatedAt": "2026-09-03T22:56:04.929Z",
+  "generatedAt": "2026-09-03T23:04:26.560Z",
   "totals": {
-    "sourceFilesScanned": 201,
-    "filesWithAccessibilityProps": 9,
-    "accessibilityCoveragePct": 4.5
+    "sourceFilesScanned": 202,
+    "filesWithAccessibilityProps": 93,
+    "accessibilityCoveragePct": 46
   },
   "findings": [
-    {
-      "id": "SEC-AUTH-STORAGE",
-      "severity": "HIGH",
-      "title": "Supabase session persisted in AsyncStorage instead of SecureStore/Keychain",
-      "location": "src/lib/supabase.ts:11",
-      "recommendation": "Swap the auth.storage adapter to an ExpoSecureStore-backed shim (SecureStore has a 2KB value limit — chunk the JWT) so refresh tokens live in Keychain/Keystore."
-    },
     {
       "id": "SEC-BIOMETRIC",
       "severity": "MEDIUM",
@@ -21,9 +14,9 @@
     },
     {
       "id": "A11Y-COVERAGE",
-      "severity": "MEDIUM",
-      "title": "9/201 source files declare accessibility props",
-      "recommendation": "Every icon-only TouchableOpacity and primary CTA needs accessibilityLabel/accessibilityRole; minimum touch target 44x44."
+      "severity": "LOW",
+      "title": "93/202 source files declare accessibility props",
+      "recommendation": "Every icon-only TouchableOpacity is now labelled and the shared Button announces its title, both pinned by tests above. Remaining work is touch-target sizing (44x44) and a pass with VoiceOver/TalkBack on a device."
     }
   ]
 }

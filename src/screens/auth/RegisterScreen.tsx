@@ -214,6 +214,8 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                         {/* Header */}
                         <View style={styles.header}>
                             <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Go back"
                                 style={styles.backButton}
                                 onPress={() => navigation.goBack()}
                             >
@@ -377,7 +379,9 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
                                     variant="glass"
                                     leftIcon={<MaterialIcons name="lock-outline" size={20} color="rgba(0, 0, 0, 0.25)" />}
                                     rightIcon={
-                                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                        <TouchableOpacity
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Show or hide password" onPress={() => setShowPassword(!showPassword)}>
                                             <MaterialIcons
                                                 name={showPassword ? 'visibility' : 'visibility-off'}
                                                 size={20}

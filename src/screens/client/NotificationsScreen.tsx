@@ -337,13 +337,20 @@ export function NotificationsScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back"
                         style={styles.backBtn}
                         onPress={handleBack}
                     >
                         <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                     </TouchableOpacity>
                     <MerakiText style={styles.headerTitle}>Notifications</MerakiText>
-                    <TouchableOpacity style={styles.settingsBtn} onPress={() => setShowSettings(!showSettings)}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={showSettings ? 'Close notification settings' : 'Notification settings'}
+                        style={styles.settingsBtn}
+                        onPress={() => setShowSettings(!showSettings)}
+                    >
                         <MaterialIcons name={showSettings ? 'close' : 'settings'} size={20} color="rgba(0, 0, 0, 0.40)" />
                     </TouchableOpacity>
                 </View>

@@ -309,7 +309,9 @@ export function NfcPairingModal({ visible, onClose, masterId }: NfcPairingModalP
                 <SafeAreaView style={styles.container} edges={['top']}>
                     {/* Standardized header with back button */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={handleClose} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={handleClose} style={styles.backButton}>
                             <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                         </TouchableOpacity>
                         <View>

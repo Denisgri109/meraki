@@ -73,6 +73,8 @@ export function EditableImage({
                 </View>
                 {/* Edit button */}
                 <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Edit"
                     style={styles.replaceButton}
                     onPress={() => setModalVisible(true)}
                     activeOpacity={0.8}
@@ -81,6 +83,8 @@ export function EditableImage({
                 </TouchableOpacity>
                 {hasCustom && (
                     <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Restore default"
                         style={styles.resetButton}
                         onPress={handleReset}
                         activeOpacity={0.8}
@@ -103,6 +107,8 @@ export function EditableImage({
                             <MaterialIcons name="photo-library" size={24} color={colors.textSecondary} />
                             <Text style={styles.modalTitle}>Replace Image</Text>
                             <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Close"
                                 onPress={() => setModalVisible(false)}
                                 style={styles.closeButton}
                             >

@@ -182,7 +182,9 @@ export function ConsultationWaitingScreen() {
             <ScreenBackground>
                 <SafeAreaView style={styles.container}>
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={handleGoBack} style={styles.backButton}>
                             <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                     </View>
@@ -213,7 +215,9 @@ export function ConsultationWaitingScreen() {
                 >
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={handleGoBack} style={styles.backButton}>
                             <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                     </View>

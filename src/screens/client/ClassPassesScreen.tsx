@@ -141,7 +141,9 @@ export function ClassPassesScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialIcons name="arrow-back" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <View style={{ flex: 1 }}>
@@ -314,6 +316,8 @@ export function ClassPassesScreen() {
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>Buy pass</Text>
                                 <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Close"
                                     onPress={() => setBuyingPackage(null)}
                                     disabled={paying}
                                     style={styles.closeButton}

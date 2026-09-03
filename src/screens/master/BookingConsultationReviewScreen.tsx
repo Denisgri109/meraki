@@ -422,6 +422,8 @@ export function BookingConsultationReviewScreen() {
                                 </MerakiText>
                             </View>
                             <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Close"
                                 onPress={() => setSelectedConsultation(null)}
                                 style={styles.closeButton}
                             >
@@ -550,7 +552,9 @@ export function BookingConsultationReviewScreen() {
                                     contentContainerStyle={{ gap: 10 }}
                                 >
                                     {selectedConsultation.photo_urls!.map((url, idx) => (
-                                        <TouchableOpacity key={idx} activeOpacity={0.8} onPress={() => setFullScreenPhoto(url)}>
+                                        <TouchableOpacity
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Zoom in" key={idx} activeOpacity={0.8} onPress={() => setFullScreenPhoto(url)}>
                                             <Image
                                                 source={{ uri: url }}
                                                 style={styles.modalPhoto}
@@ -680,7 +684,9 @@ export function BookingConsultationReviewScreen() {
             <SafeAreaView style={styles.container} edges={['top']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backBtn}>
                         <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
                     </TouchableOpacity>
                     <View style={styles.headerCenter}>
@@ -767,12 +773,16 @@ export function BookingConsultationReviewScreen() {
                     onRequestClose={() => setFullScreenPhoto(null)}
                 >
                     <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Close"
                         style={styles.fullScreenOverlay}
                         activeOpacity={1}
                         onPress={() => setFullScreenPhoto(null)}
                     >
                         <View style={styles.fullScreenHeader}>
                             <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Close"
                                 onPress={() => setFullScreenPhoto(null)}
                                 style={styles.fullScreenCloseBtn}
                             >

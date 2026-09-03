@@ -164,7 +164,9 @@ export function MasterDetailScreen({ navigation, route }: MasterDetailScreenProp
                 <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={goBack} style={styles.backButton}>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back" onPress={goBack} style={styles.backButton}>
                             <MaterialIcons name="arrow-back" size={22} color="rgba(0, 0, 0, 0.55)" />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>Portfolio</Text>
@@ -335,6 +337,8 @@ export function MasterDetailScreen({ navigation, route }: MasterDetailScreenProp
                         {/* Close Button */}
                         <SafeAreaView edges={['top']} style={styles.modalHeader}>
                             <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Close"
                                 onPress={() => setImageViewerVisible(false)}
                                 style={styles.modalCloseButton}
                             >

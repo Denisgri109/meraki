@@ -209,6 +209,8 @@ export function MyServicesScreen() {
                         />
                         {item.category !== 'Pilates' && (
                             <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Edit"
                                 onPress={() => (navigation as any).navigate('CreateService', { service: item })}
                                 style={styles.editButton}
                             >
@@ -216,6 +218,8 @@ export function MyServicesScreen() {
                             </TouchableOpacity>
                         )}
                         <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Delete"
                             onPress={() => handleDelete(item)}
                             style={styles.deleteButton}
                         >
@@ -268,11 +272,15 @@ export function MyServicesScreen() {
         <ScreenBackground>
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backButton}>
                         <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
                     <MerakiText variant="h2">My Services</MerakiText>
                     <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel="Add"
                         onPress={() => (navigation as any).navigate('CreateService')}
                         style={styles.addButton}
                     >
