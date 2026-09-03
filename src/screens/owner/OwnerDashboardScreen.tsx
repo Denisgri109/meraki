@@ -504,7 +504,7 @@ export function OwnerDashboardScreen() {
                             <DashboardButton icon="room-service" label="Services" onPress={() => navigation.navigate('MyServices')} color="#60A5FA" />
                             <DashboardButton icon="clock-check" label="Availability" onPress={() => navigation.navigate('Availability')} color="#F472B6" />
                             <DashboardButton icon="ticket-confirmation" label="Loyalty" onPress={() => navigation.navigate('LoyaltyCardBuilder')} color="#FBBF24" />
-                            <DashboardButton icon="cog" label="Settings" onPress={() => navigation.navigate('Settings')} color="#94A3B8" />
+                            <DashboardButton icon="cog" label="Settings" onPress={() => navigation.navigate('BusinessSettings')} color="#94A3B8" />
                         </View>
                     </View>
 

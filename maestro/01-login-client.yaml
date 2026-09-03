@@ -6,10 +6,10 @@ appId: ${APP_ID}
 - assertVisible: "name@example.com"
 - inputText:
     text: "${TEST_EMAIL}"
-    id: "login-email" # TODO: add testID="login-email" on the email Input (LoginScreen.tsx:86)
+    id: "login-email"
 - inputText:
     text: "${TEST_PASSWORD}"
-    id: "login-password" # TODO: add testID="login-password" (LoginScreen.tsx:100)
+    id: "login-password"
 - tapOn: "Login"
 - # Client shell lands on client Home tab — dashboard greeting must render
 - assertVisible:

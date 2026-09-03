@@ -92,6 +92,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
                             <View style={styles.inputGroup}>
                                 <MerakiText style={styles.label}>EMAIL ADDRESS</MerakiText>
                                 <Input
+                                    testID="login-email"
                                     value={email}
                                     onChangeText={setEmail}
                                     keyboardType="email-address"
@@ -106,6 +107,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
                             <View style={styles.inputGroup}>
                                 <MerakiText style={styles.label}>PASSWORD</MerakiText>
                                 <Input
+                                    testID="login-password"
                                     value={password}
                                     onChangeText={setPassword}
                                     secureTextEntry={!showPassword}

@@ -108,6 +108,7 @@ export function MasterMenuScreen() {
 
                             { icon: 'card-giftcard', label: 'Loyalty Cards', route: 'LoyaltyCardBuilder' },
                             { icon: 'block', label: 'Blocked Slots', route: 'BlockedSlots' },
+                            { icon: 'local-shipping', label: 'Supplies', route: 'Supplies' },
                             { icon: 'photo-camera', label: 'Photo Consultations', route: 'PhotoConsultations' },
                             { icon: 'chat', label: 'Booking Consultations', route: 'BookingConsultations' },
                             { icon: 'qr-code', label: 'QR Payments', route: 'QrPayments' },

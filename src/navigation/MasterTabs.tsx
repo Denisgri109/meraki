@@ -130,6 +130,8 @@ export type MenuStackParamList = {
     TermsOfService: undefined;
     PrivacyPolicy: undefined;
     CreateService: { service?: any } | undefined;
+    Supplies: undefined;
+    AddSupply: { supply?: any } | undefined;
     ServiceSupplies: { serviceId?: string } | undefined;
     QrPayments: undefined;
 };
@@ -158,6 +160,12 @@ function MenuStackNavigator() {
             <MenuStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
             <MenuStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
             <MenuStack.Screen name="CreateService" component={CreateServiceScreen} />
+            {/* SuppliesScreen and AddSupplyScreen were imported here but never registered,
+                so the master's stock list was unreachable and its three "add supply" buttons
+                navigated to a route that did not exist. The website has offered masters the
+                same master_supplies management all along. */}
+            <MenuStack.Screen name="Supplies" component={SuppliesScreen} />
+            <MenuStack.Screen name="AddSupply" component={AddSupplyScreen} />
             <MenuStack.Screen name="ServiceSupplies" component={ServiceSuppliesScreen} />
             <MenuStack.Screen name="QrPayments" component={QrPaymentsScreen} />
         </MenuStack.Navigator>
