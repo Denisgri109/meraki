@@ -187,9 +187,17 @@ export function PilatesWaiverSheet({ visible, onSigned, onDismiss }: PilatesWaiv
     const renderCheckbox = (
         checked: boolean,
         onToggle: () => void,
-        label: React.ReactNode
+        label: React.ReactNode,
+        testID?: string
     ) => (
-        <TouchableOpacity style={styles.checkboxRow} onPress={onToggle} activeOpacity={0.7}>
+        <TouchableOpacity
+            testID={testID}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked }}
+            style={styles.checkboxRow}
+            onPress={onToggle}
+            activeOpacity={0.7}
+        >
             <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
                 {checked && <MaterialIcons name="check" size={14} color="#FFFFFF" />}
             </View>
@@ -426,6 +434,7 @@ export function PilatesWaiverSheet({ visible, onSigned, onDismiss }: PilatesWaiv
                                 'Contact Name',
                                 <>
                                     <TextInput
+                                        testID="waiver-emergency-name"
                                         style={[styles.input, submitAttempted && errors.emergencyContactName && styles.inputError]}
                                         value={emergencyContactName}
                                         onChangeText={setEmergencyContactName}
@@ -454,6 +463,7 @@ export function PilatesWaiverSheet({ visible, onSigned, onDismiss }: PilatesWaiv
                                 'Contact Phone',
                                 <>
                                     <TextInput
+                                        testID="waiver-emergency-phone"
                                         style={[styles.input, submitAttempted && errors.emergencyContactPhone && styles.inputError]}
                                         value={emergencyContactPhone}
                                         onChangeText={setEmergencyContactPhone}
@@ -485,7 +495,8 @@ export function PilatesWaiverSheet({ visible, onSigned, onDismiss }: PilatesWaiv
                                         General Terms of Use
                                     </Text>
                                     . <Text style={styles.requiredStar}>*</Text>
-                                </>
+                                </>,
+                                'waiver-agree-terms'
                             )}
                             {renderFieldError(errors.agreedTermsOfUse, 'You must agree to the Terms of Use to continue.')}
                         </View>
@@ -509,7 +520,8 @@ export function PilatesWaiverSheet({ visible, onSigned, onDismiss }: PilatesWaiv
                                 <>
                                     I understand and agree to the above terms.{' '}
                                     <Text style={styles.requiredStar}>*</Text>
-                                </>
+                                </>,
+                                'waiver-agree-liability'
                             )}
                             {renderFieldError(errors.agreedLiabilityWaiver, 'You must agree to the liability waiver to continue.')}
                         </View>
@@ -528,6 +540,9 @@ export function PilatesWaiverSheet({ visible, onSigned, onDismiss }: PilatesWaiv
                     {/* Footer */}
                     <View style={styles.footer}>
                         <TouchableOpacity
+                            testID="waiver-submit"
+                            accessibilityRole="button"
+                            accessibilityLabel="Sign and continue"
                             style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
                             onPress={handleSubmit}
                             disabled={submitting}

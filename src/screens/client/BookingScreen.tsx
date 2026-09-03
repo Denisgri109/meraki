@@ -235,6 +235,10 @@ export function BookingScreen({ navigation }: BookingScreenProps) {
                                     return (
                                         <TouchableOpacity
                                             key={service.id}
+                                            testID={`service-${(service.category || 'other').toLowerCase()}-${service.name
+                                                .toLowerCase()
+                                                .replace(/[^a-z0-9]+/g, '-')
+                                                .replace(/^-|-$/g, '')}`}
                                             onPress={() => navigation.navigate('ServiceDetail', { serviceId: service.id })}
                                             activeOpacity={0.85}
                                             style={styles.serviceCardWrapper}

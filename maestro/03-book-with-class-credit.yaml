@@ -17,5 +17,5 @@ appId: ${APP_ID}
 - tapOn: "Book with 1 Class Credit"
 - # No card sheet must appear — the redeem_class_credit RPC books directly
 - assertNotVisible:
-    id: "card-field" # TODO: instrument Stripe CardField
+    id: "card-field"
 - assertVisible: "Booking Confirmed" # final success copy on confirm/success screen

@@ -14,20 +14,20 @@ appId: ${APP_ID}
 - tapOn: "QR Payments"
 - # Owner CRUD: add a payload-based code
 - tapOn:
-    id: "qr-pay-add" # TODO
+    id: "qr-pay-add"
 - inputText:
-    id: "qr-pay-provider-name" # TODO
+    id: "qr-pay-provider-name"
     text: "Revolut E2E"
 - inputText:
-    id: "qr-pay-payload" # TODO
+    id: "qr-pay-payload"
     text: "revolut://pay?test=1"
 - tapOn:
-    id: "qr-pay-save" # TODO
+    id: "qr-pay-save"
 - assertVisible: "Revolut E2E"
 - # Deactivate it so instructors stop seeing it
 - tapOn:
-    id: "qr-pay-toggle-active" # TODO
+    id: "qr-pay-toggle-active"
 - # Cleanup: delete the code to keep the flow idempotent
 - tapOn:
-    id: "qr-pay-delete" # TODO
+    id: "qr-pay-delete"
 - tapOn: "Confirm"

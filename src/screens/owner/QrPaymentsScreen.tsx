@@ -224,7 +224,7 @@ export function QrPaymentsScreen() {
                         </Text>
                     </View>
                     {isOwner && (
-                        <TouchableOpacity style={styles.createButton} onPress={openCreate}>
+                        <TouchableOpacity testID="qr-pay-add" style={styles.createButton} onPress={openCreate}>
                             <MaterialIcons name="add" size={18} color="#FFF" />
                             <Text style={styles.createButtonText}>Add</Text>
                         </TouchableOpacity>
@@ -261,6 +261,7 @@ export function QrPaymentsScreen() {
                                         <View style={styles.codeActions}>
                                             <TouchableOpacity
                                                 style={[styles.smallButton, code.is_active ? styles.toggleOff : styles.toggleOn]}
+                                                testID="qr-pay-toggle-active"
                                                 onPress={() => handleToggle(code)}
                                             >
                                                 <Text style={[styles.smallButtonText, code.is_active ? styles.toggleOffText : styles.toggleOnText]}>
@@ -273,7 +274,7 @@ export function QrPaymentsScreen() {
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 accessibilityRole="button"
-                                                accessibilityLabel="Delete" style={styles.deleteButton} onPress={() => handleDelete(code)}>
+                                                accessibilityLabel="Delete" testID="qr-pay-delete" style={styles.deleteButton} onPress={() => handleDelete(code)}>
                                                 <MaterialIcons name="delete-outline" size={15} color="#EF4444" />
                                             </TouchableOpacity>
                                         </View>
@@ -333,6 +334,7 @@ export function QrPaymentsScreen() {
                                 <Text style={styles.label}>PROVIDER NAME *</Text>
                                 <TextInput
                                     style={styles.input}
+                                    testID="qr-pay-provider-name"
                                     value={providerName}
                                     onChangeText={setProviderName}
                                     placeholder="Revolut, Bizum, Bank Transfer..."
@@ -375,6 +377,7 @@ export function QrPaymentsScreen() {
                                     <View style={styles.sourceBody}>
                                         <TextInput
                                             style={styles.input}
+                                            testID="qr-pay-payload"
                                             value={payload}
                                             onChangeText={setPayload}
                                             placeholder="IBAN, payment link, or payload text to encode as QR"
@@ -404,6 +407,7 @@ export function QrPaymentsScreen() {
 
                                 <TouchableOpacity
                                     style={[styles.submitButton, saving && { opacity: 0.6 }]}
+                                    testID="qr-pay-save"
                                     onPress={handleSave}
                                     disabled={saving}
                                 >

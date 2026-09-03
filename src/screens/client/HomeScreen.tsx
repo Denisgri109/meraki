@@ -609,7 +609,7 @@ export function ClientHomeScreen() {
                     contentContainerStyle={styles.scrollContent}
                 >
                     {/* Header */}
-                    <View style={styles.header}>
+                    <View testID="client-home-header" style={styles.header}>
                         <View>
                             <MerakiText style={styles.greeting}>{getGreeting()},</MerakiText>
                             <MerakiText style={styles.userName}>{profile?.full_name?.split(' ')[0] || 'Guest'}</MerakiText>

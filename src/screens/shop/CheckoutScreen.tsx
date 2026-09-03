@@ -432,6 +432,7 @@ export function CheckoutScreen() {
                                     <>
                                         <View style={styles.voucherInputRow}>
                                             <TextInput
+                                                testID="voucher-code-input"
                                                 style={[styles.fieldInput, styles.voucherInput]}
                                                 placeholder="VOUCHER CODE"
                                                 placeholderTextColor={colors.textMuted}
@@ -441,6 +442,9 @@ export function CheckoutScreen() {
                                                 editable={!loading && !voucherChecking}
                                             />
                                             <TouchableOpacity
+                                                testID="voucher-apply"
+                                                accessibilityRole="button"
+                                                accessibilityLabel="Apply voucher"
                                                 style={[styles.voucherApplyButton, (voucherChecking || loading) && { opacity: 0.6 }]}
                                                 onPress={handleApplyVoucher}
                                                 disabled={voucherChecking || loading}
@@ -662,13 +666,14 @@ export function CheckoutScreen() {
                             <Text style={styles.footerValue}>€{shippingCost.toFixed(2)}</Text>
                         </View>
                         {appliedVoucher && (
-                            <View style={styles.footerRow}>
+                            <View testID="checkout-discount-line" style={styles.footerRow}>
                                 <Text style={styles.footerLabel}>Voucher {appliedVoucher.code}</Text>
                                 <Text style={[styles.footerValue, { color: '#059669' }]}>-€{voucherDiscountEuros.toFixed(2)}</Text>
                             </View>
                         )}
                     </View>
                     <Button
+                        testID="checkout-pay"
                         title={loading ? 'Processing...' : `Pay €${effectiveTotal.toFixed(2)}`}
                         onPress={handlePlaceOrder}
                         fullWidth

@@ -476,10 +476,17 @@ export function SelectDateTimeScreen({ navigation, route }: SelectDateTimeScreen
                                     const available = isSlotAvailable(slot);
                                     const isSelected = selectedTime &&
                                         format(selectedTime, 'HH:mm') === timeStr;
+                                    // The first bookable slot carries a stable id so an
+                                    // end-to-end flow can pick a time without knowing the
+                                    // studio's hours.
+                                    const isFirstAvailable =
+                                        available && timeSlots.findIndex(isSlotAvailable) ===
+                                        timeSlots.indexOf(slot);
 
                                     return (
                                         <TouchableOpacity
                                             key={timeStr}
+                                            testID={isFirstAvailable ? 'timeslot-first-available' : undefined}
                                             style={[
                                                 styles.timeSlot,
                                                 (!available || isFetchingSlots) && styles.timeSlotUnavailable,

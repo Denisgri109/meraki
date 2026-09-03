@@ -403,7 +403,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
 
     return (
         <ScreenBackground>
-            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+            <SafeAreaView testID="booking-confirm-screen" style={styles.container} edges={['top', 'bottom']}>
                 <ScrollView style={styles.scrollView}>
                     {/* Header */}
                     <View style={styles.header}>
@@ -681,6 +681,7 @@ export function BookingConfirmScreen({ navigation, route }: BookingConfirmScreen
                                 {showNewCard && (
                                     <View style={styles.newCardContainer}>
                                         <CardField
+                                            testID="card-field"
                                             postalCodeEnabled={false}
                                             placeholders={{
                                                 number: '4242 4242 4242 4242',

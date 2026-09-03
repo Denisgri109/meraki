@@ -1,7 +1,16 @@
 appId: com.meraki.app
 ---
+# Smoke check: the app launches and the sign-in form is usable.
+# Requires: TEST_EMAIL / TEST_PASSWORD env pointing at any seeded account.
+#
+# The fuller role-landing check lives in 01-login-client.yaml; this one only proves the
+# bundle boots and the form accepts input.
 - launchApp
-- assertVisible: "Sign in"
+- assertVisible: "SIGN IN"
 - inputText:
-    id: "email-input"
+    id: "login-email"
     text: "${TEST_EMAIL}"
+- inputText:
+    id: "login-password"
+    text: "${TEST_PASSWORD}"
+- tapOn: "SIGN IN"

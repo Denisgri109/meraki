@@ -2,6 +2,8 @@ appId: ${APP_ID}
 ---
 # Tier 3 — Flow 1: Auth -> role-based shell landing.
 # Requires: TEST_EMAIL / TEST_PASSWORD env pointing at a seeded CLIENT account.
+# All testIDs below are instrumented; the only thing still blocking a run is the seeded
+# accounts themselves (the studio database has 5 clients, 1 owner and no master).
 - launchApp
 - assertVisible: "name@example.com"
 - inputText:
@@ -13,4 +15,4 @@ appId: ${APP_ID}
 - tapOn: "Login"
 - # Client shell lands on client Home tab — dashboard greeting must render
 - assertVisible:
-    id: "client-home-header" # TODO: instrument client HomeScreen header
+    id: "client-home-header"

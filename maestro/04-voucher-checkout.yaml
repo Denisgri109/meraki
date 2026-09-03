@@ -5,17 +5,17 @@ appId: ${APP_ID}
 - runFlow: 01-login-client.yaml
 - tapOn: "Shop"
 - tapOn:
-    id: "product-card-first" # TODO: instrument product card list
+    id: "product-card-first"
 - tapOn: "Add to Cart"
 - tapOn: "Checkout"
 - inputText:
-    id: "voucher-code-input" # TODO
+    id: "voucher-code-input"
     text: "${TEST_VOUCHER}"
 - tapOn:
-    id: "voucher-apply" # TODO
+    id: "voucher-apply"
 - # Discount line must materialise and total must drop
 - assertVisible:
-    id: "checkout-discount-line" # TODO
+    id: "checkout-discount-line"
 - tapOn:
-    id: "checkout-pay" # TODO
+    id: "checkout-pay"
 - assertVisible: "Order Confirmed" # order success copy

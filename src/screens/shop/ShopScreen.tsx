@@ -306,9 +306,10 @@ export function ShopScreen() {
 
                         {filteredProducts.length > 0 ? (
                             <View style={styles.productsGrid}>
-                                {filteredProducts.map((product) => (
+                                {filteredProducts.map((product, productIndex) => (
                                     <TouchableOpacity
                                         key={product.id}
+                                        testID={productIndex === 0 ? 'product-card-first' : undefined}
                                         style={styles.productCardWrapper}
                                         onPress={() => navigation.navigate('ProductDetail', { productId: product.id, product })}
                                         activeOpacity={0.9}

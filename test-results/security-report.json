@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-09-03T23:04:26.560Z",
+  "generatedAt": "2026-09-03T23:10:38.095Z",
   "totals": {
     "sourceFilesScanned": 202,
-    "filesWithAccessibilityProps": 93,
-    "accessibilityCoveragePct": 46
+    "filesWithAccessibilityProps": 94,
+    "accessibilityCoveragePct": 46.5
   },
   "findings": [
     {
@@ -15,7 +15,7 @@
     {
       "id": "A11Y-COVERAGE",
       "severity": "LOW",
-      "title": "93/202 source files declare accessibility props",
+      "title": "94/202 source files declare accessibility props",
       "recommendation": "Every icon-only TouchableOpacity is now labelled and the shared Button announces its title, both pinned by tests above. Remaining work is touch-target sizing (44x44) and a pass with VoiceOver/TalkBack on a device."
     }
   ]
